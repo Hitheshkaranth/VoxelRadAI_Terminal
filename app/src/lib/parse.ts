@@ -237,6 +237,11 @@ function direct(x: number, y: number, w: number, h: number): BBox | undefined {
   return { x: round6(nx), y: round6(ny), w: round6(nw), h: round6(nh) }
 }
 
+const DEVICE_RX = /pacemaker|defibrillator|\bicd\b|\blead(s)?\b|catheter|picc|port-?a-?cath|\bport\b|central (venous )?line|\bline\b|endotracheal|\bet tube|tracheostomy|nasogastric|\bng tube|feeding tube|chest (tube|drain)|sternotomy|surgical clip|\bclips?\b|\bwires?\b|prosthe|hardware|stent|valve replacement|monitoring lead|electrode/i
+function isDevice(title: string, category: string): boolean {
+  return /device|line|tube|hardware/i.test(category) || DEVICE_RX.test(title)
+}
+
 function normalizeFinding(raw: unknown, index: number): Finding {
   if (!isObject(raw)) {
     return {
@@ -249,15 +254,21 @@ function normalizeFinding(raw: unknown, index: number): Finding {
       category: '',
     }
   }
+  const title = asString(raw.title, `Finding ${index + 1}`)
+  const category = asString(raw.category)
+  let severity = mapSeverity(raw.severity)
+  // Support devices in a satisfactory position are not pathology: the model tends to report them as
+  // "minor", which inflates abnormal counts and urgency. Malpositioned devices (moderate+) keep their severity.
+  if (severity === 'minor' && isDevice(title, category)) severity = 'normal'
   return {
     id: uid(),
-    title: asString(raw.title, `Finding ${index + 1}`),
+    title,
     description: asString(raw.description),
-    severity: mapSeverity(raw.severity),
+    severity,
     confidence: asConfidence(raw.confidence),
     location: asString(raw.location),
     bbox: toBBox(raw.box_2d ?? raw.bbox),
-    category: asString(raw.category),
+    category: category || (isDevice(title, '') ? 'Devices' : ''),
     recommendation: asString(raw.recommendation),
   }
 }

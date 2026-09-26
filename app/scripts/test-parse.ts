@@ -114,6 +114,18 @@ eq('report recommendations', r.recommendations, 'Consult surgery\nFollow-up CXR 
 const emptyReport = normalizeReport(null)
 eq('report fallback comparison', emptyReport.comparison, 'None available.')
 
+// ---- devices ------------------------------------------------------------------
+const dev = normalizeAnalysis({ findings: [
+  { title: 'Pacemaker', severity: 'minor', category: 'Devices' },
+  { title: 'Central venous catheter', severity: 'minor' },
+  { title: 'Endotracheal tube too low, in right mainstem bronchus', severity: 'significant', category: 'Devices' },
+  { title: 'Right lower lobe consolidation', severity: 'minor', category: 'Lungs' },
+] }, meta)
+eq('device minor → normal', dev.findings.find((f) => f.title === 'Pacemaker')?.severity, 'normal')
+eq('device inferred category', dev.findings.find((f) => f.title === 'Central venous catheter')?.category, 'Devices')
+eq('malpositioned device keeps severity', dev.findings.find((f) => f.title.startsWith('Endotracheal'))?.severity, 'significant')
+eq('non-device minor unchanged', dev.findings.find((f) => f.title.startsWith('Right lower'))?.severity, 'minor')
+
 // ---- lung-pattern merge -------------------------------------------------------
 const chestNormal = normalizeAnalysis({ bodyPart: 'Chest', impression: 'Normal chest radiograph.', findings: [{ title: 'Normal study', severity: 'normal' }] }, meta)
 eq('pattern parse', parseLungPattern({ grade: '2', evidence: 'x' }), { grade: 2, evidence: 'x' })

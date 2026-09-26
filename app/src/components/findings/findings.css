@@ -457,3 +457,13 @@
   font: 500 var(--text-caption) / 1 var(--font-sans);
 }
 .fd-inner { overflow-wrap: anywhere; }
+
+/* Benchmark reliability of this kind of finding (the model's own confidence is uncalibrated). */
+.fd-rel {
+  margin-top: var(--sp-2);
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: var(--text-caption); line-height: 1.35; color: var(--label-2);
+}
+.fd-rel svg { width: 13px; height: 13px; flex: none; margin-top: 1px; color: var(--label-3); }
+.fd-rel--weak { color: color-mix(in srgb, var(--orange) 80%, var(--label)); font-weight: 500; }
+.fd-rel--weak svg { color: var(--orange); }

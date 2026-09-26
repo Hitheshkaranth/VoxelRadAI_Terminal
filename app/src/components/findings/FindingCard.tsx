@@ -3,7 +3,8 @@ import { useCallback } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { Finding } from '../../types'
 import { SEVERITY_LABEL } from '../../types'
-import { Check, CheckCircle2, Cloud, Crop } from 'lucide-react'
+import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop } from 'lucide-react'
+import { BENCHMARK, reliabilityFor } from '../../lib/reliability'
 import './findings.css'
 
 interface Props {
@@ -35,6 +36,7 @@ export function FindingCard({
   buttonRef,
 }: Props) {
   const localized = finding.bbox != null && (finding.bbox.w ?? 0) > 0
+  const rel = reliabilityFor(finding)
 
   const onPointerEnter = useCallback(() => onHover(finding.id), [onHover, finding.id])
   const onPointerLeave = useCallback(() => onHover(null), [onHover])
@@ -71,13 +73,22 @@ export function FindingCard({
         {[finding.location, finding.category].filter(Boolean).join(' · ') || '—'}
       </div>
 
-      <div className="fd-conf" aria-label={`Confidence ${Math.round(finding.confidence * 100)}%`}>
-        <span className="fd-conf-label">Confidence</span>
+      <div className="fd-conf" aria-label={`Model-stated confidence ${Math.round(finding.confidence * 100)}%`} title="Self-reported by the model; not calibrated">
+        <span className="fd-conf-label">Model-stated</span>
         <span className="fd-conf-track">
           <span className="fd-conf-fill" style={{ width: `${Math.min(finding.confidence * 100, 100)}%` }} />
         </span>
         <span className="fd-conf-pct">{Math.round(finding.confidence * 100)}%</span>
       </div>
+
+      {rel && (
+        <div className={`fd-rel${rel.weak ? ' fd-rel--weak' : ''}`} title={BENCHMARK.label}>
+          {rel.weak ? <AlertTriangle /> : <BarChart3 />}
+          <span>
+            {rel.correct}/{rel.total} {rel.kind} calls confirmed in benchmark{rel.weak ? ' — verify carefully' : ''}
+          </span>
+        </div>
+      )}
 
       <p className={`fd-desc ${isExpanded ? 'fd-desc--open' : ''}`}>{finding.description}</p>
 

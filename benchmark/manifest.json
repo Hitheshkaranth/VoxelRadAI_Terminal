@@ -1,0 +1,631 @@
+[
+ {
+  "id": "nih_0",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP",
+  "age": 51,
+  "sex": "F",
+  "path": "img/nih_0.jpg"
+ },
+ {
+  "id": "nih_1",
+  "source": "NIH",
+  "labels": [
+   "Nodule"
+  ],
+  "view": "AP",
+  "age": 57,
+  "sex": "M",
+  "path": "img/nih_1.jpg"
+ },
+ {
+  "id": "nih_2",
+  "source": "NIH",
+  "labels": [
+   "Infiltration",
+   "Pneumonia"
+  ],
+  "view": "AP",
+  "age": 30,
+  "sex": "F",
+  "path": "img/nih_2.jpg"
+ },
+ {
+  "id": "nih_3",
+  "source": "NIH",
+  "labels": [
+   "Infiltration"
+  ],
+  "view": "PA",
+  "age": 53,
+  "sex": "M",
+  "path": "img/nih_3.jpg"
+ },
+ {
+  "id": "nih_4",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 34,
+  "sex": "M",
+  "path": "img/nih_4.jpg"
+ },
+ {
+  "id": "nih_5",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 47,
+  "sex": "F",
+  "path": "img/nih_5.jpg"
+ },
+ {
+  "id": "nih_6",
+  "source": "NIH",
+  "labels": [
+   "Pneumothorax"
+  ],
+  "view": "PA",
+  "age": 73,
+  "sex": "M",
+  "path": "img/nih_6.jpg"
+ },
+ {
+  "id": "nih_7",
+  "source": "NIH",
+  "labels": [
+   "Nodule"
+  ],
+  "view": "PA",
+  "age": 67,
+  "sex": "M",
+  "path": "img/nih_7.jpg"
+ },
+ {
+  "id": "nih_8",
+  "source": "NIH",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "view": "PA",
+  "age": 64,
+  "sex": "F",
+  "path": "img/nih_8.jpg"
+ },
+ {
+  "id": "nih_9",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 38,
+  "sex": "M",
+  "path": "img/nih_9.jpg"
+ },
+ {
+  "id": "nih_10",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP",
+  "age": 31,
+  "sex": "M",
+  "path": "img/nih_10.jpg"
+ },
+ {
+  "id": "nih_11",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 63,
+  "sex": "M",
+  "path": "img/nih_11.jpg"
+ },
+ {
+  "id": "nih_12",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP",
+  "age": 56,
+  "sex": "M",
+  "path": "img/nih_12.jpg"
+ },
+ {
+  "id": "nih_13",
+  "source": "NIH",
+  "labels": [
+   "Mass",
+   "Nodule"
+  ],
+  "view": "PA",
+  "age": 62,
+  "sex": "M",
+  "path": "img/nih_13.jpg"
+ },
+ {
+  "id": "nih_14",
+  "source": "NIH",
+  "labels": [
+   "Mass",
+   "Pneumothorax"
+  ],
+  "view": "PA",
+  "age": 62,
+  "sex": "M",
+  "path": "img/nih_14.jpg"
+ },
+ {
+  "id": "nih_15",
+  "source": "NIH",
+  "labels": [
+   "Atelectasis",
+   "Infiltration"
+  ],
+  "view": "AP",
+  "age": 57,
+  "sex": "M",
+  "path": "img/nih_15.jpg"
+ },
+ {
+  "id": "nih_16",
+  "source": "NIH",
+  "labels": [
+   "Atelectasis"
+  ],
+  "view": "AP",
+  "age": 30,
+  "sex": "M",
+  "path": "img/nih_16.jpg"
+ },
+ {
+  "id": "nih_17",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 54,
+  "sex": "M",
+  "path": "img/nih_17.jpg"
+ },
+ {
+  "id": "nih_18",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP",
+  "age": 33,
+  "sex": "M",
+  "path": "img/nih_18.jpg"
+ },
+ {
+  "id": "nih_19",
+  "source": "NIH",
+  "labels": [
+   "Infiltration",
+   "Pleural_Thickening"
+  ],
+  "view": "AP",
+  "age": 64,
+  "sex": "F",
+  "path": "img/nih_19.jpg"
+ },
+ {
+  "id": "nih_20",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 20,
+  "sex": "M",
+  "path": "img/nih_20.jpg"
+ },
+ {
+  "id": "nih_22",
+  "source": "NIH",
+  "labels": [
+   "Edema",
+   "Effusion"
+  ],
+  "view": "PA",
+  "age": 44,
+  "sex": "F",
+  "path": "img/nih_22.jpg"
+ },
+ {
+  "id": "nih_24",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP",
+  "age": 51,
+  "sex": "M",
+  "path": "img/nih_24.jpg"
+ },
+ {
+  "id": "nih_25",
+  "source": "NIH",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "PA",
+  "age": 23,
+  "sex": "M",
+  "path": "img/nih_25.jpg"
+ },
+ {
+  "id": "nih_30",
+  "source": "NIH",
+  "labels": [
+   "Atelectasis"
+  ],
+  "view": "AP",
+  "age": 58,
+  "sex": "M",
+  "path": "img/nih_30.jpg"
+ },
+ {
+  "id": "nih_31",
+  "source": "NIH",
+  "labels": [
+   "Emphysema",
+   "Pneumothorax"
+  ],
+  "view": "PA",
+  "age": 26,
+  "sex": "M",
+  "path": "img/nih_31.jpg"
+ },
+ {
+  "id": "nih_40",
+  "source": "NIH",
+  "labels": [
+   "Atelectasis"
+  ],
+  "view": "AP",
+  "age": 54,
+  "sex": "M",
+  "path": "img/nih_40.jpg"
+ },
+ {
+  "id": "nih_52",
+  "source": "NIH",
+  "labels": [
+   "Atelectasis",
+   "Effusion"
+  ],
+  "view": "PA",
+  "age": 27,
+  "sex": "M",
+  "path": "img/nih_52.jpg"
+ },
+ {
+  "id": "nih_55",
+  "source": "NIH",
+  "labels": [
+   "Edema"
+  ],
+  "view": "AP",
+  "age": 35,
+  "sex": "F",
+  "path": "img/nih_55.jpg"
+ },
+ {
+  "id": "nih_63",
+  "source": "NIH",
+  "labels": [
+   "Effusion",
+   "Infiltration"
+  ],
+  "view": "AP",
+  "age": 42,
+  "sex": "F",
+  "path": "img/nih_63.jpg"
+ },
+ {
+  "id": "nih_77",
+  "source": "NIH",
+  "labels": [
+   "Edema"
+  ],
+  "view": "AP",
+  "age": 19,
+  "sex": "F",
+  "path": "img/nih_77.jpg"
+ },
+ {
+  "id": "nih_95",
+  "source": "NIH",
+  "labels": [
+   "Effusion"
+  ],
+  "view": "PA",
+  "age": 37,
+  "sex": "F",
+  "path": "img/nih_95.jpg"
+ },
+ {
+  "id": "nih_270",
+  "source": "NIH",
+  "labels": [
+   "Effusion",
+   "Pneumothorax"
+  ],
+  "view": "PA",
+  "age": 24,
+  "sex": "M",
+  "path": "img/nih_270.jpg"
+ },
+ {
+  "id": "nih_315",
+  "source": "NIH",
+  "labels": [
+   "Consolidation"
+  ],
+  "view": "AP",
+  "age": 68,
+  "sex": "F",
+  "path": "img/nih_315.jpg"
+ },
+ {
+  "id": "nih_339",
+  "source": "NIH",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "view": "AP",
+  "age": 51,
+  "sex": "M",
+  "path": "img/nih_339.jpg"
+ },
+ {
+  "id": "nih_520",
+  "source": "NIH",
+  "labels": [
+   "Consolidation"
+  ],
+  "view": "AP",
+  "age": 40,
+  "sex": "M",
+  "path": "img/nih_520.jpg"
+ },
+ {
+  "id": "nih_536",
+  "source": "NIH",
+  "labels": [
+   "Consolidation",
+   "Infiltration"
+  ],
+  "view": "AP",
+  "age": 50,
+  "sex": "M",
+  "path": "img/nih_536.jpg"
+ },
+ {
+  "id": "nih_543",
+  "source": "NIH",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "PA",
+  "age": 30,
+  "sex": "F",
+  "path": "img/nih_543.jpg"
+ },
+ {
+  "id": "nih_758",
+  "source": "NIH",
+  "labels": [
+   "Nodule",
+   "Pneumonia"
+  ],
+  "view": "PA",
+  "age": 79,
+  "sex": "M",
+  "path": "img/nih_758.jpg"
+ },
+ {
+  "id": "nih_782",
+  "source": "NIH",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "view": "AP",
+  "age": 29,
+  "sex": "M",
+  "path": "img/nih_782.jpg"
+ },
+ {
+  "id": "nih_803",
+  "source": "NIH",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP",
+  "age": 58,
+  "sex": "F",
+  "path": "img/nih_803.jpg"
+ },
+ {
+  "id": "nih_826",
+  "source": "NIH",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "view": "AP",
+  "age": 46,
+  "sex": "F",
+  "path": "img/nih_826.jpg"
+ },
+ {
+  "id": "nih_1000",
+  "source": "NIH",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "view": "PA",
+  "age": 48,
+  "sex": "F",
+  "path": "img/nih_1000.jpg"
+ },
+ {
+  "id": "nih_1096",
+  "source": "NIH",
+  "labels": [
+   "Edema"
+  ],
+  "view": "AP",
+  "age": 40,
+  "sex": "F",
+  "path": "img/nih_1096.jpg"
+ },
+ {
+  "id": "kermany_0",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_0.jpg"
+ },
+ {
+  "id": "kermany_1",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_1.jpg"
+ },
+ {
+  "id": "kermany_2",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_2.jpg"
+ },
+ {
+  "id": "kermany_3",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_3.jpg"
+ },
+ {
+  "id": "kermany_4",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_4.jpg"
+ },
+ {
+  "id": "kermany_5",
+  "source": "Kermany",
+  "labels": [
+   "No Finding"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_5.jpg"
+ },
+ {
+  "id": "kermany_300",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_300.jpg"
+ },
+ {
+  "id": "kermany_301",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_301.jpg"
+ },
+ {
+  "id": "kermany_302",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_302.jpg"
+ },
+ {
+  "id": "kermany_303",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_303.jpg"
+ },
+ {
+  "id": "kermany_304",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_304.jpg"
+ },
+ {
+  "id": "kermany_305",
+  "source": "Kermany",
+  "labels": [
+   "Pneumonia"
+  ],
+  "view": "AP/PA",
+  "age": "child",
+  "sex": "",
+  "path": "img/kermany_305.jpg"
+ }
+]
