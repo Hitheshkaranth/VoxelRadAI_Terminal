@@ -1,0 +1,481 @@
+/* OWNER: Agent 2 (Viewer & intake). All viewer / intake styles use the `vw-` prefix. */
+
+/* ------------------------------------------------------------------ Stage */
+.vw-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--viewer-bg);
+  overflow: hidden;
+  color: var(--viewer-fg);
+  isolation: isolate;
+}
+.vw-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  will-change: transform;
+}
+.vw-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transform-origin: center center;
+  overflow: visible;
+}
+.vw-src {
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- Overlays */
+.vw-overlays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.vw-finding {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: auto;
+  border: 2px solid var(--c);
+  border-radius: 6px;
+  opacity: 0.9;
+  transition: background var(--dur-fast), border-width var(--dur-fast), opacity var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+}
+.vw-finding.vw-found {
+  background: color-mix(in srgb, var(--c) 7%, transparent);
+  border-width: 3px;
+}
+.vw-stage.vw-hl .vw-finding:not(.vw-hl-on) {
+  opacity: 0.22;
+}
+.vw-chip {
+  position: absolute;
+  top: -13px;
+  left: -13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font: 600 var(--text-caption) / 1 var(--font-sans);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.vw-label {
+  position: absolute;
+  top: -13px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--c);
+  color: #fff;
+  font: 600 var(--text-caption) / 1 var(--font-sans);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+  pointer-events: none;
+}
+.vw-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.85;
+}
+.vw-finding:hover .vw-label,
+.vw-finding.vw-found .vw-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ------------------------------------------------------------------- HUD */
+.vw-info {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--viewer-hud);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  font: 500 var(--text-footnote) / 1.4 var(--font-mono);
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+  user-select: none;
+  max-width: calc(100% - var(--sp-3) * 2);
+}
+.vw-info .vw-name {
+  color: rgba(255, 255, 255, 0.95);
+  font: 600 var(--text-body) / 1.4 var(--font-sans);
+}
+.vw-info .vw-row {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.vw-info .vw-k {
+  color: rgba(255, 255, 255, 0.48);
+}
+.vw-info .vw-val {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.vw-badge-rt {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--viewer-hud);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  font: 600 var(--text-footnote) / 1 var(--font-sans);
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  user-select: none;
+}
+.vw-badge-rt .vw-sev {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.vw-toolbox {
+  position: absolute;
+  bottom: var(--sp-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--viewer-hud);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+.vw-toolbox .vw-tool {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: default;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.vw-toolbox .vw-tool:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.vw-toolbox .vw-tool:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.vw-toolbox .vw-tool[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.vw-toolbox .vw-tool svg {
+  width: 17px;
+  height: 17px;
+}
+.vw-toolbox .vw-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 5px 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.vw-toolbox .vw-zoom {
+  width: 46px;
+  font: 600 var(--text-footnote) / 1 var(--font-mono);
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+}
+.vw-toolbox .vw-sel {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: 500 var(--text-footnote) / 1 var(--font-sans);
+  cursor: default;
+}
+.vw-toolbox .vw-sel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.vw-toolbox .vw-sel option {
+  color: #111;
+}
+
+/* -------------------------------------------------------------- HUD capsule */
+.vw-capsule {
+  position: absolute;
+  top: var(--sp-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--viewer-hud);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  font: 500 var(--text-footnote) / 1 var(--font-sans);
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+}
+.vw-capsule .vw-spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+/* --------------------------------------------------------- Scanning FX */
+.vw-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+.vw-scan::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(120, 200, 255, 0.12), transparent);
+  animation: sweep 2.6s ease-in-out infinite;
+}
+@keyframes sweep {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
+/* ------------------------------------------------------ Laterality mark */
+.vw-lat {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.7);
+  font: 700 var(--text-caption) / 1 var(--font-mono);
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-12deg);
+}
+
+/* ----------------------------------------------------------------- Dropzone */
+.vw-drop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  border: 2px dashed color-mix(in srgb, rgba(255, 255, 255, 0.28), transparent);
+  border-radius: var(--radius-xl);
+  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%);
+  text-align: center;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
+  cursor: default;
+}
+.vw-drop.vw-active {
+  border-color: var(--accent);
+  background: radial-gradient(120% 120% at 50% 30%, rgba(0, 122, 255, 0.14), transparent 65%);
+}
+.vw-drop .vw-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+.vw-drop .vw-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.vw-drop .vw-title {
+  font: 600 var(--text-title3) / 1.2 var(--font-sans);
+  color: rgba(255, 255, 255, 0.95);
+}
+.vw-drop .vw-sub {
+  font: var(--text-body) / 1.5 var(--font-sans);
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 420px;
+}
+.vw-drop .vw-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  font: 500 var(--text-footnote) / 1 var(--font-sans);
+}
+.vw-drop .vw-kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font: 600 var(--text-caption) / 1 var(--font-mono);
+}
+.vw-drop-progress,
+.vw-drop-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  max-width: 460px;
+  text-align: center;
+}
+.vw-drop-error .vw-msg {
+  font: var(--text-footnote) / 1.5 var(--font-sans);
+  color: var(--red);
+}
+
+/* ---------------------------------------------------------------- Filmstrip */
+.vw-strip {
+  position: relative;
+  height: 96px;
+  background: #0e0e10;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.vw-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+}
+.vw-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #070708;
+  user-select: none;
+}
+.vw-thumb.vw-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.vw-thumb:hover {
+  transform: translateY(-2px);
+}
+.vw-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  display: none;
+  place-items: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+.vw-thumb:hover .vw-remove {
+  display: grid;
+}
+.vw-remove svg {
+  width: 11px;
+  height: 11px;
+}
+.vw-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6c6c70;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+.vw-dot.vw-analyzing {
+  background: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.vw-add {
+  position: relative;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), color var(--dur-fast), background var(--dur-fast);
+}
+.vw-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 122, 255, 0.1);
+}
+.vw-add svg {
+  width: 24px;
+  height: 24px;
+}.vw-drop { cursor: pointer; }
