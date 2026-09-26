@@ -63,6 +63,9 @@
   padding: var(--sp-6) 0;
   display: flex;
   justify-content: center;
+  /* Let the sheet grow with its content — the default 'stretch' pinned it to one A4 height and the
+     rest of the report spilled, unreadable, onto the backdrop. */
+  align-items: flex-start;
   background: #5b5b66;
 }
 
@@ -71,8 +74,9 @@
   box-sizing: border-box;
   width: 210mm;
   min-height: 297mm;
+  height: auto;
   flex: none;
-  margin: 0 auto;
+  margin: 0 auto var(--sp-6);
   background: #ffffff;
   color: #1c1c1e;
   font-family: var(--font-sans);
@@ -385,10 +389,8 @@
 
 /* ---- Footer + page numbering ------------------------------------------ */
 .rp-footer {
-  position: absolute;
-  left: 14mm;
-  right: 14mm;
-  bottom: 14mm;
+  position: static;
+  margin-top: var(--sp-6);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -400,50 +402,79 @@
   font-size: var(--text-caption);
   line-height: 1.4;
   color: #8f8f94;
-  max-width: 62mm;
+  max-width: none;
 }
 .rp-footer-page {
   font-size: var(--text-caption);
   color: #8f8f94;
   white-space: nowrap;
 }
-.rp-footer-page-no::after {
-  content: counter(page);
-}
 
 /* ---- Print rules ------------------------------------------------------- */
+/* ---- Overflow guards (screen + print) ---------------------------------- */
+.rp-print-page {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+}
+.rp-images { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rp-demo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rp-demo-cell { grid-template-columns: 128px minmax(0, 1fr); }
+.rp-legend li { align-items: flex-start; }
+.rp-legend-no, .rp-legend-dot { margin-top: 2px; }
+.rp-legend-text { flex: 1; min-width: 0; }
+.rp-table { table-layout: fixed; }
+.rp-table th:nth-child(1), .rp-table td:nth-child(1) { width: 28px; }
+.rp-table th:nth-child(4), .rp-table td:nth-child(4) { width: 96px; }
+.rp-table th:nth-child(5), .rp-table td:nth-child(5) { width: 78px; }
+.rp-text p, .rp-ordered li { white-space: pre-wrap; }
+.rp-thumb { max-width: 100%; }
+
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 14mm 14mm 16mm;
+    @bottom-right {
+      content: 'Page ' counter(page) ' of ' counter(pages);
+      font: 9px -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #8f8f94;
+    }
   }
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  /* The app shell pins html/body/#root to the viewport with overflow hidden — undo it so every page prints. */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
   body > *:not(.rp-print-root) {
     display: none !important;
   }
-  .rp-print-root {
-    position: static;
-    display: block !important;
-    overflow: visible;
-    background: none;
-  }
-  .rp-print-backdrop {
-    display: none !important;
-  }
+  .rp-print-root,
+  .rp-print-backdrop,
   .rp-print-scroll {
+    position: static !important;
     display: block !important;
-    width: auto;
-    max-height: none;
-    overflow: visible;
-    padding: 0;
-    background: none;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .rp-print-toolbar {
+    display: none !important;
   }
   .rp-print-page {
     width: auto;
-    min-height: auto;
+    min-height: 0;
+    margin: 0;
     box-shadow: none;
   }
   .rp-print-inner {
@@ -453,15 +484,22 @@
     position: static;
     margin-top: var(--sp-5);
   }
-  .rp-section,
+  /* Keep small blocks whole; let long text sections flow across pages. */
   .rp-figure,
-  .rp-table,
   .rp-demo,
-  .rp-thumb {
+  .rp-demo-cell,
+  .rp-signature,
+  .rp-table tr,
+  .rp-ordered li {
     break-inside: avoid;
   }
-  .rp-section {
+  .rp-section-title,
+  .rp-lh {
     break-after: avoid;
+  }
+  .rp-text p {
+    orphans: 3;
+    widows: 3;
   }
   .rp-table thead {
     display: table-header-group;

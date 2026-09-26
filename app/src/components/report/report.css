@@ -303,15 +303,6 @@
 }
 
 /* ---- Export bar ----------------------------------------------------------- */
-.rp-export {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-.rp-export .rp-btn-full {
-  flex: 1 1 calc(50% - 6px);
-  min-width: 120px;
-}
 
 .rp-toast {
   display: inline-flex;
@@ -342,3 +333,88 @@
   padding-top: var(--sp-3);
   margin-top: var(--sp-1);
 }
+
+/* ==== Inspector report editor — mirrors the Findings panel card system (fd-*) ==== */
+.rp-panel {
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-3) calc(var(--sp-8) + var(--sp-4));
+  font: var(--text-body) / 1.4 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+.rp-card,
+.rp-sec {
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  box-shadow: none;
+}
+
+/* Patient header */
+.rp-patient { display: flex; flex-direction: column; gap: var(--sp-3); }
+.rp-patient-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); }
+.rp-patient-id { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.rp-avatar {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font: 600 var(--text-footnote) / 1 var(--font-sans);
+}
+.rp-patient-name { font-size: var(--text-headline); font-weight: 600; color: var(--label); line-height: 1.25; }
+.rp-patient-sub { margin-top: 2px; font-size: var(--text-footnote); color: var(--label-2); }
+.rp-meta-row {
+  display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+  padding-top: var(--sp-3); border-top: 0.5px solid var(--separator);
+}
+.rp-report-meta { font-size: var(--text-caption); color: var(--label-3); }
+
+/* Sections */
+.rp-sec { display: flex; flex-direction: column; gap: var(--sp-2); transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
+.rp-sec:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.rp-sec-ro:focus-within { border-color: var(--separator); box-shadow: none; }
+.rp-sec-head {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--text-caption); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--label-3);
+}
+.rp-sec-head svg { width: 13px; height: 13px; color: var(--label-3); flex: none; }
+.rp-sec-text {
+  display: block; width: 100%; min-height: 20px; margin: 0; padding: 0;
+  border: none; outline: none; background: transparent; resize: none; overflow: hidden;
+  font: var(--text-body) / 1.55 var(--font-sans); color: var(--label);
+}
+.rp-sec-text::placeholder { color: var(--label-3); }
+.rp-sec-ro .rp-sec-text { color: var(--label-2); cursor: default; }
+.rp-sec-em .rp-sec-text { font-size: var(--text-callout); font-weight: 500; color: var(--label); }
+.rp-sec-hint { font-size: var(--text-caption); color: var(--label-3); }
+
+/* Signed seal */
+.rp-seal {
+  display: flex; align-items: center; gap: var(--sp-3);
+  background: color-mix(in srgb, var(--green) 10%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--green) 35%, transparent);
+}
+.rp-seal-ico { display: grid; place-items: center; flex: none; color: var(--green); }
+.rp-seal-ico svg { width: 22px; height: 22px; }
+.rp-seal-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rp-seal-name { font-weight: 600; color: var(--label); }
+.rp-seal-date { font-size: var(--text-caption); color: var(--label-2); }
+
+/* Sign-off */
+.rp-signoff { display: flex; flex-direction: column; gap: var(--sp-3); }
+.rp-signoff-row { display: flex; gap: var(--sp-2); }
+.rp-signoff-row .input { flex: 1; min-width: 0; height: 28px; }
+.rp-regen { align-self: flex-start; margin-left: calc(var(--sp-2) * -1); }
+.rp-confirm {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--orange) 10%, transparent);
+}
+.rp-confirm-text { font-size: var(--text-footnote); color: var(--label); }
+.rp-confirm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+
+/* Export */
+.rp-export { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rp-btn-full { width: 100%; }
+.rp-export-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.rp-export-row .btn { width: 100%; }
+
+.rp-disclaimer { font-size: var(--text-caption); color: var(--label-3); line-height: 1.45; padding: 0 var(--sp-1); }

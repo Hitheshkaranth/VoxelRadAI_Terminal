@@ -121,11 +121,11 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const flatFindings: Finding[] = []
-  for (const img of analyzed) {
+  const flatFindings: (Finding & { ref: string })[] = []
+  analyzed.forEach((img, imgIndex) => {
     const a = img.analysis
-    if (a) for (const f of a.findings) flatFindings.push(f)
-  }
+    if (a) a.findings.forEach((f, j) => flatFindings.push({ ...f, ref: analyzed.length > 1 ? `${imgIndex + 1}.${j + 1}` : `${j + 1}` }))
+  })
 
   const examLine = [exam.modality, exam.bodyPart, ...exam.views].filter(Boolean).join(' · ')
   const accession = ACCESSION(study.id)
@@ -248,7 +248,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                   <table className="rp-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '2rem' }}>#</th>
+                        <th style={{ width: '2.6rem' }}>#</th>
                         <th>Finding</th>
                         <th>Location</th>
                         <th style={{ width: '8rem' }}>Severity</th>
@@ -256,9 +256,9 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {flatFindings.map((f, i) => (
-                        <tr key={f.id}>
-                          <td>{i + 1}</td>
+                      {flatFindings.map((f) => (
+                        <tr key={f.ref + f.id}>
+                          <td>{f.ref}</td>
                           <td>{f.title || '—'}</td>
                           <td>{f.location || '—'}</td>
                           <td>
@@ -284,7 +284,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                   This report was drafted with AI assistance (MedGemma 27B, run locally). Findings are decision-support only and
                   must be reviewed and verified by a qualified radiologist before clinical use.
                 </span>
-                <span className="rp-footer-page">Page <span className="rp-footer-page-no"></span></span>
+                
               </footer>
             </div>
           </div>

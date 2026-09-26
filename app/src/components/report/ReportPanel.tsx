@@ -1,6 +1,24 @@
 // OWNER: Agent 4 (Report). The inspector report editor, sign-off, and print/copy/export bar.
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Check, Copy, Download, Edit3, FileText, Printer, RefreshCw, ShieldCheck, Unlock } from 'lucide-react'
+import type { ReactNode } from 'react'
+import {
+  ArrowRightCircle,
+  Check,
+  ClipboardList,
+  Copy,
+  Download,
+  Edit3,
+  FileJson,
+  FileText,
+  GitCompare,
+  ListChecks,
+  Printer,
+  RefreshCw,
+  ScanLine,
+  ShieldCheck,
+  Stethoscope,
+  Unlock,
+} from 'lucide-react'
 import { useActiveStudy, useApp } from '../../store'
 import { cancelReport, generateStudyReport, useReportJob } from '../../lib/analysis'
 import type { ReportDraft, Study } from '../../types'
@@ -10,12 +28,12 @@ import './report.css'
 
 type ReportFieldKey = 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'
 
-const REPORT_FIELDS: { key: ReportFieldKey; label: string }[] = [
-  { key: 'technique', label: 'Technique' },
-  { key: 'comparison', label: 'Comparison' },
-  { key: 'findings', label: 'Findings' },
-  { key: 'impression', label: 'Impression' },
-  { key: 'recommendations', label: 'Recommendations' },
+const REPORT_FIELDS: { key: ReportFieldKey; label: string; icon: ReactNode; emphasis?: boolean }[] = [
+  { key: 'technique', label: 'Technique', icon: <ScanLine /> },
+  { key: 'comparison', label: 'Comparison', icon: <GitCompare /> },
+  { key: 'findings', label: 'Findings', icon: <ListChecks /> },
+  { key: 'impression', label: 'Impression', icon: <Stethoscope />, emphasis: true },
+  { key: 'recommendations', label: 'Recommendations', icon: <ArrowRightCircle /> },
 ]
 
 interface AutoGrowFieldProps {
@@ -25,10 +43,12 @@ interface AutoGrowFieldProps {
   placeholder?: string
   label?: string
   hint?: string
+  icon?: ReactNode
+  emphasis?: boolean
 }
 
 /** A textarea that grows to fit its content. Value is the single source of truth; caret stays stable. */
-function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint }: AutoGrowFieldProps) {
+function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint, icon, emphasis }: AutoGrowFieldProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   const adjust = useCallback(() => {
@@ -38,16 +58,27 @@ function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint }: 
     el.style.height = `${el.scrollHeight}px`
   }, [])
 
-  useLayoutEffect(adjust, [adjust])
+  // Re-measure whenever the text changes and whenever the panel width changes (wrapping changes height).
+  useLayoutEffect(adjust, [adjust, value])
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(adjust)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [adjust])
 
   return (
-    <div className="rp-field">
+    <section className={`rp-sec${readOnly ? ' rp-sec-ro' : ''}${emphasis ? ' rp-sec-em' : ''}`}>
       {label ? (
-        <div className="rp-field-label">{label}</div>
+        <label className="rp-sec-head">
+          {icon}
+          {label}
+        </label>
       ) : null}
       <textarea
         ref={ref}
-        className="rp-field-textarea"
+        className="rp-sec-text"
         rows={1}
         value={value}
         readOnly={readOnly}
@@ -55,9 +86,14 @@ function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint }: 
         aria-label={label}
         onChange={(e) => onChange?.(e.target.value)}
       />
-      {hint ? <div className="rp-field-hint">{hint}</div> : null}
-    </div>
+      {hint ? <div className="rp-sec-hint">{hint}</div> : null}
+    </section>
   )
+}
+
+function initials(name?: string) {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  return parts.length ? (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() : '?'
 }
 
 function StatusChip({ userEdited, signed }: { userEdited: boolean; signed: boolean }) {
@@ -129,6 +165,7 @@ export function ReportPanel() {
   const onCopy = useCallback(async () => {
     await navigator.clipboard.writeText(plain)
     setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
   }, [plain])
 
   const onDownloadTxt = useCallback(() => {
@@ -238,156 +275,131 @@ export function ReportPanel() {
 
   return (
     <div className="rp-panel">
-      <div className="card">
-        <div className="rp-report-head">
-          <div>
-            <div className="rp-report-subtitle">Patient</div>
-            <div className="rp-patient-name">{patient?.name || 'Untitled patient'}</div>
+      <section className="rp-card rp-patient">
+        <div className="rp-patient-top">
+          <div className="rp-patient-id">
+            <div className="rp-avatar" aria-hidden>
+              {initials(patient?.name)}
+            </div>
+            <div>
+              <div className="rp-patient-name">{patient?.name || 'Unnamed patient'}</div>
+              <div className="rp-patient-sub">
+                {[patient?.patientId, [patient?.age, patient?.sex].filter(Boolean).join(' · ')].filter(Boolean).join('  ·  ') ||
+                  'No demographics recorded'}
+              </div>
+            </div>
           </div>
           <button type="button" className="btn btn-plain btn-sm" onClick={() => openSheet('patient')}>
             <Edit3 size={14} /> Edit
           </button>
         </div>
-
-        <div className="rp-summary">
-          <div className="rp-summary-cell">
-            <span className="rp-summary-label">Patient ID</span>
-            <span className="rp-summary-value">{patient?.patientId || '—'}</span>
-          </div>
-          <div className="rp-summary-cell">
-            <span className="rp-summary-label">Age / Sex</span>
-            <span className="rp-summary-value">
-              {[patient?.age, patient?.sex].filter(Boolean).join(' /') || '—'}
-            </span>
-          </div>
-          <div className="rp-summary-cell">
-            <span className="rp-summary-label">Study Date</span>
-            <span className="rp-summary-value">{patient?.studyDate || '—'}</span>
-          </div>
-          <div className="rp-summary-cell">
-            <span className="rp-summary-label">Indication</span>
-            <span className="rp-summary-value">{patient?.indication ? 'Added' : '—'}</span>
-          </div>
+        <div className="rp-meta-row">
+          <StatusChip userEdited={userEdited} signed={signed} />
+          <span className="rp-report-meta">
+            {patient?.studyDate ? `Study ${patient.studyDate} · ` : ''}Updated {updatedLabel}
+          </span>
         </div>
-      </div>
-
-      <div className="rp-status">
-        <StatusChip userEdited={userEdited} signed={signed} />
-        <span className="rp-report-meta">Updated {updatedLabel}</span>
-      </div>
+      </section>
 
       {signed ? (
-        <div className="rp-seal">
+        <section className="rp-card rp-seal">
           <div className="rp-seal-ico">
             <ShieldCheck />
           </div>
           <div className="rp-seal-text">
             <span className="rp-seal-name">Signed by {report.radiologist || 'radiologist'}</span>
-            <span className="rp-seal-date">
-              {report.signedAt ? new Date(report.signedAt).toLocaleString() : '—'}
-            </span>
+            <span className="rp-seal-date">{report.signedAt ? new Date(report.signedAt).toLocaleString() : '—'}</span>
           </div>
-          <div className="rp-seal-actions">
-            <button type="button" className="btn btn-plain btn-sm" onClick={onUnlock}>
-              <Unlock size={14} /> Unlock to edit
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="rp-rad-row">
-          <div className="rp-field">
-            <div className="rp-field-label">Radiologist</div>
-            <textarea
-              className="rp-field-textarea"
-              rows={1}
-              value={report.radiologist}
-              aria-label="Radiologist name"
-              placeholder="Add radiologist name…"
-              onChange={(e) => {
-                setReport(study.id, { radiologist: e.target.value } as Partial<ReportDraft>)
-              }}
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!report.radiologist.trim()}
-            onClick={onSign}
-          >
-            <ShieldCheck size={15} /> Sign Report
+          <button type="button" className="btn btn-plain btn-sm" onClick={onUnlock}>
+            <Unlock size={14} /> Unlock
           </button>
-        </div>
-      )}
+        </section>
+      ) : null}
 
       <AutoGrowField
         value={patient?.indication ?? ''}
         readOnly
+        icon={<ClipboardList />}
         label="Clinical Indication"
-        placeholder="No indication recorded"
-        hint="Taken from the patient record."
+        placeholder="No indication recorded — add one in patient details."
       />
 
       {REPORT_FIELDS.map((field) => (
         <AutoGrowField
           key={field.key}
           value={report[field.key]}
+          icon={field.icon}
+          emphasis={field.emphasis}
           label={field.label}
+          readOnly={signed}
           placeholder={`Add ${field.label.toLowerCase()}…`}
           onChange={onFieldChange(field.key)}
         />
       ))}
 
-      {confirmRegen ? (
-        <div className="rp-confirm">
-          <span className="rp-confirm-text">
-            Regenerate this report from all {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'}? Any edits
-            since the last draft will be replaced.
-          </span>
-          <button type="button" className="btn btn-destructive btn-sm" onClick={onRegenConfirm}>
-            Confirm
-          </button>
-          <button type="button" className="btn btn-plain btn-sm" onClick={() => setConfirmRegen(false)}>
-            Cancel
-          </button>
-        </div>
+      {!signed ? (
+        <section className="rp-card rp-signoff">
+          <div className="rp-sec-head">
+            <ShieldCheck />
+            Sign-off
+          </div>
+          <div className="rp-signoff-row">
+            <input
+              className="input"
+              value={report.radiologist}
+              aria-label="Radiologist name"
+              placeholder="Radiologist name"
+              onChange={(e) => setReport(study.id, { radiologist: e.target.value } as Partial<ReportDraft>)}
+            />
+            <button type="button" className="btn btn-primary" disabled={!report.radiologist.trim()} onClick={onSign}>
+              Sign
+            </button>
+          </div>
+          {confirmRegen ? (
+            <div className="rp-confirm">
+              <span className="rp-confirm-text">
+                Replace this report with a new draft from {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'}?
+                Your edits will be lost.
+              </span>
+              <div className="rp-confirm-actions">
+                <button type="button" className="btn btn-sm" onClick={() => setConfirmRegen(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-destructive btn-sm" onClick={onRegenConfirm}>
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-plain btn-sm rp-regen"
+              disabled={reportJob.running}
+              onClick={() => setConfirmRegen(true)}
+            >
+              <RefreshCw size={14} /> Regenerate draft
+            </button>
+          )}
+        </section>
       ) : null}
 
-      <div className="rp-actions">
-        <button
-          type="button"
-          className="btn btn-plain btn-sm"
-          disabled={reportJob.running}
-          onClick={() => setConfirmRegen(true)}
-        >
-          <RefreshCw size={14} /> Regenerate
+      <section className="rp-card rp-export">
+        <button type="button" className="btn btn-primary btn-lg rp-btn-full" onClick={() => setPreviewOpen(true)}>
+          <Printer size={16} /> Preview &amp; Print / PDF
         </button>
-      </div>
-
-      <div className="rp-export">
-        <button
-          type="button"
-          className="btn btn-primary rp-btn-full"
-          onClick={() => setPreviewOpen(true)}
-        >
-          <Printer size={15} /> Preview &amp; Print / PDF
-        </button>
-        <button type="button" className="btn btn-sm" onClick={onCopy}>
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-        <button type="button" className="btn btn-sm" onClick={onDownloadTxt}>
-          <Download size={14} /> Download .txt
-        </button>
-        <button type="button" className="btn btn-sm" onClick={onDownloadJson}>
-          <Download size={14} /> Download JSON
-        </button>
-      </div>
-
-      {copied ? (
-        <div className="rp-toast">
-          <Check size={14} /> Copied to clipboard
+        <div className="rp-export-row">
+          <button type="button" className="btn" onClick={onCopy}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <button type="button" className="btn" onClick={onDownloadTxt}>
+            <Download size={14} /> Text
+          </button>
+          <button type="button" className="btn" onClick={onDownloadJson}>
+            <FileJson size={14} /> JSON
+          </button>
         </div>
-      ) : null}
+      </section>
 
       <div className="rp-disclaimer">
         AI-generated decision support — findings must be verified by a qualified radiologist before clinical use.

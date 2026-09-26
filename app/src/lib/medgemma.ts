@@ -1,8 +1,8 @@
 // OWNER: Agent 1 (AI engine). MedGemma OpenAI-compatible client with streaming, re-encoding,
 // retry, and a serial queue so only one inference hits LM Studio at a time.
 import type { AnalysisResult, ConnectionState, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
-import { buildAnalysisPrompt, buildReportPrompt, SYSTEM_PROMPT } from './prompts'
-import { extractJson, normalizeAnalysis, normalizeReport, type ReportFields } from './parse'
+import { buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT } from './prompts'
+import { extractJson, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
 
 export type GeneratedReport = Pick<ReportDraft, 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'>
 
@@ -272,9 +272,14 @@ export async function analyzeImage(opts: {
     )
   }
 
+  const withPattern = async (a: AnalysisResult) => {
+    const merged = mergeLungPattern(a, await checkLungPattern(opts))
+    return { ...merged, durationMs: Date.now() - t0 }
+  }
+
   try {
     const text = await run(false)
-    return normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 })
+    return await withPattern(normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 }))
   } catch (err) {
     if (isAbort(err) || opts.signal?.aborted) throw abortError()
     // Retry only when the model produced non-JSON output; surface network errors directly.
@@ -285,11 +290,40 @@ export async function analyzeImage(opts: {
     }
     try {
       const text = await run(true)
-      return normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 })
+      return await withPattern(normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 }))
     } catch (retryErr) {
       if (isAbort(retryErr) || opts.signal?.aborted) throw abortError()
       throw retryErr
     }
+  }
+}
+
+/** Neutral graded lung-pattern check (see LUNG_PATTERN_PROMPT). Best-effort: returns null on any non-abort failure. */
+async function checkLungPattern(opts: { image: StudyImage; settings: Settings; signal?: AbortSignal; onProgress?: (t: string) => void }) {
+  opts.onProgress?.('Checking lung markings…')
+  try {
+    const text = await enqueue(async () =>
+      chatStream({
+        settings: opts.settings,
+        temperature: 0,
+        maxTokens: 200,
+        signal: opts.signal,
+        messages: [
+          { role: 'system', content: LUNG_PATTERN_SYSTEM },
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: await reencodeImage(opts.image) } },
+              { type: 'text', text: LUNG_PATTERN_PROMPT },
+            ],
+          },
+        ],
+      }),
+    )
+    return parseLungPattern(extractJson(text))
+  } catch (err) {
+    if (isAbort(err) || opts.signal?.aborted) throw abortError()
+    return null
   }
 }
 

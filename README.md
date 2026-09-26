@@ -50,7 +50,8 @@ node --experimental-strip-types scripts/test-parse.ts  # model-output parser tes
 
 ## Known limitations
 - MedGemma's bounding boxes are approximate, and results vary between runs.
-- Subtle interstitial patterns (prominent bronchovascular markings, perihilar opacities, peribronchial cuffing) are frequently missed, and leading yes/no questions produce false positives — the model tends to agree with whatever is asked.
+- Subtle interstitial patterns (prominent bronchovascular markings, perihilar opacities, peribronchial cuffing) are under-called by the main read. A second, neutral graded lung-pattern check (0–3 scale, ~10 s) adds a finding when the grade is ≥ 2; on a 12-film labelled set this raised detection from 6/7 to 7/7 with no false positives on 5 normals — a small sample, so treat it as directional.
+- Leading yes/no questions ("is X present?") are unreliable: the model tends to agree with whatever is asked, including on normal films.
 
 ## Test images
 Public chest radiographs from Wikimedia Commons (not redistributed here), e.g.

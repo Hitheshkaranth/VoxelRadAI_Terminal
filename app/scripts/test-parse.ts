@@ -3,7 +3,7 @@
 import {
   extractJson,
   normalizeAnalysis,
-  normalizeReport,
+  normalizeReport, mergeLungPattern, parseLungPattern,
   type ReportFields,
 } from '../src/lib/parse.ts'
 
@@ -113,6 +113,21 @@ eq('report recommendations', r.recommendations, 'Consult surgery\nFollow-up CXR 
 // report fallback
 const emptyReport = normalizeReport(null)
 eq('report fallback comparison', emptyReport.comparison, 'None available.')
+
+// ---- lung-pattern merge -------------------------------------------------------
+const chestNormal = normalizeAnalysis({ bodyPart: 'Chest', impression: 'Normal chest radiograph.', findings: [{ title: 'Normal study', severity: 'normal' }] }, meta)
+eq('pattern parse', parseLungPattern({ grade: '2', evidence: 'x' }), { grade: 2, evidence: 'x' })
+eq('pattern parse bad', parseLungPattern({ grade: 7 }), null)
+eq('pattern grade 0 unchanged', mergeLungPattern(chestNormal, { grade: 0, evidence: '' }), chestNormal)
+eq('pattern grade 1 unchanged', mergeLungPattern(chestNormal, { grade: 1, evidence: '' }), chestNormal)
+const m2 = mergeLungPattern(chestNormal, { grade: 2, evidence: 'Indistinct perihilar markings.' })
+eq('pattern adds 1 finding, drops normal placeholder', m2.findings.map((f) => f.severity), ['moderate'])
+check('pattern impression noted', m2.impression.includes('Graded lung-pattern review'))
+eq('pattern grade 3 → significant/priority', [mergeLungPattern(chestNormal, { grade: 3, evidence: '' }).findings[0].severity, mergeLungPattern(chestNormal, { grade: 3, evidence: '' }).urgency], ['significant', 'priority'])
+const covered = normalizeAnalysis({ bodyPart: 'Chest', findings: [{ title: 'Diffuse interstitial markings', severity: 'moderate' }] }, meta)
+eq('pattern not duplicated when covered', mergeLungPattern(covered, { grade: 3, evidence: '' }).findings.length, 1)
+const knee = normalizeAnalysis({ bodyPart: 'Knee', findings: [] }, meta)
+eq('pattern ignored for non-chest', mergeLungPattern(knee, { grade: 3, evidence: '' }).findings.length, 0)
 
 console.log(`\nparse tests: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

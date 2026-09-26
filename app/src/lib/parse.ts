@@ -375,3 +375,40 @@ function uid(): string {
     return `f${Date.now()}-${Math.random().toString(16).slice(2)}`
   }
 }
+// ---- Lung-pattern second pass ---------------------------------------------
+
+export interface LungPattern {
+  grade: 0 | 1 | 2 | 3
+  evidence: string
+}
+
+export function parseLungPattern(obj: unknown): LungPattern | null {
+  if (!isObject(obj)) return null
+  const g = Math.round(asNumber(obj.grade))
+  if (!(g >= 0 && g <= 3)) return null
+  return { grade: g as LungPattern['grade'], evidence: asString(obj.evidence) }
+}
+
+const PATTERN_COVERED = /bronchovascular|perihilar|interstitial|o?edema|cuffing|kerley|congestion|reticul|ground.glass|air.?space|markings/i
+
+/** Adds a diffuse lung-pattern finding when the graded check is abnormal and the main read didn't already report one. Pure. */
+export function mergeLungPattern(a: AnalysisResult, p: LungPattern | null): AnalysisResult {
+  if (!p || p.grade < 2 || !/chest|thora|lung/i.test(a.bodyPart)) return a
+  if (a.findings.some((f) => f.severity !== 'normal' && PATTERN_COVERED.test(`${f.title} ${f.description}`))) return a
+  const marked = p.grade === 3
+  const extra: Finding = {
+    id: uid(),
+    title: marked ? 'Extensive perihilar / interstitial opacity' : 'Increased bronchovascular markings / perihilar opacity',
+    description: p.evidence || 'Bronchovascular markings appear increased or indistinct in the perihilar regions.',
+    severity: marked ? 'significant' : 'moderate',
+    confidence: marked ? 0.75 : 0.6,
+    location: 'Perihilar regions, bilateral',
+    category: 'Lungs',
+    recommendation: 'Correlate clinically (infection, bronchitis, fluid overload); radiologist review of lung markings.',
+  }
+  // Drop a lone "Normal study" placeholder — the study is no longer being called normal.
+  const kept = a.findings.filter((f) => !(f.severity === 'normal' && /normal/i.test(f.title)))
+  const findings = sortBySeverity([...kept, extra])
+  const note = `Graded lung-pattern review: ${extra.title.toLowerCase()}.`
+  return { ...a, findings, impression: a.impression ? `${a.impression}\n${note}` : note, urgency: deriveUrgency(findings) }
+}

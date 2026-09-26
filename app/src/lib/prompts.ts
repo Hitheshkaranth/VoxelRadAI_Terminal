@@ -156,3 +156,16 @@ function priorImpliesComparison(study: Study): boolean {
     .toLowerCase()
   return /prior|previous|compare with|old film|preceding/i.test(hay)
 }
+/**
+ * Second-pass lung-pattern check. The main read under-calls diffuse interstitial / perihilar patterns;
+ * a neutral graded question (normal anchored first, no leading yes/no) catches them without adding
+ * false positives. Evaluated on 12 labelled films: main read 6/7 abnormal, combined 7/7, 5/5 normals clear.
+ */
+export const LUNG_PATTERN_SYSTEM = `You are an expert chest radiologist. Grade the image objectively. Most chest radiographs you will see are normal; grade 0 whenever the lungs look normal.`
+
+export const LUNG_PATTERN_PROMPT = `Grade the pulmonary markings and perihilar lung on this chest radiograph using exactly this scale:
+0 = normal: fine vascular markings tapering to the periphery, clear perihilar regions
+1 = equivocal / borderline
+2 = definitely abnormal: increased or indistinct bronchovascular markings, peribronchial cuffing, perihilar haze or opacity
+3 = marked: extensive perihilar / interstitial or airspace opacity
+Return JSON only: {"grade":0-3,"evidence":"one sentence"}`
