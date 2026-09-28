@@ -1,6 +1,7 @@
 // OWNER: Agent 1 (AI engine). Store-bound orchestration the UI calls.
 import { create } from 'zustand'
 import { useApp } from '../store'
+import { crossCheck } from './classifier'
 import { analyzeImage, generateReport } from './medgemma'
 
 const controllers = new Map<string, AbortController>()
@@ -34,13 +35,15 @@ async function runStudyImage(studyId: string, imageId: string, controller: Abort
 
   try {
     useApp.getState().setImageStatus(studyId, imageId, 'analyzing', { progressText: 'Analyzing…' })
-    const result = await analyzeImage({
+    const read = await analyzeImage({
       image,
       patient: study.patient,
       settings,
       signal: controller.signal,
       onProgress: (text) => throttle(studyId, imageId, text),
     })
+    useApp.getState().setImageStatus(studyId, imageId, 'analyzing', { progressText: 'Cross-checking with classifier…' })
+    const result = await crossCheck(image, read, controller.signal)
     useApp.getState().setImageStatus(studyId, imageId, 'done')
     useApp.getState().setImageAnalysis(studyId, imageId, result)
     // If this is the active image, leave any selection as-is (null stays null).

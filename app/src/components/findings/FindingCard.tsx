@@ -90,6 +90,20 @@ export function FindingCard({
         </div>
       )}
 
+      {finding.classifier && (
+        <div
+          className={`fd-rel${finding.classifier.supported ? '' : ' fd-rel--weak'}`}
+          title="TorchXRayVision classifier probability for this finding type; 50% is its operating point"
+        >
+          {finding.classifier.supported ? <Check /> : <AlertTriangle />}
+          <span>
+            {finding.classifier.supported
+              ? `Classifier agrees · ${finding.classifier.kind} ${Math.round(finding.classifier.prob * 100)}%`
+              : `Classifier does not support this (${finding.classifier.kind} ${Math.round(finding.classifier.prob * 100)}%) — left out of draft report`}
+          </span>
+        </div>
+      )}
+
       <p className={`fd-desc ${isExpanded ? 'fd-desc--open' : ''}`}>{finding.description}</p>
 
       {finding.recommendation && (

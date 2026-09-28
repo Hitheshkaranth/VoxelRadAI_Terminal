@@ -60,6 +60,14 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
     const color = SEVERITY_COLOR[finding.severity] ?? SEVERITY_COLOR.moderate
 
     ctx.save()
+    if (finding.severity !== 'normal' && finding.classifier?.supported !== false) {
+      // tint the diagnosed region, matching the viewer highlight
+      ctx.globalAlpha = 0.2
+      ctx.fillStyle = color
+      roundRect(ctx, bx, by, bw, bh, 8)
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
     ctx.strokeStyle = color
     ctx.lineWidth = 3
     ctx.lineJoin = 'round'

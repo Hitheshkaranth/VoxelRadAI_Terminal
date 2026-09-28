@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/lmstudio/, ''),
       },
+      // Optional TorchXRayVision cross-check (app/server/txrv_server.py).
+      '/txrv': {
+        target: 'http://localhost:8765',
+        rewrite: (p) => p.replace(/^\/txrv/, ''),
+      },
     },
   },
 })

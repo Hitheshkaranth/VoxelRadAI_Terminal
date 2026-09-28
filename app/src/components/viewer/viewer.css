@@ -49,12 +49,45 @@
   transition: background var(--dur-fast), border-width var(--dur-fast), opacity var(--dur-fast) var(--ease-out);
   cursor: pointer;
 }
+/* Diagnosed (non-normal) regions are tinted so the localized area reads at a glance, not just its outline. */
+.vw-finding:not([data-severity='normal']) {
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 45%, transparent);
+}
+.vw-finding[data-severity='normal'] {
+  border-style: dashed;
+  opacity: 0.6;
+}
+/* Not supported by the TorchXRayVision cross-check: outline only, so it does not read as a confirmed region. */
+.vw-finding[data-unsupported] {
+  background: none;
+  box-shadow: none;
+  border-style: dashed;
+  opacity: 0.55;
+}
 .vw-finding.vw-found {
-  background: color-mix(in srgb, var(--c) 7%, transparent);
+  background: color-mix(in srgb, var(--c) 26%, transparent);
   border-width: 3px;
 }
 .vw-stage.vw-hl .vw-finding:not(.vw-hl-on) {
   opacity: 0.22;
+}
+/* Spotlight: the hovered/selected finding stays bright and everything outside it is dimmed. */
+.vw-finding.vw-hl-on {
+  z-index: 1;
+  opacity: 1;
+  border-width: 3px;
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  box-shadow:
+    inset 0 0 24px color-mix(in srgb, var(--c) 55%, transparent),
+    0 0 0 200vmax rgb(0 0 0 / 0.5);
+  animation: vw-pulse 1.6s var(--ease-out) infinite;
+}
+@keyframes vw-pulse {
+  50% { outline: 4px solid color-mix(in srgb, var(--c) 35%, transparent); outline-offset: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vw-finding.vw-hl-on { animation: none; }
 }
 .vw-chip {
   position: absolute;

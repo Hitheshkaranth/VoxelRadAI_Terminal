@@ -28,6 +28,13 @@ npm run dev               # http://localhost:5173 (Vite proxies /lmstudio → lo
 ```
 Base URL and model id can be changed in **Settings** (⌘,).
 
+Optional second opinion — a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier that cross-checks every MedGemma finding (~0.1 s; first start downloads ~100 MB of weights):
+```sh
+cd app
+uv run --with torchxrayvision --with scikit-image server/txrv_server.py   # http://localhost:8765, proxied at /txrv
+```
+Each finding card then shows *Classifier agrees · opacity 69%* or *Classifier does not support this*. Unsupported findings are drawn as a dashed outline, left out of the finding count and the draft report, but stay visible for the radiologist. Without the service the app behaves exactly as before.
+
 ## Development
 ```sh
 npm run build                                          # typecheck + production build
@@ -75,6 +82,29 @@ Precision — how often each *reported* finding type was supported by the labels
 | cardiomegaly | 1/7 |
 
 Self-reported confidence is uncalibrated (false findings typically stated at 0.90–0.95), and "Right lower lobe consolidation" accounts for 3 of 4 false alarms on normal films.
+
+**Comparison — Microsoft MAIRA-2 (7B, grounded reporting) on the same 56 images**
+
+[MAIRA-2](https://huggingface.co/microsoft/maira-2) is a chest-X-ray report generator, not a chat model: it cannot follow the app's prompt, return JSON, or run in LM Studio (no GGUF/MLX build; custom Rad-DINO + Vicuna architecture). `benchmark/run_maira2.py` runs it through transformers on the Mac GPU and turns each generated sentence into a finding (negated sentences and well-positioned devices count as normal), so the same `score.py` applies. Same scorer for both; MedGemma's scores are unchanged by the synonyms added for MAIRA-2's wording (*opacification*, *alveolar*, *round opacity*).
+
+| | MedGemma 27B | MAIRA-2 |
+|---|---|---|
+| Adult abnormal flagged (NIH) | 22/32 | **27/32** |
+| Adult normals called normal (NIH) | 8/12 | 8/12 |
+| Right finding type, all labels | **25/49** | 19/49 |
+| Pneumonia — pediatric (Kermany) | **5/6** | 0/6 |
+| Pneumonia — adult (NIH) | **2/4** | 0/4 |
+| Effusion / nodule+mass | 1/6 / 0/6 | **3/6 / 3/6** |
+| Pneumothorax / edema / cardiomegaly | **3/4 / 3/4 / 2/4** | 2/4 / 1/4 / 1/4 |
+| Abnormal findings with a box | 62/79 | 67/92 |
+| Output well-formed | 56/56 JSON | 51/56 (5 malformed grounding tags, recovered as plain text) |
+| Latency | ~50 s | **~8 s** |
+
+- MAIRA-2 never names pneumonia; it describes opacities. On the pediatric films it is out of its training distribution (adult MIMIC-CXR only): it calls all 6 pediatric pneumonias abnormal, but as cardiomegaly/congestion, and once as bilateral pneumothorax with large effusions.
+- It writes more findings per film (92 vs 79) with more incidental ones (tortuous aorta, low volumes), and has no confidence or severity, so its "flagged" rate is less meaningful than MedGemma's.
+- Conclusion: MAIRA-2 is ~6× faster and better at effusions and nodules/masses, but weaker on pneumonia, pneumothorax, edema and cardiomegaly, and it does not fit the app's structured-output pipeline. MedGemma stays the app's model. Raw outputs: `benchmark/results-maira2.jsonl`.
+
+**TorchXRayVision cross-check** (CheXpert + MIMIC + PadChest DenseNets, none trained on NIH; a finding is unsupported when its type's probability is < 0.5, the models' operating point, not tuned here): on the same MedGemma outputs it removed 4 findings, all false (right lower lobe consolidation and bilateral apical fibrosis on a normal film; an apical pneumothorax on an effusion film), and no true ones. Adult normals called normal 8/12 → **9/12**, right finding type unchanged at 25/49. Caveat: the classifier gave 0.08–0.10 effusion probability on 2 of 6 labelled effusions, so a correct effusion call can be flagged — the finding stays visible for that reason. `benchmark/run_txrv.py`.
 
 Reproduce or re-score (requires LM Studio serving `medgemma-27b-it`):
 ```sh

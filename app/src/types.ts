@@ -37,6 +37,16 @@ export interface Finding {
   category?: string
   /** Optional finding-specific follow-up. */
   recommendation?: string
+  /** TorchXRayVision cross-check; absent when the service is not running or the finding type is not covered. */
+  classifier?: ClassifierCheck
+}
+
+export interface ClassifierCheck {
+  kind: string
+  /** Classifier probability for this finding type; 0.5 is the operating point. */
+  prob: number
+  /** false → classifier does not support the finding; it is flagged and left out of the draft report. */
+  supported: boolean
 }
 
 export interface AnalysisResult {

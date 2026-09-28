@@ -115,7 +115,8 @@ export function buildReportPrompt(study: Study): string {
 
   const images = study.images
     .filter((i) => i.analysis)
-    .map((i) => ({ name: i.name, analysis: i.analysis }))
+    // Findings the TorchXRayVision cross-check does not support stay visible (flagged) but are left out of the draft.
+    .map((i) => ({ name: i.name, analysis: { ...i.analysis, findings: i.analysis!.findings.filter((f) => f.classifier?.supported !== false) } }))
 
   return `You are the reporting radiologist. Using the structured findings produced from each image
 below, write a formal, professional radiology report in clear medical prose.

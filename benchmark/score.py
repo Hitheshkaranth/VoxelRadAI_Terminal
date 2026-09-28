@@ -11,12 +11,12 @@ CLS = {
     "Cardiomegaly": r"cardiomegaly|cardiac enlargement|enlarged (heart|cardiac)|cardiothoracic ratio|heart size.*(enlarg|increas)",
     "Pneumothorax": r"pneumothorax",
     "Edema": r"o?edema|congestion|kerley|vascular redistribution|cephalization",
-    "Consolidation": r"consolidat|airspace|air-space|air bronchogram",
-    "Pneumonia": r"pneumonia|consolidat|airspace|infect",
-    "Infiltration": r"infiltrat|opacit|interstitial|markings|haz|reticul",
+    "Consolidation": r"consolidat|airspace|air-space|alveolar|air bronchogram",
+    "Pneumonia": r"pneumonia|consolidat|airspace|alveolar|infect",
+    "Infiltration": r"infiltrat|opaci|interstitial|markings|haz|reticul",
     "Atelectasis": r"atelecta|collapse|volume loss",
-    "Mass": r"mass|lesion|tumou?r",
-    "Nodule": r"nodul|mass|lesion",
+    "Mass": r"mass|lesion|tumou?r|round(ed)? opaci",
+    "Nodule": r"nodul|mass|lesion|round(ed)? opaci",
 }
 
 def abnormal(r):

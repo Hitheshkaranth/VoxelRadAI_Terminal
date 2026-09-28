@@ -5,6 +5,7 @@ import { Contrast, Eye, EyeOff, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'luc
 import { SEVERITY_ORDER } from '../../types'
 import type { Finding, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
+import { isUnsupported } from '../../lib/classifier'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
 
@@ -156,10 +157,10 @@ export function ImageViewer() {
 
   const findings = image?.analysis?.findings ?? []
   const worst = useMemo(
-    () => SEVERITY_ORDER.find((s) => findings.some((f) => f.severity === s && s !== 'normal')),
+    () => SEVERITY_ORDER.find((s) => findings.some((f) => f.severity === s && s !== 'normal' && !isUnsupported(f))),
     [findings],
   )
-  const abnormal = findings.filter((f) => f.severity !== 'normal').length
+  const abnormal = findings.filter((f) => f.severity !== 'normal' && !isUnsupported(f)).length
 
   if (!study) return <div className="vw-stage" />
   if (!study.images.length) return <Dropzone studyId={study.id} />
@@ -343,6 +344,7 @@ function FindingBox({
     <div
       className={`vw-finding${on ? ' vw-hl-on' : ''}${selected ? ' vw-found' : ''}`}
       data-severity={f.severity}
+      data-unsupported={isUnsupported(f) || undefined}
       style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` }}
       onPointerEnter={() => onHover(true)}
       onPointerLeave={() => onHover(false)}
@@ -352,7 +354,7 @@ function FindingBox({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`Finding ${n}: ${f.title}`}
+      aria-label={`Finding ${n}: ${f.title}${isUnsupported(f) ? ' (not supported by classifier)' : ''}`}
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}
     >
       <span className="vw-chip">{n}</span>
