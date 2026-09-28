@@ -4,7 +4,7 @@ POST /check  {"image": "<data URL>", "findings": [{"id", "title", "description",
   → {"probs": {pathology: p}, "checks": {finding_id: {"kind", "prob", "supported"}}}
 
 A MedGemma finding is "unsupported" when the classifier probability for its finding type is below 0.5 (each
-model's operating point). On the 56-image benchmark this removed 5 findings, all false (benchmark/README.md).
+model's operating point). On the 56-image benchmark this removed 4 findings, all false (benchmark/README.md).
 Only models not trained on NIH ChestX-ray14 are used, so the benchmark (NIH images) is not inflated.
 
   uv run --with torchxrayvision --with scikit-image server/txrv_server.py
