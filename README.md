@@ -104,7 +104,22 @@ Self-reported confidence is uncalibrated (false findings typically stated at 0.9
 - It writes more findings per film (92 vs 79) with more incidental ones (tortuous aorta, low volumes), and has no confidence or severity, so its "flagged" rate is less meaningful than MedGemma's.
 - Conclusion: MAIRA-2 is ~6× faster and better at effusions and nodules/masses, but weaker on pneumonia, pneumothorax, edema and cardiomegaly, and it does not fit the app's structured-output pipeline. MedGemma stays the app's model. Raw outputs: `benchmark/results-maira2.jsonl`.
 
-**TorchXRayVision cross-check** (CheXpert + MIMIC + PadChest DenseNets, none trained on NIH; a finding is unsupported when its type's probability is < 0.5, the models' operating point, not tuned here): on the same MedGemma outputs it removed 4 findings, all false (right lower lobe consolidation and bilateral apical fibrosis on a normal film; an apical pneumothorax on an effusion film), and no true ones. Adult normals called normal 8/12 → **9/12**, right finding type unchanged at 25/49. Caveat: the classifier gave 0.08–0.10 effusion probability on 2 of 6 labelled effusions, so a correct effusion call can be flagged — the finding stays visible for that reason. `benchmark/run_txrv.py`.
+**Cross-check — TorchXRayVision classifier on MedGemma's findings (same 56 images)**
+
+[TorchXRayVision](https://github.com/mlmed/torchxrayvision) is not a report generator: it outputs a probability per pathology in ~0.1 s. The app uses it as a second opinion on each MedGemma finding. Models: the CheXpert, MIMIC and PadChest DenseNets averaged (none trained on NIH, so no test-set leakage). A finding is *unsupported* when its type's probability is < 0.5, the models' own operating point, not tuned on this set.
+
+| | MedGemma alone | MedGemma + cross-check |
+|---|---|---|
+| Adult normals called normal (NIH) | 8/12 | **9/12** |
+| Adult abnormal flagged (NIH) | **22/32** | 21/32 |
+| Right finding type, all labels | 25/49 | 25/49 |
+| Findings removed | — | 4, **all false**, 0 true |
+| Extra latency | — | ~0.1 s |
+
+- Removed: right lower lobe consolidation + bilateral apical fibrosis on a normal film, and a false apical pneumothorax on an effusion film (that film's only finding, hence 22 → 21 flagged).
+- Classifier alone, AUC vs normals (2–10 films per label, directional): pneumothorax 1.00, consolidation 0.96, edema 0.94, cardiomegaly 0.93, mass 0.92, nodule 0.90, pneumonia 0.82, atelectasis 0.82, effusion 0.76.
+- Caveat: it gave 0.08–0.10 effusion probability on 2 of 6 labelled effusions, so a correct call can be flagged. Unsupported findings therefore stay visible (dashed outline) rather than being deleted.
+- Raw outputs: `benchmark/txrv.jsonl` (probabilities), `benchmark/results-txrv.jsonl` (filtered findings); script `benchmark/run_txrv.py`.
 
 Reproduce or re-score (requires LM Studio serving `medgemma-27b-it`):
 ```sh
