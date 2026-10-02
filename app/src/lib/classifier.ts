@@ -2,7 +2,7 @@
 // plus the shared rules for which findings count. If the service is not running the analysis comes back with
 // classifierStatus 'unavailable' and the findings unchanged, so the app works without it.
 // Type-only imports: node tests import this file directly.
-import type { AnalysisResult, ClassifierCheck, Finding, Severity, Study, StudyImage } from '../types'
+import type { AnalysisResult, ClassifierCheck, Finding, Heatmap, Severity, Study, StudyImage } from '../types'
 
 const CHECK_TIMEOUT_MS = 30000
 
@@ -121,6 +121,7 @@ export async function crossCheck(
       body: JSON.stringify({
         image: dataUrl ?? image.dataUrl,
         findings: analysis.findings.map(({ id, title, description, severity }) => ({ id, title, description, severity })),
+        heatmaps: true,
       }),
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     })
@@ -132,12 +133,17 @@ export async function crossCheck(
       }
       return { ...analysis, classifierStatus: 'unavailable', classifierMessage: `HTTP ${r.status}` }
     }
-    const { checks, probs } = (await r.json()) as { checks: Record<string, ClassifierCheck>; probs?: Record<string, number> }
+    const { checks, probs, heatmaps } = (await r.json()) as {
+      checks: Record<string, ClassifierCheck>
+      probs?: Record<string, number>
+      heatmaps?: Record<string, Heatmap>
+    }
     return {
       ...analysis,
       classifierStatus: 'ok',
       classifierMessage: undefined,
       classifierProbs: probs,
+      heatmaps: heatmaps ?? analysis.heatmaps,
       findings: analysis.findings.map((f) => (checks[f.id] ? { ...f, classifier: checks[f.id] } : f)),
     }
   } catch (err) {

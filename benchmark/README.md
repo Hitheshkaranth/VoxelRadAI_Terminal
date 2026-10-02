@@ -107,6 +107,17 @@ Ablation, chosen on **dev** and confirmed on **test** (abnormal flagged · norma
 | **Add MAIRA-2 effusion / nodule-mass / atelectasis (classifier-gated)** | **67/75 · 23/31 · 89/227** | **75/82 · 21/29 · 103/220** |
 | Both (the earlier in-sample rule) | 57/75 · 29/31 · 80/227 | 60/82 · 24/29 · 92/220 |
 
+### Localisation (`localise.py`, test split)
+`uv run --with torchxrayvision --with scikit-image localise.py` scores whether each source points at the radiologist-boxed lesion: a detected finding's box touching / centred in a radiologist box of that class, and the app's heatmap peak (the exact `txrv_server.heatmaps` code) inside one.
+
+| | Box touches lesion | Centre / peak inside lesion |
+|---|---|---|
+| MedGemma | 94/137 (69%, CI 60–76) | 19/137 (14%, CI 9–21) |
+| MAIRA-2 | 65/82 (79%, CI 69–87) | 36/82 (44%, CI 34–55) |
+| Classifier heatmap (lung / heart masked) | — | 26/152 (17%, CI 12–24) |
+
+Tried: the unmasked class activation map peaks below the diaphragm on most films (13% on a finer grid); masking to the lungs (heart for cardiomegaly) with TorchXRayVision's ChestX-Det anatomy model helps but stays coarse. The anatomy model was trained on ChestX-Det's training split, not these test films.
+
 What this changed:
 - **The classifier no longer removes MedGemma findings.** Filtering cost 17 true abnormal films on test for 3 more normals called normal. Unsupported findings stay in the draft, marked *unconfirmed* (dashed outline, worded as possible in the report, listed on the pre-sign checklist). `fuse.py --filter-medgemma` reproduces the old behaviour.
 - **MAIRA-2 as a second reader is the one change that helps**: effusion 30% → 53% with no change in normals, when its findings are added only if the classifier supports them. The app's optional second reader applies the same gate.

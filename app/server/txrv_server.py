@@ -1,7 +1,8 @@
 """Local TorchXRayVision cross-check service for Skanda Radiology (http://localhost:8765, proxied by Vite at /txrv).
 
-POST /check  {"image": "<data URL>", "findings": [{"id", "title", "description", "severity"}]}
-  → {"probs": {pathology: p}, "checks": {finding_id: {"kind", "prob", "thr", "thrSource", "calibrated"?, "supported"}}}
+POST /check  {"image": "<data URL>", "findings": [{"id", "title", "description", "severity"}], "heatmaps"?: true}
+  → {"probs": {pathology: p}, "checks": {finding_id: {"kind", "prob", "thr", "thrSource", "calibrated"?, "supported"}},
+     "heatmaps"?: {kind: {"w", "h", "data": base64 uint8, "extent": {"x", "y", "w", "h"}}}}
 GET /health → {"ok", "models", "thresholds": {"source", "generated"}}
 
 A MedGemma finding is "unsupported" when the classifier probability for its finding type is below that type's
@@ -89,25 +90,106 @@ _models = None
 _load_lock = threading.Lock()
 
 
-def probabilities(image_bytes: bytes) -> dict:
-    """Averaged pathology probabilities (0.5 = each model's operating point) for one radiograph."""
-    global _models
+def _prepare(image_bytes: bytes, size: int = 224):
+    """Grayscale, normalised, centre-cropped and resized image as a (1, 1, size, size) tensor, plus the crop's extent
+    in the original image (normalised x, y, w, h)."""
     import skimage.io, torch, torchvision, torchxrayvision as xrv
-    with _load_lock:  # concurrent first requests must not load the weights twice
-        if _models is None:
-            _models = [xrv.models.DenseNet(weights=w).eval() for w in MODELS]
     img = skimage.io.imread(io.BytesIO(image_bytes))
     if img.ndim == 3:
         img = img[..., :3].mean(2)
+    h, w = img.shape
+    side = min(h, w)
+    extent = {"x": (w - side) / 2 / w, "y": (h - side) / 2 / h, "w": side / w, "h": side / h}
     img = xrv.datasets.normalize(img, 255 if img.max() <= 255 else 65535)[None, ...]
-    img = torchvision.transforms.Compose([xrv.datasets.XRayCenterCrop(), xrv.datasets.XRayResizer(224)])(img)
+    img = torchvision.transforms.Compose([xrv.datasets.XRayCenterCrop(), xrv.datasets.XRayResizer(size)])(img)
+    return torch.from_numpy(img)[None].float(), extent
+
+
+def _load_models():
+    global _models
+    import torchxrayvision as xrv
+    with _load_lock:  # concurrent first requests must not load the weights twice
+        if _models is None:
+            _models = [xrv.models.DenseNet(weights=w).eval() for w in MODELS]
+    return _models
+
+
+def probabilities(image_bytes: bytes) -> dict:
+    """Averaged pathology probabilities (0.5 = each model's operating point) for one radiograph."""
+    import torch
+    _load_models()
+    img, _ = _prepare(image_bytes)
     acc: dict = {}
     with torch.no_grad():
         for m in _models:
-            for p, v in zip(m.pathologies, m(torch.from_numpy(img)[None])[0].tolist()):
+            for p, v in zip(m.pathologies, m(img)[0].tolist()):
                 if p:
                     acc.setdefault(p, []).append(v)
     return {p: round(sum(v) / len(v), 3) for p, v in acc.items()}
+
+
+# Class activation maps for the viewer's heatmap overlay: where each type's score comes from, kept to the lungs (the
+# heart for cardiomegaly) with TorchXRayVision's ChestX-Det anatomy model. On the held-out ChestX-Det test split the
+# peak fell inside a radiologist box for 26/152 labelled findings (17%, benchmark/localise.py; unmasked it was worse),
+# so the app shows it as a coarse hint, never as a localisation.
+CAM_KEYS = {
+    "pneumothorax": ["Pneumothorax"], "effusion": ["Effusion"], "cardiomegaly": ["Cardiomegaly"], "edema": ["Edema"],
+    "nodule / mass": ["Nodule", "Mass"], "atelectasis": ["Atelectasis"], "opacity": ["Lung Opacity", "Consolidation"],
+}
+HEAT = 32  # grid sent to the browser; it is upsampled smoothly there
+_seg = None
+
+
+def _anatomy(image_bytes: bytes):
+    """(lungs, heart) boolean masks at 224 px, or (None, None) when the anatomy model is unavailable."""
+    global _seg
+    import torch, torch.nn.functional as F, torchxrayvision as xrv
+    try:
+        with _load_lock:
+            if _seg is None:
+                _seg = xrv.baseline_models.chestx_det.PSPNet().eval()
+        x, _ = _prepare(image_bytes, 512)
+        with torch.no_grad():
+            o = torch.sigmoid(_seg(x))[0]
+        t = _seg.targets
+        lungs = torch.maximum(o[t.index("Left Lung")], o[t.index("Right Lung")])
+        heart = o[t.index("Heart")]
+        down = lambda m: F.interpolate(m[None, None], size=(224, 224), mode="bilinear", align_corners=False)[0, 0] > 0.5
+        return down(lungs), down(heart)
+    except Exception:  # noqa: BLE001 — the heatmap falls back to unmasked
+        return None, None
+
+
+def heatmaps(image_bytes: bytes, kinds) -> dict:
+    """{kind: {"w", "h", "data": base64 of row-major uint8 0–255, "extent": crop extent in the original image}}."""
+    import torch, torch.nn.functional as F
+    models = _load_models()
+    kinds = [k for k in kinds if k in CAM_KEYS]
+    if not kinds:
+        return {}
+    img, extent = _prepare(image_bytes)
+    lungs, heart = _anatomy(image_bytes)
+    acc: dict = {}
+    with torch.no_grad():
+        for m in models:
+            f = F.relu(m.features(img))[0]  # (1024, 7, 7); DenseNet: global average pool → linear, so CAM is exact
+            for kind in kinds:
+                for key in CAM_KEYS[kind]:
+                    if key in m.pathologies:
+                        c = torch.einsum("k,kij->ij", m.classifier.weight[m.pathologies.index(key)], f)
+                        c = c - c.min()
+                        acc.setdefault(kind, []).append(c / (c.max() + 1e-6))
+    out = {}
+    for kind, maps in acc.items():
+        cam = F.interpolate(torch.stack(maps).mean(0)[None, None], size=(224, 224), mode="bilinear", align_corners=False)[0, 0]
+        mask = heart if kind == "cardiomegaly" else lungs
+        if mask is not None and mask.any():
+            grown = F.max_pool2d(mask[None, None].float(), 23, stride=1, padding=11)[0, 0] > 0  # ~5% margin
+            cam = cam * grown
+        cam = F.adaptive_avg_pool2d(cam[None, None], HEAT)[0, 0]
+        cam = (cam / (cam.max() + 1e-6) * 255).round().clamp(0, 255).to(torch.uint8)
+        out[kind] = {"w": HEAT, "h": HEAT, "data": base64.b64encode(cam.numpy().tobytes()).decode(), "extent": extent}
+    return out
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -121,9 +203,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(413, {"error": "image too large"})
         try:
             body = json.loads(self.rfile.read(int(size)))
-            probs = probabilities(base64.b64decode(body["image"].split(",", 1)[-1]))
+            raw = base64.b64decode(body["image"].split(",", 1)[-1])
+            probs = probabilities(raw)
             checks = {f["id"]: c for f in body.get("findings", []) if (c := check(f, probs))}
-            self._json(200, {"probs": probs, "checks": checks})
+            out = {"probs": probs, "checks": checks}
+            if body.get("heatmaps"):
+                out["heatmaps"] = heatmaps(raw, {c["kind"] for c in checks.values() if c.get("prob") is not None})
+            self._json(200, out)
         except Exception as e:  # noqa: BLE001 — report to the client, keep serving
             self._json(500, {"error": f"{type(e).__name__}: {e}"})
 

@@ -67,6 +67,16 @@ export interface ClassifierCheck {
   reason?: string
 }
 
+/** Classifier activation map for one finding type: where its score comes from (a coarse hint, not a localisation). */
+export interface Heatmap {
+  w: number
+  h: number
+  /** base64 of w×h row-major uint8 values, 0–255. */
+  data: string
+  /** Area of the original image the map covers (the classifier's centre crop), normalised 0–1. */
+  extent: { x: number; y: number; w: number; h: number }
+}
+
 export interface AnalysisResult {
   modality: string // "Radiograph (X-ray)"
   bodyPart: string // "Chest"
@@ -88,6 +98,8 @@ export interface AnalysisResult {
   classifierMessage?: string
   /** All classifier probabilities returned for the image, keyed by pathology. */
   classifierProbs?: Record<string, number>
+  /** Classifier heatmaps keyed by finding type (ClassifierCheck.kind). */
+  heatmaps?: Record<string, Heatmap>
   /** Optional MAIRA-2 second reader for the classes MedGemma misses. */
   secondReader?: { status: 'ok' | 'unavailable' | 'not-loaded' | 'error'; added: number; ranAt: number; message?: string }
   model: string
@@ -187,6 +199,8 @@ export interface ViewerState {
   contrast: number // 100 = neutral (percent)
   invert: boolean
   showOverlay: boolean
+  /** Classifier heatmap for the selected finding. */
+  showHeatmap: boolean
 }
 
 export type InspectorTab = 'findings' | 'report'

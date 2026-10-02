@@ -15,7 +15,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Privacy](https://img.shields.io/badge/data-never_leaves_your_Mac-34C759?style=flat-square&logo=apple&logoColor=white)](#-architecture)
 
-[Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Benchmark](#-benchmark) · [Datasets](#-datasets) · [Limitations](#-known-limitations)
+[Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Setup guide](#-setup-guide) · [Benchmark](#-benchmark) · [Datasets](#-datasets) · [Limitations](#-known-limitations)
 
 <br>
 
@@ -36,6 +36,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 |---|---|
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
+| 🎯 **Localised view** | Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Optional classifier **heatmap** (H) for the selected finding type, labelled with its measured accuracy. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
 | 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
 | 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
 | 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
@@ -68,6 +69,16 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 <td width="50%" valign="top">
 <img src="docs/screenshots/print-preview.png" alt="A4 print preview of the radiology report with annotated key image">
 <p><b>Printable report.</b> A4 preview with patient block, annotated key image and legend. The exported PDF of this study is in <a href="docs/sample-report.pdf"><code>docs/sample-report.pdf</code></a> (3 pages: findings, impression, recommendations, AI findings table with held-out rates, unsigned-draft seal and disclaimer).</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/zoom-to-finding.png" alt="Viewer zoomed onto a selected finding with a close-up crop on its card">
+<p><b>Zoom to finding.</b> Selecting a finding zooms and centres the viewer on its box (here 65% → 148%), and the expanded card shows a close-up. Esc returns to the whole film.</p>
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/heatmap.png" alt="Classifier heatmap overlay with its accuracy caveat">
+<p><b>Classifier heatmap (H).</b> Where the classifier's score for the selected finding type comes from, kept to the lungs. The legend states its held-out accuracy (17%). In this capture MedGemma's "left apical opacity" box sits over the mediastinum rather than the left apex: localisation is the weakest part of the system, so both are hints to look, not answers.</p>
 </td>
 </tr>
 <tr>
@@ -118,9 +129,11 @@ flowchart LR
     end
 
     subgraph TXS["🛡️ txrv_server.py :8765"]
-        TX["TorchXRayVision<br/>3 DenseNets, averaged"]
+        TX["TorchXRayVision<br/>3 DenseNets, averaged<br/>+ class activation heatmaps"]
+        SEG["anatomy masks<br/>(lungs, heart)"]
         TH[("thresholds.json<br/>tuned on ChestX-Det dev")]
         TH --> TX
+        SEG --> TX
     end
 
     subgraph MAS["🔬 maira_server.py :8766 · optional"]
@@ -152,7 +165,7 @@ sequenceDiagram
     A->>M: Lung-pattern check (neutral 0–3 grade, temperature 0)
     M-->>A: Grade ≥ 2 adds an interstitial finding
     A->>C: Image + findings
-    C-->>A: Probability per finding type vs per-class threshold
+    C-->>A: Probability per finding type vs per-class threshold, heatmap per type
     Note over A: Below threshold → kept, marked unconfirmed (dashed)
     opt Second reader enabled
         A->>R: Image
@@ -161,6 +174,7 @@ sequenceDiagram
         C-->>A: Added only if supported
     end
     A->>U: Boxes, cards with evidence, priority
+    U->>A: Select a finding → zoom to its box, close-up, optional heatmap
     U->>A: Accept / Dismiss, open Report tab
     A->>M: Draft from non-dismissed findings (unconfirmed worded as "possible")
     M-->>A: Technique · Findings · Impression · Recommendations
@@ -175,7 +189,7 @@ sequenceDiagram
 | Parser | [`parse.ts`](app/src/lib/parse.ts) | JSON tried as-is first, then string-aware repair; `box_2d` → normalised boxes; failures throw |
 | Pipeline | [`analysis.ts`](app/src/lib/analysis.ts) | Read → lung pattern → cross-check → second reader → store; report jobs, staged progress |
 | Review rules | [`classifier.ts`](app/src/lib/classifier.ts) | `isExcluded` (dismissed), `isUnconfirmed` (unsupported, unreviewed), counts, urgency, report trace lines |
-| Cross-check service | [`txrv_server.py`](app/server/txrv_server.py) · [`thresholds.json`](app/server/thresholds.json) | Per-class thresholds and calibration knots from `benchmark/fuse.py` |
+| Cross-check service | [`txrv_server.py`](app/server/txrv_server.py) · [`thresholds.json`](app/server/thresholds.json) | Per-class thresholds and calibration knots from `benchmark/fuse.py`; lung-masked class activation heatmaps |
 | Second reader | [`maira.ts`](app/src/lib/maira.ts) · [`maira_server.py`](app/server/maira_server.py) · [`maira_parse.py`](app/server/maira_parse.py) | Optional MAIRA-2 service; sentence → finding rules shared with the benchmark |
 | Reliability | [`reliability.ts`](app/src/lib/reliability.ts) · [`reliability.generated.ts`](app/src/lib/reliability.generated.ts) | Held-out confirmation rate per finding type, generated by `benchmark/score.py --emit-ts` |
 | DICOM | [`imageIntake.ts`](app/src/lib/imageIntake.ts) · [`dicomPixels.ts`](app/src/lib/dicomPixels.ts) | Tag parsing, pixel maths (tested), canvas rendering |
@@ -185,7 +199,7 @@ The base URL (`/lmstudio/v1`), model id and second-reader settings can be change
 
 ## 🚀 Quick start
 
-**Requirements:** [LM Studio](https://lmstudio.ai) with `medgemma-27b-it` downloaded, and Node.js 20+. Optional: [uv](https://docs.astral.sh/uv/) for the classifier and second reader.
+Already have LM Studio, Node and uv? These are the commands. First time, or something not working: follow the [setup guide](#-setup-guide).
 
 ```sh
 # 1 · Serve MedGemma (a moderate context; 131k × 4 parallel slots caused "Compute error" on a 24 GB Mac)
@@ -197,12 +211,12 @@ cd app
 npm install
 npm run dev                                        # http://localhost:5173
 
-# 3 · Cross-check classifier (recommended; first start downloads ~100 MB of weights)
+# 3 · Cross-check classifier (recommended; first start downloads ~620 MB of weights)
 uv run --with torchxrayvision --with scikit-image server/txrv_server.py   # http://localhost:8765
 
 # 4 · Optional MAIRA-2 second reader (needs the weights in ~/.cache/maira-2 and ~14 GB free;
 #     load it from Settings only when LM Studio has no model loaded)
-uv run --python 3.12 --with "transformers>=4.48,<4.52" --with torch --with pillow --with accelerate server/maira_server.py
+uv run --python 3.12 --with "transformers>=4.48,<4.52" --with torch --with pillow --with accelerate --with protobuf --with sentencepiece server/maira_server.py
 ```
 
 The status pill in the top right turns green (**Connected**) when LM Studio is reachable. Without the classifier the app still works; each card then says the cross-check did not run, and the pre-sign checklist lists it.
@@ -220,6 +234,138 @@ python3 server/test_servers.py                         # classifier / MAIRA-2 se
 `app/SWARM.md`, `app/tasks/` and `app/notes/` document how the first version was built by a 5-agent opencode swarm.
 </details>
 
+## 🧰 Setup guide
+
+Step by step from a fresh Mac. Total download is about 15 GB (about 41 GB with the optional MAIRA-2 second reader).
+
+### 1 · Check the machine
+
+| | Needed | Tested on |
+|---|---|---|
+| Mac | Apple Silicon (M1 or later) | M5 Pro |
+| Memory | **24 GB** unified memory minimum. MedGemma uses ~14 GB; close VMs and heavy browser tabs while reading, or the Mac swaps and a read slows from ~55 s to several minutes | 24 GB |
+| Disk | ~15 GB free (MedGemma 13.9 GB, classifier + anatomy model 0.4 GB, app 0.2 GB). +26 GB for MAIRA-2 | — |
+| macOS | A version current LM Studio supports | macOS 26.6 |
+
+### 2 · Install the tools
+
+| Tool | Version | Install |
+|---|---|---|
+| [LM Studio](https://lmstudio.ai) | current | Download the app, open it once, then enable the `lms` command line: run `~/.lmstudio/bin/lms bootstrap` and open a new terminal |
+| [Node.js](https://nodejs.org) | **20.19+ or 22.12+** (Vite 8) | `brew install node` or the installer from nodejs.org |
+| [uv](https://docs.astral.sh/uv/) | any recent | `curl -LsSf https://astral.sh/uv/install.sh \| sh` (runs the Python services with their own dependencies; no global Python packages needed) |
+| git | any | `xcode-select --install` |
+
+Check:
+
+```sh
+lms version && node -v && uv --version && git --version
+```
+
+### 3 · Get the code
+
+```sh
+git clone https://github.com/Hitheshkaranth/skanda-radiology.git
+cd skanda-radiology/app
+npm install
+```
+
+### 4 · Download and serve MedGemma
+
+The benchmark numbers in this README were measured with **`unsloth/medgemma-27b-it-GGUF`, quantisation `Q3_K_S` (13.9 GB)**.
+
+1. In LM Studio open **Discover**, search `unsloth/medgemma-27b-it-GGUF` and download **Q3_K_S**. A larger quantisation (e.g. Q4_K_M) needs more memory and has not been benchmarked here.
+2. Load it with a moderate context and start the server:
+
+   ```sh
+   lms ls                                                     # note the model identifier, normally medgemma-27b-it
+   lms load medgemma-27b-it --context-length 16384 --gpu max -y
+   lms server start                                           # http://localhost:1234
+   curl -s localhost:1234/v1/models                           # should list medgemma-27b-it
+   ```
+
+   A 131k context with 4 parallel slots caused "Compute error" on a 24 GB Mac; 16k is plenty (a read uses a few thousand tokens). If your identifier differs, change **Model id** in the app's Settings (⌘,); it must match exactly.
+
+### 5 · Start the app
+
+```sh
+cd app
+npm run dev                                                   # http://localhost:5173
+```
+
+Open <http://localhost:5173>. The pill at the bottom of the sidebar and in the toolbar should read **Connected**. Vite listens on `localhost` only and proxies `/lmstudio`, `/txrv` and `/maira` to the local services.
+
+### 6 · Start the cross-check classifier (recommended)
+
+In a second terminal:
+
+```sh
+cd app
+uv run --with torchxrayvision --with scikit-image server/txrv_server.py
+curl -s localhost:8765/health                                 # {"ok": true, ... "thresholds": {...ChestX-Det dev...}}
+```
+
+The first start downloads three DenseNet classifiers (~85 MB) and, on the first heatmap, the anatomy segmentation model (~270 MB), cached in `~/.torchxrayvision`. Per-class thresholds load from `app/server/thresholds.json`. Without this service the app still works, but no finding can be marked supported or unconfirmed, and the pre-sign checklist says the cross-check did not run.
+
+### 7 · Try it
+
+1. **New Study** (⌘N) → add patient details (age, sex, clinical indication improve the read).
+2. Drop a chest X-ray (PNG, JPEG, WebP or uncompressed DICOM) onto the viewer → **Analyze Image**. A read takes ~55–90 s.
+3. Click a finding to zoom onto it (Esc for the whole film; **H** toggles the heatmap). **Accept** or **Dismiss** it. Dashed boxes are *unconfirmed* by the classifier.
+4. **Report** tab → **Draft Report** (~40 s) → edit → **Sign**. **Preview & Print / PDF** for the A4 report.
+
+No X-ray to hand? The benchmark films are public: `cd benchmark && python3 fetch.py chestxdet` downloads 217 radiologist-labelled films into `benchmark/img/` (labels in `manifest-cxd.json`).
+
+### 8 · Optional: MAIRA-2 second reader
+
+Adds effusion, nodule/mass and atelectasis findings MedGemma misses (held-out: right finding type 41% → 47%). It needs ~14 GB while loaded, so on a 24 GB Mac it cannot run at the same time as MedGemma.
+
+1. Accept the licence at <https://huggingface.co/microsoft/maira-2> (gated), then download the weights (~26 GB):
+
+   ```sh
+   uvx --from huggingface_hub hf auth login
+   uvx --from huggingface_hub hf download microsoft/maira-2 --local-dir ~/.cache/maira-2
+   ```
+
+2. Start the service (weights are **not** loaded at start):
+
+   ```sh
+   cd app
+   uv run --python 3.12 --with "transformers>=4.48,<4.52" --with torch --with pillow --with accelerate \
+     --with protobuf --with sentencepiece server/maira_server.py          # http://localhost:8766
+   ```
+
+3. Settings (⌘,) → **Second reader (MAIRA-2)** → turn on **Use second reader** → **Load**. Loading is refused while LM Studio has a model resident, so on a 24 GB Mac run `lms unload --all` first, read with MAIRA-2, then **Unload** and reload MedGemma. With 48 GB or more both fit.
+
+### Everyday start and stop
+
+```sh
+lms load medgemma-27b-it --context-length 16384 --gpu max -y && lms server start
+cd app && npm run dev                                                    # terminal 1
+cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.py   # terminal 2
+# stop: Ctrl-C in each terminal, then `lms unload --all` to free ~14 GB
+```
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Pill says **Offline** or **Not connected** | LM Studio server not running: `lms server start`. Check Settings → base URL is `/lmstudio/v1` |
+| Pill says **Model not loaded** | Load it (`lms load medgemma-27b-it …`), or the identifier differs from Settings → **Model id** (exact match required). Use the name from `lms ps` |
+| "Compute error" from LM Studio | Context too large for memory: reload with `--context-length 16384` and a single model loaded |
+| A read takes minutes instead of ~1 | Memory pressure. Check `sysctl vm.swapusage`; close VMs, browser tabs and other loaded models (`lms ps`) |
+| Cards say "Classifier not running — not cross-checked" | `txrv_server.py` not running, or port 8765 in use: `lsof -i :8765` |
+| MAIRA-2 **Load** says "LM Studio has … loaded; unload it first" | Intended on 24 GB: `lms unload --all`, then Load |
+| "The model output was cut off at the token limit…" or an unreadable-output error | Shown as an error, never as normal. The app already retried once with the schema; raise **Max tokens** in Settings if it was cut off, then **Re-analyze** |
+| "Compressed DICOM (transfer syntax …) is not supported" | JPEG / JPEG 2000 inside DICOM is not decoded: export as uncompressed DICOM or PNG |
+| `npm run dev` fails on Node version | Vite 8 needs Node 20.19+ or 22.12+: `node -v` |
+
+### Privacy checklist
+
+- Everything above runs on `localhost` only. The app contains no calls to external hosts; studies live in the browser's IndexedDB.
+- Internet is used only to download the tools, model weights and the public benchmark films.
+- Do not commit real patient images, screenshots or exported reports to a git remote, and do not paste them into cloud AI assistants.
+
 ## 📈 Benchmark
 
 [`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
@@ -235,7 +381,17 @@ python3 server/test_servers.py                         # classifier / MAIRA-2 se
 | Pneumothorax found / calls correct | 10/10 · 10/36 | 10/10 · 10/36 |
 | Box lands on the lesion | 14/85 (16%) | 22/97 (23%) |
 
-Using the classifier to *remove* MedGemma findings lost 17 true abnormal films for 3 more clear normals, so it now marks findings unconfirmed instead. Full tables and the ablation: [benchmark/README.md](benchmark/README.md#results--oct-2026-chestx-det-held-out-test-111-films).
+Using the classifier to *remove* MedGemma findings lost 17 true abnormal films for 3 more clear normals, so it now marks findings unconfirmed instead.
+
+<a id="localisation-held-out"></a>**Localisation (held-out test, [`benchmark/localise.py`](benchmark/localise.py)):** does the marker land on the radiologist-boxed lesion?
+
+| | Box touches the lesion | Box centre / heatmap peak inside the lesion |
+|---|:---:|:---:|
+| MedGemma boxes | 94/137 (69%, CI 60–76) | 19/137 (14%, CI 9–21) |
+| MAIRA-2 boxes | 65/82 (79%, CI 69–87) | 36/82 (44%, CI 34–55) |
+| Classifier heatmap (lung-masked) | — | 26/152 (17%, CI 12–24) |
+
+MedGemma's boxes are usually in the right region but large and off-centre; the heatmap is coarser still. The app therefore zooms to the box and shows the heatmap as a labelled hint, and every finding still needs the radiologist's eye. Full tables and the ablation: [benchmark/README.md](benchmark/README.md#results--oct-2026-chestx-det-held-out-test-111-films).
 
 **Original in-sample set:** 56 films (NIH NLP-mined labels + Kermany pediatric). Three approaches were compared on the same images:
 
@@ -338,7 +494,7 @@ Manual test images are public chest radiographs from Wikimedia Commons: [normal 
 
 - MedGemma's bounding boxes are approximate, and **results vary between runs** (see the report screenshot above).
 - Self-reported confidence is uncalibrated; finding cards show the held-out confirmation rate for each finding type instead (weak: pneumothorax 10/36, cardiomegaly 3/12 films with that call were right).
-- MedGemma misses fractures (0/12) and most pleural thickening (2/16), and its boxes land on the lesion only 16% of the time on radiologist-labelled films.
+- MedGemma misses fractures (0/12) and most pleural thickening (2/16). Its boxes touch the lesion 69% of the time but are centred on it only 14%; the heatmap peak hits it 17%. Zoom-to-finding and the heatmap show where to look, not where the lesion is.
 - Subtle interstitial patterns (prominent bronchovascular markings, perihilar opacities, peribronchial cuffing) are under-called by the main read. A second, neutral graded lung-pattern check (0–3 scale, ~10 s) adds a finding when the grade is ≥ 2; on a 12-film labelled set this raised detection from 6/7 to 7/7 with no false positives on 5 normals. That is a small sample, so treat it as directional.
 - Leading yes/no questions ("is X present?") are unreliable: the model tends to agree with whatever is asked, including on normal films.
 - The classifier can miss real effusions (0.08–0.10 on 2 of 6), so a dashed finding is a prompt to look again, not a verdict.

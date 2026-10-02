@@ -579,3 +579,12 @@
 }
 .vw-thumb:focus-within .vw-remove { opacity: 1; }
 .vw-remove:focus-visible { outline: 2px solid var(--viewer-fg); outline-offset: 1px; }
+
+/* Smooth move when a finding is focused or the focus is cleared; dragging and wheel zoom stay immediate. */
+.vw-canvas.vw-anim { transition: width 240ms var(--ease-out), height 240ms var(--ease-out), transform 240ms var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .vw-canvas.vw-anim { transition: none; } }
+
+/* Classifier heatmap: under the finding boxes, smoothed by the browser's upscaling. */
+.vw-heat { position: absolute; pointer-events: none; mix-blend-mode: screen; opacity: 0.85; }
+.vw-legend-heat { display: flex; align-items: center; gap: 6px; max-width: 300px; white-space: normal; text-align: left; border-radius: 10px; }
+.vw-heat-ramp { flex: none; width: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(255, 220, 0, 0.15), rgb(255, 0, 0)); }

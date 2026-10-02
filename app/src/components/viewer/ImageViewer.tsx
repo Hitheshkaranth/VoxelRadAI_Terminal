@@ -1,8 +1,8 @@
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { Contrast, Eye, EyeOff, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
-import type { Finding, ViewerState } from '../../types'
+import { Contrast, Eye, EyeOff, Flame, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import type { Finding, Heatmap, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
 import { countLabel } from '../shell/shellState'
@@ -13,6 +13,10 @@ const MIN_ZOOM = 0.5
 const MAX_ZOOM = 8
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const area = (f: Finding) => (f.bbox ? f.bbox.w * f.bbox.h : 0)
+/** Share of the stage a focused finding's box fills, and the most a focus may zoom. */
+const FOCUS_FILL = 0.6
+const FOCUS_MAX_ZOOM = 4
+const FOCUS_ANIM_MS = 260
 
 const PRESETS: { id: string; label: string; brightness: number; contrast: number }[] = [
   { id: 'default', label: 'Default', brightness: 100, contrast: 100 },
@@ -34,6 +38,8 @@ export function ImageViewer() {
 
   const stageRef = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState({ w: 0, h: 0 })
+  const [animating, setAnimating] = useState(false)
+  const focused = useRef(false)
   const drag = useRef<null | { mode: 'pan' | 'wl'; x: number; y: number; v: ViewerState }>(null)
 
   useLayoutEffect(() => {
@@ -123,6 +129,9 @@ export function ImageViewer() {
         case 'o':
           setViewer({ showOverlay: !v.showOverlay })
           break
+        case 'h':
+          setViewer({ showHeatmap: !v.showHeatmap })
+          break
         case 'r':
           resetViewer()
           break
@@ -144,14 +153,36 @@ export function ImageViewer() {
     return () => window.removeEventListener('keydown', onKey)
   }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage])
 
-  // Bring a finding selected from the inspector into view when zoomed in.
+  // Selecting a finding zooms onto its box; clearing the selection (Esc, click again) returns to the whole film.
   useEffect(() => {
-    const f = image?.analysis?.findings.find((x) => x.id === selectedId)
-    const v = useApp.getState().viewer
-    if (!f?.bbox || v.zoom <= 1) return
-    const cx = (f.bbox.x + f.bbox.w / 2 - 0.5) * dispW
-    const cy = (f.bbox.y + f.bbox.h / 2 - 0.5) * dispH
-    setViewer({ panX: -cx, panY: -cy })
+    if (!image || !stage.w) return
+    const f = image.analysis?.findings.find((x) => x.id === selectedId)
+    const animate = () => {
+      setAnimating(true)
+      window.setTimeout(() => setAnimating(false), FOCUS_ANIM_MS)
+    }
+    if (!f) {
+      if (focused.current) {
+        focused.current = false
+        animate()
+        setViewer({ zoom: 1, panX: 0, panY: 0 })
+      }
+      return
+    }
+    if (!f.bbox || !(f.bbox.w > 0) || !(f.bbox.h > 0)) return
+    const z = clamp(
+      Math.min((stage.w * FOCUS_FILL) / (f.bbox.w * image.width * fit), (stage.h * FOCUS_FILL) / (f.bbox.h * image.height * fit)),
+      1,
+      FOCUS_MAX_ZOOM,
+    )
+    focused.current = true
+    animate()
+    setViewer({
+      zoom: z,
+      panX: -(f.bbox.x + f.bbox.w / 2 - 0.5) * image.width * fit * z,
+      panY: -(f.bbox.y + f.bbox.h / 2 - 0.5) * image.height * fit * z,
+    })
+    // Only a change of selection should move the view, not every resize or analysis update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
 
@@ -171,6 +202,10 @@ export function ImageViewer() {
   if (!image) return <div className="vw-stage" />
 
   const focusId = selectedId ?? hoveredId
+  const focusFinding = findings.find((f) => f.id === focusId)
+  const heatKind = focusFinding?.classifier?.prob != null ? focusFinding.classifier.kind : null
+  const heat = viewer.showHeatmap && heatKind ? analysis?.heatmaps?.[heatKind] : undefined
+  const hasHeatmaps = !!analysis?.heatmaps && Object.keys(analysis.heatmaps).length > 0
   const view = image.analysis?.view ?? ''
   const showLat = /\b(PA|AP|posteroanterior|anteroposterior)\b/i.test(view)
   const presetId =
@@ -199,7 +234,7 @@ export function ImageViewer() {
       aria-label={`X-ray viewer: ${image.name}`}
     >
       <div
-        className="vw-canvas"
+        className={`vw-canvas${animating ? ' vw-anim' : ''}`}
         style={{
           width: dispW,
           height: dispH,
@@ -218,6 +253,7 @@ export function ImageViewer() {
           }}
         />
         {showLat && <div className="vw-lat">R</div>}
+        {heat && <HeatmapLayer heat={heat} />}
         {viewer.showOverlay && (
           <div className="vw-overlays">
             {/* Larger boxes first so smaller (nested) boxes stay on top and clickable. */}
@@ -274,6 +310,14 @@ export function ImageViewer() {
           {viewer.showOverlay && unlocalized.length > 0 && (
             <div className="vw-legend">Not localized: {unlocalized.map((n) => `#${n}`).join(', ')}</div>
           )}
+          {viewer.showHeatmap && hasHeatmaps && (
+            <div className="vw-legend vw-legend-heat">
+              <span className="vw-heat-ramp" aria-hidden="true" />
+              {heat
+                ? `Heatmap · where the classifier's ${heatKind} score comes from. Coarse hint: on held-out films its peak hit the lesion 17% of the time`
+                : 'Heatmap · select a finding the classifier covers'}
+            </div>
+          )}
           {viewer.showOverlay && counts.flagged > 0 && (
             <div className="vw-legend">
               <span className="vw-legend-swatch" aria-hidden="true" /> dotted = not in draft report
@@ -327,6 +371,16 @@ export function ImageViewer() {
           onClick={() => setViewer({ showOverlay: !viewer.showOverlay })}
         >
           {viewer.showOverlay ? <Eye strokeWidth={1.75} /> : <EyeOff strokeWidth={1.75} />}
+        </button>
+        <button
+          className="vw-tool"
+          aria-label="Toggle classifier heatmap (H)"
+          title={hasHeatmaps ? 'Classifier heatmap for the selected finding (H)' : 'No classifier heatmap for this image — re-analyze with the classifier running'}
+          aria-pressed={viewer.showHeatmap}
+          disabled={!hasHeatmaps}
+          onClick={() => setViewer({ showHeatmap: !viewer.showHeatmap })}
+        >
+          <Flame strokeWidth={1.75} />
         </button>
         <span className="vw-sep" />
         <button className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
@@ -383,5 +437,36 @@ function FindingBox({
       <span className="vw-chip">{excluded ? `${n}?` : n}</span>
       <span className="vw-label">{f.title}</span>
     </div>
+  )
+}
+
+/** Classifier heatmap drawn over the classifier's crop of the image; low values stay transparent. */
+function HeatmapLayer({ heat }: { heat: Heatmap }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const ctx = ref.current?.getContext('2d')
+    if (!ctx) return
+    const bytes = Uint8Array.from(atob(heat.data), (c) => c.charCodeAt(0))
+    const img = ctx.createImageData(heat.w, heat.h)
+    for (let i = 0; i < bytes.length; i++) {
+      const v = bytes[i] / 255
+      const t = Math.max(0, (v - 0.3) / 0.7) // keep the cold majority of the film clear
+      img.data[i * 4] = 255
+      img.data[i * 4 + 1] = Math.round(220 * (1 - t))
+      img.data[i * 4 + 2] = 0
+      img.data[i * 4 + 3] = Math.round(190 * t)
+    }
+    ctx.putImageData(img, 0, 0)
+  }, [heat])
+  const { x, y, w, h } = heat.extent
+  return (
+    <canvas
+      ref={ref}
+      className="vw-heat"
+      width={heat.w}
+      height={heat.h}
+      aria-hidden="true"
+      style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` }}
+    />
   )
 }

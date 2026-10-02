@@ -37,6 +37,7 @@ export const DEFAULT_VIEWER: ViewerState = {
   contrast: 100,
   invert: false,
   showOverlay: true,
+  showHeatmap: false,
 }
 
 export const emptyPatient = (): PatientInfo => ({

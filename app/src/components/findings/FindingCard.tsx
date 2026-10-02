@@ -1,12 +1,14 @@
 // OWNER: Agent 3 (Findings Inspector). Finding card rendered in the done list.
 // Evidence comes first (classifier cross-check, then benchmark track record); the model's own confidence is
 // shown last as plain text because it is not calibrated. Excluded findings stay visible with an explicit label.
+import { useEffect, useRef } from 'react'
 import type { FocusEvent, KeyboardEvent, MouseEvent } from 'react'
 import type { AnalysisResult, Finding, FindingReview } from '../../types'
 import { SEVERITY_LABEL } from '../../types'
 import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop, HelpCircle, Users, X } from 'lucide-react'
 import { BENCHMARK, reliabilityFor } from '../../lib/reliability'
 import { isExcluded, isUnconfirmed, isUnsupported } from '../../lib/classifier'
+import { useActiveImage } from '../../store'
 import './findings.css'
 
 interface Props {
@@ -169,6 +171,8 @@ export function FindingCard({
         {confText}
       </div>
 
+      {isExpanded && localized && <FindingCrop finding={finding} dashed={unconfirmed} />}
+
       <p className={`fd-desc ${isExpanded ? 'fd-desc--open' : ''}`}>{finding.description}</p>
 
       {finding.recommendation && (
@@ -212,5 +216,54 @@ export function FindingCard({
         </div>
       )}
     </li>
+  )
+}
+
+/** Close-up of the finding's box with some context around it, for the expanded card. */
+function FindingCrop({ finding, dashed }: { finding: Finding; dashed: boolean }) {
+  const image = useActiveImage()
+  const ref = useRef<HTMLCanvasElement>(null)
+  const src = image?.dataUrl
+  const b = finding.bbox
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas || !src || !b) return
+    const img = new Image()
+    img.onload = () => {
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const W = canvas.width
+      const H = canvas.height
+      // Box plus 35% margin, widened to the canvas aspect, clamped to the image.
+      let w = b.w * img.width * 1.7
+      let h = b.h * img.height * 1.7
+      if (w / h > W / H) h = (w * H) / W
+      else w = (h * W) / H
+      w = Math.min(w, img.width)
+      h = Math.min(h, img.height)
+      const cx = (b.x + b.w / 2) * img.width
+      const cy = (b.y + b.h / 2) * img.height
+      const sx = Math.min(Math.max(0, cx - w / 2), img.width - w)
+      const sy = Math.min(Math.max(0, cy - h / 2), img.height - h)
+      ctx.fillStyle = '#000'
+      ctx.fillRect(0, 0, W, H)
+      const k = Math.min(W / w, H / h)
+      const ox = (W - w * k) / 2
+      const oy = (H - h * k) / 2
+      ctx.drawImage(img, sx, sy, w, h, ox, oy, w * k, h * k)
+      const color = getComputedStyle(canvas).getPropertyValue(`--sev-${finding.severity}`).trim() || '#ff9f0a'
+      ctx.strokeStyle = color
+      ctx.lineWidth = 3
+      ctx.setLineDash(dashed ? [10, 6] : [])
+      ctx.strokeRect(ox + (b.x * img.width - sx) * k, oy + (b.y * img.height - sy) * k, b.w * img.width * k, b.h * img.height * k)
+    }
+    img.src = src
+  }, [src, b, finding.severity, dashed])
+  if (!src || !b) return null
+  return (
+    <figure className="fd-crop">
+      <canvas ref={ref} width={640} height={400} role="img" aria-label={`Close-up of ${finding.title}`} />
+      <figcaption>Close-up · box drawn by the model, approximate</figcaption>
+    </figure>
   )
 }

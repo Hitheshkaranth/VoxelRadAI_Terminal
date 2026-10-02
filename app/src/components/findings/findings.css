@@ -549,3 +549,8 @@
 .fd-second { display: flex; flex-direction: column; gap: var(--sp-1); }
 .fd-second .spinner { width: 14px; height: 14px; }
 .fd-second-status { font-size: var(--text-caption); color: var(--label-2); text-align: center; }
+
+/* Close-up of the finding's box on the expanded card. */
+.fd-crop { margin: var(--sp-2) 0 0; }
+.fd-crop canvas { display: block; width: 100%; height: auto; border-radius: var(--radius-sm); background: #000; }
+.fd-crop figcaption { margin-top: 4px; font: var(--text-caption) / 1.3 var(--font-sans); color: var(--label-2); }
