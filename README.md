@@ -108,6 +108,25 @@ Every report has a **Classifier Heatmaps** section: one figure per finding, show
 
 Radiologists marked consolidation in both lungs and an effusion on the **right only**; the draft calls the effusions bilateral. This is why the report is a draft for a radiologist, not a result.
 
+### Sample test: multiple pulmonary nodules (Oct 2026)
+
+A chest radiograph supplied by the project owner (source not documented; it still carries a phone's image-viewer buttons, left in as-is) was run through the full pipeline: read, cross-check, heatmaps, draft report and PDF export ([`docs/sample-test-report.pdf`](docs/sample-test-report.pdf)). No patient details or reference read were available.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sample-test-findings.png" alt="Multiple bilateral pulmonary nodules with a classifier heatmap over the right lung">
+<p><b>Read (68 s, priority).</b> MedGemma reports <i>multiple bilateral pulmonary nodules</i> (significant) with metastatic disease first in its differential, plus perihilar opacity. The classifier supports both (nodule/mass 80%, opacity 82%). Neither finding has a box (diffuse), so the heatmaps cover the whole film.</p>
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sample-test-report.png" alt="Report heatmap section for the sample test">
+<p><b>Report heatmaps.</b> One figure per finding. The nodule map is hot over the right lung but only cool over the left, although nodules are visible in both: the heatmap shows where the classifier's evidence is strongest, not every lesion.</p>
+</td>
+</tr>
+</table>
+
+What it got right: the dominant pattern and an appropriate differential and recommendation (CT chest). What it missed: the venous catheter in the right upper chest is not mentioned. Run-to-run variation applies (see benchmark).
+
 ## 🏗 Architecture
 
 Everything runs on `localhost`. The browser never talks to the model servers directly: the Vite dev server proxies three paths, so the UI uses relative URLs and needs no CORS setup.
