@@ -584,7 +584,21 @@
 .vw-canvas.vw-anim { transition: width 240ms var(--ease-out), height 240ms var(--ease-out), transform 240ms var(--ease-out); }
 @media (prefers-reduced-motion: reduce) { .vw-canvas.vw-anim { transition: none; } }
 
-/* Classifier heatmap: under the finding boxes, smoothed by the browser's upscaling. */
-.vw-heat { position: absolute; pointer-events: none; mix-blend-mode: screen; opacity: 0.85; }
-.vw-legend-heat { display: flex; align-items: center; gap: 6px; max-width: 300px; white-space: normal; text-align: left; border-radius: 10px; }
-.vw-heat-ramp { flex: none; width: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(255, 220, 0, 0.15), rgb(255, 0, 0)); }
+/* Classifier heatmap over the X-ray: jet colour map, cold areas clear, hot regions outlined, peaks numbered. */
+.vw-heat { position: absolute; pointer-events: none; }
+.vw-heat img { width: 100%; height: 100%; display: block; }
+.vw-heat-peak {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font: 600 11px/1.4 var(--font-sans);
+  white-space: nowrap;
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.vw-legend-heat { display: flex; align-items: center; gap: 8px; max-width: 320px; white-space: normal; text-align: left; border-radius: 10px; }
+.vw-heat-scale { flex: none; display: flex; flex-direction: column; gap: 2px; width: 56px; }
+.vw-heat-ramp { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #00f, #0ff, #0f0, #ff0, #f00); }
+.vw-heat-ends { display: flex; justify-content: space-between; font-size: 9px; opacity: 0.8; }

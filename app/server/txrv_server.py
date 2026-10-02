@@ -183,9 +183,13 @@ def heatmaps(image_bytes: bytes, kinds) -> dict:
     for kind, maps in acc.items():
         cam = F.interpolate(torch.stack(maps).mean(0)[None, None], size=(224, 224), mode="bilinear", align_corners=False)[0, 0]
         mask = heart if kind == "cardiomegaly" else lungs
+        inside = torch.ones_like(cam, dtype=torch.bool)
         if mask is not None and mask.any():
-            grown = F.max_pool2d(mask[None, None].float(), 23, stride=1, padding=11)[0, 0] > 0  # ~5% margin
-            cam = cam * grown
+            inside = F.max_pool2d(mask[None, None].float(), 23, stride=1, padding=11)[0, 0] > 0  # ~5% margin
+        # Rescale so the median inside the lungs is 0: only the stronger half of the region shows as heat. The
+        # peak (what benchmark/localise.py scores) is unchanged.
+        low = cam[inside].median()
+        cam = ((cam - low) / (cam[inside].max() - low + 1e-6)).clamp(min=0) * inside
         cam = F.adaptive_avg_pool2d(cam[None, None], HEAT)[0, 0]
         cam = (cam / (cam.max() + 1e-6) * 255).round().clamp(0, 255).to(torch.uint8)
         out[kind] = {"w": HEAT, "h": HEAT, "data": base64.b64encode(cam.numpy().tobytes()).decode(), "extent": extent}

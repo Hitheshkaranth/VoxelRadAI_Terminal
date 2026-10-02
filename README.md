@@ -36,7 +36,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 |---|---|
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
-| 🎯 **Localised view** | Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Optional classifier **heatmap** (H) for the selected finding type, labelled with its measured accuracy. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
+| 🎯 **Localised view** | Classifier **heatmap** painted on the X-ray (jet colour map, hot regions outlined, peaks labelled with finding numbers): all findings at once, or the selected one; **H** toggles it. Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
 | 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
 | 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
 | 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
@@ -77,8 +77,8 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 <p><b>Zoom to finding.</b> Selecting a finding zooms and centres the viewer on its box (here 65% → 148%), and the expanded card shows a close-up. Esc returns to the whole film.</p>
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/heatmap.png" alt="Classifier heatmap overlay with its accuracy caveat">
-<p><b>Classifier heatmap (H).</b> Where the classifier's score for the selected finding type comes from, kept to the lungs. The legend states its held-out accuracy (17%). In this capture MedGemma's "left apical opacity" box sits over the mediastinum rather than the left apex: localisation is the weakest part of the system, so both are hints to look, not answers.</p>
+<img src="docs/screenshots/heatmap.png" alt="Classifier heatmap on the X-ray: a red hotspot outlined in white over the patient's left lung, labelled with finding numbers">
+<p><b>Heatmap on the X-ray.</b> The regions the classifier weighted for each finding type, kept to the lungs and shown on by default: the hotspot (outlined) is labelled with the findings it belongs to (#1 #3 #4 opacity, #2 effusion). Here it sits over the patient's left mid–lower lung, overlapping the radiologists' consolidation box. Coarse: on held-out films the peak hit the lesion 17% of the time, so it says where to look, not where the lesion is.</p>
 </td>
 </tr>
 <tr>
@@ -311,7 +311,7 @@ The first start downloads three DenseNet classifiers (~85 MB) and, on the first 
 
 1. **New Study** (⌘N) → add patient details (age, sex, clinical indication improve the read).
 2. Drop a chest X-ray (PNG, JPEG, WebP or uncompressed DICOM) onto the viewer → **Analyze Image**. A read takes ~55–90 s.
-3. Click a finding to zoom onto it (Esc for the whole film; **H** toggles the heatmap). **Accept** or **Dismiss** it. Dashed boxes are *unconfirmed* by the classifier.
+3. The heatmap shows the weighted regions for all findings; click a finding to zoom onto it and see only its region (Esc for the whole film; **H** toggles the heatmap). **Accept** or **Dismiss** it. Dashed boxes are *unconfirmed* by the classifier.
 4. **Report** tab → **Draft Report** (~40 s) → edit → **Sign**. **Preview & Print / PDF** for the A4 report.
 
 No X-ray to hand? The benchmark films are public: `cd benchmark && python3 fetch.py chestxdet` downloads 217 radiologist-labelled films into `benchmark/img/` (labels in `manifest-cxd.json`).
