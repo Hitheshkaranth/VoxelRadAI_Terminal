@@ -19,9 +19,9 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 
 <br>
 
-<img src="docs/screenshots/hero-dark.png" alt="Skanda Radiology in dark mode: an adult chest X-ray with MedGemma findings drawn as dashed boxes because the classifier did not support them" width="100%">
+<img src="docs/screenshots/hero-dark.png" alt="Skanda Radiology in dark mode: a chest X-ray with five MedGemma findings boxed on the image and the findings panel showing priority, impression and classifier evidence" width="100%">
 
-<sub>An NIH film labelled <i>effusion + atelectasis</i>. MedGemma called a right apical pneumothorax and a right lower lobe opacity; the classifier supported neither, so both are drawn dashed and flagged on their cards as unconfirmed.</sub>
+<sub>A ChestX-Det test film (radiologists: consolidation in both lungs, right effusion). MedGemma reads it in 79 s as <i>priority</i>: left lower lobe consolidation, an effusion, perihilar markings and two right-sided opacities. Each card shows the classifier's probability against its tuned threshold and how often that finding type was right on held-out films. MedGemma named the effusion left-sided where radiologists marked it right, and its boxes do not follow its own laterality: boxes are approximate (see <a href="#-benchmark">benchmark</a>).</sub>
 
 </div>
 
@@ -34,70 +34,105 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 
 | | |
 |---|---|
-| 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (window/level + rescale applied). |
-| 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured finding boxes linked to the findings list. |
-| 🧠 **Analysis** | Streamed progress, urgency (routine / priority / urgent), severity breakdown, impression, findings, pertinent negatives, differential, recommendations, raw model output for audit. |
-| 🛡️ **Second opinion** | Every finding is cross-checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s). Unsupported findings stay in, drawn dashed and marked *unconfirmed*; the draft words them as possible and the pre-sign checklist lists them. Optional MAIRA-2 second reader for effusion, nodule/mass and atelectasis. |
-| 📊 **Honest confidence** | Each card shows how often that finding type was confirmed in the benchmark (e.g. *3/7 pneumothorax calls confirmed — verify carefully*) next to the model's self-stated confidence. |
-| 📝 **Report** | AI-drafted structured report (technique, comparison, findings, impression, recommendations), fully editable, sign-off, A4 print/PDF with annotated key images, plain-text and JSON export. |
-| 🔒 **Private by design** | Inference is local (LM Studio + a local Python service); studies persist in the browser's IndexedDB. Nothing is uploaded. |
-| 🌗 **Apple-style UI** | Light and dark mode. |
+| 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
+| 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
+| 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
+| 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
+| 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
+| ✅ **Reviewer in charge** | Accept or dismiss each finding. Dismissed findings leave the draft but are listed in a banner, the report trace line and every export. |
+| 📊 **Honest confidence** | Each card shows how often that finding type was right on the ChestX-Det test split (e.g. *pneumothorax: 10 of 36 confirmed — verify carefully*) next to the model's uncalibrated self-stated confidence. |
+| 📝 **Report** | AI-drafted structured report, editable, marked stale when images, reviews or patient details change, pre-sign checklist, sign-off with amendment trail, A4 print/PDF with annotated key images, plain-text (optionally anonymised) and JSON export. [Sample PDF](docs/sample-report.pdf). |
+| 🔒 **Private by design** | Inference is local (LM Studio + local Python services); studies persist in the browser's IndexedDB. Nothing is uploaded. |
+| 🌗 **Apple-style UI** | Light and dark mode, keyboard navigation, WCAG-checked contrast for safety text. |
 
 ## 📸 Screenshots
 
-All screenshots are real runs of the app on this Mac, using films from the benchmark set ([datasets](#-datasets)).
+Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films ([datasets](#-datasets)). Captured with Playwright driving Chrome against the live app, MedGemma 27B and the classifier service.
 
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/cross-check.png" alt="Normal film with a false consolidation finding drawn dashed">
-<p><b>Cross-check catching a false alarm.</b> An NIH film labelled <i>No Finding</i>. MedGemma reports a right lower lobe consolidation at 95% self-stated confidence; the classifier gives opacity only 36%, so the box is dashed and the finding is marked unconfirmed.</p>
+<img src="docs/screenshots/cross-check.png" alt="Normal film with a false left apical pneumothorax drawn dashed and marked unconfirmed">
+<p><b>Cross-check flags a false alarm.</b> Radiologists labelled this film normal (ChestX-Det does not label tubes). MedGemma calls a left apical pneumothorax at 95% self-stated confidence. The classifier gives 38%, under the dev-tuned 39% threshold, so the box is dashed and the card says <i>in draft as unconfirmed — verify</i>, next to the held-out rate: 10 of 36 pneumothorax calls were right.</p>
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/pediatric-pneumonia.png" alt="Pediatric pneumonia with bilateral lower lobe consolidation boxes">
-<p><b>Pediatric pneumonia.</b> A Kermany film labelled <i>pneumonia</i>. MedGemma finds bilateral lower lobe consolidation, and the classifier agrees (opacity 68%).</p>
+<img src="docs/screenshots/finding-detail.png" alt="Expanded finding card with classifier evidence, benchmark rate and accept/dismiss buttons">
+<p><b>Evidence on every finding.</b> Expanded card: classifier probability vs its tuned threshold and calibrated estimate, the held-out confirmation rate for that finding type, the model's own (uncalibrated) confidence, and Accept / Dismiss.</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/report.png" alt="Report tab with the AI-drafted structured report">
-<p><b>Draft report.</b> Structured, editable and printable. MedGemma's reads vary between runs: on this run of the same pediatric film it missed the pneumonia, which is why every draft needs a radiologist.</p>
+<p><b>Draft report.</b> Drafted in ~40 s from the reviewed findings and the clinical indication. Pinned "unsigned AI draft" bar; every section is editable and the draft goes stale when its inputs change.</p>
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/opacity.png" alt="Large right hemithorax opacity with mediastinal shift">
-<p><b>Localisation.</b> An NIH film labelled <i>pneumothorax</i>. MedGemma reports right hemithorax opacification with mediastinal shift (priority), but not the labelled pneumothorax.</p>
+<img src="docs/screenshots/print-preview.png" alt="A4 print preview of the radiology report with annotated key image">
+<p><b>Printable report.</b> A4 preview with patient block, annotated key image and legend. The exported PDF of this study is in <a href="docs/sample-report.pdf"><code>docs/sample-report.pdf</code></a> (3 pages: findings, impression, recommendations, AI findings table with held-out rates, unsigned-draft seal and disclaimer).</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/progress.png" alt="Analysis in progress with staged progress bar">
+<p><b>Staged progress.</b> A read takes ~55–90 s; the panel shows the current stage and an estimate, and survives switching images.</p>
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/findings-light.png" alt="The same study in light mode">
+<p><b>Light mode.</b> Same study; unconfirmed findings keep a dashed outline in both themes so the meaning survives without colour.</p>
 </td>
 </tr>
 </table>
 
+### Sample report (excerpt from [`docs/sample-report.pdf`](docs/sample-report.pdf))
+
+> **IMPRESSION**
+> 1. Significant left lower lobe consolidation with associated moderate pleural effusion, highly suggestive of pneumonia with parapneumonic effusion.
+> 2. Minor findings include ill-defined opacities in the right apex and right base, which warrant further evaluation to rule out malignancy or chronic inflammatory processes.
+> 3. Increased bronchovascular markings bilaterally may indicate underlying interstitial lung disease or bronchitis.
+>
+> **RECOMMENDATIONS** Clinical correlation … Consider CT chest to further characterize the consolidation, effusion and the right apical/basal opacities … Follow-up chest radiograph in 6–8 weeks.
+>
+> *UNSIGNED — PRELIMINARY AI DRAFT · Awaiting radiologist review and signature*
+
+Radiologists marked the effusion on the **right**; the draft says left. This is exactly why the report is a draft for a radiologist, not a result.
+
 ## 🏗 Architecture
 
-Everything runs on `localhost`. The browser never talks to LM Studio directly: the Vite dev server proxies two paths, so the UI uses relative URLs and needs no CORS setup.
+Everything runs on `localhost`. The browser never talks to the model servers directly: the Vite dev server proxies three paths, so the UI uses relative URLs and needs no CORS setup.
 
 ```mermaid
 flowchart LR
     subgraph Browser["🌐 Browser · React app (localhost:5173)"]
         UI["Viewer · Findings · Report"]
-        Store[("IndexedDB<br/>studies & settings")]
+        Store[("IndexedDB<br/>studies, reviews, reports")]
         UI <--> Store
     end
 
     subgraph Vite["⚡ Vite dev server"]
-        P1["proxy: /lmstudio → :1234"]
-        P2["proxy: /txrv → :8765"]
+        P1["/lmstudio → :1234"]
+        P2["/txrv → :8765"]
+        P3["/maira → :8766"]
     end
 
-    subgraph LMS["🧠 LM Studio (localhost:1234)"]
-        MG["medgemma-27b-it<br/>OpenAI-compatible API"]
+    subgraph LMS["🧠 LM Studio :1234"]
+        MG["medgemma-27b-it<br/>OpenAI-compatible, SSE"]
     end
 
-    subgraph PY["🐍 Python service (localhost:8765)"]
+    subgraph TXS["🛡️ txrv_server.py :8765"]
         TX["TorchXRayVision<br/>3 DenseNets, averaged"]
+        TH[("thresholds.json<br/>tuned on ChestX-Det dev")]
+        TH --> TX
     end
 
-    UI -- "POST /lmstudio/v1/chat/completions<br/>image + prompt, SSE stream" --> P1 --> MG
-    UI -- "POST /txrv/check<br/>image + findings" --> P2 --> TX
+    subgraph MAS["🔬 maira_server.py :8766 · optional"]
+        MA["MAIRA-2 7B, bf16 on MPS<br/>load / unload on demand"]
+    end
+
+    UI -- "read + lung-pattern + report<br/>(serial queue, timeouts)" --> P1 --> MG
+    UI -- "POST /check: image + findings" --> P2 --> TX
+    UI -- "POST /report: image" --> P3 --> MA
 ```
+
+On a 24 GB Mac MedGemma (~14–16 GB) and MAIRA-2 (~14 GB) cannot both be resident: `maira_server.py` refuses `/load` while LM Studio has a model loaded, and the second reader is off by default.
 
 **One analysis, step by step**
 
@@ -108,39 +143,52 @@ sequenceDiagram
     participant A as React app
     participant M as MedGemma (LM Studio)
     participant C as TorchXRayVision
-    U->>A: Drop X-ray
-    A->>A: Downscale to ≤1536 px, apply DICOM window/level
+    participant R as MAIRA-2 (optional)
+    U->>A: Drop X-ray / DICOM
+    A->>A: Decode, window/level, downscale to ≤1536 px
     A->>M: Systematic read (system prompt + JSON schema), streamed
     M-->>A: Findings with box_2d, severity, impression
+    Note over A: Parse failure or truncation → error, retry with schema + previous output
     A->>M: Lung-pattern check (neutral 0–3 grade, temperature 0)
     M-->>A: Grade ≥ 2 adds an interstitial finding
     A->>C: Image + findings
-    C-->>A: Probability per finding type (below the per-class threshold = unconfirmed)
-    A->>U: Boxes, cards, reliability, priority
-    U->>A: Open Report tab
-    A->>M: Draft report from supported findings only
+    C-->>A: Probability per finding type vs per-class threshold
+    Note over A: Below threshold → kept, marked unconfirmed (dashed)
+    opt Second reader enabled
+        A->>R: Image
+        R-->>A: Report sentences → findings
+        A->>C: Effusion / nodule-mass / atelectasis findings MedGemma lacks
+        C-->>A: Added only if supported
+    end
+    A->>U: Boxes, cards with evidence, priority
+    U->>A: Accept / Dismiss, open Report tab
+    A->>M: Draft from non-dismissed findings (unconfirmed worded as "possible")
     M-->>A: Technique · Findings · Impression · Recommendations
+    U->>A: Pre-sign checklist → Sign (amendments logged on unlock)
 ```
 
 | Piece | Where | What it does |
 |---|---|---|
-| LM Studio client | [`app/src/lib/medgemma.ts`](app/src/lib/medgemma.ts) | OpenAI-compatible `chat/completions` with SSE streaming, a serial queue (one inference at a time), retry, image re-encoding |
-| Proxy | [`app/vite.config.ts`](app/vite.config.ts) | `/lmstudio` → `localhost:1234`, `/txrv` → `localhost:8765` |
-| Prompts | [`app/src/lib/prompts.ts`](app/src/lib/prompts.ts) | Radiologist system prompt + JSON schema |
-| Parser | [`app/src/lib/parse.ts`](app/src/lib/parse.ts) | Robust JSON extraction/repair, `box_2d` → normalised boxes |
-| Pipeline | [`app/src/lib/analysis.ts`](app/src/lib/analysis.ts) | Read → cross-check → store; report jobs |
-| Cross-check | [`app/src/lib/classifier.ts`](app/src/lib/classifier.ts) · [`app/server/txrv_server.py`](app/server/txrv_server.py) | Optional; if the service is down the analysis is returned unchanged |
-| Reliability | [`app/src/lib/reliability.ts`](app/src/lib/reliability.ts) | Benchmark confirmation rate per finding type |
+| LM Studio client | [`medgemma.ts`](app/src/lib/medgemma.ts) · [`sse.ts`](app/src/lib/sse.ts) · [`queue.ts`](app/src/lib/queue.ts) | Streaming `chat/completions`, a serial queue that honours cancel while waiting, idle/stream timeouts, retry with the schema and previous output, truncation detection |
+| Proxy | [`app/vite.config.ts`](app/vite.config.ts) | `/lmstudio` → `:1234`, `/txrv` → `:8765`, `/maira` → `:8766` |
+| Prompts | [`prompts.ts`](app/src/lib/prompts.ts) | Radiologist system prompt + JSON schema; report prompt with unconfirmed / second-reader markers |
+| Parser | [`parse.ts`](app/src/lib/parse.ts) | JSON tried as-is first, then string-aware repair; `box_2d` → normalised boxes; failures throw |
+| Pipeline | [`analysis.ts`](app/src/lib/analysis.ts) | Read → lung pattern → cross-check → second reader → store; report jobs, staged progress |
+| Review rules | [`classifier.ts`](app/src/lib/classifier.ts) | `isExcluded` (dismissed), `isUnconfirmed` (unsupported, unreviewed), counts, urgency, report trace lines |
+| Cross-check service | [`txrv_server.py`](app/server/txrv_server.py) · [`thresholds.json`](app/server/thresholds.json) | Per-class thresholds and calibration knots from `benchmark/fuse.py` |
+| Second reader | [`maira.ts`](app/src/lib/maira.ts) · [`maira_server.py`](app/server/maira_server.py) · [`maira_parse.py`](app/server/maira_parse.py) | Optional MAIRA-2 service; sentence → finding rules shared with the benchmark |
+| Reliability | [`reliability.ts`](app/src/lib/reliability.ts) · [`reliability.generated.ts`](app/src/lib/reliability.generated.ts) | Held-out confirmation rate per finding type, generated by `benchmark/score.py --emit-ts` |
+| DICOM | [`imageIntake.ts`](app/src/lib/imageIntake.ts) · [`dicomPixels.ts`](app/src/lib/dicomPixels.ts) | Tag parsing, pixel maths (tested), canvas rendering |
 | UI | [`app/src/components/`](app/src/components) | `viewer` · `findings` · `report` · `shell` |
 
-The base URL (`/lmstudio/v1`) and model id can be changed in **Settings** (⌘,), e.g. to point at LM Studio on another machine.
+The base URL (`/lmstudio/v1`), model id and second-reader settings can be changed in **Settings** (⌘,).
 
 ## 🚀 Quick start
 
-**Requirements:** [LM Studio](https://lmstudio.ai) with `medgemma-27b-it` downloaded, and Node.js 20+. Optional: [uv](https://docs.astral.sh/uv/) for the classifier.
+**Requirements:** [LM Studio](https://lmstudio.ai) with `medgemma-27b-it` downloaded, and Node.js 20+. Optional: [uv](https://docs.astral.sh/uv/) for the classifier and second reader.
 
 ```sh
-# 1 · Serve MedGemma (a moderate context; 131k × 4 parallel slots caused "Compute error" on a 26 GB Mac)
+# 1 · Serve MedGemma (a moderate context; 131k × 4 parallel slots caused "Compute error" on a 24 GB Mac)
 lms load medgemma-27b-it --context-length 16384 --gpu max -y
 lms server start                                   # http://localhost:1234
 
@@ -149,11 +197,15 @@ cd app
 npm install
 npm run dev                                        # http://localhost:5173
 
-# 3 · Optional second opinion (first start downloads ~100 MB of weights)
+# 3 · Cross-check classifier (recommended; first start downloads ~100 MB of weights)
 uv run --with torchxrayvision --with scikit-image server/txrv_server.py   # http://localhost:8765
+
+# 4 · Optional MAIRA-2 second reader (needs the weights in ~/.cache/maira-2 and ~14 GB free;
+#     load it from Settings only when LM Studio has no model loaded)
+uv run --python 3.12 --with "transformers>=4.48,<4.52" --with torch --with pillow --with accelerate server/maira_server.py
 ```
 
-The status pill in the top right turns green (**Connected**) when LM Studio is reachable. Without the classifier service the app works exactly as before, just without the cross-check line on each card.
+The status pill in the top right turns green (**Connected**) when LM Studio is reachable. Without the classifier the app still works; each card then says the cross-check did not run, and the pre-sign checklist lists it.
 
 <details>
 <summary><b>Development</b></summary>
@@ -161,7 +213,8 @@ The status pill in the top right turns green (**Connected**) when LM Studio is r
 ```sh
 npm run build                                          # typecheck + production build
 npm run lint                                           # oxlint incl. React rules-of-hooks
-node --experimental-strip-types scripts/test-parse.ts  # model-output parser tests
+npm test                                               # parser, DICOM, pipeline and export tests (node --experimental-strip-types)
+python3 server/test_servers.py                         # classifier / MAIRA-2 service tests (no model)
 ```
 
 `app/SWARM.md`, `app/tasks/` and `app/notes/` document how the first version was built by a 5-agent opencode swarm.

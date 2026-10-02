@@ -8,8 +8,8 @@ POST /report  {"image": "<data URL>"} → {"findings": [{"title", "description",
                 409 "not loaded" until /load succeeds.
 
 Weights are never loaded on start or on /health; torch and transformers are imported only inside /load, so this
-module imports without them. On the 56-image benchmark MAIRA-2 found effusion, nodule/mass and atelectasis that
-MedGemma missed; the app only takes those classes from it, and only where TorchXRayVision supports them.
+module imports without them. On the held-out ChestX-Det test split, adding its effusion, nodule/mass and atelectasis
+findings (only where TorchXRayVision supports them) raised MedGemma's right finding types from 90/220 to 103/220.
 Sentence → finding rules are shared with benchmark/run_maira2.py (maira_parse.py).
 
   uv run --with "transformers>=4.48,<4.52" --with torch --with pillow --with accelerate server/maira_server.py

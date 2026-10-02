@@ -1,7 +1,7 @@
 // Optional MAIRA-2 second reader (app/server/maira_server.py, proxied at /maira). Off by default.
-// On the 56-image benchmark MedGemma missed most effusions, nodules/masses and atelectasis; MAIRA-2 found more of
-// them. Only those classes are taken from it, only where MedGemma has no finding of that type, and every added
-// finding then goes through the TorchXRayVision cross-check like any other. If the service is not running or the
+// On the held-out ChestX-Det test split adding it took MedGemma from 90/220 to 103/220 right finding types (effusion
+// 13/43 → 23/43) with no change in normals. Only those classes are taken from it, only where MedGemma has no finding
+// of that type, and an added finding is kept only if the TorchXRayVision cross-check supports it (analysis.ts). If the service is not running or the
 // model is not loaded the analysis comes back unchanged with secondReader.status saying why.
 // Type-only imports: node tests import this file directly.
 import type { AnalysisResult, BBox, Finding, Settings, Severity, StudyImage } from '../types'
