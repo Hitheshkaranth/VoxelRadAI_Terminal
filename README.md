@@ -15,7 +15,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Privacy](https://img.shields.io/badge/data-never_leaves_your_Mac-34C759?style=flat-square&logo=apple&logoColor=white)](#-architecture)
 
-[Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Setup guide](#-setup-guide) · [Benchmark](#-benchmark) · [Datasets](#-datasets) · [Limitations](#-known-limitations)
+[Demo](#-demo) · [Features](#-features) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Setup guide](#-setup-guide) · [Benchmark](#-benchmark) · [Datasets](#-datasets) · [Limitations](#-known-limitations)
 
 <br>
 
@@ -29,6 +29,12 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 > **Decision support only.** All AI output must be reviewed and verified by a qualified radiologist before any clinical use. This is not a medical device.
 
 ---
+
+## 🎬 Demo
+
+<a href="docs/demo.mp4"><img src="docs/demo.gif" alt="32-second demo: new study, MedGemma read, per-finding heatmaps, zoom to a finding, draft report, printable report with one heatmap per finding" width="100%"></a>
+
+<sub>32 s, recorded from the live app on this Mac ([MP4](docs/demo.mp4)): new study → MedGemma 27B read (108 s, sped up) → findings with per-finding classifier heatmaps → click a finding to zoom in and see its evidence → draft report (42 s, sped up) → print/PDF with one heatmap per finding. Film: ChestX-Det test image.</sub>
 
 ## ✨ Features
 
