@@ -5,6 +5,7 @@ import { Contrast, Eye, EyeOff, Flame, Maximize, RotateCcw, ZoomIn, ZoomOut } fr
 import type { Finding, Heatmap, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
+import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
@@ -319,9 +320,9 @@ export function ImageViewer() {
               </span>
               <span>
                 {heatKinds.length
-                  ? `Regions the classifier weighted for ${heatKinds.join(', ')}${focusFinding ? '' : ' (all findings)'}. `
+                  ? `Classifier evidence for ${heatKinds.join(', ')} within each finding's region (#n: strength vs the film's peak)${focusFinding ? '' : ', all findings'}. `
                   : 'No classifier region for this finding type. '}
-                Coarse: on held-out films the peak hit the lesion 17% of the time.
+                Coarse: on held-out films the peak hit the lesion {HEAT_ACCURACY} of the time.
               </span>
             </div>
           )}
@@ -448,128 +449,39 @@ function FindingBox({
 }
 
 interface HeatSource {
+  finding: Finding
+  /** Number as drawn on the box. */
+  number: number
   kind: string
   heat: Heatmap
-  /** Finding numbers (as drawn on the boxes) of this type, for the peak marker. */
-  numbers: number[]
 }
 
-/** Heatmaps to draw: the focused finding's type, or every abnormal, non-dismissed finding's type. */
+/** One heatmap per finding: the focused one, or every abnormal, non-dismissed finding the classifier covers. */
 function heatmapSources(findings: Finding[], focus: Finding | undefined, maps: Record<string, Heatmap>): HeatSource[] {
   const pool = focus ? [focus] : findings.filter((f) => f.severity !== 'normal' && !isExcluded(f))
-  const byKind = new Map<string, HeatSource>()
-  for (const f of pool) {
+  return pool.flatMap((f) => {
     const kind = f.classifier?.prob != null ? f.classifier.kind : null
     const heat = kind ? maps[kind] : undefined
-    if (!kind || !heat) continue
-    const n = findings.indexOf(f) + 1
-    const cur = byKind.get(kind)
-    if (cur) cur.numbers.push(n)
-    else byKind.set(kind, { kind, heat, numbers: [n] })
-  }
-  return [...byKind.values()]
-}
-
-const HEAT_RES = 256 // smoothed canvas resolution; the maps themselves are coarse (7×7 → 32×32)
-const HEAT_FLOOR = 0.2 // below this the film stays clear
-const HEAT_CONTOUR = 0.6 // outline of the hot region
-
-/** Jet colour map, t in 0..1 → [r, g, b]. */
-function jet(t: number): [number, number, number] {
-  const c = (x: number) => Math.round(255 * Math.min(1, Math.max(0, x)))
-  return [c(1.5 - Math.abs(4 * t - 3)), c(1.5 - Math.abs(4 * t - 2)), c(1.5 - Math.abs(4 * t - 1))]
-}
-
-/** Bilinear upsample of one map to HEAT_RES², normalised to its own peak. Cached per map (maps live in the store). */
-const upsampled = new WeakMap<Heatmap, Float32Array>()
-function upsample(heat: Heatmap): Float32Array {
-  const hit = upsampled.get(heat)
-  if (hit) return hit
-  const src = Uint8Array.from(atob(heat.data), (ch) => ch.charCodeAt(0))
-  const out = new Float32Array(HEAT_RES * HEAT_RES)
-  for (let y = 0; y < HEAT_RES; y++) {
-    const fy = Math.min(heat.h - 1, Math.max(0, ((y + 0.5) / HEAT_RES) * heat.h - 0.5))
-    const y0 = Math.floor(fy), y1 = Math.min(heat.h - 1, y0 + 1), wy = fy - y0
-    for (let x = 0; x < HEAT_RES; x++) {
-      const fx = Math.min(heat.w - 1, Math.max(0, ((x + 0.5) / HEAT_RES) * heat.w - 0.5))
-      const x0 = Math.floor(fx), x1 = Math.min(heat.w - 1, x0 + 1), wx = fx - x0
-      const v =
-        (src[y0 * heat.w + x0] * (1 - wx) + src[y0 * heat.w + x1] * wx) * (1 - wy) +
-        (src[y1 * heat.w + x0] * (1 - wx) + src[y1 * heat.w + x1] * wx) * wy
-      out[y * HEAT_RES + x] = v / 255
-    }
-  }
-  upsampled.set(heat, out)
-  return out
-}
-
-/** Peak of one map, in the map's 0–1 coordinates. Cached per map. */
-const peaks = new WeakMap<Heatmap, { x: number; y: number }>()
-function peakOf(heat: Heatmap): { x: number; y: number } {
-  const hit = peaks.get(heat)
-  if (hit) return hit
-  const v = upsample(heat)
-  let best = 0
-  for (let i = 1; i < v.length; i++) if (v[i] > v[best]) best = i
-  const p = { x: ((best % HEAT_RES) + 0.5) / HEAT_RES, y: (Math.floor(best / HEAT_RES) + 0.5) / HEAT_RES }
-  peaks.set(heat, p)
-  return p
-}
-
-/** The combined overlay as a PNG data URL, cached by the maps it combines (hover and pan re-render the viewer). */
-const overlays = new Map<string, string>()
-function overlayUrl(sources: HeatSource[]): string {
-  const key = sources.map((s) => `${s.kind}:${s.heat.data}`).join('|')
-  const hit = overlays.get(key)
-  if (hit) return hit
-  const v = new Float32Array(HEAT_RES * HEAT_RES)
-  for (const s of sources) {
-    const m = upsample(s.heat)
-    for (let i = 0; i < v.length; i++) v[i] = Math.max(v[i], m[i])
-  }
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = HEAT_RES
-  const ctx = canvas.getContext('2d')!
-  const img = ctx.createImageData(HEAT_RES, HEAT_RES)
-  for (let i = 0; i < v.length; i++) {
-    const t = v[i]
-    const x = i % HEAT_RES
-    const y = Math.floor(i / HEAT_RES)
-    // Contour: a hot pixel next to a cooler one.
-    const edge =
-      t >= HEAT_CONTOUR &&
-      ((x > 0 && v[i - 1] < HEAT_CONTOUR) || (x < HEAT_RES - 1 && v[i + 1] < HEAT_CONTOUR) ||
-        (y > 0 && v[i - HEAT_RES] < HEAT_CONTOUR) || (y < HEAT_RES - 1 && v[i + HEAT_RES] < HEAT_CONTOUR))
-    const [r, g, b] = edge ? [255, 255, 255] : jet(t)
-    img.data[i * 4] = r
-    img.data[i * 4 + 1] = g
-    img.data[i * 4 + 2] = b
-    img.data[i * 4 + 3] = edge ? 230 : t < HEAT_FLOOR ? 0 : Math.round(60 + 130 * ((t - HEAT_FLOOR) / (1 - HEAT_FLOOR)))
-  }
-  ctx.putImageData(img, 0, 0)
-  const url = canvas.toDataURL()
-  if (overlays.size > 40) overlays.delete(overlays.keys().next().value!)
-  overlays.set(key, url)
-  return url
+    return kind && heat ? [{ finding: f, number: findings.indexOf(f) + 1, kind, heat }] : []
+  })
 }
 
 /**
- * Classifier heatmap painted over the X-ray in a jet colour map (cold = clear), hot regions outlined, and the
- * finding numbers at each type's peak. All maps cover the classifier's centre crop (same extent for one image).
+ * Classifier heatmap painted over the X-ray in a jet colour map (cold = clear), hot regions outlined: one map per
+ * finding (its type's map within its own region), each finding's number and regional strength at its own peak.
  */
 function HeatmapLayer({ sources }: { sources: HeatSource[] }) {
   const { x, y, w, h } = sources[0].heat.extent
+  const fh = sources.map((s) => findingHeat(s.heat, s.finding))
+  const key = sources.map((s) => `${s.finding.id}:${s.heat.data.slice(0, 24)}:${s.finding.bbox?.x ?? ''}`).join('|')
   return (
     <div className="vw-heat" style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` }} aria-hidden="true">
-      <img src={overlayUrl(sources)} alt="" draggable={false} />
-      {sources.map((s) => {
-        const p = peakOf(s.heat)
-        return (
-          <span key={s.kind} className="vw-heat-peak" style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}>
-            {s.numbers.map((n) => `#${n}`).join(' ')}
-          </span>
-        )
-      })}
+      <img src={heatOverlayUrl(key, fh.map((f) => f.v))} alt="" draggable={false} />
+      {sources.map((s, i) => (
+        <span key={s.finding.id} className="vw-heat-peak" style={{ left: `${fh[i].peak.x * 100}%`, top: `${fh[i].peak.y * 100}%` }}>
+          #{s.number} {Math.round(fh[i].strength * 100)}%
+        </span>
+      ))}
     </div>
   )
 }

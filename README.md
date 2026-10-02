@@ -36,13 +36,13 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 |---|---|
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
-| 🎯 **Localised view** | Classifier **heatmap** painted on the X-ray (jet colour map, hot regions outlined, peaks labelled with finding numbers): all findings at once, or the selected one; **H** toggles it. Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
+| 🎯 **Localised view** | Classifier **heatmap** painted on the X-ray, **one per finding** (its type's evidence within its own region; jet colour map, hot regions outlined, each peak labelled with the finding number and regional strength): all findings at once, or the selected one; **H** toggles it. The printed report repeats it as one figure per finding. Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
 | 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
 | 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
 | 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
 | ✅ **Reviewer in charge** | Accept or dismiss each finding. Dismissed findings leave the draft but are listed in a banner, the report trace line and every export. |
 | 📊 **Honest confidence** | Each card shows how often that finding type was right on the ChestX-Det test split (e.g. *pneumothorax: 10 of 36 confirmed — verify carefully*) next to the model's uncalibrated self-stated confidence. |
-| 📝 **Report** | AI-drafted structured report, editable, marked stale when images, reviews or patient details change, pre-sign checklist, sign-off with amendment trail, A4 print/PDF with annotated key images, plain-text (optionally anonymised) and JSON export. [Sample PDF](docs/sample-report.pdf). |
+| 📝 **Report** | AI-drafted structured report with one classifier heatmap figure per finding, editable, marked stale when images, reviews or patient details change, pre-sign checklist, sign-off with amendment trail, A4 print/PDF with annotated key images, plain-text (optionally anonymised) and JSON export. [Sample PDF](docs/sample-report.pdf). |
 | 🔒 **Private by design** | Inference is local (LM Studio + local Python services); studies persist in the browser's IndexedDB. Nothing is uploaded. |
 | 🌗 **Apple-style UI** | Light and dark mode, keyboard navigation, WCAG-checked contrast for safety text. |
 
@@ -78,7 +78,7 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/heatmap.png" alt="Classifier heatmap on the X-ray: a red hotspot outlined in white over the patient's left lung, labelled with finding numbers">
-<p><b>Heatmap on the X-ray.</b> The regions the classifier weighted for each finding type, kept to the lungs and shown on by default: the hotspot (outlined) is labelled with the findings it belongs to (#1 #3 #4 opacity, #2 effusion). Here it sits over the patient's left mid–lower lung, overlapping the radiologists' consolidation box. Coarse: on held-out films the peak hit the lesion 17% of the time, so it says where to look, not where the lesion is.</p>
+<p><b>Heatmap on the X-ray.</b> One map per finding: the classifier's evidence for its type within the finding's own region, on by default. Each label gives the finding number and its regional strength (#1 78%, #5 100%, #4 19%: the classifier sees little effusion in that box). Hot regions are outlined. Coarse: on held-out films the peak hit the lesion 17% of the time, so it says where to look, not where the lesion is.</p>
 </td>
 </tr>
 <tr>
@@ -95,16 +95,18 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 
 ### Sample report (excerpt from [`docs/sample-report.pdf`](docs/sample-report.pdf))
 
+<img src="docs/screenshots/report-heatmaps.png" alt="Report section with one classifier heatmap per finding">
+
+Every report has a **Classifier Heatmaps** section: one figure per finding, showing where the classifier found evidence for that finding type *within the finding's own region*, with its regional strength. Here the two opacity findings on the patient's left are hot (78–100%) while both effusion boxes are cold (19%): the classifier sees little effusion where the model drew them, a cue to look again.
+
 > **IMPRESSION**
-> 1. Significant left lower lobe consolidation with associated moderate pleural effusion, highly suggestive of pneumonia with parapneumonic effusion.
-> 2. Minor findings include ill-defined opacities in the right apex and right base, which warrant further evaluation to rule out malignancy or chronic inflammatory processes.
-> 3. Increased bronchovascular markings bilaterally may indicate underlying interstitial lung disease or bronchitis.
->
-> **RECOMMENDATIONS** Clinical correlation … Consider CT chest to further characterize the consolidation, effusion and the right apical/basal opacities … Follow-up chest radiograph in 6–8 weeks.
+> 1. Bilateral lower lobe consolidations and pleural effusions are present, requiring clinical correlation to determine the etiology (e.g., infection, malignancy, fluid overload).
+> 2. Increased bronchovascular markings suggest interstitial involvement.
+> 3. No pneumothorax or significant mediastinal abnormality identified.
 >
 > *UNSIGNED — PRELIMINARY AI DRAFT · Awaiting radiologist review and signature*
 
-Radiologists marked the effusion on the **right**; the draft says left. This is exactly why the report is a draft for a radiologist, not a result.
+Radiologists marked consolidation in both lungs and an effusion on the **right only**; the draft calls the effusions bilateral. This is why the report is a draft for a radiologist, not a result.
 
 ## 🏗 Architecture
 

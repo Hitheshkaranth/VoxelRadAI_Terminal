@@ -1,6 +1,7 @@
 // OWNER: Agent 2 (Viewer & intake). Burns finding boxes + numbering into a thumbnail for reports/print.
-import type { Finding, Severity, StudyImage } from '../types'
+import type { Finding, Heatmap, Severity, StudyImage } from '../types'
 import { isExcluded, isUnconfirmed } from './classifier'
+import { findingHeat, heatCanvas } from './heatmap'
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   critical: '#ff3b30',
@@ -114,4 +115,66 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
   })
 
   return canvas.toDataURL('image/jpeg', 0.92)
+}
+/**
+ * One finding's figure for the report: the film, the classifier heatmap for that finding's type within the finding's
+ * own region (same colour map and contour as the viewer), the finding's box and number, and a ring at the peak.
+ */
+export async function renderFindingHeatmap(
+  image: StudyImage,
+  finding: Finding,
+  number: string,
+  heat: Heatmap,
+  opts?: { maxSize?: number },
+): Promise<string> {
+  const maxSize = opts?.maxSize ?? 520
+  const img = await loadImage(image.dataUrl)
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+  const w = Math.max(1, Math.round(img.width * scale))
+  const h = Math.max(1, Math.round(img.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D is not supported in this browser.')
+  ctx.drawImage(img, 0, 0, w, h)
+
+  const e = heat.extent
+  const fh = findingHeat(heat, finding)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(heatCanvas([fh.v]), e.x * w, e.y * h, e.w * w, e.h * h)
+
+  const p = fh.peak
+  const px = (e.x + p.x * e.w) * w
+  const py = (e.y + p.y * e.h) * h
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(px, py, 9, 0, Math.PI * 2)
+  ctx.stroke()
+
+  const color = SEVERITY_COLOR[finding.severity] ?? SEVERITY_COLOR.moderate
+  if (finding.bbox && finding.bbox.w > 0) {
+    const { x, y, w: fw, h: fh } = finding.bbox
+    ctx.strokeStyle = color
+    ctx.lineWidth = 3
+    ctx.setLineDash(isUnconfirmed(finding) ? [10, 6] : [])
+    roundRect(ctx, x * w, y * h, Math.max(fw * w, 12), Math.max(fh * h, 12), 6)
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+  // Number chip, top-left of the box (or of the image when the finding has no box).
+  const cx = finding.bbox && finding.bbox.w > 0 ? finding.bbox.x * w + 12 : 18
+  const cy = finding.bbox && finding.bbox.w > 0 ? finding.bbox.y * h + 12 : 18
+  ctx.font = 'bold 13px -apple-system, system-ui, sans-serif'
+  const tw = Math.max(18, ctx.measureText(number).width + 10)
+  ctx.fillStyle = color
+  roundRect(ctx, cx - tw / 2, cy - 10, tw, 20, 10)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(number, cx, cy + 1)
+  return canvas.toDataURL('image/jpeg', 0.9)
 }

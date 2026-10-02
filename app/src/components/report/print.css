@@ -528,3 +528,11 @@
     display: table-header-group;
   }
 }
+
+/* Classifier heatmaps: one figure per finding, kept whole across page breaks. */
+.rp-heat-note { margin: 0 0 10px; font-size: 11px; line-height: 1.45; color: #6d6d72; }
+.rp-heat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.rp-heat-fig { margin: 0; break-inside: avoid; page-break-inside: avoid; }
+.rp-heat-img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: #000; border-radius: 6px; }
+.rp-heat-fig figcaption { margin-top: 5px; font-size: 11px; line-height: 1.35; }
+.rp-heat-meta { display: block; color: #6d6d72; }

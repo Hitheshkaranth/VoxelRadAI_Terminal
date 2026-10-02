@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { SEVERITY_LABEL } from '../../types'
-import type { Settings, Study, StudyImage } from '../../types'
-import { renderAnnotatedImage } from '../../lib/annotate'
-import { isExcluded } from '../../lib/classifier'
+import type { Finding, Heatmap, Settings, Study, StudyImage } from '../../types'
+import { renderAnnotatedImage, renderFindingHeatmap } from '../../lib/annotate'
+import { HEAT_ACCURACY, findingHeat } from '../../lib/heatmap'
+import { isExcluded, isUnconfirmed } from '../../lib/classifier'
 import { reliabilityFor } from '../../lib/reliability'
 import { DISCLAIMER, analyzedImages, examSummary, exclusionReason, reportPatient, splitFindings } from '../../lib/reportExport'
 import './print.css'
@@ -97,8 +98,15 @@ function ImageKey({ image, index, src, ready }: { image: StudyImage; index: numb
   )
 }
 
+/** Caption fragment: the finding's strongest classifier evidence in its own region, or that no region was given. */
+function regionalNote(heat: Heatmap, finding: Finding): string {
+  const fh = findingHeat(heat, finding)
+  return fh.regional ? ` · regional evidence ${Math.round(fh.strength * 100)}%` : ' · whole film (no region given)'
+}
+
 export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
+  const [heatFigs, setHeatFigs] = useState<Record<string, string>>({})
   const exam = examSummary(study)
   const analyzed = analyzedImages(study)
   const patient = reportPatient(study)
@@ -130,6 +138,36 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
       cancelled = true
     }
   }, [thumbKey])
+
+  // One heatmap figure per finding in the draft whose type the classifier covers.
+  const heatRows = included.flatMap((row) => {
+    const img = analyzed.find((i) => i.id === row.imageId)
+    const kind = row.finding.classifier?.prob != null ? row.finding.classifier.kind : null
+    const heat = kind ? img?.analysis?.heatmaps?.[kind] : undefined
+    return img && heat ? [{ ...row, image: img, heat, kind: kind! }] : []
+  })
+  const noHeat = included.filter((row) => !heatRows.some((h) => h.finding.id === row.finding.id))
+  const heatKey = heatRows.map((r) => `${r.finding.id}:${r.kind}:${r.image.analysis?.createdAt}:${isUnconfirmed(r.finding)}`).join('|')
+  const heatRowsRef = useRef(heatRows)
+  useEffect(() => {
+    heatRowsRef.current = heatRows
+  })
+  useEffect(() => {
+    let cancelled = false
+    const rows = heatRowsRef.current
+    Promise.all(rows.map((r) => renderFindingHeatmap(r.image, r.finding, r.ref, r.heat).catch(() => '')))
+      .then((urls) => {
+        if (cancelled) return
+        const map: Record<string, string> = {}
+        rows.forEach((r, i) => {
+          if (urls[i]) map[r.finding.id] = urls[i]
+        })
+        setHeatFigs(map)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [heatKey])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -225,6 +263,45 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                       <ImageKey key={img.id} image={img} index={i} src={thumbs[img.id] ?? ''} ready={!!thumbs[img.id]} />
                     ))}
                   </div>
+                </Section>
+              )}
+
+              {heatRows.length > 0 && (
+                <Section title="Classifier Heatmaps">
+                  <p className="rp-heat-note">
+                    One map per finding: where an independent image classifier (TorchXRayVision) found evidence for that
+                    finding type, within the finding's own region (its box, or the zone it names). Red = strongest,
+                    outlined = hot region, ring = peak; the box is the reading model's. "Regional evidence" is the strongest
+                    value in the region relative to the type's peak anywhere on the film: low means the classifier sees
+                    little at that location.
+                    Coarse: on held-out radiologist-labelled films the peak fell inside the lesion {HEAT_ACCURACY} of the
+                    time. A prompt to look, not a localisation.
+                  </p>
+                  <div className="rp-heat-grid">
+                    {heatRows.map((r) => (
+                      <figure key={r.finding.id} className="rp-heat-fig">
+                        {heatFigs[r.finding.id] ? (
+                          <img className="rp-heat-img" src={heatFigs[r.finding.id]} alt={`Heatmap for finding ${r.ref}: ${r.finding.title}`} />
+                        ) : (
+                          <div className="rp-heat-img rp-thumb-loading">Rendering…</div>
+                        )}
+                        <figcaption>
+                          <span className="rp-legend-no">{r.ref}</span> <strong>{r.finding.title}</strong>
+                          <span className="rp-heat-meta">
+                            {r.kind} · classifier {Math.round((r.finding.classifier?.prob ?? 0) * 100)}%
+                            {isUnconfirmed(r.finding) ? ' · unconfirmed' : r.finding.classifier?.supported ? ' · supported' : ''}
+                            {regionalNote(r.heat, r.finding)}
+                          </span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                  {noHeat.length > 0 && (
+                    <p className="rp-heat-note">
+                      No heatmap (type not covered by the classifier, or classifier not run):{' '}
+                      {noHeat.map((r) => `${r.ref} ${r.finding.title}`).join('; ')}.
+                    </p>
+                  )}
                 </Section>
               )}
 
