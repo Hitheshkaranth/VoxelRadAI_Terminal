@@ -19,9 +19,9 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 
 <br>
 
-<img src="docs/screenshots/hero-dark.png" alt="Skanda Radiology in dark mode: a chest X-ray with five MedGemma findings boxed on the image and the findings panel showing priority, impression and classifier evidence" width="100%">
+<img src="docs/screenshots/hero-dark.png" alt="Skanda Radiology in dark mode: a chest X-ray with three MedGemma findings boxed and a classifier heatmap over the patient's left lung" width="100%">
 
-<sub>A ChestX-Det test film (radiologists: consolidation in both lungs, right effusion). MedGemma reads it in 79 s as <i>priority</i>: left lower lobe consolidation, an effusion, perihilar markings and two right-sided opacities. Each card shows the classifier's probability against its tuned threshold and how often that finding type was right on held-out films. MedGemma named the effusion left-sided where radiologists marked it right, and its boxes do not follow its own laterality: boxes are approximate (see <a href="#-benchmark">benchmark</a>).</sub>
+<sub>A ChestX-Det test film (radiologists: consolidation in both lungs, right effusion). MedGemma reads it in 55 s as <i>priority</i>: left lower lobe consolidation, a left pleural effusion and perihilar markings. The heatmap shows, per finding, where the independent classifier found evidence within that finding's region: the opacity findings peak in the patient's left lung (100%), while the effusion box has little effusion evidence (32%). MedGemma calls the effusion left-sided but draws its box over the right base, where radiologists marked it: names and boxes are approximate (see <a href="#-benchmark">benchmark</a>).</sub>
 
 </div>
 
@@ -53,28 +53,28 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/cross-check.png" alt="Normal film with a false left apical pneumothorax drawn dashed and marked unconfirmed">
-<p><b>Cross-check flags a false alarm.</b> Radiologists labelled this film normal (ChestX-Det does not label tubes). MedGemma calls a left apical pneumothorax at 95% self-stated confidence. The classifier gives 38%, under the dev-tuned 39% threshold, so the box is dashed and the card says <i>in draft as unconfirmed — verify</i>, next to the held-out rate: 10 of 36 pneumothorax calls were right.</p>
+<img src="docs/screenshots/cross-check.png" alt="Normal film zoomed onto a false left apical pneumothorax drawn dashed and marked unconfirmed, with its heatmap">
+<p><b>Cross-check flags a false alarm.</b> Radiologists labelled this film normal (ChestX-Det does not label tubes). MedGemma calls a left apical pneumothorax at 95% self-stated confidence. The classifier gives 38%, under the dev-tuned 39% threshold, so the box is dashed, the card says <i>in draft as unconfirmed — verify</i>, and the study stays <i>routine</i>; the card also shows that only 10 of 36 pneumothorax calls were right on held-out films. Selecting it zooms in and shows its heatmap.</p>
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/finding-detail.png" alt="Expanded finding card with classifier evidence, benchmark rate and accept/dismiss buttons">
-<p><b>Evidence on every finding.</b> Expanded card: classifier probability vs its tuned threshold and calibrated estimate, the held-out confirmation rate for that finding type, the model's own (uncalibrated) confidence, and Accept / Dismiss.</p>
+<p><b>Evidence on every finding.</b> Expanded card for the effusion: classifier probability vs its tuned threshold and calibrated estimate, the held-out confirmation rate for that type (12 of 20, verify carefully), the model's own uncalibrated confidence, a close-up of its box, and Accept / Dismiss.</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/report.png" alt="Report tab with the AI-drafted structured report">
-<p><b>Draft report.</b> Drafted in ~40 s from the reviewed findings and the clinical indication. Pinned "unsigned AI draft" bar; every section is editable and the draft goes stale when its inputs change.</p>
+<p><b>Draft report.</b> Drafted in ~50 s from the reviewed findings and the clinical indication, with the heatmaps still on the film. Pinned "unsigned AI draft" bar; every section is editable and the draft goes stale when its inputs change.</p>
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/print-preview.png" alt="A4 print preview of the radiology report with annotated key image">
-<p><b>Printable report.</b> A4 preview with patient block, annotated key image and legend. The exported PDF of this study is in <a href="docs/sample-report.pdf"><code>docs/sample-report.pdf</code></a> (3 pages: findings, impression, recommendations, AI findings table with held-out rates, unsigned-draft seal and disclaimer).</p>
+<p><b>Printable report.</b> A4 preview with patient block, annotated key image and legend, followed by one classifier heatmap per finding. An exported example is in <a href="docs/sample-report.pdf"><code>docs/sample-report.pdf</code></a> (findings, impression, recommendations, per-finding heatmaps, AI findings table with held-out rates, unsigned-draft seal and disclaimer).</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/zoom-to-finding.png" alt="Viewer zoomed onto a selected finding with a close-up crop on its card">
-<p><b>Zoom to finding.</b> Selecting a finding zooms and centres the viewer on its box (here 65% → 148%), and the expanded card shows a close-up. Esc returns to the whole film.</p>
+<p><b>Zoom to finding.</b> Selecting a finding zooms and centres the viewer on its box (here the effusion, 65% → 132%) and shows only that finding's heatmap; the expanded card shows a close-up. Esc returns to the whole film.</p>
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/heatmap.png" alt="Classifier heatmap on the X-ray: a red hotspot outlined in white over the patient's left lung, labelled with finding numbers">
@@ -84,11 +84,11 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/progress.png" alt="Analysis in progress with staged progress bar">
-<p><b>Staged progress.</b> A read takes ~55–90 s; the panel shows the current stage and an estimate, and survives switching images.</p>
+<p><b>Staged progress.</b> A read takes ~55–90 s; the panel shows the current stage (reading → lung pattern → cross-check) and an estimate, and survives switching images.</p>
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/findings-light.png" alt="The same study in light mode">
-<p><b>Light mode.</b> Same study; unconfirmed findings keep a dashed outline in both themes so the meaning survives without colour.</p>
+<p><b>Light mode.</b> Same study and heatmaps; unconfirmed findings keep a dashed outline in both themes so the meaning survives without colour.</p>
 </td>
 </tr>
 </table>
