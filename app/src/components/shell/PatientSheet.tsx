@@ -1,5 +1,6 @@
 // OWNER: Agent 5. PatientSheet — modal form for patient demographic + clinical details, live-saved.
 import { useState } from 'react'
+import { AlertCircle } from 'lucide-react'
 import { useApp, useActiveStudy } from '../../store'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
@@ -39,8 +40,22 @@ export function PatientSheet() {
 
   const change = (patch: Partial<PatientInfo>) => updatePatient(study.id, patch)
 
+  // Patient details feed the report: say what an edit does to an existing draft or a signed report.
+  const report = study.report
+  const reportNote = report?.signed
+    ? 'This study has a signed report. It keeps the patient details recorded at signing; changes here apply only if the report is unlocked and signed again.'
+    : report
+      ? 'A report has been drafted. Changing the indication, age or sex marks the draft out of date until it is regenerated.'
+      : null
+
   return (
     <Sheet open={open} onClose={() => openSheet(null)} title="Patient details" subtitle="Demographics and clinical context.">
+      {reportNote && (
+        <div className="sh-disclaimer" role="note" style={{ marginBottom: 'var(--sp-3)' }}>
+          <AlertCircle />
+          <span>{reportNote}</span>
+        </div>
+      )}
       <div className="sh-grid">
         <Field label="Name">
           <input

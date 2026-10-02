@@ -54,8 +54,10 @@
   --material-thin: rgba(255, 255, 255, 0.55);
 
   --label: rgba(0, 0, 0, 0.88);
-  --label-2: rgba(60, 60, 67, 0.72);
-  --label-3: rgba(60, 60, 67, 0.48);
+  /* label-2/3 carry readable text (incl. safety notes): ≈4.9:1 on --bg-content, ≈4.6:1 on --bg-grouped.
+     label-4 is decoration only (dividers, empty dots), never text. */
+  --label-2: rgba(60, 60, 67, 0.8);
+  --label-3: rgba(60, 60, 67, 0.73);
   --label-4: rgba(60, 60, 67, 0.28);
   --separator: rgba(60, 60, 67, 0.14);
   --separator-strong: rgba(60, 60, 67, 0.26);
@@ -108,7 +110,7 @@
 
   --label: rgba(255, 255, 255, 0.92);
   --label-2: rgba(235, 235, 245, 0.66);
-  --label-3: rgba(235, 235, 245, 0.42);
+  --label-3: rgba(235, 235, 245, 0.56); /* ≥4.5:1 on --bg-elevated and --bg-grouped */
   --label-4: rgba(235, 235, 245, 0.2);
   --separator: rgba(84, 84, 88, 0.5);
   --separator-strong: rgba(84, 84, 88, 0.8);

@@ -1,7 +1,9 @@
 // OWNER: Agent 3 (Findings Inspector). Grouped, keyboard-navigable findings list.
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+// Semantics: <ul>/<li> groups; each card's selectable header is a real <button> (inline content only) and the
+// Accept/Dismiss controls sit beside it, never inside it. One roving tab stop follows the selected finding.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import type { AnalysisResult, Finding, Severity } from '../../types'
+import type { AnalysisResult, Finding, FindingReview, Severity } from '../../types'
 import { SEVERITY_ORDER, SEVERITY_LABEL } from '../../types'
 import './findings.css'
 import { FindingCard } from './FindingCard'
@@ -27,6 +29,7 @@ export function FindingList({
   onSelect,
   onToggle,
   onHover,
+  onReview,
 }: {
   analysis: AnalysisResult
   selectedFindingId: string | null
@@ -36,16 +39,17 @@ export function FindingList({
   /** Force-select (keyboard: Enter / ↑ / ↓). */
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
+  /** Reviewer accept / dismiss; undefined clears the decision. */
+  onReview: (id: string, review: FindingReview | undefined) => void
 }) {
   const groups = useMemo(() => buildGroups(analysis), [analysis])
 
   // Flat display order (grouped by severity, preserving original index within each group).
-  const flatIds: string[] = []
-  const flatIndexById: Record<string, number> = {}
-  groups.forEach((g) => g.items.forEach((it) => { flatIndexById[it.finding.id] = flatIds.length; flatIds.push(it.finding.id) }))
+  const flatIds = useMemo(() => groups.flatMap((g) => g.items.map((it) => it.finding.id)), [groups])
+  const tabStopId = selectedFindingId && flatIds.includes(selectedFindingId) ? selectedFindingId : flatIds[0]
 
+  const [focusedId, setFocusedId] = useState<string | null>(null)
   const cardEls = useRef<Record<string, HTMLButtonElement>>({})
-  const focusId = useCallback((id: string) => { cardEls.current[id]?.focus() }, [])
 
   // Scroll the selected card into view when selection changes (incl. from the viewer).
   useEffect(() => {
@@ -54,25 +58,24 @@ export function FindingList({
   }, [selectedFindingId])
 
   const onCardKeyDown = useCallback(
-    (index: number, total: number, id: string, e: KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    (id: string, e: KeyboardEvent<HTMLButtonElement>) => {
+      const index = flatIds.indexOf(id)
+      let next: string | undefined
+      if (e.key === 'ArrowDown') next = flatIds[Math.min(index + 1, flatIds.length - 1)]
+      else if (e.key === 'ArrowUp') next = flatIds[Math.max(index - 1, 0)]
+      else if (e.key === 'Home') next = flatIds[0]
+      else if (e.key === 'End') next = flatIds[flatIds.length - 1]
+      else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         onSelect(id)
         return
       }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        const next = flatIds[Math.min(index + 1, total - 1)]
-        onSelect(next)
-        focusId(next)
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        const prev = flatIds[Math.max(index - 1, 0)]
-        onSelect(prev)
-        focusId(prev)
-      }
+      if (!next) return
+      e.preventDefault()
+      onSelect(next)
+      cardEls.current[next]?.focus()
     },
-    [flatIds, onSelect, focusId],
+    [flatIds, onSelect],
   )
 
   if (groups.length === 0) {
@@ -84,33 +87,40 @@ export function FindingList({
   }
 
   return (
-    <section className="fd-findings" role="list" aria-label="Detected findings">
+    <section className="fd-findings" aria-label="Detected findings">
       {groups.map((g) => (
         <div key={g.severity} className="fd-sev-group">
-          <div className="fd-sev-group-title">
+          <div className="fd-sev-group-title" id={`fd-group-${g.severity}`}>
             <span className="fd-sev-dot" style={{ background: `var(--sev-${g.severity})` }} />
             {SEVERITY_LABEL[g.severity]}
             <span className="fd-sev-group-count">{g.items.length}</span>
           </div>
-          {g.items.map((it) => (
-            <FindingCard
-              key={it.finding.id}
-              finding={it.finding}
-              number={it.number}
-              flatIndex={flatIndexById[it.finding.id]}
-              flatTotal={flatIds.length}
-              isExpanded={selectedFindingId === it.finding.id}
-              isHovered={hoveredFindingId === it.finding.id}
-              isSelected={selectedFindingId === it.finding.id}
-              onHover={onHover}
-              onToggle={onToggle}
-              onKeyDown={(e) => onCardKeyDown(flatIndexById[it.finding.id], flatIds.length, it.finding.id, e)}
-              buttonRef={(el) => {
-                if (el) cardEls.current[it.finding.id] = el
-                else delete cardEls.current[it.finding.id]
-              }}
-            />
-          ))}
+          <ul className="fd-finding-ul" aria-labelledby={`fd-group-${g.severity}`}>
+            {g.items.map((it) => (
+              <FindingCard
+                key={it.finding.id}
+                finding={it.finding}
+                number={it.number}
+                classifierStatus={analysis.classifierStatus}
+                flatIndex={flatIds.indexOf(it.finding.id)}
+                flatTotal={flatIds.length}
+                isExpanded={selectedFindingId === it.finding.id}
+                isHovered={hoveredFindingId === it.finding.id}
+                isSelected={selectedFindingId === it.finding.id}
+                isTabStop={tabStopId === it.finding.id}
+                isFocused={focusedId === it.finding.id}
+                onHover={onHover}
+                onToggle={onToggle}
+                onReview={onReview}
+                onFocusChange={setFocusedId}
+                onKeyDown={(e) => onCardKeyDown(it.finding.id, e)}
+                buttonRef={(el) => {
+                  if (el) cardEls.current[it.finding.id] = el
+                  else delete cardEls.current[it.finding.id]
+                }}
+              />
+            ))}
+          </ul>
         </div>
       ))}
     </section>

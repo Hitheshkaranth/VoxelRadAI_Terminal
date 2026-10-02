@@ -15,39 +15,9 @@ GROUNDED = "--no-grounding" not in sys.argv
 OUT = os.environ.get("OUT", "results-maira2.jsonl" if GROUNDED else "results-maira2-plain.jsonl")
 MODEL = os.environ.get("MAIRA_PATH", os.path.expanduser("~/.cache/maira-2"))  # or "microsoft/maira-2" when logged in
 
-NEG = re.compile(r"^\s*(there is |there are )?(no|without)\b|\bno (evidence|focal|acute|definite|large|significant|pleural|pneumothorax|consolidation|effusion)"
-                 r"|\b(normal|unremarkable|clear|within normal limits|intact|preserved|well[- ]expanded|midline|stable)\b"
-                 r"|\bnot (seen|identified|visualized|enlarged)", re.I)
-DEVICE = re.compile(r"sternotomy|pacemaker|pacer|catheter|picc|\bline\b|\btube\b|clips?\b|wires?\b|port\b|stent|valve|prosthe|hardware"
-                    r"|endotracheal|enteric|nasogastric|\b(ng|og|et)\b|drain|\bleads?\b|electrode|monitoring|\bicd\b|aicd|sheath", re.I)
-MALPOS = re.compile(r"malposition|kink|coil|too (deep|high|low)|retracted|advanc", re.I)
-# "normal" words inside an abnormality ("abnormal", "not normal") must not negate it
-ABN_HINT = re.compile(r"abnormal|enlarged|increased|opacit|effusion|pneumothorax|consolidat|atelecta|edema|nodul|mass|cardiomegaly|infiltrat|thicken|fracture|elevat", re.I)
-
-
-def is_normal_clause(c: str) -> bool:
-    if DEVICE.search(c) and not MALPOS.search(c):
-        return True
-    if not NEG.search(c):
-        return False
-    # Within a clause, abnormal terms that all follow a negation ("normal without effusion", "No effusion") are negated;
-    # otherwise a "normal" word loses to an explicit abnormal term ("normal heart; enlarged ...").
-    neg = re.search(r"\b(no|without|negative for)\b", c, re.I)
-    abn = [m.start() for m in ABN_HINT.finditer(c)]
-    return not abn or (neg is not None and min(abn) > neg.start())
-
-
-def sentence_findings(sentence: str) -> tuple[str, str]:
-    """Split on contrast conjunctions; return (abnormal part, severity)."""
-    clauses = [c.strip(" ,;.") for c in re.split(r",?\s*\b(?:but|however|although|though|whereas)\b|;", sentence) if c.strip(" ,;.")]
-    abn = [c for c in clauses if not is_normal_clause(c)]
-    return ("; ".join(abn), "minor") if abn else (sentence, "normal")
-
-
-def plain_sentences(text: str) -> list[str]:
-    """Fallback when MAIRA-2 emits a malformed grounded sequence (e.g. drops <obj> tags mid-report): strip tags, split."""
-    text = re.sub(r"<box>.*?</box>|</?obj>", " ", text)
-    return [s.strip() for s in re.split(r"(?<=\.)\s+", text) if s.strip()]
+# Sentence → finding rules live in app/server/maira_parse.py so the app's second reader matches the benchmark.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app", "server"))
+from maira_parse import plain_sentences, sentence_findings, to_finding  # noqa: E402
 
 
 def as_result(findings: list, parse: str) -> dict:
@@ -71,7 +41,7 @@ def main():
     from PIL import Image
     from transformers import AutoModelForCausalLM, AutoProcessor
     DEV = "mps" if torch.backends.mps.is_available() else "cpu"
-    manifest = json.load(open("manifest.json"))
+    manifest = json.load(open(os.environ.get("MANIFEST", "manifest.json")))
     done = set()
     if os.path.exists(OUT):
         done = {json.loads(l)["id"] for l in open(OUT) if l.strip()}
@@ -109,14 +79,9 @@ def main():
                 pieces, parse = [(s, None) for s in plain_sentences(text)], "fallback"
             findings = []
             for sentence, boxes in pieces:
-                title, sev = sentence_findings(sentence)
-                f = {"title": title, "description": sentence, "severity": sev, "confidence": None}
-                if boxes:
-                    # boxes are relative to the processor's crop; map back to the original image, normalized 0-1
-                    b = [processor.adjust_box_for_original_image_size(bx, width=img.width, height=img.height) for bx in boxes]
-                    f["bbox"] = {"x": b[0][0], "y": b[0][1], "w": b[0][2] - b[0][0], "h": b[0][3] - b[0][1]}
-                    f["boxes"] = b
-                findings.append(f)
+                # boxes are relative to the processor's crop; map back to the original image, normalized 0-1
+                b = [processor.adjust_box_for_original_image_size(bx, width=img.width, height=img.height) for bx in boxes or []]
+                findings.append(to_finding(sentence, b))
             rec.update(as_result(findings, parse))
             rec["mainMs"] = int((time.time() - t0) * 1000)
         except Exception as e:  # noqa: BLE001 — record and continue

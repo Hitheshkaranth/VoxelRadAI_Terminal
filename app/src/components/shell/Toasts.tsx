@@ -1,7 +1,7 @@
 // OWNER: Agent 5. Renders active toasts as a small macOS-style pill stack.
 import { useEffect, useState } from 'react'
 import { CheckCircle2, Info, X } from 'lucide-react'
-import { snapshot, subscribeToasts, type Toast } from './toastStore'
+import { dismissToast, snapshot, subscribeToasts, type Toast } from './toastStore'
 
 export function Toasts() {
   const [items, setItems] = useState<Toast[]>([])
@@ -16,6 +16,18 @@ export function Toasts() {
         <div key={t.id} className={`sh-toast sh-toast--${t.kind}`}>
           <Mark kind={t.kind} />
           {t.text}
+          {t.action && (
+            <button
+              type="button"
+              className="sh-toast-action"
+              onClick={() => {
+                t.action!.run()
+                dismissToast(t.id)
+              }}
+            >
+              {t.action.label}
+            </button>
+          )}
         </div>
       ))}
     </div>

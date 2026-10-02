@@ -2,6 +2,7 @@
 //   node --experimental-strip-types scripts/test-parse.ts
 import {
   extractJson,
+  extractJsonWithInfo,
   normalizeAnalysis,
   normalizeReport, mergeLungPattern, parseLungPattern,
   type ReportFields,
@@ -83,16 +84,58 @@ eq('urgency significant', normalizeAnalysis({ findings: [{ title: 'x', severity:
 eq('urgency moderate', normalizeAnalysis({ findings: [{ title: 'x', severity: 'moderate' }] }, meta).urgency, 'routine')
 eq('urgency normal', normalizeAnalysis({ findings: [{ title: 'x', severity: 'normal' }] }, meta).urgency, 'routine')
 
-// empty / malformed
-const empty = normalizeAnalysis(null, meta)
-eq('empty findings', empty.findings.length, 0)
-eq('empty urgency', empty.urgency, 'routine')
-const arr = normalizeAnalysis(['not', 'an', 'object'], meta)
-eq('array object→empty', arr.findings.length, 0)
+// empty / malformed: an unreadable answer must throw (so the caller retries), never become a normal read
+const throwsParse = (v: unknown) => {
+  try {
+    normalizeAnalysis(v, meta)
+    return false
+  } catch (e) {
+    return e instanceof Error && e.message === 'Unable to parse JSON from model output.'
+  }
+}
+check('null throws', throwsParse(null))
+check('{} without findings throws', throwsParse({}))
+check('object with impression only throws', throwsParse({ impression: 'Normal chest.' }))
+check('findings not an array throws', throwsParse({ findings: 'none' }))
+check('[] throws', throwsParse([]))
+check('array of strings throws', throwsParse(['not', 'an', 'object']))
+check('number throws', throwsParse(42))
+const topArr = normalizeAnalysis([{ title: 'Left apical pneumothorax', severity: 'critical' }], meta)
+eq('top-level array → findings', topArr.findings.map((f) => f.title), ['Left apical pneumothorax'])
+eq('top-level array urgency', topArr.urgency, 'urgent')
+eq('top-level array default bodyPart', topArr.bodyPart, 'Chest')
+const emptyOk = normalizeAnalysis({ findings: [], impression: 'No acute findings.' }, meta)
+eq('explicit empty findings ok', emptyOk.findings.length, 0)
+eq('not truncated by default', emptyOk.truncated, undefined)
 
 // box acceptance: inverted coords are swapped
 const bb = normalizeAnalysis({ findings: [{ title: 'b', box_2d: [400, 600, 100, 200] }] }, meta).findings[0]
 eq('box invert-swap', bb.bbox, { x: 0.2, y: 0.1, w: 0.4, h: 0.3 })
+
+// ---- extractJsonWithInfo: valid JSON is never "repaired" ---------------------
+eq('cm² unchanged', extractJson('{"d":"nodule 2 cm² area"}'), { d: 'nodule 2 cm² area' })
+eq('cm³ unchanged', extractJson('{"d":"volume 30 cm³"}'), { d: 'volume 30 cm³' })
+eq('bat wing unchanged', extractJson('{"d":"perihilar \u201Cbat wing\u201D opacity"}'), { d: 'perihilar \u201Cbat wing\u201D opacity' })
+eq('bat wing + comma unchanged', extractJson('{"d":"says \u201Cyes\u201D, then more"}'), { d: 'says \u201Cyes\u201D, then more' })
+eq('apostrophe unchanged', extractJson('{"d":"patient\u2019s right"}'), { d: 'patient\u2019s right' })
+eq('backtick in string kept', extractJson('{"d":"a `b` c"}'), { d: 'a `b` c' })
+const clean = extractJsonWithInfo('{"findings":[]}')
+eq('clean info', [clean.repaired, clean.closedContainers], [false, false])
+const smart = extractJsonWithInfo('{\u201Cd\u201D: \u201Csays \u201Cyes\u201D now\u201D}')
+eq('smart-delimited with inner smart quotes', smart.value, { d: 'says "yes" now' })
+eq('smart info', [smart.repaired, smart.closedContainers], [true, false])
+eq('smart quotes keep ²', extractJson('{\u201Ca\u201D: \u201C4 cm²\u201D,}'), { a: '4 cm²' })
+eq('trailing comma inside string kept', extractJson('{"a":"x, ]","b":[1,],}'), { a: 'x, ]', b: [1] })
+eq('prose quotes before json ignored', extractJson('Here is "the" result: {"a":1}'), { a: 1 })
+check('balanced but malformed throws (no silent cut)', (() => { try { extractJson('{"a":1, "b": nope}'); return false } catch { return true } })())
+const cut = extractJsonWithInfo('{"findings":[{"title":"Effusion","severity":"moderate"},{"title":"Left lower zone nod')
+eq('truncated mid-finding closed', (cut.value as { findings: unknown[] }).findings.length, 2)
+eq('truncated info', [cut.repaired, cut.closedContainers], [true, true])
+const cutKey = extractJsonWithInfo('{"findings":[{"title":"Effusion"},{"title":')
+eq('truncated after key drops the half-written finding', cutKey.value, { findings: [{ title: 'Effusion' }] })
+const truncRes = normalizeAnalysis(cut.value, { ...meta, truncated: cut.closedContainers })
+eq('truncated → result.truncated', truncRes.truncated, true)
+eq('truncated keeps partial findings', truncRes.findings.length, 2)
 
 // ---- normalizeReport -------------------------------------------------------
 const report = normalizeReport({
@@ -125,6 +168,27 @@ eq('device minor → normal', dev.findings.find((f) => f.title === 'Pacemaker')?
 eq('device inferred category', dev.findings.find((f) => f.title === 'Central venous catheter')?.category, 'Devices')
 eq('malpositioned device keeps severity', dev.findings.find((f) => f.title.startsWith('Endotracheal'))?.severity, 'significant')
 eq('non-device minor unchanged', dev.findings.find((f) => f.title.startsWith('Right lower'))?.severity, 'minor')
+const notDev = normalizeAnalysis({ findings: [
+  { title: 'Kerley B lines', severity: 'minor', category: 'Lungs' },
+  { title: 'Elevated line of the diaphragm', severity: 'minor', category: 'Diaphragm' },
+  { title: 'Visible pleural line at the left apex', severity: 'minor', category: 'Pleura' },
+  { title: 'Septal lines at the bases', severity: 'minor', category: 'Lungs' },
+  { title: 'Lead to the right ventricle', severity: 'minor', category: 'Lungs' },
+] }, meta)
+check('anatomic lines are not devices', notDev.findings.every((f) => f.severity === 'minor' && f.category !== 'Devices'),
+  JSON.stringify(notDev.findings.map((f) => [f.title, f.severity, f.category])))
+const isDev = normalizeAnalysis({ findings: [
+  { title: 'Right PICC line', severity: 'minor' },
+  { title: 'Central venous line tip in the SVC', severity: 'minor' },
+  { title: 'Left subclavian chest port', severity: 'minor' },
+  { title: 'Port-a-cath in situ', severity: 'minor' },
+  { title: 'Arterial line', severity: 'minor' },
+  { title: 'Pacing leads in the right ventricle', severity: 'minor' },
+  { title: 'Sternotomy wires', severity: 'minor' },
+] }, meta)
+check('device context still recognised', isDev.findings.every((f) => f.severity === 'normal' && f.category === 'Devices'),
+  JSON.stringify(isDev.findings.map((f) => [f.title, f.severity, f.category])))
+eq('category Lines/tubes counts as device', normalizeAnalysis({ findings: [{ title: 'NG', severity: 'minor', category: 'Lines/tubes' }] }, meta).findings[0].severity, 'normal')
 
 // ---- lung-pattern merge -------------------------------------------------------
 const chestNormal = normalizeAnalysis({ bodyPart: 'Chest', impression: 'Normal chest radiograph.', findings: [{ title: 'Normal study', severity: 'normal' }] }, meta)

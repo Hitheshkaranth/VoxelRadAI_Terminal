@@ -8,9 +8,19 @@ export interface NormalizationMeta {
   rawText: string
   model: string
   durationMs: number
+  /** The output was cut off (closing brackets appended, or the server reported finish_reason "length"). */
+  truncated?: boolean
 }
 
 // ---- JSON extraction -------------------------------------------------------
+
+export interface JsonExtraction {
+  value: unknown
+  /** Quote / trailing-comma repair was needed before the fragment parsed. */
+  repaired: boolean
+  /** The fragment was unbalanced (truncated stream) and closing brackets were appended. */
+  closedContainers: boolean
+}
 
 /**
  * Extract a JSON value from messy text (markdown fences, leading/trailing prose, trailing commas,
@@ -18,9 +28,49 @@ export interface NormalizationMeta {
  * be found. Pure and DOM-free.
  */
 export function extractJson(text: string): unknown {
+  return extractJsonWithInfo(text).value
+}
+
+/**
+ * As extractJson, but reports which repairs were needed. Valid JSON is always parsed as-is first;
+ * repairs only run when that fails, so they can never corrupt a valid value.
+ */
+export function extractJsonWithInfo(text: string): JsonExtraction {
   const src = typeof text === 'string' ? text : ''
   if (!src.trim()) throw new Error('No JSON content found in model output.')
 
+  const raw = balancedFragment(src)
+  try {
+    return { value: JSON.parse(raw.fragment), repaired: false, closedContainers: false }
+  } catch {
+    // fall through to repair
+  }
+
+  // Re-scan after quote repair so braces inside curly-quoted strings are not miscounted.
+  const fixed = balancedFragment(repairQuotes(src))
+  const repaired = dropTrailingCommas(fixed.fragment)
+  try {
+    return { value: JSON.parse(repaired), repaired: true, closedContainers: false }
+  } catch {
+    // fall through to truncation repair
+  }
+
+  // A balanced fragment that still fails is malformed, not truncated: never cut content from it.
+  if (fixed.balanced) throw new Error('Unable to parse JSON from model output.')
+  for (const candidate of truncationCandidates(repaired)) {
+    const closed = closeOpenContainers(candidate)
+    if (closed === candidate) continue
+    try {
+      return { value: JSON.parse(dropTrailingCommas(closed)), repaired: true, closedContainers: true }
+    } catch {
+      // try a shorter prefix
+    }
+  }
+  throw new Error('Unable to parse JSON from model output.')
+}
+
+/** First balanced {…}/[…] fragment (string-aware, backticks skipped), or the unbalanced tail. */
+function balancedFragment(src: string): { fragment: string; balanced: boolean } {
   let out = ''
   let inString = false
   let escape = false
@@ -38,8 +88,8 @@ export function extractJson(text: string): unknown {
     }
     if (ch === '`') continue // skip fence/backtick characters
     if (ch === '"') {
-      inString = true
-      out += ch
+      if (started) out += ch
+      inString = started
       continue
     }
     if (ch === '{' || ch === '[') {
@@ -51,37 +101,126 @@ export function extractJson(text: string): unknown {
     if (ch === '}' || ch === ']') {
       if (depth > 0) depth--
       if (started) out += ch
-      if (started && depth === 0) return finalize(out)
+      if (started && depth === 0) return { fragment: out, balanced: true }
       continue
     }
     if (started) out += ch
   }
-
-  // Unbalanced: close any open string/containers and try anyway.
-  return finalize(!started ? src.trim() : out)
+  return { fragment: started ? out : src.trim(), balanced: false }
 }
 
-/** Quote/comma/string-trailing repair, then JSON.parse. */
-function finalize(fragment: string): unknown {
-  let repaired = fragment
-  // Smart / curly quotes -> straight.
-  repaired = repaired
-    .replace(/[\u201C\u201D\u201E\u203A\u00B2\u00B3\u02BA\u02BC]/g, '"')
-    .replace(/[\u2018\u2019\u201A\u201B\u0060]/g, "'")
-  // Trailing commas before a close bracket.
-  repaired = repaired.replace(/,(\s*[}\]])/g, '$1')
+const SMART_DQ = /[\u201C\u201D\u201E\u201F]/
+const OPEN_CTX = new Set(['{', '[', ',', ':'])
+const CLOSE_CTX = new Set(['}', ']', ',', ':'])
 
-  try {
-    return JSON.parse(repaired)
-  } catch {
-    // One more attempt: append closing brackets to repair truncated arrays/objects.
-    const closed = closeOpenContainers(repaired)
-    try {
-      return JSON.parse(closed)
-    } catch {
-      throw new Error('Unable to parse JSON from model output.')
+function prevNonSpace(s: string, i: number): string {
+  for (let j = i - 1; j >= 0; j--) if (!/\s/.test(s[j])) return s[j]
+  return ''
+}
+function nextNonSpace(s: string, i: number): string {
+  for (let j = i + 1; j < s.length; j++) if (!/\s/.test(s[j])) return s[j]
+  return ''
+}
+
+/**
+ * Map curly / low-9 double quotes to '"' only where they act as JSON delimiters (opening after
+ * `{ [ , :`, closing before `} ] , :` or end of text). Smart quotes inside a curly-delimited
+ * string value become escaped \". Smart quotes inside a straight-quoted string are valid JSON and
+ * are left untouched. Superscripts (², ³) and primes are never touched.
+ */
+function repairQuotes(s: string): string {
+  let out = ''
+  let inString: '' | 'straight' | 'smart' = ''
+  let escape = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    const smart = SMART_DQ.test(ch)
+    if (inString) {
+      if (escape) {
+        escape = false
+        out += ch
+        continue
+      }
+      if (ch === '\\') {
+        escape = true
+        out += ch
+        continue
+      }
+      const closes = CLOSE_CTX.has(nextNonSpace(s, i)) || nextNonSpace(s, i) === ''
+      if (ch === '"') {
+        if (inString === 'straight' || closes) inString = ''
+        out += inString ? '\\"' : '"'
+        continue
+      }
+      if (smart && inString === 'smart') {
+        if (closes) {
+          inString = ''
+          out += '"'
+        } else out += '\\"'
+        continue
+      }
+      out += ch
+      continue
     }
+    if (ch === '"') {
+      inString = 'straight'
+      out += ch
+      continue
+    }
+    if (smart && (OPEN_CTX.has(prevNonSpace(s, i)) || prevNonSpace(s, i) === '')) {
+      inString = 'smart'
+      out += '"'
+      continue
+    }
+    out += ch
   }
+  return out
+}
+
+/** Remove commas directly before `}` / `]` (string-aware). */
+function dropTrailingCommas(s: string): string {
+  let out = ''
+  let inString = false
+  let escape = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (inString) {
+      if (escape) escape = false
+      else if (ch === '\\') escape = true
+      else if (ch === '"') inString = false
+      out += ch
+      continue
+    }
+    if (ch === '"') inString = true
+    if (ch === ',') {
+      const nx = nextNonSpace(s, i)
+      if (nx === '}' || nx === ']') continue
+    }
+    out += ch
+  }
+  return out
+}
+
+/**
+ * Prefixes to try when closing a truncated fragment: the whole thing first, then cut back to each
+ * structural comma (newest first) so a dangling key or half-written value is dropped.
+ */
+function truncationCandidates(s: string): string[] {
+  const cuts: number[] = []
+  let inString = false
+  let escape = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (inString) {
+      if (escape) escape = false
+      else if (ch === '\\') escape = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === ',') cuts.push(i)
+  }
+  return [s, ...cuts.reverse().slice(0, 40).map((i) => s.slice(0, i))]
 }
 
 /** Append `]`/`}` to balance a truncated (unclosed) JSON fragment. String-aware. */
@@ -172,7 +311,7 @@ function mapSeverity(raw: unknown): Severity {
   return synonyms[s] ?? 'minor'
 }
 
-function toBBox(raw: unknown): BBox | undefined {
+export function toBBox(raw: unknown): BBox | undefined {
   if (raw == null) return undefined
 
   // Bare [ymin, xmin, ymax, xmax] array.
@@ -237,9 +376,11 @@ function direct(x: number, y: number, w: number, h: number): BBox | undefined {
   return { x: round6(nx), y: round6(ny), w: round6(nw), h: round6(nh) }
 }
 
-const DEVICE_RX = /pacemaker|defibrillator|\bicd\b|\blead(s)?\b|catheter|picc|port-?a-?cath|\bport\b|central (venous )?line|\bline\b|endotracheal|\bet tube|tracheostomy|nasogastric|\bng tube|feeding tube|chest (tube|drain)|sternotomy|surgical clip|\bclips?\b|\bwires?\b|prosthe|hardware|stent|valve replacement|monitoring lead|electrode/i
+// "line" and "lead" alone are not enough: Kerley B lines, the pleural line and the line of the
+// diaphragm are anatomy or pathology. A line needs device context (central, PICC, venous, ...).
+const DEVICE_RX = /pacemaker|defibrillator|\bicd\b|(pacing|pacemaker|cardiac|monitoring|ecg|ekg) (wires?|leads?)|catheter|\bpicc\b|port-?a-?cath|(chest|chemo(therapy)?|implanted|subcutaneous|venous access|infusion) port|(central|venous|arterial|picc|midline|hickman|dialysis|swan[- ]?ganz|jugular|ij|subclavian) (venous )?lines?|endotracheal|\bet tube|tracheostomy|nasogastric|\bng tube|feeding tube|chest (tube|drain)|sternotomy|surgical clips?|\bclips?\b|sternal wires?|\bwires?\b|prosthe|hardware|stent|valve replacement|electrode/i
 function isDevice(title: string, category: string): boolean {
-  return /device|line|tube|hardware/i.test(category) || DEVICE_RX.test(title)
+  return /device|tube|hardware|lines?\s*(\/|&|and)/i.test(category) || DEVICE_RX.test(title)
 }
 
 function normalizeFinding(raw: unknown, index: number): Finding {
@@ -279,13 +420,13 @@ function toTextList(v: unknown): string[] {
   return s ? [s] : []
 }
 
-function deriveUrgency(findings: Finding[]): AnalysisResult['urgency'] {
+export function deriveUrgency(findings: Finding[]): AnalysisResult['urgency'] {
   if (findings.some((f) => f.severity === 'critical')) return 'urgent'
   if (findings.some((f) => f.severity === 'significant')) return 'priority'
   return 'routine'
 }
 
-function sortBySeverity(list: Finding[]): Finding[] {
+export function sortBySeverity(list: Finding[]): Finding[] {
   const rank = (s: Severity) => SEVERITIES.indexOf(s)
   return [...list].sort((a, b) => {
     const d = rank(a.severity) - rank(b.severity)
@@ -295,9 +436,15 @@ function sortBySeverity(list: Finding[]): Finding[] {
 
 /**
  * Coerce an arbitrary model object into a typed AnalysisResult with safe defaults. Pure.
+ * A top-level array of finding objects is read as the findings list. Anything without a findings array throws the
+ * parse error (so the caller retries) rather than turning an unreadable answer into a normal read.
  */
-export function normalizeAnalysis(obj: unknown, meta: NormalizationMeta): AnalysisResult {
-  if (!isObject(obj)) return emptyResult(meta)
+export function normalizeAnalysis(input: unknown, meta: NormalizationMeta): AnalysisResult {
+  // A bare array is accepted only when it is a non-empty list of finding objects: `[]` or a list of
+  // strings says nothing about the image and must not become a normal read.
+  const listOfFindings = Array.isArray(input) && input.length > 0 && input.every(isObject)
+  const obj = listOfFindings ? { findings: input } : input
+  if (!isObject(obj) || !Array.isArray(obj.findings)) throw new Error('Unable to parse JSON from model output.')
   const findings = sortBySeverity(asArray(obj.findings).map((f, i) => normalizeFinding(f, i)))
   return {
     modality: asString(obj.modality, 'Radiograph (X-ray)'),
@@ -314,25 +461,7 @@ export function normalizeAnalysis(obj: unknown, meta: NormalizationMeta): Analys
     model: meta.model,
     durationMs: meta.durationMs,
     createdAt: Date.now(),
-  }
-}
-
-function emptyResult(meta: NormalizationMeta): AnalysisResult {
-  return {
-    modality: 'Radiograph (X-ray)',
-    bodyPart: 'Chest',
-    view: 'Unknown',
-    imageQuality: 'Adequate',
-    findings: [],
-    pertinentNegatives: [],
-    impression: '',
-    recommendations: [],
-    differential: [],
-    urgency: 'routine',
-    rawText: meta.rawText,
-    model: meta.model,
-    durationMs: meta.durationMs,
-    createdAt: Date.now(),
+    ...(meta.truncated ? { truncated: true } : {}),
   }
 }
 

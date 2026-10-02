@@ -1,11 +1,13 @@
 // OWNER: Agent 4 (Report). The formal, print-perfect A4 report overlay (portal to document.body).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { SEVERITY_LABEL } from '../../types'
-import type { Finding, Settings, Study, StudyImage } from '../../types'
+import type { Settings, Study, StudyImage } from '../../types'
 import { renderAnnotatedImage } from '../../lib/annotate'
-import { analyzedImages, examSummary } from '../../lib/reportExport'
+import { isExcluded } from '../../lib/classifier'
+import { reliabilityFor } from '../../lib/reliability'
+import { DISCLAIMER, analyzedImages, examSummary, exclusionReason, reportPatient, splitFindings } from '../../lib/reportExport'
 import './print.css'
 
 interface PrintReportProps {
@@ -76,12 +78,15 @@ function ImageKey({ image, index, src, ready }: { image: StudyImage; index: numb
       {findings.length > 0 && (
         <ol className="rp-legend">
           {findings.map((f, i) => (
-            <li key={f.id}>
+            <li key={f.id} className={isExcluded(f) ? 'rp-legend-excluded' : undefined}>
               <span className="rp-legend-no">{i + 1}</span>
               <span className="rp-legend-dot" data-severity={f.severity} />
               <span className="rp-legend-text">
                 <strong>{f.title || 'Finding'}</strong>
                 {f.location ? ` · ${f.location}` : ''}
+                {isExcluded(f) ? ' · not in report' : ''}
+                {f.source === 'maira2' ? ' · MAIRA-2 second reader' : ''}
+                {f.severity !== 'normal' && !f.bbox ? ' · not localized' : ''}
               </span>
             </li>
           ))}
@@ -96,14 +101,27 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const exam = examSummary(study)
   const analyzed = analyzedImages(study)
+  const patient = reportPatient(study)
+  const report = study.report
+  const { included, excluded } = splitFindings(study)
 
+  // Re-render thumbnails only when what is burned into them changes: the analysed set, each analysis,
+  // and each finding's include/exclude state (excluded boxes are drawn dotted).
+  const thumbKey = analyzed
+    .map((img) => `${img.id}:${img.analysis?.createdAt}:${img.analysis?.findings.map((f) => (isExcluded(f) ? 'x' : 'i')).join('')}`)
+    .join('|')
+  const analyzedRef = useRef(analyzed)
+  useEffect(() => {
+    analyzedRef.current = analyzed
+  })
   useEffect(() => {
     let cancelled = false
-    Promise.all(analyzed.map((img) => renderAnnotatedImage(img, { maxSize: 640 })))
+    const images = analyzedRef.current
+    Promise.all(images.map((img) => renderAnnotatedImage(img, { maxSize: 640 }).catch(() => img.dataUrl)))
       .then((urls) => {
         if (cancelled) return
         const map: Record<string, string> = {}
-        analyzed.forEach((img, i) => {
+        images.forEach((img, i) => {
           map[img.id] = urls[i]
         })
         setThumbs(map)
@@ -111,7 +129,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
     return () => {
       cancelled = true
     }
-  }, [study.id])
+  }, [thumbKey])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -121,11 +139,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const flatFindings: (Finding & { ref: string })[] = []
-  analyzed.forEach((img, imgIndex) => {
-    const a = img.analysis
-    if (a) a.findings.forEach((f, j) => flatFindings.push({ ...f, ref: analyzed.length > 1 ? `${imgIndex + 1}.${j + 1}` : `${j + 1}` }))
-  })
+  const amendments = report?.amendments ?? []
 
   const examLine = [exam.modality, exam.bodyPart, ...exam.views].filter(Boolean).join(' · ')
   const accession = ACCESSION(study.id)
@@ -158,7 +172,9 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
             <div className="rp-print-inner">
               <header className="rp-lh">
                 <div className="rp-lh-name">{settings.institution || 'Diagnostic Radiology'}</div>
-                <div className="rp-lh-sub">Diagnostic Radiology Report</div>
+                <div className="rp-lh-sub">
+                  {report?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft'}
+                </div>
                 <div className="rp-lh-meta">
                   Report date: {new Date().toLocaleDateString()} · Accession: {accession}
                 </div>
@@ -167,32 +183,32 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
               <div className="rp-demo">
                 <div className="rp-demo-cell">
                   <span>Patient Name</span>
-                  <strong>{study.patient.name || '—'}</strong>
+                  <strong>{patient.name || '—'}</strong>
                 </div>
                 <div className="rp-demo-cell">
                   <span>Patient ID</span>
-                  <strong>{study.patient.patientId || '—'}</strong>
+                  <strong>{patient.patientId || '—'}</strong>
                 </div>
                 <div className="rp-demo-cell">
                   <span>Age / Sex</span>
                   <strong>
-                    {[study.patient.age, study.patient.sex].filter(Boolean).join(' / ') || '—'}
+                    {[patient.age, patient.sex].filter(Boolean).join(' / ') || '—'}
                   </strong>
                 </div>
                 <div className="rp-demo-cell">
                   <span>Study Date</span>
-                  <strong>{study.patient.studyDate || '—'}</strong>
+                  <strong>{patient.studyDate || '—'}</strong>
                 </div>
                 <div className="rp-demo-cell rp-demo-cell-span">
                   <span>Referring Physician</span>
-                  <strong>{study.patient.referringPhysician || '—'}</strong>
+                  <strong>{patient.referringPhysician || '—'}</strong>
                 </div>
               </div>
 
               <Section title="Clinical Indication / History">
                 <div className="rp-text">
-                  <p>{study.patient.indication || '—'}</p>
-                  {study.patient.clinicalHistory ? <p>{study.patient.clinicalHistory}</p> : null}
+                  <p>{patient.indication || '—'}</p>
+                  {patient.clinicalHistory ? <p>{patient.clinicalHistory}</p> : null}
                 </div>
               </Section>
 
@@ -242,32 +258,73 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 <TextBlock value={study.report?.recommendations} />
               </Section>
 
-              {flatFindings.length > 0 && (
+              {included.length > 0 && (
                 <section className="rp-section rp-table-section">
-                  <h3 className="rp-section-title">Findings Summary</h3>
-                  <table className="rp-table">
+                  <h3 className="rp-section-title">AI Findings Summary</h3>
+                  <table className="rp-table rp-table-findings">
                     <thead>
                       <tr>
-                        <th style={{ width: '2.6rem' }}>#</th>
+                        <th>#</th>
                         <th>Finding</th>
                         <th>Location</th>
-                        <th style={{ width: '8rem' }}>Severity</th>
-                        <th style={{ width: '6rem' }}>Confidence</th>
+                        <th>Severity</th>
+                        <th title="Share of this kind of model call confirmed in the local benchmark">Benchmark</th>
+                        <th title="The model's own confidence; not calibrated">Model-stated (uncalibrated)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {flatFindings.map((f) => (
-                        <tr key={f.ref + f.id}>
-                          <td>{f.ref}</td>
-                          <td>{f.title || '—'}</td>
-                          <td>{f.location || '—'}</td>
+                      {included.map(({ ref, finding: f }) => {
+                        const rel = reliabilityFor(f)
+                        return (
+                          <tr key={ref + f.id}>
+                            <td>{ref}</td>
+                            <td>
+                              {f.title || '—'}
+                              {f.source === 'maira2' ? <span className="rp-table-note"> (MAIRA-2 second reader)</span> : null}
+                            </td>
+                            <td>{f.location || '—'}</td>
+                            <td>
+                              <span className="rp-severity-cell">
+                                <span className="rp-dot" data-severity={f.severity} />
+                                {SEVERITY_LABEL[f.severity]}
+                              </span>
+                            </td>
+                            <td>{rel ? `${rel.correct}/${rel.total}` : '—'}</td>
+                            <td>{Math.round(f.confidence * 100)}%</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  <p className="rp-table-foot">
+                    Benchmark: how many calls of this kind were confirmed by reference labels in the local benchmark.
+                    Model-stated confidence is the model's own figure and is not calibrated.
+                  </p>
+                </section>
+              )}
+
+              {excluded.length > 0 && (
+                <section className="rp-section rp-table-section rp-excluded-section">
+                  <h3 className="rp-section-title">AI findings not included in this report</h3>
+                  <table className="rp-table rp-table-excluded">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Finding</th>
+                        <th>Image</th>
+                        <th>Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {excluded.map(({ ref, imageName, finding: f }) => (
+                        <tr key={ref + f.id}>
+                          <td>{ref}</td>
                           <td>
-                            <span className="rp-severity-cell">
-                              <span className="rp-dot" data-severity={f.severity} />
-                              {SEVERITY_LABEL[f.severity]}
-                            </span>
+                            {f.title || '—'}
+                            {f.source === 'maira2' ? <span className="rp-table-note"> (MAIRA-2 second reader)</span> : null}
                           </td>
-                          <td>{Math.round(f.confidence * 100)}%</td>
+                          <td>{imageName}</td>
+                          <td>{exclusionReason(f)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -275,16 +332,28 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </section>
               )}
 
+              {amendments.length > 0 && (
+                <Section title="Amendments">
+                  <ul className="rp-amendments">
+                    {amendments.map((a, i) => (
+                      <li key={i}>
+                        Signed {new Date(a.signedAt).toLocaleString()}, unlocked for amendment{' '}
+                        {new Date(a.unlockedAt).toLocaleString()} by {a.by || '—'}
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+
               <div className="rp-signature">
-                <Signature signedName={study.report?.radiologist ?? ""} signedAt={study.report?.signedAt} isSigned={!!study.report?.signed} />
+                <Signature signedName={report?.radiologist ?? ''} signedAt={report?.signedAt} isSigned={!!report?.signed} />
               </div>
 
               <footer className="rp-footer">
                 <span className="rp-footer-disclaimer">
-                  This report was drafted with AI assistance (MedGemma 27B, run locally). Findings are decision-support only and
-                  must be reviewed and verified by a qualified radiologist before clinical use.
+                  {DISCLAIMER} Drafted with AI assistance (MedGemma 27B, run locally
+                  {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
                 </span>
-                
               </footer>
             </div>
           </div>

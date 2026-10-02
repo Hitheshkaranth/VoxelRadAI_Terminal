@@ -1,6 +1,6 @@
 // OWNER: Agent 3 (Findings Inspector). Orchestrates the five analysis states.
-import { useCallback, useEffect, useState } from 'react'
-import type { AnalysisResult } from '../../types'
+import { useCallback, useState } from 'react'
+import type { AnalysisResult, ConnectionState, FindingReview, Settings, Study } from '../../types'
 import {
   AlertCircle,
   AlertTriangle,
@@ -16,14 +16,48 @@ import {
   Play,
   RotateCcw,
   ScanLine,
+  Scissors,
   Stethoscope,
+  Users,
 } from 'lucide-react'
 import { useApp, useActiveImage } from '../../store'
-import { cancelAnalysis, runAnalysis, runAnalysisForStudy } from '../../lib/analysis'
+import { cancelAnalysis, runAnalysis, runAnalysisForStudy, runSecondReader } from '../../lib/analysis'
+import { findingCounts } from '../../lib/classifier'
+import { checkNow } from '../../lib/connection'
+import { toast } from '../shell/toastStore'
+import { analyzeImageAction } from '../shell/shellState'
 import { AnalysisProgress } from './AnalysisProgress'
 import { FindingList } from './FindingList'
-import { SummaryHeader } from './SummaryHeader'
+import { BlindSpotNote, SummaryHeader } from './SummaryHeader'
 import './findings.css'
+
+/** Median wall time of finished analyses (all studies), or the benchmark's 77 s before there are any. */
+const FALLBACK_ETA_MS = 77_000
+function medianDuration(studies: Study[]): number {
+  const d = studies
+    .flatMap((s) => s.images.map((i) => i.analysis?.durationMs ?? 0))
+    .filter((x) => x > 0)
+    .sort((a, b) => a - b)
+  if (!d.length) return FALLBACK_ETA_MS
+  const m = d.length >> 1
+  return d.length % 2 ? d[m] : (d[m - 1] + d[m]) / 2
+}
+
+const blocked = (c: ConnectionState) => c === 'offline' || c === 'model-missing'
+
+function connectionNote(c: ConnectionState, model: string): string {
+  return c === 'offline'
+    ? 'LM Studio is not reachable. Start its local server, then check again.'
+    : `Model “${model}” is not loaded in LM Studio. Load it, then check again.`
+}
+
+async function recheck() {
+  const c = await checkNow()
+  toast(
+    c === 'online' ? 'Connected to LM Studio' : c === 'model-missing' ? 'LM Studio is up, but the model is not loaded' : 'LM Studio is not reachable',
+    c === 'online' ? 'success' : 'error',
+  )
+}
 
 function EmptyState() {
   return (
@@ -35,8 +69,24 @@ function EmptyState() {
   )
 }
 
+function ConnectionBlock({ connection, model }: { connection: ConnectionState; model: string }) {
+  if (!blocked(connection)) return null
+  return (
+    <div className="fd-hint fd-hint--warn" role="note">
+      <AlertTriangle />
+      <span>{connectionNote(connection, model)}</span>
+      <button className="fd-hint-link" onClick={() => void recheck()}>
+        Check
+      </button>
+    </div>
+  )
+}
+
 function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId: string; unanalyzed: number }) {
   const indication = useApp((s) => s.studies.find((x) => x.id === studyId)?.patient.indication)
+  const connection = useApp((s) => s.connection)
+  const model = useApp((s) => s.settings.model)
+  const off = blocked(connection)
   return (
     <div className="fd-idle">
       <div className="fd-idle-head">
@@ -49,15 +99,16 @@ function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId:
         </div>
       </div>
       <div className="fd-idle-actions">
-        <button className="btn btn-primary btn-lg" onClick={() => runAnalysis(studyId, imageId)}>
+        <button className="btn btn-primary btn-lg" disabled={off} onClick={() => analyzeImageAction(studyId, imageId)}>
           <Play /> Analyze Image
         </button>
         {unanalyzed > 1 && (
-          <button className="btn btn-lg fd-idle-secondary" onClick={() => runAnalysisForStudy(studyId)}>
+          <button className="btn btn-lg fd-idle-secondary" disabled={off} onClick={() => runAnalysisForStudy(studyId)}>
             <Layers /> Analyze All ({unanalyzed})
           </button>
         )}
       </div>
+      <ConnectionBlock connection={connection} model={model} />
       {!indication && (
         <div className="fd-hint">
           <Info />
@@ -71,7 +122,21 @@ function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId:
   )
 }
 
+/** Turn the raw error into the most likely fix. */
+function errorHint(error: string, settings: Settings): string {
+  if (/fetch|network|ECONN|refused|offline|reach|connect|timed? ?out|50[234]/i.test(error))
+    return `LM Studio did not respond at ${settings.baseUrl}. Check that its local server is running.`
+  if (/model|not found|404|no models? loaded/i.test(error))
+    return `Check that “${settings.model}” is loaded in LM Studio (Settings → model name must match exactly).`
+  if (/pars|json|schema|truncat|cut off|finish/i.test(error))
+    return 'The model’s answer could not be read as findings, so nothing was recorded — the image is not marked normal. Trying again usually works.'
+  if (/decod|dicom|image|pixel|canvas/i.test(error))
+    return 'The image could not be decoded. Try exporting it as PNG or JPEG, or a DICOM with standard pixel data.'
+  return `Check that LM Studio is running and “${settings.model}” is loaded.`
+}
+
 function ErrorState({ studyId, imageId, error }: { studyId: string; imageId: string; error: string }) {
+  const settings = useApp((s) => s.settings)
   return (
     <div className="fd-error">
       <div className="fd-error-head">
@@ -81,12 +146,12 @@ function ErrorState({ studyId, imageId, error }: { studyId: string; imageId: str
           <p className="fd-error-msg">{error || 'The model did not return a result.'}</p>
         </div>
       </div>
-      <div className="fd-error-hint">Check that LM Studio is running and the medgemma-27b-it model is loaded.</div>
+      <div className="fd-error-hint">{errorHint(error, settings)}</div>
       <div className="fd-error-actions">
         <button className="btn btn-primary" onClick={() => runAnalysis(studyId, imageId)}>
           <RotateCcw /> Try Again
         </button>
-        <button className="btn" onClick={() => useApp.getState().setConnection('checking')}>
+        <button className="btn" onClick={() => void recheck()}>
           Check connection
         </button>
       </div>
@@ -106,26 +171,71 @@ function Sec({ icon, title, children }: { icon: React.ReactNode; title: string; 
   )
 }
 
+function SecondReaderButton({ studyId, analysis }: { studyId: string; analysis: AnalysisResult }) {
+  const [busy, setBusy] = useState(false)
+  const sr = analysis.secondReader
+  const run = async () => {
+    setBusy(true)
+    try {
+      const r = await runSecondReader(studyId)
+      if (r.status === 'ok')
+        toast(r.added ? `Second reader added ${r.added} finding${r.added === 1 ? '' : 's'}` : 'Second reader found nothing to add', 'success')
+      else if (r.status === 'not-loaded') toast('MAIRA-2 is not loaded — load it in Settings first', 'error')
+      else if (r.status === 'unavailable') toast('MAIRA-2 service is not running', 'error')
+      else toast(`Second reader: ${r.status}`, 'error')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Second reader failed', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="fd-second">
+      <button className="btn btn-plain fd-footer-btn" disabled={busy} onClick={() => void run()}>
+        {busy ? <span className="spinner" aria-hidden="true" /> : <Users />} Add second reader (MAIRA-2)
+      </button>
+      {sr && (
+        <span className="fd-second-status">
+          {sr.status === 'ok' ? `Last run added ${sr.added}` : `Last run: ${sr.status}`}
+          {sr.message ? ` · ${sr.message}` : ''}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult; studyId: string; imageId: string }) {
   const selectedFindingId = useApp((s) => s.selectedFindingId)
   const hoveredFindingId = useApp((s) => s.hoveredFindingId)
   const hoverFinding = useApp((s) => s.hoverFinding)
   const selectFinding = useApp((s) => s.selectFinding)
   const setInspectorTab = useApp((s) => s.setInspectorTab)
+  const setFindingReview = useApp((s) => s.setFindingReview)
+  const mairaEnabled = useApp((s) => s.settings.maira?.enabled ?? false)
+  const offline = useApp((s) => blocked(s.connection))
 
-  const forceSelect = useCallback((id: string) => selectFinding(id), [selectFinding])
   const toggle = useCallback(
-    (id: string) => {
-      selectFinding(selectedFindingId === id ? null : id)
-    },
-    [selectFinding, selectedFindingId],
+    (id: string) => selectFinding(useApp.getState().selectedFindingId === id ? null : id),
+    [selectFinding],
   )
+  const review = useCallback(
+    (id: string, r: FindingReview | undefined) => setFindingReview(studyId, imageId, id, r),
+    [setFindingReview, studyId, imageId],
+  )
+  const { flagged } = findingCounts(analysis)
 
   return (
     <div className="fd-done">
       <SummaryHeader analysis={analysis} />
 
-      <Sec icon={<Stethoscope />} title="Impression">
+      {analysis.truncated && (
+        <div className="fd-hint fd-hint--warn" role="alert">
+          <Scissors />
+          <span>Model output was cut off — some findings may be missing; re-analyze.</span>
+        </div>
+      )}
+
+      <Sec icon={<Stethoscope />} title={flagged > 0 ? 'Model impression (unfiltered)' : 'Impression'}>
         <div className="fd-impression">
           <p>{analysis.impression || '—'}</p>
         </div>
@@ -135,9 +245,10 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
         analysis={analysis}
         selectedFindingId={selectedFindingId}
         hoveredFindingId={hoveredFindingId}
-        onSelect={forceSelect}
+        onSelect={selectFinding}
         onToggle={toggle}
         onHover={hoverFinding}
+        onReview={review}
       />
 
       <Sec icon={<ListChecks />} title="Pertinent negatives">
@@ -149,6 +260,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
             </div>
           ))}
         </div>
+        <BlindSpotNote />
       </Sec>
 
       <Sec icon={<ListTree />} title="Differential diagnosis">
@@ -186,8 +298,15 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
         </div>
       </details>
 
+      {mairaEnabled && <SecondReaderButton studyId={studyId} analysis={analysis} />}
+
       <div className="fd-footer">
-        <button className="btn btn-plain fd-footer-btn" onClick={() => runAnalysis(studyId, imageId)}>
+        <button
+          className="btn btn-plain fd-footer-btn"
+          disabled={offline}
+          title={offline ? 'LM Studio is offline or the model is not loaded' : undefined}
+          onClick={() => analyzeImageAction(studyId, imageId)}
+        >
           <RotateCcw /> Re-analyze
         </button>
         <button className="btn btn-primary fd-footer-btn" onClick={() => setInspectorTab('report')}>
@@ -206,18 +325,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
 export function FindingsPanel() {
   const image = useActiveImage()
   const study = useApp((s) => s.studies.find((x) => x.id === s.activeStudyId) ?? null)
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    if (!image || image.status !== 'analyzing') {
-      setElapsed(0)
-      return
-    }
-    const start = Date.now()
-    setElapsed(0)
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
-    return () => clearInterval(id)
-  }, [image?.id, image?.status])
+  const etaMs = useApp((s) => medianDuration(s.studies))
 
   if (!image) return <EmptyState />
 
@@ -228,7 +336,16 @@ export function FindingsPanel() {
   let block: React.ReactNode
   switch (image.status) {
     case 'analyzing':
-      block = <AnalysisProgress stage={image.progressText ?? ''} elapsed={elapsed} onCancel={() => cancelAnalysis(imageId)} />
+      block = (
+        <AnalysisProgress
+          key={imageId}
+          stage={image.stage}
+          detail={image.progressText}
+          startedAt={image.analysisStartedAt}
+          etaMs={etaMs}
+          onCancel={() => cancelAnalysis(imageId)}
+        />
+      )
       break
     case 'error':
       block = <ErrorState studyId={studyId} imageId={imageId} error={image.error ?? ''} />

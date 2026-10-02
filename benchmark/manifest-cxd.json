@@ -1,0 +1,7883 @@
+[
+ {
+  "id": "cxd_39473",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39473.jpg"
+ },
+ {
+  "id": "cxd_60881",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60881.jpg"
+ },
+ {
+  "id": "cxd_56000",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56000.jpg"
+ },
+ {
+  "id": "cxd_40864",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40864.jpg"
+ },
+ {
+  "id": "cxd_40873",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40873.jpg"
+ },
+ {
+  "id": "cxd_70278",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70278.jpg"
+ },
+ {
+  "id": "cxd_69913",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69913.jpg"
+ },
+ {
+  "id": "cxd_41834",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41834.jpg"
+ },
+ {
+  "id": "cxd_67591",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_67591.jpg"
+ },
+ {
+  "id": "cxd_40394",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40394.jpg"
+ },
+ {
+  "id": "cxd_59521",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59521.jpg"
+ },
+ {
+  "id": "cxd_70897",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70897.jpg"
+ },
+ {
+  "id": "cxd_69847",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69847.jpg"
+ },
+ {
+  "id": "cxd_57785",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57785.jpg"
+ },
+ {
+  "id": "cxd_41952",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41952.jpg"
+ },
+ {
+  "id": "cxd_40038",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40038.jpg"
+ },
+ {
+  "id": "cxd_70008",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70008.jpg"
+ },
+ {
+  "id": "cxd_69466",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69466.jpg"
+ },
+ {
+  "id": "cxd_46907",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46907.jpg"
+ },
+ {
+  "id": "cxd_36199",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_36199.jpg"
+ },
+ {
+  "id": "cxd_41084",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41084.jpg"
+ },
+ {
+  "id": "cxd_69586",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69586.jpg"
+ },
+ {
+  "id": "cxd_39066",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39066.jpg"
+ },
+ {
+  "id": "cxd_45804",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45804.jpg"
+ },
+ {
+  "id": "cxd_45718",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45718.jpg"
+ },
+ {
+  "id": "cxd_39705",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39705.jpg"
+ },
+ {
+  "id": "cxd_70480",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70480.jpg"
+ },
+ {
+  "id": "cxd_45725",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45725.jpg"
+ },
+ {
+  "id": "cxd_40001",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40001.jpg"
+ },
+ {
+  "id": "cxd_45657",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45657.jpg"
+ },
+ {
+  "id": "cxd_42359",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_42359.jpg"
+ },
+ {
+  "id": "cxd_46386",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46386.jpg"
+ },
+ {
+  "id": "cxd_39140",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39140.jpg"
+ },
+ {
+  "id": "cxd_70331",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70331.jpg"
+ },
+ {
+  "id": "cxd_59589",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59589.jpg"
+ },
+ {
+  "id": "cxd_40785",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40785.jpg"
+ },
+ {
+  "id": "cxd_48828",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_48828.jpg"
+ },
+ {
+  "id": "cxd_60886",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60886.jpg"
+ },
+ {
+  "id": "cxd_58815",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58815.jpg"
+ },
+ {
+  "id": "cxd_41096",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41096.jpg"
+ },
+ {
+  "id": "cxd_41225",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41225.jpg"
+ },
+ {
+  "id": "cxd_59621",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59621.jpg"
+ },
+ {
+  "id": "cxd_69062",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69062.jpg"
+ },
+ {
+  "id": "cxd_41460",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41460.jpg"
+ },
+ {
+  "id": "cxd_69554",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69554.jpg"
+ },
+ {
+  "id": "cxd_45659",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45659.jpg"
+ },
+ {
+  "id": "cxd_48867",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_48867.jpg"
+ },
+ {
+  "id": "cxd_45291",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45291.jpg"
+ },
+ {
+  "id": "cxd_69887",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69887.jpg"
+ },
+ {
+  "id": "cxd_40388",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40388.jpg"
+ },
+ {
+  "id": "cxd_45595",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45595.jpg"
+ },
+ {
+  "id": "cxd_41456",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41456.jpg"
+ },
+ {
+  "id": "cxd_70419",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70419.jpg"
+ },
+ {
+  "id": "cxd_69522",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69522.jpg"
+ },
+ {
+  "id": "cxd_46915",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46915.jpg"
+ },
+ {
+  "id": "cxd_40058",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40058.jpg"
+ },
+ {
+  "id": "cxd_69594",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69594.jpg"
+ },
+ {
+  "id": "cxd_58854",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58854.jpg"
+ },
+ {
+  "id": "cxd_40898",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40898.jpg"
+ },
+ {
+  "id": "cxd_41903",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "No Finding"
+  ],
+  "boxes": [],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41903.jpg"
+ },
+ {
+  "id": "cxd_59475",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1982421875,
+    "y": 0.4580078125,
+    "w": 0.166015625,
+    "h": 0.2177734375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.564453125,
+    "y": 0.4736328125,
+    "w": 0.1064453125,
+    "h": 0.1826171875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5625,
+    "y": 0.3779296875,
+    "w": 0.279296875,
+    "h": 0.3515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.138671875,
+    "y": 0.412109375,
+    "w": 0.22265625,
+    "h": 0.3408203125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3388671875,
+    "y": 0.4228515625,
+    "w": 0.416015625,
+    "h": 0.2421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59475.jpg"
+ },
+ {
+  "id": "cxd_67520",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.08984375,
+    "y": 0.2490234375,
+    "w": 0.2607421875,
+    "h": 0.470703125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.08984375,
+    "y": 0.2490234375,
+    "w": 0.2607421875,
+    "h": 0.470703125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.517578125,
+    "y": 0.3232421875,
+    "w": 0.3388671875,
+    "h": 0.3994140625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.517578125,
+    "y": 0.3232421875,
+    "w": 0.3388671875,
+    "h": 0.3994140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_67520.jpg"
+ },
+ {
+  "id": "cxd_70379",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5166015625,
+    "y": 0.3642578125,
+    "w": 0.283203125,
+    "h": 0.5537109375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5166015625,
+    "y": 0.3642578125,
+    "w": 0.283203125,
+    "h": 0.5537109375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.021484375,
+    "y": 0.259765625,
+    "w": 0.318359375,
+    "h": 0.5400390625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.021484375,
+    "y": 0.259765625,
+    "w": 0.318359375,
+    "h": 0.5400390625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70379.jpg"
+ },
+ {
+  "id": "cxd_57506",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Fibrosis",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.2177734375,
+    "y": 0.306640625,
+    "w": 0.0341796875,
+    "h": 0.158203125
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.1767578125,
+    "y": 0.7392578125,
+    "w": 0.0244140625,
+    "h": 0.1259765625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.59765625,
+    "y": 0.1083984375,
+    "w": 0.2587890625,
+    "h": 0.7880859375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.2109375,
+    "y": 0.1162109375,
+    "w": 0.2978515625,
+    "h": 0.7255859375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2177734375,
+    "y": 0.5458984375,
+    "w": 0.27734375,
+    "h": 0.283203125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5927734375,
+    "y": 0.599609375,
+    "w": 0.2294921875,
+    "h": 0.2783203125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.6083984375,
+    "y": 0.048828125,
+    "w": 0.2529296875,
+    "h": 0.244140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57506.jpg"
+ },
+ {
+  "id": "cxd_39133",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.611328125,
+    "y": 0.2431640625,
+    "w": 0.216796875,
+    "h": 0.3603515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6005859375,
+    "y": 0.19921875,
+    "w": 0.2421875,
+    "h": 0.4296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39133.jpg"
+ },
+ {
+  "id": "cxd_45707",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.2861328125,
+    "y": 0.1220703125,
+    "w": 0.1826171875,
+    "h": 0.2216796875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.60546875,
+    "y": 0.3408203125,
+    "w": 0.2001953125,
+    "h": 0.2958984375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.19140625,
+    "y": 0.6337890625,
+    "w": 0.2294921875,
+    "h": 0.0869140625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.591796875,
+    "y": 0.5654296875,
+    "w": 0.216796875,
+    "h": 0.1123046875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45707.jpg"
+ },
+ {
+  "id": "cxd_44840",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.3935546875,
+    "y": 0.06640625,
+    "w": 0.0771484375,
+    "h": 0.1474609375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.2890625,
+    "y": 0.2138671875,
+    "w": 0.0390625,
+    "h": 0.0439453125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_44840.jpg"
+ },
+ {
+  "id": "cxd_45495",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1279296875,
+    "y": 0.439453125,
+    "w": 0.228515625,
+    "h": 0.36328125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.07421875,
+    "y": 0.328125,
+    "w": 0.0908203125,
+    "h": 0.5087890625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0830078125,
+    "y": 0.666015625,
+    "w": 0.2548828125,
+    "h": 0.2177734375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.7119140625,
+    "y": 0.3310546875,
+    "w": 0.0888671875,
+    "h": 0.07421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45495.jpg"
+ },
+ {
+  "id": "cxd_46994",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.587890625,
+    "y": 0.46484375,
+    "w": 0.09375,
+    "h": 0.103515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.767578125,
+    "y": 0.65234375,
+    "w": 0.068359375,
+    "h": 0.0771484375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1455078125,
+    "y": 0.681640625,
+    "w": 0.044921875,
+    "h": 0.07421875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2421875,
+    "y": 0.4931640625,
+    "w": 0.154296875,
+    "h": 0.197265625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46994.jpg"
+ },
+ {
+  "id": "cxd_59573",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Emphysema",
+   "Fibrosis",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.8408203125,
+    "y": 0.404296875,
+    "w": 0.0546875,
+    "h": 0.0986328125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6455078125,
+    "y": 0.5791015625,
+    "w": 0.2626953125,
+    "h": 0.248046875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.20703125,
+    "y": 0.2509765625,
+    "w": 0.1240234375,
+    "h": 0.08984375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.103515625,
+    "y": 0.3740234375,
+    "w": 0.23828125,
+    "h": 0.0546875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.619140625,
+    "y": 0.138671875,
+    "w": 0.2421875,
+    "h": 0.533203125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59573.jpg"
+ },
+ {
+  "id": "cxd_47293",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Fibrosis",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.2158203125,
+    "y": 0.3515625,
+    "w": 0.0615234375,
+    "h": 0.080078125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.1669921875,
+    "y": 0.3349609375,
+    "w": 0.04296875,
+    "h": 0.0439453125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.740234375,
+    "y": 0.6552734375,
+    "w": 0.0869140625,
+    "h": 0.1142578125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.7275390625,
+    "y": 0.7646484375,
+    "w": 0.0546875,
+    "h": 0.0537109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47293.jpg"
+ },
+ {
+  "id": "cxd_69973",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5341796875,
+    "y": 0.453125,
+    "w": 0.2216796875,
+    "h": 0.33203125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0859375,
+    "y": 0.5126953125,
+    "w": 0.2900390625,
+    "h": 0.296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69973.jpg"
+ },
+ {
+  "id": "cxd_41518",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Emphysema",
+   "Fibrosis",
+   "Fracture",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.5634765625,
+    "y": 0.208984375,
+    "w": 0.2734375,
+    "h": 0.728515625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.1123046875,
+    "y": 0.171875,
+    "w": 0.3154296875,
+    "h": 0.7431640625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5517578125,
+    "y": 0.1484375,
+    "w": 0.2861328125,
+    "h": 0.77734375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.109375,
+    "y": 0.15625,
+    "w": 0.3330078125,
+    "h": 0.77734375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.1259765625,
+    "y": 0.5595703125,
+    "w": 0.060546875,
+    "h": 0.083984375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.814453125,
+    "y": 0.7568359375,
+    "w": 0.03515625,
+    "h": 0.0712890625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.78125,
+    "y": 0.798828125,
+    "w": 0.021484375,
+    "h": 0.025390625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6748046875,
+    "y": 0.5166015625,
+    "w": 0.0322265625,
+    "h": 0.0361328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41518.jpg"
+ },
+ {
+  "id": "cxd_69521",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.349609375,
+    "y": 0.21484375,
+    "w": 0.0361328125,
+    "h": 0.037109375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.701171875,
+    "y": 0.2197265625,
+    "w": 0.048828125,
+    "h": 0.060546875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.3046875,
+    "y": 0.1845703125,
+    "w": 0.02734375,
+    "h": 0.03125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.283203125,
+    "y": 0.3310546875,
+    "w": 0.021484375,
+    "h": 0.025390625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69521.jpg"
+ },
+ {
+  "id": "cxd_45244",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.529296875,
+    "y": 0.4306640625,
+    "w": 0.236328125,
+    "h": 0.294921875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.671875,
+    "y": 0.6826171875,
+    "w": 0.1142578125,
+    "h": 0.0966796875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.125,
+    "y": 0.197265625,
+    "w": 0.255859375,
+    "h": 0.49609375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45244.jpg"
+ },
+ {
+  "id": "cxd_48932",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Emphysema",
+   "Fibrosis",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.29296875,
+    "y": 0.5380859375,
+    "w": 0.0439453125,
+    "h": 0.1103515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.7783203125,
+    "y": 0.5576171875,
+    "w": 0.0341796875,
+    "h": 0.056640625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5625,
+    "y": 0.2060546875,
+    "w": 0.306640625,
+    "h": 0.658203125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.2734375,
+    "y": 0.259765625,
+    "w": 0.208984375,
+    "h": 0.583984375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.298828125,
+    "y": 0.3515625,
+    "w": 0.15625,
+    "h": 0.43359375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.2744140625,
+    "y": 0.763671875,
+    "w": 0.0517578125,
+    "h": 0.134765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_48932.jpg"
+ },
+ {
+  "id": "cxd_69916",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Diffuse Nodule",
+   "Fracture",
+   "Nodule",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.642578125,
+    "y": 0.263671875,
+    "w": 0.1923828125,
+    "h": 0.14453125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.6318359375,
+    "y": 0.337890625,
+    "w": 0.1923828125,
+    "h": 0.169921875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.642578125,
+    "y": 0.435546875,
+    "w": 0.1494140625,
+    "h": 0.123046875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.6298828125,
+    "y": 0.080078125,
+    "w": 0.2255859375,
+    "h": 0.509765625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.3984375,
+    "y": 0.515625,
+    "w": 0.0595703125,
+    "h": 0.0556640625
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.7275390625,
+    "y": 0.39453125,
+    "w": 0.0419921875,
+    "h": 0.0341796875
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.6435546875,
+    "y": 0.314453125,
+    "w": 0.0439453125,
+    "h": 0.044921875
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.712890625,
+    "y": 0.5341796875,
+    "w": 0.0517578125,
+    "h": 0.025390625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69916.jpg"
+ },
+ {
+  "id": "cxd_41492",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.6376953125,
+    "y": 0.2392578125,
+    "w": 0.181640625,
+    "h": 0.4384765625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6279296875,
+    "y": 0.6171875,
+    "w": 0.208984375,
+    "h": 0.166015625
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.4287109375,
+    "y": 0.5400390625,
+    "w": 0.3447265625,
+    "h": 0.18359375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2685546875,
+    "y": 0.470703125,
+    "w": 0.162109375,
+    "h": 0.228515625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41492.jpg"
+ },
+ {
+  "id": "cxd_46352",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Nodule",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.6259765625,
+    "y": 0.63671875,
+    "w": 0.2392578125,
+    "h": 0.1298828125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.81640625,
+    "y": 0.69140625,
+    "w": 0.05859375,
+    "h": 0.048828125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7666015625,
+    "y": 0.671875,
+    "w": 0.138671875,
+    "h": 0.203125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46352.jpg"
+ },
+ {
+  "id": "cxd_70443",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5087890625,
+    "y": 0.1640625,
+    "w": 0.2265625,
+    "h": 0.5185546875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5087890625,
+    "y": 0.1640625,
+    "w": 0.2265625,
+    "h": 0.5185546875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1279296875,
+    "y": 0.1494140625,
+    "w": 0.2431640625,
+    "h": 0.544921875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.1279296875,
+    "y": 0.1494140625,
+    "w": 0.2431640625,
+    "h": 0.544921875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3037109375,
+    "y": 0.4462890625,
+    "w": 0.373046875,
+    "h": 0.2509765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70443.jpg"
+ },
+ {
+  "id": "cxd_36365",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Emphysema",
+   "Fibrosis",
+   "Fracture",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.2490234375,
+    "y": 0.1904296875,
+    "w": 0.072265625,
+    "h": 0.115234375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.232421875,
+    "y": 0.16015625,
+    "w": 0.2294921875,
+    "h": 0.228515625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.560546875,
+    "y": 0.1494140625,
+    "w": 0.23046875,
+    "h": 0.369140625
+   },
+   {
+    "label": "Mass",
+    "x": 0.609375,
+    "y": 0.4150390625,
+    "w": 0.1337890625,
+    "h": 0.13671875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5869140625,
+    "y": 0.5517578125,
+    "w": 0.2080078125,
+    "h": 0.134765625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.71875,
+    "y": 0.5048828125,
+    "w": 0.0458984375,
+    "h": 0.0576171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_36365.jpg"
+ },
+ {
+  "id": "cxd_41953",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5322265625,
+    "y": 0.240234375,
+    "w": 0.15625,
+    "h": 0.365234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2021484375,
+    "y": 0.263671875,
+    "w": 0.158203125,
+    "h": 0.35546875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.486328125,
+    "y": 0.4658203125,
+    "w": 0.216796875,
+    "h": 0.2548828125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1455078125,
+    "y": 0.4482421875,
+    "w": 0.248046875,
+    "h": 0.2294921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41953.jpg"
+ },
+ {
+  "id": "cxd_48872",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.548828125,
+    "y": 0.306640625,
+    "w": 0.1962890625,
+    "h": 0.0751953125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.765625,
+    "y": 0.3525390625,
+    "w": 0.0400390625,
+    "h": 0.0888671875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.763671875,
+    "y": 0.4423828125,
+    "w": 0.0458984375,
+    "h": 0.115234375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5537109375,
+    "y": 0.5625,
+    "w": 0.287109375,
+    "h": 0.1982421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_48872.jpg"
+ },
+ {
+  "id": "cxd_46041",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.6591796875,
+    "y": 0.390625,
+    "w": 0.1005859375,
+    "h": 0.064453125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5751953125,
+    "y": 0.3203125,
+    "w": 0.2333984375,
+    "h": 0.4169921875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.802734375,
+    "y": 0.71484375,
+    "w": 0.01953125,
+    "h": 0.0556640625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2177734375,
+    "y": 0.353515625,
+    "w": 0.2373046875,
+    "h": 0.40625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46041.jpg"
+ },
+ {
+  "id": "cxd_40749",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.5283203125,
+    "y": 0.16796875,
+    "w": 0.251953125,
+    "h": 0.578125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5830078125,
+    "y": 0.216796875,
+    "w": 0.1904296875,
+    "h": 0.3486328125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1962890625,
+    "y": 0.4658203125,
+    "w": 0.1982421875,
+    "h": 0.2236328125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1337890625,
+    "y": 0.6630859375,
+    "w": 0.095703125,
+    "h": 0.10546875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40749.jpg"
+ },
+ {
+  "id": "cxd_69046",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.0869140625,
+    "y": 0.8564453125,
+    "w": 0.0732421875,
+    "h": 0.0869140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69046.jpg"
+ },
+ {
+  "id": "cxd_39524",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Fibrosis",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.689453125,
+    "y": 0.5234375,
+    "w": 0.0869140625,
+    "h": 0.2197265625
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3408203125,
+    "y": 0.4609375,
+    "w": 0.0419921875,
+    "h": 0.05078125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.2333984375,
+    "y": 0.63671875,
+    "w": 0.251953125,
+    "h": 0.220703125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39524.jpg"
+ },
+ {
+  "id": "cxd_39404",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.2333984375,
+    "y": 0.4140625,
+    "w": 0.0244140625,
+    "h": 0.0322265625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2451171875,
+    "y": 0.537109375,
+    "w": 0.052734375,
+    "h": 0.029296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39404.jpg"
+ },
+ {
+  "id": "cxd_41798",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Fibrosis",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.228515625,
+    "y": 0.1796875,
+    "w": 0.2177734375,
+    "h": 0.556640625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.5400390625,
+    "y": 0.2294921875,
+    "w": 0.1455078125,
+    "h": 0.345703125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.53515625,
+    "y": 0.5634765625,
+    "w": 0.1943359375,
+    "h": 0.21875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.3076171875,
+    "y": 0.37890625,
+    "w": 0.046875,
+    "h": 0.048828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41798.jpg"
+ },
+ {
+  "id": "cxd_57510",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Effusion",
+   "Emphysema",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.587890625,
+    "y": 0.046875,
+    "w": 0.22265625,
+    "h": 0.8564453125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.1435546875,
+    "y": 0.095703125,
+    "w": 0.33203125,
+    "h": 0.8037109375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1298828125,
+    "y": 0.8232421875,
+    "w": 0.15234375,
+    "h": 0.125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.765625,
+    "y": 0.8916015625,
+    "w": 0.076171875,
+    "h": 0.0576171875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5751953125,
+    "y": 0.0302734375,
+    "w": 0.2734375,
+    "h": 0.8896484375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.1513671875,
+    "y": 0.037109375,
+    "w": 0.349609375,
+    "h": 0.853515625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57510.jpg"
+ },
+ {
+  "id": "cxd_45827",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.2119140625,
+    "y": 0.283203125,
+    "w": 0.05078125,
+    "h": 0.0458984375
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.6845703125,
+    "y": 0.552734375,
+    "w": 0.1142578125,
+    "h": 0.0791015625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1455078125,
+    "y": 0.52734375,
+    "w": 0.173828125,
+    "h": 0.1552734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45827.jpg"
+ },
+ {
+  "id": "cxd_60264",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.3408203125,
+    "y": 0.248046875,
+    "w": 0.02734375,
+    "h": 0.02734375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2998046875,
+    "y": 0.4326171875,
+    "w": 0.0302734375,
+    "h": 0.0283203125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.5986328125,
+    "y": 0.333984375,
+    "w": 0.0302734375,
+    "h": 0.033203125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60264.jpg"
+ },
+ {
+  "id": "cxd_41197",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.248046875,
+    "y": 0.09765625,
+    "w": 0.203125,
+    "h": 0.10546875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2001953125,
+    "y": 0.42578125,
+    "w": 0.2431640625,
+    "h": 0.2763671875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.37109375,
+    "y": 0.48046875,
+    "w": 0.376953125,
+    "h": 0.2109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41197.jpg"
+ },
+ {
+  "id": "cxd_69989",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Consolidation"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5888671875,
+    "y": 0.3076171875,
+    "w": 0.2685546875,
+    "h": 0.630859375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.119140625,
+    "y": 0.2998046875,
+    "w": 0.2841796875,
+    "h": 0.6259765625
+   },
+   {
+    "label": "Calcification",
+    "x": 0.154296875,
+    "y": 0.732421875,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69989.jpg"
+ },
+ {
+  "id": "cxd_56625",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.341796875,
+    "y": 0.5068359375,
+    "w": 0.484375,
+    "h": 0.3212890625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.609375,
+    "y": 0.341796875,
+    "w": 0.294921875,
+    "h": 0.56640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0869140625,
+    "y": 0.296875,
+    "w": 0.2900390625,
+    "h": 0.47265625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56625.jpg"
+ },
+ {
+  "id": "cxd_36302",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.7802734375,
+    "y": 0.650390625,
+    "w": 0.134765625,
+    "h": 0.0927734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_36302.jpg"
+ },
+ {
+  "id": "cxd_41504",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1337890625,
+    "y": 0.3828125,
+    "w": 0.265625,
+    "h": 0.4599609375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.2392578125,
+    "y": 0.1220703125,
+    "w": 0.154296875,
+    "h": 0.2587890625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.609375,
+    "y": 0.166015625,
+    "w": 0.1455078125,
+    "h": 0.26171875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.560546875,
+    "y": 0.470703125,
+    "w": 0.248046875,
+    "h": 0.45703125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0908203125,
+    "y": 0.51171875,
+    "w": 0.30078125,
+    "h": 0.416015625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.53125,
+    "y": 0.5712890625,
+    "w": 0.2998046875,
+    "h": 0.3740234375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41504.jpg"
+ },
+ {
+  "id": "cxd_45816",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.767578125,
+    "y": 0.6005859375,
+    "w": 0.087890625,
+    "h": 0.041015625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.240234375,
+    "y": 0.1884765625,
+    "w": 0.0419921875,
+    "h": 0.052734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45816.jpg"
+ },
+ {
+  "id": "cxd_70293",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.119140625,
+    "y": 0.248046875,
+    "w": 0.234375,
+    "h": 0.365234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.513671875,
+    "y": 0.2333984375,
+    "w": 0.3310546875,
+    "h": 0.453125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.513671875,
+    "y": 0.2333984375,
+    "w": 0.3310546875,
+    "h": 0.453125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.513671875,
+    "y": 0.2333984375,
+    "w": 0.3310546875,
+    "h": 0.453125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.2939453125,
+    "y": 0.427734375,
+    "w": 0.443359375,
+    "h": 0.189453125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70293.jpg"
+ },
+ {
+  "id": "cxd_47287",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5791015625,
+    "y": 0.12890625,
+    "w": 0.1357421875,
+    "h": 0.1826171875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.4150390625,
+    "y": 0.39453125,
+    "w": 0.0498046875,
+    "h": 0.0595703125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3994140625,
+    "y": 0.5048828125,
+    "w": 0.0380859375,
+    "h": 0.0498046875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.23828125,
+    "y": 0.466796875,
+    "w": 0.01953125,
+    "h": 0.025390625
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7353515625,
+    "y": 0.7548828125,
+    "w": 0.076171875,
+    "h": 0.111328125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.17578125,
+    "y": 0.755859375,
+    "w": 0.0986328125,
+    "h": 0.10546875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47287.jpg"
+ },
+ {
+  "id": "cxd_61997",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.6552734375,
+    "y": 0.2099609375,
+    "w": 0.03515625,
+    "h": 0.0380859375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.724609375,
+    "y": 0.2509765625,
+    "w": 0.01953125,
+    "h": 0.029296875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7470703125,
+    "y": 0.322265625,
+    "w": 0.021484375,
+    "h": 0.02734375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.5966796875,
+    "y": 0.2939453125,
+    "w": 0.0537109375,
+    "h": 0.0576171875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7294921875,
+    "y": 0.5341796875,
+    "w": 0.01953125,
+    "h": 0.01953125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7421875,
+    "y": 0.5458984375,
+    "w": 0.02734375,
+    "h": 0.037109375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6884765625,
+    "y": 0.59375,
+    "w": 0.021484375,
+    "h": 0.025390625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1962890625,
+    "y": 0.3232421875,
+    "w": 0.0234375,
+    "h": 0.0263671875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2783203125,
+    "y": 0.3271484375,
+    "w": 0.01953125,
+    "h": 0.0244140625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1923828125,
+    "y": 0.60546875,
+    "w": 0.033203125,
+    "h": 0.0380859375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.314453125,
+    "y": 0.3857421875,
+    "w": 0.033203125,
+    "h": 0.02734375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3505859375,
+    "y": 0.4716796875,
+    "w": 0.01953125,
+    "h": 0.01953125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.6064453125,
+    "y": 0.4111328125,
+    "w": 0.0205078125,
+    "h": 0.02734375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6162109375,
+    "y": 0.697265625,
+    "w": 0.224609375,
+    "h": 0.1337890625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.552734375,
+    "y": 0.193359375,
+    "w": 0.2568359375,
+    "h": 0.4697265625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.1611328125,
+    "y": 0.27734375,
+    "w": 0.2255859375,
+    "h": 0.3818359375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61997.jpg"
+ },
+ {
+  "id": "cxd_60926",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.1435546875,
+    "y": 0.1923828125,
+    "w": 0.3212890625,
+    "h": 0.638671875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3232421875,
+    "y": 0.55859375,
+    "w": 0.3818359375,
+    "h": 0.2578125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6103515625,
+    "y": 0.517578125,
+    "w": 0.1455078125,
+    "h": 0.25
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2060546875,
+    "y": 0.3232421875,
+    "w": 0.1640625,
+    "h": 0.4169921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60926.jpg"
+ },
+ {
+  "id": "cxd_62109",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.1484375,
+    "y": 0.2890625,
+    "w": 0.1806640625,
+    "h": 0.306640625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_62109.jpg"
+ },
+ {
+  "id": "cxd_69965",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.109375,
+    "y": 0.1337890625,
+    "w": 0.3427734375,
+    "h": 0.232421875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.109375,
+    "y": 0.1337890625,
+    "w": 0.3427734375,
+    "h": 0.232421875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.0908203125,
+    "y": 0.400390625,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69965.jpg"
+ },
+ {
+  "id": "cxd_69400",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.0654296875,
+    "y": 0.24609375,
+    "w": 0.046875,
+    "h": 0.0537109375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.7216796875,
+    "y": 0.1103515625,
+    "w": 0.0869140625,
+    "h": 0.0615234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2724609375,
+    "y": 0.580078125,
+    "w": 0.1953125,
+    "h": 0.15234375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.2724609375,
+    "y": 0.580078125,
+    "w": 0.1953125,
+    "h": 0.15234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6337890625,
+    "y": 0.5107421875,
+    "w": 0.21484375,
+    "h": 0.2578125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6337890625,
+    "y": 0.5107421875,
+    "w": 0.21484375,
+    "h": 0.2578125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.4580078125,
+    "y": 0.5224609375,
+    "w": 0.3876953125,
+    "h": 0.1884765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69400.jpg"
+ },
+ {
+  "id": "cxd_56618",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Fracture",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.2236328125,
+    "y": 0.32421875,
+    "w": 0.1240234375,
+    "h": 0.0673828125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2099609375,
+    "y": 0.28125,
+    "w": 0.18359375,
+    "h": 0.3232421875
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.203125,
+    "y": 0.1083984375,
+    "w": 0.2001953125,
+    "h": 0.13671875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7275390625,
+    "y": 0.6982421875,
+    "w": 0.1142578125,
+    "h": 0.1044921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56618.jpg"
+ },
+ {
+  "id": "cxd_40050",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.12890625,
+    "y": 0.5947265625,
+    "w": 0.265625,
+    "h": 0.0966796875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.158203125,
+    "y": 0.3359375,
+    "w": 0.17578125,
+    "h": 0.2607421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40050.jpg"
+ },
+ {
+  "id": "cxd_45822",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.2509765625,
+    "y": 0.2177734375,
+    "w": 0.0654296875,
+    "h": 0.0791015625
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.70703125,
+    "y": 0.52734375,
+    "w": 0.138671875,
+    "h": 0.0732421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45822.jpg"
+ },
+ {
+  "id": "cxd_56711",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.5634765625,
+    "y": 0.7705078125,
+    "w": 0.0458984375,
+    "h": 0.052734375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.5810546875,
+    "y": 0.7314453125,
+    "w": 0.0732421875,
+    "h": 0.0537109375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.61328125,
+    "y": 0.796875,
+    "w": 0.044921875,
+    "h": 0.0478515625
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.765625,
+    "y": 0.810546875,
+    "w": 0.052734375,
+    "h": 0.0712890625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.587890625,
+    "y": 0.123046875,
+    "w": 0.025390625,
+    "h": 0.0419921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56711.jpg"
+ },
+ {
+  "id": "cxd_41481",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.345703125,
+    "y": 0.3876953125,
+    "w": 0.3798828125,
+    "h": 0.2314453125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41481.jpg"
+ },
+ {
+  "id": "cxd_70935",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.55859375,
+    "y": 0.271484375,
+    "w": 0.2666015625,
+    "h": 0.525390625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.55859375,
+    "y": 0.271484375,
+    "w": 0.2666015625,
+    "h": 0.525390625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.55859375,
+    "y": 0.271484375,
+    "w": 0.2666015625,
+    "h": 0.525390625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.224609375,
+    "y": 0.248046875,
+    "w": 0.2509765625,
+    "h": 0.5244140625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.224609375,
+    "y": 0.248046875,
+    "w": 0.2509765625,
+    "h": 0.5244140625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.19921875,
+    "y": 0.69921875,
+    "w": 0.068359375,
+    "h": 0.1005859375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70935.jpg"
+ },
+ {
+  "id": "cxd_47286",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Calcification",
+    "x": 0.3818359375,
+    "y": 0.4208984375,
+    "w": 0.029296875,
+    "h": 0.033203125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3408203125,
+    "y": 0.4921875,
+    "w": 0.04296875,
+    "h": 0.048828125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.1494140625,
+    "y": 0.4755859375,
+    "w": 0.01953125,
+    "h": 0.0205078125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7998046875,
+    "y": 0.6962890625,
+    "w": 0.0830078125,
+    "h": 0.10546875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.0615234375,
+    "y": 0.6923828125,
+    "w": 0.09765625,
+    "h": 0.1318359375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.599609375,
+    "y": 0.2099609375,
+    "w": 0.1015625,
+    "h": 0.1484375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47286.jpg"
+ },
+ {
+  "id": "cxd_45843",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Emphysema",
+    "x": 0.4951171875,
+    "y": 0.1513671875,
+    "w": 0.3134765625,
+    "h": 0.673828125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.0830078125,
+    "y": 0.162109375,
+    "w": 0.36328125,
+    "h": 0.62109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45843.jpg"
+ },
+ {
+  "id": "cxd_56758",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.0263671875,
+    "y": 0.7568359375,
+    "w": 0.0703125,
+    "h": 0.0654296875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.322265625,
+    "y": 0.1181640625,
+    "w": 0.126953125,
+    "h": 0.2216796875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56758.jpg"
+ },
+ {
+  "id": "cxd_42326",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.216796875,
+    "y": 0.3056640625,
+    "w": 0.203125,
+    "h": 0.271484375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1494140625,
+    "y": 0.2919921875,
+    "w": 0.0927734375,
+    "h": 0.302734375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1259765625,
+    "y": 0.5947265625,
+    "w": 0.2197265625,
+    "h": 0.11328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_42326.jpg"
+ },
+ {
+  "id": "cxd_45820",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.7255859375,
+    "y": 0.5546875,
+    "w": 0.123046875,
+    "h": 0.0908203125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.2548828125,
+    "y": 0.21484375,
+    "w": 0.056640625,
+    "h": 0.0615234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.185546875,
+    "y": 0.615234375,
+    "w": 0.0673828125,
+    "h": 0.0654296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45820.jpg"
+ },
+ {
+  "id": "cxd_59433",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.21484375,
+    "y": 0.173828125,
+    "w": 0.0205078125,
+    "h": 0.0263671875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.193359375,
+    "y": 0.5302734375,
+    "w": 0.09375,
+    "h": 0.078125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.765625,
+    "y": 0.46484375,
+    "w": 0.021484375,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59433.jpg"
+ },
+ {
+  "id": "cxd_45726",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.2734375,
+    "y": 0.537109375,
+    "w": 0.0751953125,
+    "h": 0.0693359375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.8916015625,
+    "y": 0.8681640625,
+    "w": 0.068359375,
+    "h": 0.0654296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45726.jpg"
+ },
+ {
+  "id": "cxd_70302",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.6005859375,
+    "y": 0.72265625,
+    "w": 0.30078125,
+    "h": 0.2001953125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5712890625,
+    "y": 0.1416015625,
+    "w": 0.3076171875,
+    "h": 0.7021484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1240234375,
+    "y": 0.146484375,
+    "w": 0.361328125,
+    "h": 0.7490234375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1240234375,
+    "y": 0.146484375,
+    "w": 0.361328125,
+    "h": 0.7490234375
+   },
+   {
+    "label": "Mass",
+    "x": 0.296875,
+    "y": 0.5634765625,
+    "w": 0.125,
+    "h": 0.236328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70302.jpg"
+ },
+ {
+  "id": "cxd_47271",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.6064453125,
+    "y": 0.4423828125,
+    "w": 0.283203125,
+    "h": 0.203125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.7724609375,
+    "y": 0.5546875,
+    "w": 0.1630859375,
+    "h": 0.1923828125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.09765625,
+    "y": 0.533203125,
+    "w": 0.212890625,
+    "h": 0.16796875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.265625,
+    "y": 0.26171875,
+    "w": 0.01953125,
+    "h": 0.01953125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.7548828125,
+    "y": 0.25390625,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47271.jpg"
+ },
+ {
+  "id": "cxd_40078",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Fibrosis",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.1435546875,
+    "y": 0.513671875,
+    "w": 0.08984375,
+    "h": 0.0322265625
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.1484375,
+    "y": 0.2255859375,
+    "w": 0.16796875,
+    "h": 0.2861328125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1748046875,
+    "y": 0.345703125,
+    "w": 0.138671875,
+    "h": 0.291015625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40078.jpg"
+ },
+ {
+  "id": "cxd_69408",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification"
+  ],
+  "boxes": [
+   {
+    "label": "Calcification",
+    "x": 0.5576171875,
+    "y": 0.4951171875,
+    "w": 0.0625,
+    "h": 0.05078125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.7470703125,
+    "y": 0.7314453125,
+    "w": 0.021484375,
+    "h": 0.0244140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69408.jpg"
+ },
+ {
+  "id": "cxd_56622",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.208984375,
+    "y": 0.5205078125,
+    "w": 0.1845703125,
+    "h": 0.095703125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56622.jpg"
+ },
+ {
+  "id": "cxd_70314",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5791015625,
+    "y": 0.169921875,
+    "w": 0.2998046875,
+    "h": 0.7119140625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5791015625,
+    "y": 0.169921875,
+    "w": 0.2998046875,
+    "h": 0.7119140625
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3369140625,
+    "y": 0.5078125,
+    "w": 0.4365234375,
+    "h": 0.3125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0908203125,
+    "y": 0.162109375,
+    "w": 0.3369140625,
+    "h": 0.673828125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.0908203125,
+    "y": 0.162109375,
+    "w": 0.3369140625,
+    "h": 0.673828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70314.jpg"
+ },
+ {
+  "id": "cxd_69139",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Fibrosis",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.2041015625,
+    "y": 0.08984375,
+    "w": 0.1181640625,
+    "h": 0.0771484375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.6376953125,
+    "y": 0.5029296875,
+    "w": 0.1591796875,
+    "h": 0.1328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69139.jpg"
+ },
+ {
+  "id": "cxd_57569",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Diffuse Nodule",
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.5166015625,
+    "y": 0.375,
+    "w": 0.33984375,
+    "h": 0.3720703125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5166015625,
+    "y": 0.375,
+    "w": 0.33984375,
+    "h": 0.3720703125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.197265625,
+    "y": 0.427734375,
+    "w": 0.205078125,
+    "h": 0.3193359375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.5849609375,
+    "y": 0.1123046875,
+    "w": 0.029296875,
+    "h": 0.0361328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57569.jpg"
+ },
+ {
+  "id": "cxd_45735",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Fibrosis",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.7138671875,
+    "y": 0.5888671875,
+    "w": 0.0458984375,
+    "h": 0.0625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.31640625,
+    "y": 0.072265625,
+    "w": 0.109375,
+    "h": 0.1708984375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.5625,
+    "y": 0.0947265625,
+    "w": 0.09765625,
+    "h": 0.197265625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.609375,
+    "y": 0.5947265625,
+    "w": 0.2763671875,
+    "h": 0.2431640625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45735.jpg"
+ },
+ {
+  "id": "cxd_47225",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Effusion",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5849609375,
+    "y": 0.26171875,
+    "w": 0.296875,
+    "h": 0.25
+   },
+   {
+    "label": "Effusion",
+    "x": 0.8271484375,
+    "y": 0.4404296875,
+    "w": 0.0751953125,
+    "h": 0.1630859375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.087890625,
+    "y": 0.587890625,
+    "w": 0.10546875,
+    "h": 0.0849609375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.681640625,
+    "y": 0.2548828125,
+    "w": 0.01953125,
+    "h": 0.01953125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.171875,
+    "y": 0.408203125,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47225.jpg"
+ },
+ {
+  "id": "cxd_57885",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.759765625,
+    "y": 0.2978515625,
+    "w": 0.1240234375,
+    "h": 0.3955078125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.865234375,
+    "y": 0.7060546875,
+    "w": 0.0380859375,
+    "h": 0.05078125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.7314453125,
+    "y": 0.595703125,
+    "w": 0.1044921875,
+    "h": 0.0693359375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.6181640625,
+    "y": 0.28125,
+    "w": 0.111328125,
+    "h": 0.0673828125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.2509765625,
+    "y": 0.2939453125,
+    "w": 0.1220703125,
+    "h": 0.0771484375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.154296875,
+    "y": 0.298828125,
+    "w": 0.0546875,
+    "h": 0.330078125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1669921875,
+    "y": 0.529296875,
+    "w": 0.1220703125,
+    "h": 0.083984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57885.jpg"
+ },
+ {
+  "id": "cxd_57555",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.6259765625,
+    "y": 0.408203125,
+    "w": 0.103515625,
+    "h": 0.107421875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.630859375,
+    "y": 0.5869140625,
+    "w": 0.0673828125,
+    "h": 0.0634765625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6416015625,
+    "y": 0.349609375,
+    "w": 0.0458984375,
+    "h": 0.056640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.51953125,
+    "y": 0.3037109375,
+    "w": 0.2373046875,
+    "h": 0.4765625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.072265625,
+    "y": 0.3544921875,
+    "w": 0.30078125,
+    "h": 0.3134765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57555.jpg"
+ },
+ {
+  "id": "cxd_55950",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.255859375,
+    "y": 0.5380859375,
+    "w": 0.0439453125,
+    "h": 0.04296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55950.jpg"
+ },
+ {
+  "id": "cxd_41965",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.599609375,
+    "y": 0.1630859375,
+    "w": 0.197265625,
+    "h": 0.1396484375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.19140625,
+    "y": 0.185546875,
+    "w": 0.2080078125,
+    "h": 0.1953125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.376953125,
+    "y": 0.27734375,
+    "w": 0.0693359375,
+    "h": 0.099609375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.544921875,
+    "y": 0.294921875,
+    "w": 0.0341796875,
+    "h": 0.0341796875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.54296875,
+    "y": 0.3828125,
+    "w": 0.0205078125,
+    "h": 0.0341796875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.41796875,
+    "y": 0.3798828125,
+    "w": 0.046875,
+    "h": 0.0537109375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3232421875,
+    "y": 0.4140625,
+    "w": 0.0341796875,
+    "h": 0.0234375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.7646484375,
+    "y": 0.521484375,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41965.jpg"
+ },
+ {
+  "id": "cxd_69979",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.296875,
+    "y": 0.4560546875,
+    "w": 0.4306640625,
+    "h": 0.234375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5869140625,
+    "y": 0.572265625,
+    "w": 0.232421875,
+    "h": 0.1640625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.185546875,
+    "y": 0.4697265625,
+    "w": 0.1337890625,
+    "h": 0.1201171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69979.jpg"
+ },
+ {
+  "id": "cxd_45753",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3779296875,
+    "y": 0.5283203125,
+    "w": 0.416015625,
+    "h": 0.2294921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45753.jpg"
+ },
+ {
+  "id": "cxd_55970",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Effusion",
+   "Emphysema",
+   "Fibrosis",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.5322265625,
+    "y": 0.1611328125,
+    "w": 0.3251953125,
+    "h": 0.2119140625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.8037109375,
+    "y": 0.630859375,
+    "w": 0.087890625,
+    "h": 0.1552734375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.5869140625,
+    "y": 0.2578125,
+    "w": 0.1689453125,
+    "h": 0.37109375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.541015625,
+    "y": 0.2451171875,
+    "w": 0.330078125,
+    "h": 0.4150390625
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.171875,
+    "y": 0.1904296875,
+    "w": 0.287109375,
+    "h": 0.5166015625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.22265625,
+    "y": 0.234375,
+    "w": 0.17578125,
+    "h": 0.349609375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.189453125,
+    "y": 0.5458984375,
+    "w": 0.22265625,
+    "h": 0.2119140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55970.jpg"
+ },
+ {
+  "id": "cxd_41783",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.16015625,
+    "y": 0.376953125,
+    "w": 0.1318359375,
+    "h": 0.1650390625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6025390625,
+    "y": 0.48046875,
+    "w": 0.2177734375,
+    "h": 0.1103515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6650390625,
+    "y": 0.455078125,
+    "w": 0.189453125,
+    "h": 0.22265625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41783.jpg"
+ },
+ {
+  "id": "cxd_56806",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Calcification",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.6474609375,
+    "y": 0.708984375,
+    "w": 0.2216796875,
+    "h": 0.1015625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.1416015625,
+    "y": 0.0595703125,
+    "w": 0.173828125,
+    "h": 0.080078125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3232421875,
+    "y": 0.1513671875,
+    "w": 0.076171875,
+    "h": 0.05859375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56806.jpg"
+ },
+ {
+  "id": "cxd_62083",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Fibrosis",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.6962890625,
+    "y": 0.3681640625,
+    "w": 0.0478515625,
+    "h": 0.041015625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.412109375,
+    "y": 0.5126953125,
+    "w": 0.08203125,
+    "h": 0.1015625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.78515625,
+    "y": 0.5439453125,
+    "w": 0.0634765625,
+    "h": 0.0244140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_62083.jpg"
+ },
+ {
+  "id": "cxd_59421",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Effusion",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.091796875,
+    "y": 0.4658203125,
+    "w": 0.25,
+    "h": 0.1923828125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1044921875,
+    "y": 0.2373046875,
+    "w": 0.1064453125,
+    "h": 0.28515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.06640625,
+    "y": 0.525390625,
+    "w": 0.0419921875,
+    "h": 0.05859375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.8701171875,
+    "y": 0.685546875,
+    "w": 0.1279296875,
+    "h": 0.2822265625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59421.jpg"
+ },
+ {
+  "id": "cxd_69089",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.3779296875,
+    "y": 0.2099609375,
+    "w": 0.1181640625,
+    "h": 0.2412109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69089.jpg"
+ },
+ {
+  "id": "cxd_46981",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Emphysema",
+    "x": 0.5283203125,
+    "y": 0.10546875,
+    "w": 0.3330078125,
+    "h": 0.814453125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1875,
+    "y": 0.44921875,
+    "w": 0.14453125,
+    "h": 0.2734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46981.jpg"
+ },
+ {
+  "id": "cxd_46049",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Mass",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.19921875,
+    "y": 0.5234375,
+    "w": 0.140625,
+    "h": 0.173828125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.75390625,
+    "y": 0.6962890625,
+    "w": 0.1298828125,
+    "h": 0.1376953125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.666015625,
+    "y": 0.3505859375,
+    "w": 0.0849609375,
+    "h": 0.140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46049.jpg"
+ },
+ {
+  "id": "cxd_70335",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.55859375,
+    "y": 0.30078125,
+    "w": 0.2255859375,
+    "h": 0.6298828125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.55859375,
+    "y": 0.30078125,
+    "w": 0.2255859375,
+    "h": 0.6298828125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.55859375,
+    "y": 0.30078125,
+    "w": 0.2255859375,
+    "h": 0.6298828125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1474609375,
+    "y": 0.2724609375,
+    "w": 0.30859375,
+    "h": 0.6201171875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1474609375,
+    "y": 0.2724609375,
+    "w": 0.30859375,
+    "h": 0.6201171875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.1474609375,
+    "y": 0.2724609375,
+    "w": 0.30859375,
+    "h": 0.6201171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70335.jpg"
+ },
+ {
+  "id": "cxd_47279",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.2060546875,
+    "y": 0.4951171875,
+    "w": 0.21484375,
+    "h": 0.21875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.7060546875,
+    "y": 0.6875,
+    "w": 0.1669921875,
+    "h": 0.1025390625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6298828125,
+    "y": 0.5869140625,
+    "w": 0.3017578125,
+    "h": 0.2958984375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3837890625,
+    "y": 0.4345703125,
+    "w": 0.0390625,
+    "h": 0.0458984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47279.jpg"
+ },
+ {
+  "id": "cxd_61711",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.6708984375,
+    "y": 0.2890625,
+    "w": 0.0400390625,
+    "h": 0.0380859375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.61328125,
+    "y": 0.451171875,
+    "w": 0.171875,
+    "h": 0.1328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61711.jpg"
+ },
+ {
+  "id": "cxd_46978",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1591796875,
+    "y": 0.4794921875,
+    "w": 0.2412109375,
+    "h": 0.294921875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5673828125,
+    "y": 0.150390625,
+    "w": 0.2421875,
+    "h": 0.7109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46978.jpg"
+ },
+ {
+  "id": "cxd_40787",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.162109375,
+    "y": 0.53515625,
+    "w": 0.212890625,
+    "h": 0.1875
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.59765625,
+    "y": 0.5947265625,
+    "w": 0.14453125,
+    "h": 0.0732421875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40787.jpg"
+ },
+ {
+  "id": "cxd_41503",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.2607421875,
+    "y": 0.1259765625,
+    "w": 0.162109375,
+    "h": 0.2548828125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.619140625,
+    "y": 0.1201171875,
+    "w": 0.1494140625,
+    "h": 0.265625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.59765625,
+    "y": 0.380859375,
+    "w": 0.2744140625,
+    "h": 0.521484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.123046875,
+    "y": 0.3544921875,
+    "w": 0.3291015625,
+    "h": 0.5849609375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.619140625,
+    "y": 0.5517578125,
+    "w": 0.27734375,
+    "h": 0.3876953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41503.jpg"
+ },
+ {
+  "id": "cxd_60241",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.5537109375,
+    "y": 0.1904296875,
+    "w": 0.30078125,
+    "h": 0.4873046875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60241.jpg"
+ },
+ {
+  "id": "cxd_55854",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.642578125,
+    "y": 0.318359375,
+    "w": 0.2412109375,
+    "h": 0.5302734375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.267578125,
+    "y": 0.3818359375,
+    "w": 0.228515625,
+    "h": 0.4384765625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6298828125,
+    "y": 0.5087890625,
+    "w": 0.2568359375,
+    "h": 0.35546875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.240234375,
+    "y": 0.5302734375,
+    "w": 0.2529296875,
+    "h": 0.30859375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.46484375,
+    "y": 0.6171875,
+    "w": 0.361328125,
+    "h": 0.240234375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55854.jpg"
+ },
+ {
+  "id": "cxd_61892",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.7470703125,
+    "y": 0.4541015625,
+    "w": 0.02734375,
+    "h": 0.0263671875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.8349609375,
+    "y": 0.6005859375,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61892.jpg"
+ },
+ {
+  "id": "cxd_36212",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1875,
+    "y": 0.6162109375,
+    "w": 0.1904296875,
+    "h": 0.26953125
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.1240234375,
+    "y": 0.759765625,
+    "w": 0.0595703125,
+    "h": 0.1630859375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3232421875,
+    "y": 0.5634765625,
+    "w": 0.447265625,
+    "h": 0.34375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_36212.jpg"
+ },
+ {
+  "id": "cxd_39408",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.166015625,
+    "y": 0.080078125,
+    "w": 0.09375,
+    "h": 0.0625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.205078125,
+    "y": 0.5341796875,
+    "w": 0.18359375,
+    "h": 0.1318359375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3798828125,
+    "y": 0.51953125,
+    "w": 0.4150390625,
+    "h": 0.3056640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0908203125,
+    "y": 0.419921875,
+    "w": 0.275390625,
+    "h": 0.3681640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.591796875,
+    "y": 0.5234375,
+    "w": 0.267578125,
+    "h": 0.3388671875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39408.jpg"
+ },
+ {
+  "id": "cxd_69845",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.181640625,
+    "y": 0.1435546875,
+    "w": 0.2890625,
+    "h": 0.6083984375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5712890625,
+    "y": 0.1123046875,
+    "w": 0.330078125,
+    "h": 0.677734375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5712890625,
+    "y": 0.1123046875,
+    "w": 0.330078125,
+    "h": 0.677734375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5712890625,
+    "y": 0.1123046875,
+    "w": 0.330078125,
+    "h": 0.677734375
+   },
+   {
+    "label": "Mass",
+    "x": 0.625,
+    "y": 0.318359375,
+    "w": 0.140625,
+    "h": 0.1845703125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.37890625,
+    "y": 0.5107421875,
+    "w": 0.376953125,
+    "h": 0.2294921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69845.jpg"
+ },
+ {
+  "id": "cxd_58695",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Diffuse Nodule",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5869140625,
+    "y": 0.1728515625,
+    "w": 0.283203125,
+    "h": 0.630859375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.2255859375,
+    "y": 0.2099609375,
+    "w": 0.2294921875,
+    "h": 0.509765625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.41015625,
+    "y": 0.7568359375,
+    "w": 0.01953125,
+    "h": 0.021484375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2734375,
+    "y": 0.748046875,
+    "w": 0.052734375,
+    "h": 0.0625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.158203125,
+    "y": 0.7138671875,
+    "w": 0.01953125,
+    "h": 0.01953125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58695.jpg"
+ },
+ {
+  "id": "cxd_60947",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Diffuse Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.546875,
+    "y": 0.154296875,
+    "w": 0.2861328125,
+    "h": 0.6787109375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.1767578125,
+    "y": 0.109375,
+    "w": 0.328125,
+    "h": 0.693359375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60947.jpg"
+ },
+ {
+  "id": "cxd_57530",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.365234375,
+    "y": 0.4990234375,
+    "w": 0.4150390625,
+    "h": 0.2705078125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_57530.jpg"
+ },
+ {
+  "id": "cxd_39414",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Fracture",
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.62890625,
+    "y": 0.2939453125,
+    "w": 0.1279296875,
+    "h": 0.140625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.310546875,
+    "y": 0.2548828125,
+    "w": 0.0703125,
+    "h": 0.0556640625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7548828125,
+    "y": 0.5517578125,
+    "w": 0.0517578125,
+    "h": 0.060546875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.1591796875,
+    "y": 0.037109375,
+    "w": 0.07421875,
+    "h": 0.0634765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39414.jpg"
+ },
+ {
+  "id": "cxd_69450",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.52734375,
+    "y": 0.4150390625,
+    "w": 0.140625,
+    "h": 0.1640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5244140625,
+    "y": 0.197265625,
+    "w": 0.2509765625,
+    "h": 0.4951171875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5244140625,
+    "y": 0.197265625,
+    "w": 0.2509765625,
+    "h": 0.4951171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69450.jpg"
+ },
+ {
+  "id": "cxd_60766",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fibrosis",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Fracture",
+    "x": 0.3017578125,
+    "y": 0.232421875,
+    "w": 0.091796875,
+    "h": 0.0478515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.6171875,
+    "y": 0.2265625,
+    "w": 0.083984375,
+    "h": 0.0625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.708984375,
+    "y": 0.4482421875,
+    "w": 0.1015625,
+    "h": 0.109375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2197265625,
+    "y": 0.2734375,
+    "w": 0.193359375,
+    "h": 0.185546875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.17578125,
+    "y": 0.0888671875,
+    "w": 0.21484375,
+    "h": 0.21484375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.12109375,
+    "y": 0.3369140625,
+    "w": 0.1025390625,
+    "h": 0.240234375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_60766.jpg"
+ },
+ {
+  "id": "cxd_36266",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.7001953125,
+    "y": 0.3955078125,
+    "w": 0.15234375,
+    "h": 0.1142578125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.892578125,
+    "y": 0.564453125,
+    "w": 0.044921875,
+    "h": 0.0751953125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6572265625,
+    "y": 0.107421875,
+    "w": 0.080078125,
+    "h": 0.0517578125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_36266.jpg"
+ },
+ {
+  "id": "cxd_67569",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5341796875,
+    "y": 0.3974609375,
+    "w": 0.26953125,
+    "h": 0.3984375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5341796875,
+    "y": 0.3974609375,
+    "w": 0.26953125,
+    "h": 0.3984375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3564453125,
+    "y": 0.517578125,
+    "w": 0.40234375,
+    "h": 0.2548828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_67569.jpg"
+ },
+ {
+  "id": "cxd_70019",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion",
+   "Fracture"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5986328125,
+    "y": 0.181640625,
+    "w": 0.2900390625,
+    "h": 0.439453125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5986328125,
+    "y": 0.181640625,
+    "w": 0.2900390625,
+    "h": 0.439453125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.8525390625,
+    "y": 0.3974609375,
+    "w": 0.056640625,
+    "h": 0.1025390625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.7470703125,
+    "y": 0.4873046875,
+    "w": 0.1875,
+    "h": 0.181640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.126953125,
+    "y": 0.56640625,
+    "w": 0.111328125,
+    "h": 0.1337890625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.1552734375,
+    "y": 0.2998046875,
+    "w": 0.0439453125,
+    "h": 0.06640625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70019.jpg"
+ },
+ {
+  "id": "cxd_40775",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.240234375,
+    "y": 0.4521484375,
+    "w": 0.216796875,
+    "h": 0.1162109375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6484375,
+    "y": 0.470703125,
+    "w": 0.1884765625,
+    "h": 0.1171875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.2109375,
+    "y": 0.517578125,
+    "w": 0.0751953125,
+    "h": 0.1171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40775.jpg"
+ },
+ {
+  "id": "cxd_45226",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5966796875,
+    "y": 0.4345703125,
+    "w": 0.2236328125,
+    "h": 0.2373046875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5546875,
+    "y": 0.5234375,
+    "w": 0.298828125,
+    "h": 0.2685546875
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.2255859375,
+    "y": 0.4609375,
+    "w": 0.25390625,
+    "h": 0.1103515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1455078125,
+    "y": 0.5048828125,
+    "w": 0.123046875,
+    "h": 0.123046875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45226.jpg"
+ },
+ {
+  "id": "cxd_69980",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Cardiomegaly",
+    "x": 0.396484375,
+    "y": 0.5185546875,
+    "w": 0.4541015625,
+    "h": 0.2373046875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6015625,
+    "y": 0.53515625,
+    "w": 0.27734375,
+    "h": 0.208984375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.134765625,
+    "y": 0.4775390625,
+    "w": 0.2978515625,
+    "h": 0.2861328125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.134765625,
+    "y": 0.4775390625,
+    "w": 0.2978515625,
+    "h": 0.2861328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69980.jpg"
+ },
+ {
+  "id": "cxd_68954",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Effusion",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.1318359375,
+    "y": 0.333984375,
+    "w": 0.1669921875,
+    "h": 0.20703125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.15625,
+    "y": 0.484375,
+    "w": 0.2890625,
+    "h": 0.4482421875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.59375,
+    "y": 0.5224609375,
+    "w": 0.30859375,
+    "h": 0.4189453125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_68954.jpg"
+ },
+ {
+  "id": "cxd_45783",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.3134765625,
+    "y": 0.30078125,
+    "w": 0.1044921875,
+    "h": 0.228515625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2333984375,
+    "y": 0.171875,
+    "w": 0.1845703125,
+    "h": 0.33984375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.171875,
+    "y": 0.4404296875,
+    "w": 0.2158203125,
+    "h": 0.1787109375
+   },
+   {
+    "label": "Fracture",
+    "x": 0.63671875,
+    "y": 0.3134765625,
+    "w": 0.1064453125,
+    "h": 0.08984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45783.jpg"
+ },
+ {
+  "id": "cxd_40759",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.2666015625,
+    "y": 0.4541015625,
+    "w": 0.1787109375,
+    "h": 0.134765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40759.jpg"
+ },
+ {
+  "id": "cxd_39697",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion",
+   "Fibrosis",
+   "Mass"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.3515625,
+    "y": 0.40625,
+    "w": 0.1064453125,
+    "h": 0.16796875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.4111328125,
+    "y": 0.462890625,
+    "w": 0.376953125,
+    "h": 0.1884765625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.58203125,
+    "y": 0.310546875,
+    "w": 0.21484375,
+    "h": 0.357421875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2001953125,
+    "y": 0.3916015625,
+    "w": 0.2607421875,
+    "h": 0.2421875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1767578125,
+    "y": 0.494140625,
+    "w": 0.271484375,
+    "h": 0.203125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39697.jpg"
+ },
+ {
+  "id": "cxd_45621",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.271484375,
+    "y": 0.1796875,
+    "w": 0.1083984375,
+    "h": 0.099609375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2451171875,
+    "y": 0.3603515625,
+    "w": 0.1826171875,
+    "h": 0.2646484375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1494140625,
+    "y": 0.4775390625,
+    "w": 0.1044921875,
+    "h": 0.2685546875
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.6025390625,
+    "y": 0.5634765625,
+    "w": 0.259765625,
+    "h": 0.1474609375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45621.jpg"
+ },
+ {
+  "id": "cxd_70291",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.583984375,
+    "y": 0.3134765625,
+    "w": 0.232421875,
+    "h": 0.3837890625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.583984375,
+    "y": 0.3134765625,
+    "w": 0.232421875,
+    "h": 0.3837890625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.2197265625,
+    "y": 0.2353515625,
+    "w": 0.2587890625,
+    "h": 0.521484375
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.3193359375,
+    "y": 0.4912109375,
+    "w": 0.1513671875,
+    "h": 0.201171875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.4248046875,
+    "y": 0.5078125,
+    "w": 0.3330078125,
+    "h": 0.1689453125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.224609375,
+    "y": 0.671875,
+    "w": 0.0546875,
+    "h": 0.0927734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70291.jpg"
+ },
+ {
+  "id": "cxd_47302",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.158203125,
+    "y": 0.51953125,
+    "w": 0.2353515625,
+    "h": 0.1904296875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.240234375,
+    "y": 0.4462890625,
+    "w": 0.1728515625,
+    "h": 0.1630859375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6982421875,
+    "y": 0.6142578125,
+    "w": 0.1201171875,
+    "h": 0.095703125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3583984375,
+    "y": 0.4404296875,
+    "w": 0.4287109375,
+    "h": 0.2138671875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.6142578125,
+    "y": 0.484375,
+    "w": 0.037109375,
+    "h": 0.08984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_47302.jpg"
+ },
+ {
+  "id": "cxd_70016",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion",
+   "Fracture",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5869140625,
+    "y": 0.2001953125,
+    "w": 0.314453125,
+    "h": 0.525390625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5869140625,
+    "y": 0.2001953125,
+    "w": 0.314453125,
+    "h": 0.525390625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.7021484375,
+    "y": 0.6259765625,
+    "w": 0.22265625,
+    "h": 0.1796875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.8447265625,
+    "y": 0.4033203125,
+    "w": 0.0517578125,
+    "h": 0.134765625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1611328125,
+    "y": 0.62890625,
+    "w": 0.048828125,
+    "h": 0.041015625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.109375,
+    "y": 0.29296875,
+    "w": 0.0517578125,
+    "h": 0.0712890625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70016.jpg"
+ },
+ {
+  "id": "cxd_67536",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.1796875,
+    "y": 0.8486328125,
+    "w": 0.0615234375,
+    "h": 0.080078125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.2265625,
+    "y": 0.1796875,
+    "w": 0.255859375,
+    "h": 0.6474609375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_67536.jpg"
+ },
+ {
+  "id": "cxd_42351",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.5634765625,
+    "y": 0.0400390625,
+    "w": 0.234375,
+    "h": 0.333984375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.22265625,
+    "y": 0.01953125,
+    "w": 0.2421875,
+    "h": 0.3857421875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.412109375,
+    "y": 0.234375,
+    "w": 0.0791015625,
+    "h": 0.1279296875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.4541015625,
+    "y": 0.3876953125,
+    "w": 0.0400390625,
+    "h": 0.0498046875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.6201171875,
+    "y": 0.369140625,
+    "w": 0.037109375,
+    "h": 0.037109375
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3369140625,
+    "y": 0.5751953125,
+    "w": 0.025390625,
+    "h": 0.0419921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_42351.jpg"
+ },
+ {
+  "id": "cxd_45926",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Emphysema",
+   "Fibrosis",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.671875,
+    "y": 0.357421875,
+    "w": 0.15625,
+    "h": 0.068359375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.625,
+    "y": 0.16796875,
+    "w": 0.2490234375,
+    "h": 0.572265625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.845703125,
+    "y": 0.734375,
+    "w": 0.07421875,
+    "h": 0.119140625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.59375,
+    "y": 0.091796875,
+    "w": 0.33203125,
+    "h": 0.6689453125
+   },
+   {
+    "label": "Fracture",
+    "x": 0.875,
+    "y": 0.310546875,
+    "w": 0.05859375,
+    "h": 0.107421875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.888671875,
+    "y": 0.4228515625,
+    "w": 0.044921875,
+    "h": 0.0751953125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.0712890625,
+    "y": 0.134765625,
+    "w": 0.375,
+    "h": 0.6259765625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1318359375,
+    "y": 0.30078125,
+    "w": 0.291015625,
+    "h": 0.4287109375
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.0576171875,
+    "y": 0.751953125,
+    "w": 0.076171875,
+    "h": 0.0595703125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45926.jpg"
+ },
+ {
+  "id": "cxd_67598",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.216796875,
+    "y": 0.228515625,
+    "w": 0.263671875,
+    "h": 0.4873046875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.216796875,
+    "y": 0.228515625,
+    "w": 0.263671875,
+    "h": 0.4873046875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6240234375,
+    "y": 0.294921875,
+    "w": 0.201171875,
+    "h": 0.5380859375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.6240234375,
+    "y": 0.294921875,
+    "w": 0.201171875,
+    "h": 0.5380859375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_67598.jpg"
+ },
+ {
+  "id": "cxd_69442",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.255859375,
+    "y": 0.0205078125,
+    "w": 0.2099609375,
+    "h": 0.12109375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69442.jpg"
+ },
+ {
+  "id": "cxd_59766",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Diffuse Nodule",
+   "Mass",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5966796875,
+    "y": 0.1318359375,
+    "w": 0.3193359375,
+    "h": 0.5439453125
+   },
+   {
+    "label": "Mass",
+    "x": 0.3017578125,
+    "y": 0.134765625,
+    "w": 0.1259765625,
+    "h": 0.12890625
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.12890625,
+    "y": 0.1171875,
+    "w": 0.3583984375,
+    "h": 0.5732421875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.138671875,
+    "y": 0.08984375,
+    "w": 0.3359375,
+    "h": 0.314453125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59766.jpg"
+ },
+ {
+  "id": "cxd_69473",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7470703125,
+    "y": 0.171875,
+    "w": 0.130859375,
+    "h": 0.576171875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.408203125,
+    "y": 0.125,
+    "w": 0.029296875,
+    "h": 0.044921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69473.jpg"
+ },
+ {
+  "id": "cxd_55881",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.6181640625,
+    "y": 0.5419921875,
+    "w": 0.2236328125,
+    "h": 0.2177734375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.09765625,
+    "y": 0.5966796875,
+    "w": 0.2138671875,
+    "h": 0.17578125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.2294921875,
+    "y": 0.240234375,
+    "w": 0.021484375,
+    "h": 0.01953125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.140625,
+    "y": 0.470703125,
+    "w": 0.01953125,
+    "h": 0.0263671875
+   },
+   {
+    "label": "Calcification",
+    "x": 0.3232421875,
+    "y": 0.34375,
+    "w": 0.029296875,
+    "h": 0.0244140625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.580078125,
+    "y": 0.119140625,
+    "w": 0.1806640625,
+    "h": 0.1240234375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.1513671875,
+    "y": 0.091796875,
+    "w": 0.248046875,
+    "h": 0.2763671875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55881.jpg"
+ },
+ {
+  "id": "cxd_68873",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.5966796875,
+    "y": 0.154296875,
+    "w": 0.244140625,
+    "h": 0.6484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5966796875,
+    "y": 0.154296875,
+    "w": 0.244140625,
+    "h": 0.6484375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5966796875,
+    "y": 0.154296875,
+    "w": 0.244140625,
+    "h": 0.6484375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.19921875,
+    "y": 0.181640625,
+    "w": 0.27734375,
+    "h": 0.564453125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.19921875,
+    "y": 0.181640625,
+    "w": 0.27734375,
+    "h": 0.564453125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.19921875,
+    "y": 0.181640625,
+    "w": 0.27734375,
+    "h": 0.564453125
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3740234375,
+    "y": 0.3994140625,
+    "w": 0.4140625,
+    "h": 0.3134765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_68873.jpg"
+ },
+ {
+  "id": "cxd_69870",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Emphysema",
+   "Fibrosis",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.6318359375,
+    "y": 0.1640625,
+    "w": 0.29296875,
+    "h": 0.4921875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.6318359375,
+    "y": 0.1640625,
+    "w": 0.29296875,
+    "h": 0.4921875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6318359375,
+    "y": 0.1640625,
+    "w": 0.29296875,
+    "h": 0.4921875
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.158203125,
+    "y": 0.1640625,
+    "w": 0.384765625,
+    "h": 0.41796875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.158203125,
+    "y": 0.1640625,
+    "w": 0.384765625,
+    "h": 0.41796875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.158203125,
+    "y": 0.1640625,
+    "w": 0.384765625,
+    "h": 0.41796875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.4609375,
+    "y": 0.279296875,
+    "w": 0.0771484375,
+    "h": 0.07421875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.8701171875,
+    "y": 0.5771484375,
+    "w": 0.052734375,
+    "h": 0.0947265625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69870.jpg"
+ },
+ {
+  "id": "cxd_70026",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Calcification",
+   "Cardiomegaly",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Calcification",
+    "x": 0.5791015625,
+    "y": 0.4443359375,
+    "w": 0.07421875,
+    "h": 0.0634765625
+   },
+   {
+    "label": "Calcification",
+    "x": 0.7353515625,
+    "y": 0.326171875,
+    "w": 0.0234375,
+    "h": 0.0224609375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.583984375,
+    "y": 0.2763671875,
+    "w": 0.3037109375,
+    "h": 0.5771484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.0908203125,
+    "y": 0.3359375,
+    "w": 0.328125,
+    "h": 0.51171875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0908203125,
+    "y": 0.3359375,
+    "w": 0.328125,
+    "h": 0.51171875
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.3369140625,
+    "y": 0.58984375,
+    "w": 0.4365234375,
+    "h": 0.263671875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70026.jpg"
+ },
+ {
+  "id": "cxd_55908",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.576171875,
+    "y": 0.12890625,
+    "w": 0.22265625,
+    "h": 0.3251953125
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.5703125,
+    "y": 0.0771484375,
+    "w": 0.1767578125,
+    "h": 0.0625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.8916015625,
+    "y": 0.6416015625,
+    "w": 0.0498046875,
+    "h": 0.10546875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.705078125,
+    "y": 0.2607421875,
+    "w": 0.0546875,
+    "h": 0.044921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55908.jpg"
+ },
+ {
+  "id": "cxd_59335",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.572265625,
+    "y": 0.5341796875,
+    "w": 0.099609375,
+    "h": 0.1337890625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.626953125,
+    "y": 0.6171875,
+    "w": 0.2138671875,
+    "h": 0.138671875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59335.jpg"
+ },
+ {
+  "id": "cxd_70374",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Calcification",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.1298828125,
+    "y": 0.2490234375,
+    "w": 0.3017578125,
+    "h": 0.4921875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1298828125,
+    "y": 0.2490234375,
+    "w": 0.3017578125,
+    "h": 0.4921875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5400390625,
+    "y": 0.330078125,
+    "w": 0.212890625,
+    "h": 0.564453125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5400390625,
+    "y": 0.330078125,
+    "w": 0.212890625,
+    "h": 0.564453125
+   },
+   {
+    "label": "Calcification",
+    "x": 0.693359375,
+    "y": 0.3095703125,
+    "w": 0.01953125,
+    "h": 0.02734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_70374.jpg"
+ },
+ {
+  "id": "cxd_59261",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Effusion",
+    "x": 0.099609375,
+    "y": 0.7255859375,
+    "w": 0.1142578125,
+    "h": 0.12890625
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.2578125,
+    "y": 0.1328125,
+    "w": 0.126953125,
+    "h": 0.0400390625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59261.jpg"
+ },
+ {
+  "id": "cxd_41141",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Diffuse Nodule",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.56640625,
+    "y": 0.322265625,
+    "w": 0.0478515625,
+    "h": 0.0654296875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.640625,
+    "y": 0.375,
+    "w": 0.0654296875,
+    "h": 0.0595703125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5654296875,
+    "y": 0.22265625,
+    "w": 0.134765625,
+    "h": 0.271484375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.2568359375,
+    "y": 0.4052734375,
+    "w": 0.3740234375,
+    "h": 0.1982421875
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.55859375,
+    "y": 0.2998046875,
+    "w": 0.1611328125,
+    "h": 0.1552734375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41141.jpg"
+ },
+ {
+  "id": "cxd_56614",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.6103515625,
+    "y": 0.697265625,
+    "w": 0.1767578125,
+    "h": 0.2060546875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5751953125,
+    "y": 0.763671875,
+    "w": 0.283203125,
+    "h": 0.1806640625
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.212890625,
+    "y": 0.7421875,
+    "w": 0.2099609375,
+    "h": 0.111328125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.185546875,
+    "y": 0.7802734375,
+    "w": 0.099609375,
+    "h": 0.11328125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.265625,
+    "y": 0.48828125,
+    "w": 0.0615234375,
+    "h": 0.1005859375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56614.jpg"
+ },
+ {
+  "id": "cxd_61951",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.09765625,
+    "y": 0.2060546875,
+    "w": 0.2880859375,
+    "h": 0.525390625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.4951171875,
+    "y": 0.1630859375,
+    "w": 0.3369140625,
+    "h": 0.6015625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61951.jpg"
+ },
+ {
+  "id": "cxd_58758",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.38671875,
+    "y": 0.66796875,
+    "w": 0.0712890625,
+    "h": 0.208984375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5673828125,
+    "y": 0.171875,
+    "w": 0.2490234375,
+    "h": 0.7275390625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.1650390625,
+    "y": 0.1806640625,
+    "w": 0.3173828125,
+    "h": 0.7451171875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58758.jpg"
+ },
+ {
+  "id": "cxd_55965",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Emphysema",
+   "Fibrosis",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.6220703125,
+    "y": 0.146484375,
+    "w": 0.2060546875,
+    "h": 0.26171875
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.5576171875,
+    "y": 0.236328125,
+    "w": 0.1240234375,
+    "h": 0.3896484375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.751953125,
+    "y": 0.6474609375,
+    "w": 0.0869140625,
+    "h": 0.142578125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.2216796875,
+    "y": 0.2001953125,
+    "w": 0.173828125,
+    "h": 0.400390625
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1767578125,
+    "y": 0.158203125,
+    "w": 0.2646484375,
+    "h": 0.53125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1708984375,
+    "y": 0.6484375,
+    "w": 0.1484375,
+    "h": 0.1005859375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5322265625,
+    "y": 0.1689453125,
+    "w": 0.3046875,
+    "h": 0.5498046875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_55965.jpg"
+ },
+ {
+  "id": "cxd_41752",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Effusion",
+   "Emphysema",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.59765625,
+    "y": 0.0966796875,
+    "w": 0.2900390625,
+    "h": 0.7138671875
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.21484375,
+    "y": 0.130859375,
+    "w": 0.2431640625,
+    "h": 0.7353515625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5849609375,
+    "y": 0.0654296875,
+    "w": 0.3125,
+    "h": 0.84375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.146484375,
+    "y": 0.060546875,
+    "w": 0.330078125,
+    "h": 0.8427734375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.880859375,
+    "y": 0.8876953125,
+    "w": 0.0390625,
+    "h": 0.0517578125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1630859375,
+    "y": 0.9052734375,
+    "w": 0.0458984375,
+    "h": 0.0380859375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41752.jpg"
+ },
+ {
+  "id": "cxd_61979",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Diffuse Nodule",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.66015625,
+    "y": 0.5263671875,
+    "w": 0.025390625,
+    "h": 0.029296875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7998046875,
+    "y": 0.626953125,
+    "w": 0.0244140625,
+    "h": 0.021484375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7607421875,
+    "y": 0.369140625,
+    "w": 0.01953125,
+    "h": 0.021484375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.7568359375,
+    "y": 0.3232421875,
+    "w": 0.01953125,
+    "h": 0.0224609375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.55859375,
+    "y": 0.56640625,
+    "w": 0.0205078125,
+    "h": 0.03125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.5615234375,
+    "y": 0.5087890625,
+    "w": 0.03125,
+    "h": 0.0234375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2109375,
+    "y": 0.27734375,
+    "w": 0.0546875,
+    "h": 0.064453125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2734375,
+    "y": 0.1650390625,
+    "w": 0.0244140625,
+    "h": 0.0283203125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2529296875,
+    "y": 0.1357421875,
+    "w": 0.0341796875,
+    "h": 0.033203125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.248046875,
+    "y": 0.44140625,
+    "w": 0.0322265625,
+    "h": 0.0361328125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.279296875,
+    "y": 0.43359375,
+    "w": 0.01953125,
+    "h": 0.025390625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2470703125,
+    "y": 0.5,
+    "w": 0.03515625,
+    "h": 0.041015625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.298828125,
+    "y": 0.484375,
+    "w": 0.02734375,
+    "h": 0.0361328125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.177734375,
+    "y": 0.4033203125,
+    "w": 0.0458984375,
+    "h": 0.064453125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.1845703125,
+    "y": 0.1171875,
+    "w": 0.1650390625,
+    "h": 0.427734375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.541015625,
+    "y": 0.3134765625,
+    "w": 0.287109375,
+    "h": 0.3583984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61979.jpg"
+ },
+ {
+  "id": "cxd_59639",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Cardiomegaly"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.154296875,
+    "y": 0.5244140625,
+    "w": 0.189453125,
+    "h": 0.1259765625
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.32421875,
+    "y": 0.46484375,
+    "w": 0.4658203125,
+    "h": 0.2119140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_59639.jpg"
+ },
+ {
+  "id": "cxd_69886",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.6806640625,
+    "y": 0.666015625,
+    "w": 0.1826171875,
+    "h": 0.15234375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69886.jpg"
+ },
+ {
+  "id": "cxd_45618",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion",
+   "Pleural Thickening",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.216796875,
+    "y": 0.19140625,
+    "w": 0.201171875,
+    "h": 0.1884765625
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.611328125,
+    "y": 0.587890625,
+    "w": 0.22265625,
+    "h": 0.123046875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.197265625,
+    "y": 0.451171875,
+    "w": 0.193359375,
+    "h": 0.2236328125
+   },
+   {
+    "label": "Effusion",
+    "x": 0.7861328125,
+    "y": 0.6591796875,
+    "w": 0.076171875,
+    "h": 0.1357421875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.1494140625,
+    "y": 0.5263671875,
+    "w": 0.046875,
+    "h": 0.19140625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45618.jpg"
+ },
+ {
+  "id": "cxd_46923",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Emphysema",
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Nodule",
+    "x": 0.7763671875,
+    "y": 0.4912109375,
+    "w": 0.0478515625,
+    "h": 0.0478515625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.8115234375,
+    "y": 0.5869140625,
+    "w": 0.044921875,
+    "h": 0.0341796875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.6142578125,
+    "y": 0.1669921875,
+    "w": 0.2939453125,
+    "h": 0.5478515625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.7421875,
+    "y": 0.6591796875,
+    "w": 0.185546875,
+    "h": 0.1474609375
+   },
+   {
+    "label": "Mass",
+    "x": 0.2265625,
+    "y": 0.5458984375,
+    "w": 0.17578125,
+    "h": 0.18359375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2939453125,
+    "y": 0.3525390625,
+    "w": 0.11328125,
+    "h": 0.1025390625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1806640625,
+    "y": 0.2099609375,
+    "w": 0.294921875,
+    "h": 0.5498046875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.12890625,
+    "y": 0.3154296875,
+    "w": 0.3798828125,
+    "h": 0.5458984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46923.jpg"
+ },
+ {
+  "id": "cxd_56752",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Fracture",
+   "Mass",
+   "Nodule"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.65234375,
+    "y": 0.7451171875,
+    "w": 0.1201171875,
+    "h": 0.1201171875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.708984375,
+    "y": 0.353515625,
+    "w": 0.0419921875,
+    "h": 0.0400390625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6923828125,
+    "y": 0.4443359375,
+    "w": 0.029296875,
+    "h": 0.03515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.2431640625,
+    "y": 0.1640625,
+    "w": 0.064453125,
+    "h": 0.1220703125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.205078125,
+    "y": 0.7861328125,
+    "w": 0.0224609375,
+    "h": 0.033203125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1767578125,
+    "y": 0.7900390625,
+    "w": 0.0283203125,
+    "h": 0.0283203125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1484375,
+    "y": 0.76953125,
+    "w": 0.0322265625,
+    "h": 0.0302734375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.142578125,
+    "y": 0.81640625,
+    "w": 0.0283203125,
+    "h": 0.03125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56752.jpg"
+ },
+ {
+  "id": "cxd_69598",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.1630859375,
+    "y": 0.125,
+    "w": 0.2724609375,
+    "h": 0.66015625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1630859375,
+    "y": 0.125,
+    "w": 0.2724609375,
+    "h": 0.66015625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.529296875,
+    "y": 0.1259765625,
+    "w": 0.2470703125,
+    "h": 0.6640625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.529296875,
+    "y": 0.1259765625,
+    "w": 0.2470703125,
+    "h": 0.6640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.5830078125,
+    "y": 0.6484375,
+    "w": 0.1826171875,
+    "h": 0.2431640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.16015625,
+    "y": 0.572265625,
+    "w": 0.1923828125,
+    "h": 0.2685546875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69598.jpg"
+ },
+ {
+  "id": "cxd_41072",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.2265625,
+    "y": 0.45703125,
+    "w": 0.1982421875,
+    "h": 0.1796875
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.1650390625,
+    "y": 0.529296875,
+    "w": 0.1201171875,
+    "h": 0.095703125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41072.jpg"
+ },
+ {
+  "id": "cxd_69013",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.306640625,
+    "y": 0.0537109375,
+    "w": 0.1357421875,
+    "h": 0.1259765625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2373046875,
+    "y": 0.2099609375,
+    "w": 0.2177734375,
+    "h": 0.4384765625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.2373046875,
+    "y": 0.2099609375,
+    "w": 0.2177734375,
+    "h": 0.4384765625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_69013.jpg"
+ },
+ {
+  "id": "cxd_58757",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion",
+   "Emphysema"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.291015625,
+    "y": 0.509765625,
+    "w": 0.119140625,
+    "h": 0.2294921875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.6884765625,
+    "y": 0.6708984375,
+    "w": 0.09765625,
+    "h": 0.2021484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.689453125,
+    "y": 0.59375,
+    "w": 0.080078125,
+    "h": 0.1123046875
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.1123046875,
+    "y": 0.08984375,
+    "w": 0.341796875,
+    "h": 0.783203125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.5283203125,
+    "y": 0.0966796875,
+    "w": 0.25390625,
+    "h": 0.65625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58757.jpg"
+ },
+ {
+  "id": "cxd_61695",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Fracture",
+   "Nodule",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.525390625,
+    "y": 0.1806640625,
+    "w": 0.294921875,
+    "h": 0.3544921875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5380859375,
+    "y": 0.248046875,
+    "w": 0.2314453125,
+    "h": 0.3681640625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.751953125,
+    "y": 0.580078125,
+    "w": 0.0791015625,
+    "h": 0.09765625
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0849609375,
+    "y": 0.62890625,
+    "w": 0.29296875,
+    "h": 0.14453125
+   },
+   {
+    "label": "Nodule",
+    "x": 0.27734375,
+    "y": 0.3525390625,
+    "w": 0.0322265625,
+    "h": 0.0390625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1806640625,
+    "y": 0.591796875,
+    "w": 0.03515625,
+    "h": 0.03515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.6015625,
+    "y": 0.3349609375,
+    "w": 0.0576171875,
+    "h": 0.04296875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_61695.jpg"
+ },
+ {
+  "id": "cxd_40083",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Cardiomegaly",
+   "Consolidation",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.2890625,
+    "y": 0.34375,
+    "w": 0.150390625,
+    "h": 0.3193359375
+   },
+   {
+    "label": "Cardiomegaly",
+    "x": 0.4248046875,
+    "y": 0.5029296875,
+    "w": 0.3701171875,
+    "h": 0.1796875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.7744140625,
+    "y": 0.619140625,
+    "w": 0.0732421875,
+    "h": 0.0859375
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.296875,
+    "y": 0.2255859375,
+    "w": 0.203125,
+    "h": 0.1923828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_40083.jpg"
+ },
+ {
+  "id": "cxd_45616",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Effusion",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.623046875,
+    "y": 0.51953125,
+    "w": 0.1748046875,
+    "h": 0.189453125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.2607421875,
+    "y": 0.4248046875,
+    "w": 0.16015625,
+    "h": 0.2587890625
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.25,
+    "y": 0.2607421875,
+    "w": 0.080078125,
+    "h": 0.0888671875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.74609375,
+    "y": 0.6494140625,
+    "w": 0.083984375,
+    "h": 0.115234375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1640625,
+    "y": 0.63671875,
+    "w": 0.0751953125,
+    "h": 0.111328125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45616.jpg"
+ },
+ {
+  "id": "cxd_58643",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Effusion"
+  ],
+  "boxes": [
+   {
+    "label": "Atelectasis",
+    "x": 0.150390625,
+    "y": 0.5712890625,
+    "w": 0.2939453125,
+    "h": 0.146484375
+   },
+   {
+    "label": "Effusion",
+    "x": 0.0810546875,
+    "y": 0.6962890625,
+    "w": 0.0615234375,
+    "h": 0.0673828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_58643.jpg"
+ },
+ {
+  "id": "cxd_68868",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.150390625,
+    "y": 0.3466796875,
+    "w": 0.2900390625,
+    "h": 0.3408203125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.150390625,
+    "y": 0.3466796875,
+    "w": 0.2900390625,
+    "h": 0.3408203125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.5966796875,
+    "y": 0.2197265625,
+    "w": 0.263671875,
+    "h": 0.45703125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.5966796875,
+    "y": 0.2197265625,
+    "w": 0.263671875,
+    "h": 0.45703125
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.8037109375,
+    "y": 0.41015625,
+    "w": 0.078125,
+    "h": 0.046875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_68868.jpg"
+ },
+ {
+  "id": "cxd_39796",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Diffuse Nodule",
+   "Fracture",
+   "Mass",
+   "Nodule",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Pleural Thickening",
+    "x": 0.208984375,
+    "y": 0.501953125,
+    "w": 0.0712890625,
+    "h": 0.1435546875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.2568359375,
+    "y": 0.603515625,
+    "w": 0.056640625,
+    "h": 0.0390625
+   },
+   {
+    "label": "Mass",
+    "x": 0.291015625,
+    "y": 0.556640625,
+    "w": 0.0966796875,
+    "h": 0.0498046875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.236328125,
+    "y": 0.43359375,
+    "w": 0.0380859375,
+    "h": 0.046875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.240234375,
+    "y": 0.234375,
+    "w": 0.2236328125,
+    "h": 0.3251953125
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.240234375,
+    "y": 0.234375,
+    "w": 0.2236328125,
+    "h": 0.3251953125
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.6083984375,
+    "y": 0.1669921875,
+    "w": 0.2158203125,
+    "h": 0.49609375
+   },
+   {
+    "label": "Diffuse Nodule",
+    "x": 0.6083984375,
+    "y": 0.1669921875,
+    "w": 0.2158203125,
+    "h": 0.49609375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39796.jpg"
+ },
+ {
+  "id": "cxd_46996",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Mass",
+   "Nodule",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Mass",
+    "x": 0.658203125,
+    "y": 0.3115234375,
+    "w": 0.1220703125,
+    "h": 0.201171875
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6796875,
+    "y": 0.51953125,
+    "w": 0.10546875,
+    "h": 0.0947265625
+   },
+   {
+    "label": "Nodule",
+    "x": 0.6142578125,
+    "y": 0.470703125,
+    "w": 0.0546875,
+    "h": 0.1142578125
+   },
+   {
+    "label": "Mass",
+    "x": 0.3125,
+    "y": 0.4482421875,
+    "w": 0.125,
+    "h": 0.1357421875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.205078125,
+    "y": 0.5078125,
+    "w": 0.2333984375,
+    "h": 0.15234375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.7099609375,
+    "y": 0.4453125,
+    "w": 0.2021484375,
+    "h": 0.232421875
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.9033203125,
+    "y": 0.6376953125,
+    "w": 0.0673828125,
+    "h": 0.08984375
+   },
+   {
+    "label": "Nodule",
+    "x": 0.1318359375,
+    "y": 0.68359375,
+    "w": 0.0458984375,
+    "h": 0.0673828125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_46996.jpg"
+ },
+ {
+  "id": "cxd_44865",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Emphysema",
+   "Fibrosis",
+   "Fracture",
+   "Pleural Thickening"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.5771484375,
+    "y": 0.19140625,
+    "w": 0.234375,
+    "h": 0.189453125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.580078125,
+    "y": 0.162109375,
+    "w": 0.234375,
+    "h": 0.1953125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.7451171875,
+    "y": 0.84375,
+    "w": 0.068359375,
+    "h": 0.0771484375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.560546875,
+    "y": 0.28515625,
+    "w": 0.2529296875,
+    "h": 0.580078125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.2265625,
+    "y": 0.189453125,
+    "w": 0.25,
+    "h": 0.6708984375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.2685546875,
+    "y": 0.2333984375,
+    "w": 0.1513671875,
+    "h": 0.1123046875
+   },
+   {
+    "label": "Fracture",
+    "x": 0.2998046875,
+    "y": 0.357421875,
+    "w": 0.158203125,
+    "h": 0.0478515625
+   },
+   {
+    "label": "Fracture",
+    "x": 0.2197265625,
+    "y": 0.30078125,
+    "w": 0.2255859375,
+    "h": 0.3564453125
+   },
+   {
+    "label": "Pleural Thickening",
+    "x": 0.3251953125,
+    "y": 0.1494140625,
+    "w": 0.1455078125,
+    "h": 0.044921875
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_44865.jpg"
+ },
+ {
+  "id": "cxd_39996",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Consolidation",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.185546875,
+    "y": 0.2197265625,
+    "w": 0.220703125,
+    "h": 0.1611328125
+   },
+   {
+    "label": "Pneumothorax",
+    "x": 0.2294921875,
+    "y": 0.09765625,
+    "w": 0.26171875,
+    "h": 0.1083984375
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_39996.jpg"
+ },
+ {
+  "id": "cxd_41153",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Consolidation",
+   "Emphysema",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Consolidation",
+    "x": 0.7431640625,
+    "y": 0.59765625,
+    "w": 0.125,
+    "h": 0.296875
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.619140625,
+    "y": 0.1484375,
+    "w": 0.212890625,
+    "h": 0.7666015625
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.671875,
+    "y": 0.12890625,
+    "w": 0.0947265625,
+    "h": 0.1025390625
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.1201171875,
+    "y": 0.1748046875,
+    "w": 0.3505859375,
+    "h": 0.7529296875
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.603515625,
+    "y": 0.728515625,
+    "w": 0.1650390625,
+    "h": 0.1708984375
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.6123046875,
+    "y": 0.111328125,
+    "w": 0.2734375,
+    "h": 0.8291015625
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.111328125,
+    "y": 0.130859375,
+    "w": 0.365234375,
+    "h": 0.80078125
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_41153.jpg"
+ },
+ {
+  "id": "cxd_45687",
+  "source": "ChestX-Det",
+  "split": "test",
+  "labels": [
+   "Atelectasis",
+   "Consolidation",
+   "Effusion",
+   "Pneumothorax"
+  ],
+  "boxes": [
+   {
+    "label": "Pneumothorax",
+    "x": 0.1962890625,
+    "y": 0.1748046875,
+    "w": 0.1728515625,
+    "h": 0.138671875
+   },
+   {
+    "label": "Effusion",
+    "x": 0.1025390625,
+    "y": 0.1513671875,
+    "w": 0.3408203125,
+    "h": 0.71484375
+   },
+   {
+    "label": "Consolidation",
+    "x": 0.1806640625,
+    "y": 0.5322265625,
+    "w": 0.1884765625,
+    "h": 0.216796875
+   },
+   {
+    "label": "Atelectasis",
+    "x": 0.7080078125,
+    "y": 0.734375,
+    "w": 0.1689453125,
+    "h": 0.087890625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_45687.jpg"
+ },
+ {
+  "id": "cxd_56037",
+  "source": "ChestX-Det",
+  "split": "dev",
+  "labels": [
+   "Emphysema",
+   "Fibrosis"
+  ],
+  "boxes": [
+   {
+    "label": "Fibrosis",
+    "x": 0.58984375,
+    "y": 0.1591796875,
+    "w": 0.263671875,
+    "h": 0.6552734375
+   },
+   {
+    "label": "Fibrosis",
+    "x": 0.193359375,
+    "y": 0.1611328125,
+    "w": 0.2744140625,
+    "h": 0.658203125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.57421875,
+    "y": 0.1455078125,
+    "w": 0.2880859375,
+    "h": 0.7158203125
+   },
+   {
+    "label": "Emphysema",
+    "x": 0.1591796875,
+    "y": 0.1484375,
+    "w": 0.314453125,
+    "h": 0.6962890625
+   }
+  ],
+  "view": "",
+  "age": "",
+  "sex": "",
+  "path": "img/cxd_56037.jpg"
+ }
+]

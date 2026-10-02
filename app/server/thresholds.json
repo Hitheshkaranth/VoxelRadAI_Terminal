@@ -1,0 +1,13 @@
+{
+  "generated": "2026-10-02",
+  "source": "ChestX-Det dev split, TorchXRayVision vs radiologist labels, Youden J",
+  "kinds": {
+    "pneumothorax": {"thr": 0.39, "dev_pos": 10, "dev_n": 106, "default": false, "knots": [[0.064, 0.0], [0.222, 0.028], [0.354, 0.062], [0.442, 0.125], [0.549, 0.333], [0.599, 1.0]]},
+    "effusion": {"thr": 0.5, "dev_pos": 34, "dev_n": 106, "default": false, "knots": [[0.087, 0.0], [0.293, 0.087], [0.452, 0.25], [0.516, 0.333], [0.594, 0.471], [0.686, 0.6], [0.783, 0.857], [0.9, 1.0]]},
+    "cardiomegaly": {"thr": 0.63, "dev_pos": 15, "dev_n": 106, "default": false, "knots": [[0.345, 0.0], [0.579, 0.056], [0.671, 0.286], [0.734, 0.5], [0.786, 0.818]]},
+    "edema": {"thr": 0.5, "dev_pos": 0, "dev_n": 106, "default": true, "knots": []},
+    "nodule / mass": {"thr": 0.53, "dev_pos": 28, "dev_n": 106, "default": false, "knots": [[0.319, 0.0], [0.466, 0.077], [0.513, 0.226], [0.546, 0.308], [0.565, 0.455], [0.665, 0.524]]},
+    "atelectasis": {"thr": 0.54, "dev_pos": 10, "dev_n": 106, "default": false, "knots": [[0.176, 0.0], [0.399, 0.056], [0.644, 0.14], [0.759, 0.2]]},
+    "opacity": {"thr": 0.53, "dev_pos": 47, "dev_n": 106, "default": false, "knots": [[0.168, 0.0], [0.373, 0.129], [0.636, 0.438], [0.746, 0.5], [0.837, 0.711], [0.969, 1.0]]}
+  }
+}

@@ -17,6 +17,11 @@ export default defineConfig({
         target: 'http://localhost:8765',
         rewrite: (p) => p.replace(/^\/txrv/, ''),
       },
+      // Optional MAIRA-2 second reader (app/server/maira_server.py); off unless enabled in Settings.
+      '/maira': {
+        target: 'http://localhost:8766',
+        rewrite: (p) => p.replace(/^\/maira/, ''),
+      },
     },
   },
 })

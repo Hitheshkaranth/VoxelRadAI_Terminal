@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { FileImage, FileText, Plus, ScanLine, ShieldCheck, Target } from 'lucide-react'
 import { hydrate, useActiveStudy, useApp } from './store'
-import { checkConnection } from './lib/medgemma'
-import { runAnalysis, runAnalysisForStudy } from './lib/analysis'
+import { checkNow } from './lib/connection'
+import { runAnalysisForStudy } from './lib/analysis'
 import { extractImagesFromClipboard } from './lib/imageIntake'
 import { addFilesToActiveStudy } from './lib/upload'
 import { Sidebar } from './components/shell/Sidebar'
@@ -11,7 +11,7 @@ import { Inspector } from './components/shell/Inspector'
 import { PatientSheet } from './components/shell/PatientSheet'
 import { SettingsSheet } from './components/shell/SettingsSheet'
 import { Toasts } from './components/shell/Toasts'
-import { useShell } from './components/shell/shellState'
+import { analyzeImageAction, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
 import { ImageViewer } from './components/viewer/ImageViewer'
 import { Filmstrip } from './components/viewer/Filmstrip'
@@ -34,20 +34,24 @@ function useConnectionPolling() {
   const hydrated = useApp((s) => s.hydrated)
   useEffect(() => {
     if (!hydrated) return
-    let alive = true
-    const check = async () => {
-      const prev = useApp.getState().connection
-      if (prev === 'unknown') useApp.getState().setConnection('checking')
-      const c = await checkConnection(useApp.getState().settings)
-      if (alive) useApp.getState().setConnection(c)
-    }
-    check()
-    const t = setInterval(check, 20_000)
+    // A settings change re-checks visibly; the background poll and window focus stay quiet.
+    void checkNow()
+    const poll = () => void checkNow({ quiet: true })
+    const t = setInterval(poll, 20_000)
+    window.addEventListener('focus', poll)
     return () => {
-      alive = false
       clearInterval(t)
+      window.removeEventListener('focus', poll)
     }
   }, [baseUrl, model, hydrated])
+}
+
+/** "(2 analysing) Skanda Radiology" while reads run, so progress is visible from another tab. */
+function useDocumentTitle() {
+  const analysing = useApp((s) => s.studies.reduce((n, st) => n + st.images.filter((i) => i.status === 'analyzing').length, 0))
+  useEffect(() => {
+    document.title = analysing ? `(${analysing} analysing) Skanda Radiology` : 'Skanda Radiology'
+  }, [analysing])
 }
 
 function useShortcuts() {
@@ -64,7 +68,7 @@ function useShortcuts() {
       else if (k === '\\') shell.toggleSidebar()
       else if (k === 'enter' && st.activeStudyId) {
         if (e.shiftKey) runAnalysisForStudy(st.activeStudyId)
-        else if (st.activeImageId) runAnalysis(st.activeStudyId, st.activeImageId)
+        else if (st.activeImageId) analyzeImageAction(st.activeStudyId, st.activeImageId)
       } else return
       e.preventDefault()
     }
@@ -147,6 +151,7 @@ export default function App() {
   }, [])
   useTheme()
   useConnectionPolling()
+  useDocumentTitle()
   useShortcuts()
   const dragging = useGlobalUpload()
 

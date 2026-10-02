@@ -1,131 +1,216 @@
 // OWNER: Agent 3 (Findings Inspector). Finding card rendered in the done list.
-import { useCallback } from 'react'
-import type { KeyboardEvent } from 'react'
-import type { Finding } from '../../types'
+// Evidence comes first (classifier cross-check, then benchmark track record); the model's own confidence is
+// shown last as plain text because it is not calibrated. Excluded findings stay visible with an explicit label.
+import type { FocusEvent, KeyboardEvent, MouseEvent } from 'react'
+import type { AnalysisResult, Finding, FindingReview } from '../../types'
 import { SEVERITY_LABEL } from '../../types'
-import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop } from 'lucide-react'
+import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop, HelpCircle, Users, X } from 'lucide-react'
 import { BENCHMARK, reliabilityFor } from '../../lib/reliability'
+import { isExcluded, isUnconfirmed, isUnsupported } from '../../lib/classifier'
 import './findings.css'
 
 interface Props {
   finding: Finding
   /** 1-based index in findings order — must match the viewer's burned-in numbers. */
   number: number
+  classifierStatus: AnalysisResult['classifierStatus']
   isExpanded: boolean
   isHovered: boolean
   isSelected: boolean
-  onHover: (id: string | null) => void
-  onToggle: (id: string) => void
-  onKeyDown: (e: KeyboardEvent<HTMLButtonElement>, index: number, total: number) => void
+  /** Roving tab stop: exactly one card in the list is tabbable. */
+  isTabStop: boolean
+  /** Keyboard focus is inside this card — only then is the key hint shown. */
+  isFocused: boolean
   flatIndex: number
   flatTotal: number
+  onHover: (id: string | null) => void
+  onToggle: (id: string) => void
+  onReview: (id: string, review: FindingReview | undefined) => void
+  onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
+  onFocusChange: (id: string | null) => void
   buttonRef: (el: HTMLButtonElement | null) => void
+}
+
+const pct = (p: number) => `${Math.round(p * 100)}%`
+
+/** One line saying what independent evidence exists for this finding. */
+function evidenceLine(f: Finding, status: AnalysisResult['classifierStatus']): { text: string; tone: 'ok' | 'warn' | 'muted' } | null {
+  if (f.severity === 'normal') return null
+  const c = f.classifier
+  if (c) {
+    if (c.supported === null || c.prob === null) return { text: 'Classifier cannot assess this type', tone: 'muted' }
+    const thr = c.thr != null ? ` (threshold ${pct(c.thr)}, ${c.thrSource ?? 'default'})` : ''
+    const cal = c.calibrated != null ? ` · est. ~${pct(c.calibrated)} from ChestX-Det dev` : ''
+    return {
+      text: `Classifier ${c.supported ? 'supports' : 'does not support'} · ${c.kind} ${pct(c.prob)}${thr}${cal}`,
+      tone: c.supported ? 'ok' : 'warn',
+    }
+  }
+  if (status === 'unavailable') return { text: 'Classifier not running — not cross-checked', tone: 'warn' }
+  if (status === 'error') return { text: 'Classifier failed — not cross-checked', tone: 'warn' }
+  if (status === 'ok') return { text: 'Classifier cannot assess this type', tone: 'muted' }
+  return null // analyses from before the classifier status was recorded
+}
+
+/** Why the finding is or is not in the draft report, when that differs from the default. */
+function draftNote(f: Finding): string | null {
+  if (f.severity === 'normal') return null
+  if (f.review === 'dismissed') return 'Dismissed by reviewer · Not in draft report'
+  if (isUnconfirmed(f)) return 'In draft as unconfirmed · classifier did not support it — verify, then Accept or Dismiss'
+  if (f.review === 'accepted' && isUnsupported(f)) return 'Accepted by reviewer · included despite classifier'
+  return null
 }
 
 export function FindingCard({
   finding,
   number,
+  classifierStatus,
   isExpanded,
   isHovered,
   isSelected,
-  onHover,
-  onToggle,
-  onKeyDown,
+  isTabStop,
+  isFocused,
   flatIndex,
   flatTotal,
+  onHover,
+  onToggle,
+  onReview,
+  onKeyDown,
+  onFocusChange,
   buttonRef,
 }: Props) {
   const localized = finding.bbox != null && (finding.bbox.w ?? 0) > 0
   const rel = reliabilityFor(finding)
+  const evidence = evidenceLine(finding, classifierStatus)
+  const excluded = finding.severity !== 'normal' && isExcluded(finding)
+  const unconfirmed = finding.severity !== 'normal' && isUnconfirmed(finding)
+  const note = draftNote(finding)
+  const review = finding.review
+  const confText = `Model-stated ${pct(finding.confidence)} (uncalibrated)`
 
-  const onPointerEnter = useCallback(() => onHover(finding.id), [onHover, finding.id])
-  const onPointerLeave = useCallback(() => onHover(null), [onHover])
+  // Clicks on the card body select it too; its own buttons handle themselves.
+  const onCardClick = (e: MouseEvent<HTMLLIElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    onToggle(finding.id)
+  }
+  const onBlur = (e: FocusEvent<HTMLLIElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onFocusChange(null)
+  }
 
   return (
-    <button
-      type="button"
-      ref={buttonRef}
-      role="listitem"
-      aria-pressed={isSelected}
+    <li
       data-severity={finding.severity}
-      className={`fd-finding ${isSelected ? 'fd-finding--sel' : ''} ${isHovered ? 'fd-finding--hv' : ''}`}
-      tabIndex={flatIndex === 0 ? 0 : -1}
-      onMouseEnter={onPointerEnter}
-      onMouseLeave={onPointerLeave}
-      onKeyDown={(e) => onKeyDown(e, flatIndex, flatTotal)}
-      onClick={() => onToggle(finding.id)}
+      data-excluded={excluded || undefined}
+      data-unconfirmed={unconfirmed || undefined}
+      className={`fd-finding${isSelected ? ' fd-finding--sel' : ''}${isHovered ? ' fd-finding--hv' : ''}`}
+      onMouseEnter={() => onHover(finding.id)}
+      onMouseLeave={() => onHover(null)}
+      onClick={onCardClick}
+      onFocus={() => onFocusChange(finding.id)}
+      onBlur={onBlur}
     >
-      <div className="fd-finding-head">
-        <span className="fd-num" aria-label={`Finding ${number}`}>
-          {number}
+      <button
+        type="button"
+        ref={buttonRef}
+        className="fd-finding-main"
+        aria-expanded={isExpanded}
+        aria-label={`Finding ${number}: ${finding.title}, ${SEVERITY_LABEL[finding.severity]}${excluded ? ', not in draft report' : unconfirmed ? ', unconfirmed by classifier' : ''}`}
+        tabIndex={isTabStop ? 0 : -1}
+        onKeyDown={onKeyDown}
+        onClick={() => onToggle(finding.id)}
+      >
+        <span className="fd-finding-head">
+          <span className="fd-num" aria-hidden="true">
+            {number}
+          </span>
+          <span className="fd-badge">{SEVERITY_LABEL[finding.severity]}</span>
+          {finding.source === 'maira2' && (
+            <span className="fd-icon-tag" title="Added by the optional MAIRA-2 second reader">
+              <Users aria-hidden="true" /> Second reader (MAIRA-2)
+            </span>
+          )}
+          <span className="fd-local" title={localized ? 'Localized on image' : 'Not localized on image'}>
+            {localized ? <Crop aria-hidden="true" /> : <Cloud aria-hidden="true" />}
+          </span>
         </span>
-        <span className="fd-badge" data-severity={finding.severity}>
-          {SEVERITY_LABEL[finding.severity]}
-        </span>
-        <span className="fd-local" title={localized ? 'Localized on image' : 'Diffuse — no focal region'}>
-          {localized ? <Crop /> : <Cloud />}
-        </span>
-      </div>
+        <span className="fd-finding-title">{finding.title}</span>
+        <span className="fd-location">{[finding.location, finding.category].filter(Boolean).join(' · ') || '—'}</span>
+      </button>
 
-      <div className="fd-finding-title">{finding.title}</div>
+      {note && (
+        <div className="fd-draft-note" data-tone={excluded || unconfirmed ? 'out' : 'in'}>
+          {excluded ? <X aria-hidden="true" /> : unconfirmed ? <AlertTriangle aria-hidden="true" /> : <Check aria-hidden="true" />}
+          <span>{note}</span>
+        </div>
+      )}
 
-      <div className="fd-location">
-        {[finding.location, finding.category].filter(Boolean).join(' · ') || '—'}
-      </div>
-
-      <div className="fd-conf" aria-label={`Model-stated confidence ${Math.round(finding.confidence * 100)}%`} title="Self-reported by the model; not calibrated">
-        <span className="fd-conf-label">Model-stated</span>
-        <span className="fd-conf-track">
-          <span className="fd-conf-fill" style={{ width: `${Math.min(finding.confidence * 100, 100)}%` }} />
-        </span>
-        <span className="fd-conf-pct">{Math.round(finding.confidence * 100)}%</span>
-      </div>
+      {evidence && (
+        <div
+          className={`fd-rel${evidence.tone === 'warn' ? ' fd-rel--weak' : ''}`}
+          title="TorchXRayVision chest X-ray classifier, run locally as an independent cross-check"
+        >
+          {evidence.tone === 'ok' ? <Check aria-hidden="true" /> : evidence.tone === 'warn' ? <AlertTriangle aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
+          <span>{evidence.text}</span>
+        </div>
+      )}
 
       {rel && (
         <div className={`fd-rel${rel.weak ? ' fd-rel--weak' : ''}`} title={BENCHMARK.label}>
-          {rel.weak ? <AlertTriangle /> : <BarChart3 />}
+          {rel.weak ? <AlertTriangle aria-hidden="true" /> : <BarChart3 aria-hidden="true" />}
           <span>
-            {rel.correct}/{rel.total} {rel.kind} calls confirmed in benchmark{rel.weak ? ' — verify carefully' : ''}
+            Benchmark · {rel.kind}: {rel.correct} of {rel.total} confirmed
+            {rel.lowN ? ' · n small' : ''}
+            {rel.weak ? ' — verify carefully' : ''}
           </span>
         </div>
       )}
 
-      {finding.classifier && (
-        <div
-          className={`fd-rel${finding.classifier.supported ? '' : ' fd-rel--weak'}`}
-          title="TorchXRayVision classifier probability for this finding type; 50% is its operating point"
-        >
-          {finding.classifier.supported ? <Check /> : <AlertTriangle />}
-          <span>
-            {finding.classifier.supported
-              ? `Classifier agrees · ${finding.classifier.kind} ${Math.round(finding.classifier.prob * 100)}%`
-              : `Classifier does not support this (${finding.classifier.kind} ${Math.round(finding.classifier.prob * 100)}%) — left out of draft report`}
-          </span>
-        </div>
-      )}
+      <div className="fd-conf" title="Self-reported by the model; false findings are often stated at 90%+">
+        {confText}
+      </div>
 
       <p className={`fd-desc ${isExpanded ? 'fd-desc--open' : ''}`}>{finding.description}</p>
 
       {finding.recommendation && (
         <div className="fd-rec">
-          <CheckCircle2 />
+          <CheckCircle2 aria-hidden="true" />
           <span>{finding.recommendation}</span>
         </div>
       )}
 
-      {isExpanded && (
-        <div className="fd-keys">
-          <Check strokeWidth={2.5} />
-          <span>
-            {flatIndex + 1} / {flatTotal} finding · press Enter to toggle · ↑ ↓ to move
-          </span>
+      {finding.severity !== 'normal' && (
+        <div className="fd-review" role="group" aria-label={`Review finding ${number}`}>
+          <button
+            type="button"
+            className="fd-review-btn"
+            data-on={review === 'accepted' || undefined}
+            aria-pressed={review === 'accepted'}
+            tabIndex={isTabStop ? 0 : -1}
+            onClick={() => onReview(finding.id, review === 'accepted' ? undefined : 'accepted')}
+          >
+            <Check aria-hidden="true" /> {review === 'accepted' ? 'Accepted' : 'Accept'}
+          </button>
+          <button
+            type="button"
+            className="fd-review-btn"
+            data-kind="dismiss"
+            data-on={review === 'dismissed' || undefined}
+            aria-pressed={review === 'dismissed'}
+            tabIndex={isTabStop ? 0 : -1}
+            onClick={() => onReview(finding.id, review === 'dismissed' ? undefined : 'dismissed')}
+          >
+            <X aria-hidden="true" /> {review === 'dismissed' ? 'Dismissed' : 'Dismiss'}
+          </button>
         </div>
       )}
 
-      <div className="fd-finding-foot">
-        <span className="fd-press-hint">Select</span>
-        <span className="fd-kbd">Enter</span>
-      </div>
-    </button>
+      {isFocused && (
+        <div className="fd-keys" aria-hidden="true">
+          <span>
+            {flatIndex + 1} / {flatTotal} · Enter to expand · ↑ ↓ to move
+          </span>
+        </div>
+      )}
+    </li>
   )
 }

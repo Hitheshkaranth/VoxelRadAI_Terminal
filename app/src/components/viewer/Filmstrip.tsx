@@ -2,60 +2,79 @@
 import { useCallback, useState } from 'react'
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Loader2, Plus, X } from 'lucide-react'
-import type { Severity, StudyImage } from '../../types'
-import { SEVERITY_ORDER } from '../../types'
-import { filesToStudyImages, pickImageFiles, readDroppedItems } from '../../lib/imageIntake'
+import type { StudyImage } from '../../types'
+import { SEVERITY_LABEL } from '../../types'
+import { pickImageFiles, readDroppedItems } from '../../lib/imageIntake'
+import { addFilesToActiveStudy } from '../../lib/upload'
+import { cancelImages } from '../../lib/analysis'
+import { findingCounts, worstSeverity } from '../../lib/classifier'
 import { useActiveStudy, useApp } from '../../store'
+import { toast } from '../shell/toastStore'
+import { countLabel } from '../shell/shellState'
 import './viewer.css'
 
-const SEVERITY_COLOR: Record<Severity, string> = {
-  critical: 'var(--sev-critical)',
-  significant: 'var(--sev-significant)',
-  moderate: 'var(--sev-moderate)',
-  minor: 'var(--sev-minor)',
-  normal: 'var(--sev-normal)',
-}
-
-function worstSeverity(images: StudyImage[]): Severity {
-  let worst: Severity | null = null
-  for (const img of images) {
-    const sevs = img.analysis?.findings.map((f) => f.severity) ?? []
-    const sev = SEVERITY_ORDER.find((x) => sevs.includes(x)) ?? 'normal'
-    if (!worst || SEVERITY_ORDER.indexOf(sev) < SEVERITY_ORDER.indexOf(worst)) worst = sev
+/** Dot colour + accessible name, from the same helpers the inspector uses. */
+function statusDot(img: StudyImage): { className: string; color?: string; label: string } {
+  if (img.status === 'analyzing') return { className: 'vw-analyzing', label: 'Analyzing' }
+  if (img.status === 'error') return { className: 'vw-error', label: 'Analysis failed' }
+  if (img.status !== 'done' || !img.analysis) return { className: 'vw-unread', label: 'Not analyzed yet' }
+  const sev = worstSeverity(img.analysis.findings) ?? 'normal'
+  const { active, flagged } = findingCounts(img.analysis)
+  return {
+    className: '',
+    color: `var(--sev-${sev})`,
+    label: active || flagged ? `${SEVERITY_LABEL[sev]} · ${countLabel(active, flagged)}` : 'No acute findings',
   }
-  return worst ?? 'normal'
-}
-
-function statusDot(img: StudyImage): string {
-  if (img.status === 'error') return 'var(--red)'
-  if (img.status === 'done') return SEVERITY_COLOR[worstSeverity([img])]
-  return 'transparent'
 }
 
 export function Filmstrip() {
   const study = useActiveStudy()
   const activeImageId = useApp((s) => s.activeImageId)
   const [busy, setBusy] = useState(false)
-  const studyId = study?.id ?? ""
+  const studyId = study?.id ?? ''
 
-  const onPick = useCallback(
-    async (files: File[]) => {
-      const images = files.filter((f) => f.size > 0)
-      if (!images.length) return
-      setBusy(true)
-      try {
-        const imgs = await filesToStudyImages(images)
-        useApp.getState().addImages(studyId, imgs)
-      } finally {
-        setBusy(false)
-      }
-    },
-    [studyId],
-  )
+  // Shared intake path so unreadable files surface as toasts instead of failing silently.
+  const onPick = useCallback(async (files: File[]) => {
+    if (!files.length) return
+    setBusy(true)
+    try {
+      await addFilesToActiveStudy(files)
+    } finally {
+      setBusy(false)
+    }
+  }, [])
 
   const removeImage = useCallback(
     (imageId: string) => {
-      useApp.getState().removeImage(studyId, imageId)
+      const st = useApp.getState()
+      const s = st.studies.find((x) => x.id === studyId)
+      const index = s?.images.findIndex((i) => i.id === imageId) ?? -1
+      const img = s?.images[index]
+      if (!img) return
+      cancelImages([imageId])
+      st.removeImage(studyId, imageId)
+      // An interrupted run cannot resume, so a restored film comes back unread (its earlier result, if any, is kept).
+      const restored: StudyImage =
+        img.status === 'analyzing'
+          ? { ...img, status: 'idle', progressText: undefined, stage: undefined, analysisStartedAt: undefined }
+          : img
+      toast(`Removed ${img.name}`, 'info', {
+        label: 'Undo',
+        run: () => {
+          const cur = useApp.getState()
+          if (!cur.studies.some((x) => x.id === studyId)) return
+          cur.addImages(studyId, [restored])
+          // addImages appends; put the film back where it was.
+          useApp.setState((u) => ({
+            studies: u.studies.map((x) => {
+              if (x.id !== studyId) return x
+              const rest = x.images.filter((i) => i.id !== restored.id)
+              rest.splice(Math.min(index, rest.length), 0, restored)
+              return { ...x, images: rest }
+            }),
+          }))
+        },
+      })
     },
     [studyId],
   )
@@ -82,23 +101,25 @@ export function Filmstrip() {
     >
       {study.images.map((img) => {
         const selected = img.id === activeImageId
+        const dot = statusDot(img)
         return (
           <div
             key={img.id}
             className={['vw-thumb', selected ? 'vw-selected' : ''].filter(Boolean).join(' ')}
             role="button"
             tabIndex={0}
-            aria-label={`Select ${img.name}`}
+            aria-label={`Select ${img.name} — ${dot.label}`}
             aria-current={selected}
             onClick={() => useApp.getState().selectImage(img.id)}
             onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+              if (e.target !== e.currentTarget) return
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
                 useApp.getState().selectImage(img.id)
               }
             }}
           >
-            <img src={img.dataUrl} alt={img.name} draggable={false} />
+            <img src={img.dataUrl} alt="" draggable={false} />
             <button
               type="button"
               className="vw-remove"
@@ -111,9 +132,11 @@ export function Filmstrip() {
               <X />
             </button>
             <div
-              className={['vw-dot', img.status === 'analyzing' ? 'vw-analyzing' : ''].filter(Boolean).join(' ')}
-              style={{ background: statusDot(img) }}
-              aria-label={img.status}
+              className={['vw-dot', dot.className].filter(Boolean).join(' ')}
+              style={dot.color ? { background: dot.color } : undefined}
+              role="img"
+              aria-label={dot.label}
+              title={dot.label}
             />
           </div>
         )
@@ -129,6 +152,12 @@ export function Filmstrip() {
           tabIndex={0}
           aria-label="Add more images"
           onClick={() => void pickImageFiles().then((files) => void onPick(files))}
+          onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              void pickImageFiles().then((files) => void onPick(files))
+            }
+          }}
         >
           <Plus />
         </div>

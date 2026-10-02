@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import { get as idbGet, set as idbSet } from 'idb-keyval'
+import { toast } from './components/shell/toastStore'
 import type {
   AnalysisResult,
+  AnalysisStage,
   ConnectionState,
+  FindingReview,
   ImageStatus,
   InspectorTab,
   PatientInfo,
@@ -23,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   institution: 'Skanda Radiology',
   radiologist: '',
   theme: 'system',
+  maira: { enabled: false, kinds: ['effusion', 'nodule / mass', 'atelectasis'] },
 }
 
 export const DEFAULT_VIEWER: ViewerState = {
@@ -80,8 +84,17 @@ interface AppState {
   addImages: (studyId: string, images: StudyImage[]) => void
   removeImage: (studyId: string, imageId: string) => void
   selectImage: (imageId: string) => void
-  setImageStatus: (studyId: string, imageId: string, status: ImageStatus, extra?: { progressText?: string; error?: string }) => void
+  setImageStatus: (
+    studyId: string,
+    imageId: string,
+    status: ImageStatus,
+    extra?: { progressText?: string; error?: string; stage?: AnalysisStage; analysisStartedAt?: number },
+  ) => void
   setImageAnalysis: (studyId: string, imageId: string, analysis: AnalysisResult) => void
+  /** Accept or dismiss a finding; undefined clears the decision. */
+  setFindingReview: (studyId: string, imageId: string, findingId: string, review: FindingReview | undefined) => void
+  /** Drop an image's analysis so it can be re-run. */
+  resetImageAnalysis: (studyId: string, imageId: string) => void
 
   // Findings selection
   selectFinding: (id: string | null) => void
@@ -157,7 +170,17 @@ export const useApp = create<AppState>()((set, get) => ({
       studies: mapStudy(st.studies, studyId, (s) => ({
         ...s,
         images: s.images.map((i) =>
-          i.id === imageId ? { ...i, status, progressText: extra?.progressText, error: extra?.error } : i,
+          i.id === imageId
+            ? {
+                ...i,
+                status,
+                progressText: extra?.progressText,
+                error: extra?.error,
+                // Stage and start time carry over between progress updates of the same run.
+                stage: status === 'analyzing' ? (extra?.stage ?? i.stage) : undefined,
+                analysisStartedAt: status === 'analyzing' ? (extra?.analysisStartedAt ?? i.analysisStartedAt) : undefined,
+              }
+            : i,
         ),
       })),
     })),
@@ -166,9 +189,40 @@ export const useApp = create<AppState>()((set, get) => ({
       studies: mapStudy(st.studies, studyId, (s) => ({
         ...s,
         images: s.images.map((i) =>
-          i.id === imageId ? { ...i, analysis, status: 'done', progressText: undefined, error: undefined } : i,
+          i.id === imageId
+            ? { ...i, analysis, status: 'done', progressText: undefined, error: undefined, stage: undefined, analysisStartedAt: undefined }
+            : i,
         ),
       })),
+    })),
+  setFindingReview: (studyId, imageId, findingId, review) =>
+    set((st) => ({
+      studies: mapStudy(st.studies, studyId, (s) => ({
+        ...s,
+        images: s.images.map((i) =>
+          i.id === imageId && i.analysis
+            ? {
+                ...i,
+                analysis: {
+                  ...i.analysis,
+                  findings: i.analysis.findings.map((f) => (f.id === findingId ? { ...f, review } : f)),
+                },
+              }
+            : i,
+        ),
+      })),
+    })),
+  resetImageAnalysis: (studyId, imageId) =>
+    set((st) => ({
+      studies: mapStudy(st.studies, studyId, (s) => ({
+        ...s,
+        images: s.images.map((i) =>
+          i.id === imageId
+            ? { ...i, analysis: undefined, status: 'idle', progressText: undefined, error: undefined, stage: undefined, analysisStartedAt: undefined }
+            : i,
+        ),
+      })),
+      selectedFindingId: null,
     })),
 
   selectFinding: (id) => set({ selectedFindingId: id }),
@@ -216,23 +270,67 @@ export const useActiveImage = () =>
 
 const KEY = 'skanda-radiology:v1'
 
+type Saved = { studies: Study[]; settings: Settings; activeStudyId: string | null }
+
+// Progress text, stage and start time describe a live run; an interrupted run can't resume after reload.
+const stripImage = (i: StudyImage): StudyImage => {
+  if (i.status !== 'analyzing' && i.progressText === undefined && i.stage === undefined && i.analysisStartedAt === undefined)
+    return i
+  const out: StudyImage = { ...i, status: i.status === 'analyzing' ? 'idle' : i.status }
+  delete out.progressText
+  delete out.stage
+  delete out.analysisStartedAt
+  return out
+}
+
+// Cache per study object so unchanged studies (and transient-only changes) compare by reference.
+const stripCache = new WeakMap<Study, Study>()
+const stripStudy = (s: Study): Study => {
+  const hit = stripCache.get(s)
+  if (hit) return hit
+  const images = s.images.map(stripImage)
+  const out = images.every((im, k) => im === s.images[k]) ? s : { ...s, images }
+  stripCache.set(s, out)
+  return out
+}
+
+// A study whose only change is transient fields keeps updatedAt from touch(); ignore updatedAt when comparing.
+const sameStudy = (a: Study, b: Study) => {
+  if (a === b) return true
+  if (a.id !== b.id || a.title !== b.title || a.patient !== b.patient || a.report !== b.report) return false
+  if (a.images.length !== b.images.length) return false
+  return a.images.every((im, k) => sameImage(im, b.images[k]))
+}
+
+// Stripped images of an analysing film are new objects on every progress tick; compare their fields shallowly.
+const sameImage = (a: StudyImage, b: StudyImage) => {
+  if (a === b) return true
+  const ka = Object.keys(a) as (keyof StudyImage)[]
+  return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k])
+}
+
+export function persistedStudies(studies: Study[]): Study[] {
+  return studies.map(stripStudy)
+}
+
+let hydrated = false
+
 export async function hydrate() {
+  // StrictMode calls effects twice; a second subscription would double every write.
+  if (hydrated) return
+  hydrated = true
   try {
-    const saved = (await idbGet(KEY)) as
-      | { studies: Study[]; settings: Settings; activeStudyId: string | null }
-      | undefined
+    const saved = (await idbGet(KEY)) as Saved | undefined
     if (saved) {
-      // Any analysis interrupted by a reload can't resume.
-      const studies = saved.studies.map((s) => ({
-        ...s,
-        images: s.images.map((i) =>
-          i.status === 'analyzing' ? { ...i, status: 'idle' as const, progressText: undefined } : i,
-        ),
-      }))
+      const studies = persistedStudies(saved.studies)
       const activeStudyId = saved.activeStudyId ?? studies[0]?.id ?? null
       useApp.setState({
         studies,
-        settings: { ...DEFAULT_SETTINGS, ...saved.settings },
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...saved.settings,
+          maira: { ...DEFAULT_SETTINGS.maira, ...saved.settings?.maira },
+        },
         activeStudyId,
         activeImageId: studies.find((s) => s.id === activeStudyId)?.images[0]?.id ?? null,
       })
@@ -241,15 +339,52 @@ export async function hydrate() {
     console.warn('Failed to restore saved studies', e)
   }
   useApp.setState({ hydrated: true })
+  // Ask the browser not to evict our data under storage pressure; ignored where unsupported.
+  void navigator.storage?.persist?.().catch(() => false)
 
   let t: ReturnType<typeof setTimeout> | undefined
+  const init = useApp.getState()
+  let last: Saved = { studies: persistedStudies(init.studies), settings: init.settings, activeStudyId: init.activeStudyId }
+  let failing = false
   useApp.subscribe((st, prev) => {
     if (st.studies === prev.studies && st.settings === prev.settings && st.activeStudyId === prev.activeStudyId) return
     clearTimeout(t)
     t = setTimeout(() => {
-      idbSet(KEY, { studies: st.studies, settings: st.settings, activeStudyId: st.activeStudyId }).catch((e) =>
-        console.warn('Failed to save', e),
-      )
+      const cur = useApp.getState()
+      const studies = persistedStudies(cur.studies)
+      // Progress ticks during analysis only change transient fields: nothing to write.
+      const same =
+        studies.length === last.studies.length &&
+        studies.every((s, k) => sameStudy(s, last.studies[k])) &&
+        cur.settings === last.settings &&
+        cur.activeStudyId === last.activeStudyId
+      if (same) return
+      const value: Saved = { studies, settings: cur.settings, activeStudyId: cur.activeStudyId }
+      idbSet(KEY, value)
+        .then(() => {
+          last = value
+          failing = false
+        })
+        .catch((e) => {
+          console.warn('Failed to save', e)
+          // One toast per failure streak, not one per keystroke.
+          if (!failing) toast('Could not save to browser storage — recent changes may be lost. Free space or export studies.', 'error')
+          failing = true
+        })
     }, 400)
   })
+}
+
+/** Browser storage usage for the Settings sheet; null where the API is unavailable. */
+export async function storageInfo(): Promise<{ usage: number; quota: number; persisted: boolean } | null> {
+  try {
+    if (!navigator.storage?.estimate) return null
+    const [est, persisted] = await Promise.all([
+      navigator.storage.estimate(),
+      navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(false),
+    ])
+    return { usage: est.usage ?? 0, quota: est.quota ?? 0, persisted }
+  } catch {
+    return null
+  }
 }

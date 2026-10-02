@@ -1,5 +1,6 @@
 // OWNER: Agent 2 (Viewer & intake). Burns finding boxes + numbering into a thumbnail for reports/print.
 import type { Finding, Severity, StudyImage } from '../types'
+import { isExcluded, isUnconfirmed } from './classifier'
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   critical: '#ff3b30',
@@ -31,7 +32,9 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 /**
  * Draw the image on a canvas and burn in each finding's bounding box (severity colour, 3px, rounded) with
- * numbered circle markers matching the viewer ordering. Returns a JPEG data URL for the report / print view.
+ * numbered circle markers matching the viewer ordering. Findings left out of the draft (classifier did not
+ * support them, or the reviewer dismissed them) are drawn dotted and untinted with a '?' chip, so the print
+ * still shows where they were without presenting them as findings. Returns a JPEG data URL.
  */
 export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?: number }): Promise<string> {
   const maxSize = opts?.maxSize ?? 1400
@@ -59,8 +62,10 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
     const bh = Math.max(fh * h, 16)
     const color = SEVERITY_COLOR[finding.severity] ?? SEVERITY_COLOR.moderate
 
+    const excluded = isExcluded(finding)
+
     ctx.save()
-    if (finding.severity !== 'normal' && finding.classifier?.supported !== false) {
+    if (finding.severity !== 'normal' && !excluded) {
       // tint the diagnosed region, matching the viewer highlight
       ctx.globalAlpha = 0.2
       ctx.fillStyle = color
@@ -69,10 +74,18 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
       ctx.globalAlpha = 1
     }
     ctx.strokeStyle = color
-    ctx.lineWidth = 3
+    ctx.lineWidth = excluded ? 2 : 3
     ctx.lineJoin = 'round'
+    if (!excluded && finding.severity !== 'normal' && isUnconfirmed(finding)) ctx.setLineDash([10, 6])
+    if (excluded) {
+      ctx.lineCap = 'round'
+      ctx.setLineDash([1, 6])
+      ctx.globalAlpha = 0.85
+    }
     roundRect(ctx, bx, by, bw, bh, 8)
     ctx.stroke()
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
 
     ctx.fillStyle = color
     ctx.beginPath()
@@ -83,6 +96,20 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(String(index + 1), bx + 12, by + 13)
+
+    if (excluded) {
+      // '?' chip beside the number: on the image, but not part of the report
+      ctx.fillStyle = 'rgba(28, 28, 30, 0.82)'
+      roundRect(ctx, bx + 28, by + 2, 20, 20, 6)
+      ctx.fill()
+      ctx.strokeStyle = color
+      ctx.lineWidth = 1.5
+      roundRect(ctx, bx + 28, by + 2, 20, 20, 6)
+      ctx.stroke()
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 14px -apple-system, system-ui, sans-serif'
+      ctx.fillText('?', bx + 38, by + 13)
+    }
     ctx.restore()
   })
 

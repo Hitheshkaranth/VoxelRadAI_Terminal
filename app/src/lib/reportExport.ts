@@ -1,6 +1,11 @@
 // OWNER: Agent 4 (Report). Pure helpers for exporting the study as plain text / JSON,
 // shared by ReportPanel and PrintReport. No React, no store binding.
-import type { AnalysisResult, ReportDraft, Settings, Study } from '../types'
+// Imported by scripts/test-report.ts under node strip-types: runtime imports need an explicit .ts extension.
+import type { AnalysisResult, Finding, PatientInfo, ReportDraft, Study } from '../types'
+import { isExcluded, isUnconfirmed } from './classifier.ts'
+
+export const DISCLAIMER =
+  'AI-generated decision support; must be verified by a qualified radiologist. Not a diagnosis.'
 
 export interface StudyExportImage {
   id: string
@@ -11,7 +16,7 @@ export interface StudyExportImage {
   status: string
   addedAt: string
   analysis: AnalysisResult | null
-  /** Only present when `includeDataUrls` is not explicitly false. */
+  /** Only present when `includeDataUrls` is true. */
   thumbnailUrl?: string
 }
 
@@ -20,12 +25,16 @@ export interface ReportExport {
   signed: boolean
   signedAt: string | null
   generated: boolean
+  edited: boolean
   updatedAt: string
   technique: string
   comparison: string
   findings: string
   impression: string
   recommendations: string
+  patientSnapshot: PatientInfo | null
+  amendments: { signedAt: string; unlockedAt: string; by: string }[]
+  signOverrides: string[]
 }
 
 export interface StudyExport {
@@ -33,23 +42,23 @@ export interface StudyExport {
   title: string
   createdAt: string
   updatedAt: string
-  patient: Pick<
-    Study['patient'],
-    'name' | 'patientId' | 'age' | 'sex' | 'studyDate' | 'referringPhysician' | 'indication' | 'clinicalHistory'
-  >
+  anonymised: boolean
+  patient: PatientInfo
   institution: string
   model: string
   imageCount: number
   analyzedCount: number
   images: StudyExportImage[]
   report: ReportExport | null
+  disclaimer: string
 }
 
-interface FindingForText {
-  title: string
-  location: string
-  severity: string
-  confidence: number
+export interface StudyJsonOptions {
+  /** Blank name, patient ID and referring physician (also in the signed snapshot) and image file names. */
+  anonymise?: boolean
+  /** Embed each image as a data URL. Off by default: files get large. */
+  includeDataUrls?: boolean
+  institution?: string
 }
 
 /** Analyzed images only, in the order they appear in the study. */
@@ -73,6 +82,49 @@ export function examSummary(study: Study): { modality: string; bodyPart: string;
   return { modality, bodyPart, views: [...views] }
 }
 
+/** Patient details as reported: the frozen snapshot once signed, otherwise the live record. */
+export function reportPatient(study: Study): PatientInfo {
+  const r = study.report
+  return r?.signed && r.patientSnapshot ? r.patientSnapshot : study.patient
+}
+
+/** Why a finding was dismissed or is unconfirmed, for exports and the excluded-findings list. */
+export function exclusionReason(f: Finding): string {
+  if (f.review === 'dismissed') return 'dismissed by reviewer'
+  const c = f.classifier
+  if (!c) return 'excluded'
+  const prob = c.prob == null ? '' : ` ${Math.round(c.prob * 100)}%`
+  const thr = c.thr == null ? '' : ` (threshold ${Math.round(c.thr * 100)}%)`
+  return `not supported by classifier cross-check: ${c.kind}${prob}${thr}`
+}
+
+export interface ReportedFinding {
+  /** Image-local number matching the burned-in box labels, prefixed with the image number when >1 image. */
+  ref: string
+  imageId: string
+  imageName: string
+  finding: Finding
+}
+
+/**
+ * Non-normal AI findings split into those the draft draws on and those left out of it.
+ * Normal items ("No pneumothorax") are pertinent negatives, not findings, and are skipped.
+ */
+export function splitFindings(study: Study): { included: ReportedFinding[]; excluded: ReportedFinding[] } {
+  const included: ReportedFinding[] = []
+  const excluded: ReportedFinding[] = []
+  const analyzed = analyzedImages(study)
+  analyzed.forEach((img, imgIndex) => {
+    img.analysis?.findings.forEach((f, j) => {
+      if (f.severity === 'normal') return
+      const ref = analyzed.length > 1 ? `${imgIndex + 1}.${j + 1}` : `${j + 1}`
+      const row = { ref, imageId: img.id, imageName: img.name, finding: f }
+      ;(isExcluded(f) ? excluded : included).push(row)
+    })
+  })
+  return { included, excluded }
+}
+
 /** A stable, filesystem-friendly filename derived from the study title. */
 export function studyFileName(study: Study, ext = 'txt'): string {
   const slug = (study.title || 'study')
@@ -84,11 +136,37 @@ export function studyFileName(study: Study, ext = 'txt'): string {
 
 const ISO = (ts: number): string => new Date(ts).toISOString()
 
-export function studyToJson(study: Study, settings: Settings, opts: { includeDataUrls?: boolean } = {}): StudyExport {
-  const images: StudyExportImage[] = study.images.map((img) => {
+function anonymisePatient(p: PatientInfo): PatientInfo {
+  return { ...p, name: '', patientId: '', referringPhysician: '' }
+}
+
+function reportExport(r: ReportDraft, anonymise: boolean): ReportExport {
+  const snapshot = r.patientSnapshot ? (anonymise ? anonymisePatient(r.patientSnapshot) : r.patientSnapshot) : null
+  return {
+    radiologist: r.radiologist,
+    signed: r.signed,
+    signedAt: r.signedAt ? ISO(r.signedAt) : null,
+    generated: r.generated,
+    edited: !!r.edited,
+    updatedAt: ISO(r.updatedAt),
+    technique: r.technique,
+    comparison: r.comparison,
+    findings: r.findings,
+    impression: r.impression,
+    recommendations: r.recommendations,
+    patientSnapshot: snapshot,
+    amendments: (r.amendments ?? []).map((a) => ({ signedAt: ISO(a.signedAt), unlockedAt: ISO(a.unlockedAt), by: a.by })),
+    signOverrides: r.signOverrides ?? [],
+  }
+}
+
+export function studyToJson(study: Study, opts: StudyJsonOptions = {}): StudyExport {
+  const anonymise = !!opts.anonymise
+  const images: StudyExportImage[] = study.images.map((img, i) => {
     const out: StudyExportImage = {
       id: img.id,
-      name: img.name,
+      // File names often carry the patient's name or MRN.
+      name: anonymise ? `image-${i + 1}` : img.name,
       mime: img.mime,
       width: img.width,
       height: img.height,
@@ -96,43 +174,25 @@ export function studyToJson(study: Study, settings: Settings, opts: { includeDat
       addedAt: ISO(img.addedAt),
       analysis: img.analysis ?? null,
     }
-    if (opts.includeDataUrls !== false) out.thumbnailUrl = img.dataUrl
+    if (opts.includeDataUrls) out.thumbnailUrl = img.dataUrl
     return out
   })
-  const report: ReportExport | null = study.report
-    ? {
-        radiologist: study.report.radiologist,
-        signed: study.report.signed,
-        signedAt: study.report.signedAt ? ISO(study.report.signedAt) : null,
-        generated: study.report.generated,
-        updatedAt: ISO(study.report.updatedAt),
-        technique: study.report.technique,
-        comparison: study.report.comparison,
-        findings: study.report.findings,
-        impression: study.report.impression,
-        recommendations: study.report.recommendations,
-      }
-    : null
+  const models = new Set(analyzedImages(study).map((img) => img.analysis?.model ?? '').filter(Boolean))
   return {
     studyId: study.id,
-    title: study.title,
+    title: anonymise ? 'Anonymised study' : study.title,
     createdAt: ISO(study.createdAt),
     updatedAt: ISO(study.updatedAt),
-    patient: study.patient,
-    institution: settings.institution,
-    model: settings.model,
+    anonymised: anonymise,
+    patient: anonymise ? anonymisePatient(study.patient) : study.patient,
+    institution: opts.institution ?? '',
+    model: [...models].join(', '),
     imageCount: study.images.length,
     analyzedCount: analyzedImages(study).length,
     images,
-    report,
+    report: study.report ? reportExport(study.report, anonymise) : null,
+    disclaimer: DISCLAIMER,
   }
-}
-
-interface FindingForText {
-  title: string
-  location: string
-  severity: string
-  confidence: number
 }
 
 function trim(value: string | undefined): string {
@@ -148,33 +208,34 @@ function severityLabel(v: string): string {
   return v.charAt(0).toUpperCase() + v.slice(1)
 }
 
-function joinBlocks(values: Array<string | undefined>): string {
-  return trim(values.join('\n'))
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .join('\n\n')
+function findingLine(row: ReportedFinding): string {
+  const f = row.finding
+  const loc = trim(f.location) ? ' — ' + trim(f.location) : ''
+  const reader = f.source === 'maira2' ? ' (MAIRA-2 second reader)' : ''
+  return `${row.ref}. [${severityLabel(f.severity)}] ${trim(f.title) || '—'}${loc}${reader}`
 }
 
 /**
- * Render the report as plain text (Copy + Download .txt). Also used by the print
- * dialog as the textual body of the A4 page.
+ * Render the report as plain text (Copy + Download .txt). Unsigned drafts are labelled as such, the
+ * disclaimer is always appended, and AI findings left out of the draft are listed with the reason so
+ * nothing disappears silently.
  */
-export function reportToPlainText(study: Study, settings: Settings): string {
+export function reportToPlainText(study: Study, settings: { institution: string }): string {
   const r = study.report
   const exam = examSummary(study)
+  const p = reportPatient(study)
 
   const out: string[] = []
-  out.push(settings.institution || 'Diagnostic Radiology')
-  out.push('Diagnostic Radiology Report')
+  out.push(settings.institution || 'Radiology')
+  out.push(r?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft')
   out.push('Report date: ' + new Date().toLocaleDateString())
-  if (r?.signedAt) out.push('Signed: ' + new Date(r.signedAt).toLocaleString())
+  if (r?.signed && r.signedAt) out.push('Signed: ' + new Date(r.signedAt).toLocaleString())
+  if (r?.signed && r.signOverrides?.length) out.push('Signed past unresolved items: ' + r.signOverrides.join(' '))
   out.push('')
 
-  const p = study.patient
   out.push('Patient:        ' + dash(p.name))
   out.push('Patient ID:     ' + dash(p.patientId))
-  const ageSex = [dash(p.age), dash(p.sex)].filter((s) => s !== '—').join(' / ')
+  const ageSex = [trim(p.age), trim(p.sex)].filter(Boolean).join(' / ')
   out.push('Age / Sex:      ' + (ageSex || '—'))
   out.push('Study Date:     ' + dash(p.studyDate))
   out.push('Referring Physician: ' + dash(p.referringPhysician))
@@ -183,7 +244,7 @@ export function reportToPlainText(study: Study, settings: Settings): string {
   const examLine = [exam.modality, exam.bodyPart, ...exam.views].filter(Boolean).join(' · ')
   out.push('Exam:           ' + (examLine || '—'))
   out.push('Clinical Indication: ' + dash(p.indication))
-  if (p.clinicalHistory.trim()) out.push('History:        ' + dash(p.clinicalHistory))
+  if (trim(p.clinicalHistory)) out.push('History:        ' + trim(p.clinicalHistory))
   out.push('')
 
   out.push('Technique:      ' + dash(r?.technique))
@@ -193,32 +254,44 @@ export function reportToPlainText(study: Study, settings: Settings): string {
   out.push('Recommendations: ' + dash(r?.recommendations))
   out.push('')
 
-  const findings: FindingForText[] = []
-  for (const img of analyzedImages(study)) {
-    const a = img.analysis
-    if (a) for (const f of a.findings) findings.push(f)
+  const { included, excluded } = splitFindings(study)
+  if (included.length) {
+    out.push('AI Findings Summary')
+    out.push('-------------------')
+    for (const row of included) {
+      const unconfirmed = row.finding.severity !== 'normal' && isUnconfirmed(row.finding)
+      out.push(findingLine(row) + (unconfirmed ? ' [unconfirmed: not supported by classifier cross-check — verify]' : ''))
+      if (unconfirmed) out.push(`   Classifier: ${exclusionReason(row.finding)}`)
+      out.push(`   Confidence: ${Math.round(row.finding.confidence * 100)}% (model self-reported, uncalibrated)`)
+    }
+    out.push('')
   }
-  if (findings.length) {
-    out.push('Findings Summary')
-    out.push('----------------')
-    findings.forEach((f, i) => {
-      const loc = trim(f.location) ? ' — ' + f.location : ''
-      out.push(`${i + 1}. [${severityLabel(f.severity)}]${loc}`)
-      out.push(`   ${trim(f.title) || '—'}`)
-      out.push(`   Confidence: ${Math.round(f.confidence * 100)}%`)
-    })
+  if (excluded.length) {
+    out.push('AI findings not included in this report')
+    out.push('---------------------------------------')
+    for (const row of excluded) {
+      out.push(`${findingLine(row)} [dismissed by reviewer — not in report]`)
+      out.push(`   Reason: ${exclusionReason(row.finding)}`)
+    }
     out.push('')
   }
 
-  out.push('Radiologist:             ' + dash(r?.radiologist))
-  if (r) out.push('Source: ' + (r.signed ? 'Signed report' : 'AI-assisted preliminary draft'))
+  out.push('Radiologist:    ' + dash(r?.radiologist))
+  if (r) out.push('Status:         ' + (r.signed ? 'Signed report' : 'Unsigned AI-assisted preliminary draft'))
+  const amendments = r?.amendments ?? []
+  if (amendments.length) {
+    out.push('')
+    out.push('Amendments')
+    for (const a of amendments) {
+      out.push(
+        `- Signed ${new Date(a.signedAt).toLocaleString()}, unlocked for amendment ${new Date(a.unlockedAt).toLocaleString()} by ${dash(a.by)}`,
+      )
+    }
+  }
+  out.push('')
+  out.push(DISCLAIMER)
 
   return out.join('\n')
-}
-
-/** Concatenate the editable sections into one paragraph block (used by the print dialog). */
-export function reportDraftToPlain(r: ReportDraft | undefined): string {
-  return joinBlocks([r?.technique, r?.comparison, r?.findings, r?.impression, r?.recommendations])
 }
 
 /** Download a string or Blob to disk via a temporary anchor click. */

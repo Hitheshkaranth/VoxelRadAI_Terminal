@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
 import { Contrast, Eye, EyeOff, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
-import { SEVERITY_ORDER } from '../../types'
 import type { Finding, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
-import { isUnsupported } from '../../lib/classifier'
+import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
+import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
 
@@ -155,12 +155,16 @@ export function ImageViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
 
-  const findings = image?.analysis?.findings ?? []
-  const worst = useMemo(
-    () => SEVERITY_ORDER.find((s) => findings.some((f) => f.severity === s && s !== 'normal' && !isUnsupported(f))),
+  const analysis = image?.analysis
+  const findings = useMemo(() => analysis?.findings ?? [], [analysis])
+  // Same helpers as the filmstrip, sidebar and inspector so every count agrees.
+  const worst = useMemo(() => worstSeverity(findings), [findings])
+  const counts = useMemo(() => findingCounts(analysis), [analysis])
+  // Numbers as drawn on the boxes and cards (1-based position in the full findings list).
+  const unlocalized = useMemo(
+    () => findings.flatMap((f, i) => (f.severity !== 'normal' && !isExcluded(f) && !(f.bbox && f.bbox.w > 0) ? [i + 1] : [])),
     [findings],
   )
-  const abnormal = findings.filter((f) => f.severity !== 'normal' && !isUnsupported(f)).length
 
   if (!study) return <div className="vw-stage" />
   if (!study.images.length) return <Dropzone studyId={study.id} />
@@ -262,9 +266,19 @@ export function ImageViewer() {
       )}
 
       {image.analysis && (
-        <div className="vw-badge-rt">
-          <span className="vw-sev" style={{ background: `var(--sev-${worst ?? 'normal'})` }} />
-          {abnormal ? `${abnormal} finding${abnormal === 1 ? '' : 's'}` : 'No acute findings'}
+        <div className="vw-hud-rt">
+          <div className="vw-badge-rt">
+            <span className="vw-sev" style={{ background: `var(--sev-${worst ?? 'normal'})` }} />
+            {counts.active || counts.flagged ? countLabel(counts.active, counts.flagged) : 'No acute findings'}
+          </div>
+          {viewer.showOverlay && unlocalized.length > 0 && (
+            <div className="vw-legend">Not localized: {unlocalized.map((n) => `#${n}`).join(', ')}</div>
+          )}
+          {viewer.showOverlay && counts.flagged > 0 && (
+            <div className="vw-legend">
+              <span className="vw-legend-swatch" aria-hidden="true" /> dotted = not in draft report
+            </div>
+          )}
         </div>
       )}
 
@@ -340,11 +354,13 @@ function FindingBox({
 }) {
   if (!f.bbox) return null
   const { x, y, w, h } = f.bbox
+  const excluded = f.severity !== 'normal' && isExcluded(f)
   return (
     <div
       className={`vw-finding${on ? ' vw-hl-on' : ''}${selected ? ' vw-found' : ''}`}
       data-severity={f.severity}
-      data-unsupported={isUnsupported(f) || undefined}
+      data-excluded={excluded || undefined}
+      data-unconfirmed={(f.severity !== 'normal' && isUnconfirmed(f)) || undefined}
       style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` }}
       onPointerEnter={() => onHover(true)}
       onPointerLeave={() => onHover(false)}
@@ -354,10 +370,17 @@ function FindingBox({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`Finding ${n}: ${f.title}${isUnsupported(f) ? ' (not supported by classifier)' : ''}`}
-      onKeyDown={(e) => e.key === 'Enter' && onSelect()}
+      aria-label={`Finding ${n}: ${f.title}${excluded ? ' (not in draft report)' : ''}`}
+      onFocus={() => onHover(true)}
+      onBlur={() => onHover(false)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
     >
-      <span className="vw-chip">{n}</span>
+      <span className="vw-chip">{excluded ? `${n}?` : n}</span>
       <span className="vw-label">{f.title}</span>
     </div>
   )

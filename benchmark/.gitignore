@@ -1,1 +1,4 @@
 img/
+__pycache__/
+# derived by fuse.py from committed inputs; re-create with python3 fuse.py
+results-fused*.jsonl

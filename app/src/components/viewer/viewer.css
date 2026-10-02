@@ -54,16 +54,38 @@
   background: color-mix(in srgb, var(--c) 16%, transparent);
   box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 45%, transparent);
 }
+/* Three outline styles so box meaning survives without hue (grayscale, colour-blind readers):
+   active finding = solid 2px + tint · normal structure = thin dashed · excluded from draft = dotted, no tint. */
 .vw-finding[data-severity='normal'] {
   border-style: dashed;
+  border-width: 1px;
   opacity: 0.6;
 }
-/* Not supported by the TorchXRayVision cross-check: outline only, so it does not read as a confirmed region. */
-.vw-finding[data-unsupported] {
+.vw-finding[data-excluded] {
   background: none;
   box-shadow: none;
+  border-style: dotted;
+  border-width: 2px;
+  opacity: 0.7;
+}
+/* Unconfirmed by the classifier: still in the draft, so tinted, but with a dashed edge. */
+.vw-finding[data-unconfirmed] {
   border-style: dashed;
-  opacity: 0.55;
+}
+.vw-finding[data-excluded] .vw-chip {
+  width: auto;
+  min-width: 22px;
+  padding: 0 4px;
+  background: var(--viewer-bg);
+  color: var(--viewer-fg);
+  border: 2px dotted var(--c);
+  box-sizing: border-box;
+}
+.vw-finding:focus { outline: none; }
+.vw-finding:focus-visible {
+  outline: 2px solid var(--viewer-fg);
+  outline-offset: 3px;
+  opacity: 1;
 }
 .vw-finding.vw-found {
   background: color-mix(in srgb, var(--c) 26%, transparent);
@@ -172,10 +194,36 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-.vw-badge-rt {
+.vw-hud-rt {
   position: absolute;
   top: var(--sp-3);
   right: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+  pointer-events: none;
+  user-select: none;
+}
+.vw-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--viewer-hud);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  font: 500 var(--text-caption) / 1.2 var(--font-sans);
+  color: var(--viewer-fg);
+}
+.vw-legend-swatch {
+  width: 14px;
+  height: 10px;
+  border: 2px dotted var(--viewer-fg);
+  border-radius: 2px;
+}
+.vw-badge-rt {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -485,6 +533,15 @@
   background: var(--accent);
   animation: pulse 1s ease-in-out infinite;
 }
+/* Not yet read: hollow ring, so an unread film is visible at a glance and not mistaken for "normal". */
+.vw-dot.vw-unread {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--viewer-fg), 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+.vw-dot.vw-error { background: var(--red); }
+@media (prefers-reduced-motion: reduce) {
+  .vw-dot.vw-analyzing { animation: none; }
+}
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
@@ -512,3 +569,13 @@
   width: 24px;
   height: 24px;
 }.vw-drop { cursor: pointer; }
+
+/* Keyboard focus on filmstrip items and the remove control. */
+.vw-thumb:focus { outline: none; }
+.vw-thumb:focus-visible,
+.vw-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.vw-thumb:focus-within .vw-remove { opacity: 1; }
+.vw-remove:focus-visible { outline: 2px solid var(--viewer-fg); outline-offset: 1px; }

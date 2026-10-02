@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, PanelRight, Settings, User, Zap } from 'luci
 import { useApp, useActiveStudy } from '../../store'
 import { toast } from './toastStore'
 import { runAnalysisForStudy } from '../../lib/analysis'
+import { checkNow } from '../../lib/connection'
 import { useShell } from './shellState'
 import type { ConnectionState, PatientInfo, StudyImage } from '../../types'
 import './shell.css'
@@ -52,7 +53,7 @@ export function Toolbar() {
       </div>
 
       <div className="sh-toolbar-right">
-        <AnalyzeAll studyId={study?.id ?? null} images={study?.images ?? []} />
+        <AnalyzeAll studyId={study?.id ?? null} images={study?.images ?? []} connection={connection} />
         <ConnectionPill connection={connection} />
         <InspectorToggle />
         <button type="button" className="icon-btn" aria-label="Settings" onClick={() => useApp.getState().openSheet('settings')}>
@@ -91,16 +92,28 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
       connection === 'model-missing' ? 'sh-connection-pill--missing' :
         connection === 'checking' ? 'sh-connection-pill--checking' : 'sh-connection-pill--offline'
   return (
-    <button type="button" className={`sh-connection-pill ${cls}`}>
-      <span className="sh-conn-dot" />
+    <button
+      type="button"
+      className={`sh-connection-pill ${cls}`}
+      title="Check the LM Studio connection now"
+      aria-label={`MedGemma: ${label}. Check connection`}
+      disabled={connection === 'checking'}
+      onClick={() => {
+        void checkNow().then((c) => {
+          if (c !== 'online') toast(c === 'model-missing' ? 'LM Studio is up, but the model is not loaded' : 'LM Studio is not reachable', 'error')
+        })
+      }}
+    >
+      <span className="sh-conn-dot" aria-hidden="true" />
       {label}
     </button>
   )
 }
 
-function AnalyzeAll({ studyId, images }: { studyId: string | null; images: StudyImage[] }) {
+function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; images: StudyImage[]; connection: ConnectionState }) {
   const analyzingCount = images.filter((i) => i.status === 'analyzing').length
   const idleCount = images.filter((i) => i.status === 'idle').length
+  const off = connection === 'offline' || connection === 'model-missing'
 
   const analyze = () => {
     if (!studyId || idleCount === 0) return
@@ -124,7 +137,13 @@ function AnalyzeAll({ studyId, images }: { studyId: string | null; images: Study
   }
 
   return (
-    <button type="button" className="btn btn-primary btn-sm sh-analyze-btn" onClick={analyze}>
+    <button
+      type="button"
+      className="btn btn-primary btn-sm sh-analyze-btn"
+      onClick={analyze}
+      disabled={off && analyzingCount === 0}
+      title={off ? 'LM Studio is offline or the model is not loaded' : undefined}
+    >
       <Zap />
       {label}
     </button>

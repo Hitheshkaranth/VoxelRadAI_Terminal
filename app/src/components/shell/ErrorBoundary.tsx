@@ -1,13 +1,24 @@
 import { Component, type ReactNode } from 'react'
 
 /** Contains a render crash to one pane instead of blanking the whole app. */
-export class ErrorBoundary extends Component<{ children: ReactNode; label: string; resetKey?: unknown }, { error: Error | null }> {
-  state = { error: null as Error | null }
+interface Props {
+  children: ReactNode
+  label: string
+  resetKey?: unknown
+}
+interface State {
+  error: Error | null
+  resetKey?: unknown
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { error: null, resetKey: this.props.resetKey }
   static getDerivedStateFromError(error: Error) {
     return { error }
   }
-  componentDidUpdate(prev: { resetKey?: unknown }) {
-    if (prev.resetKey !== this.props.resetKey && this.state.error) this.setState({ error: null })
+  /** A new resetKey (e.g. another image selected) clears the error without a setState in an update hook. */
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    return props.resetKey !== state.resetKey ? { error: null, resetKey: props.resetKey } : null
   }
   componentDidCatch(error: Error) {
     console.error(`[${this.props.label}]`, error)

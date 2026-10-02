@@ -418,3 +418,87 @@
 .rp-export-row .btn { width: 100%; }
 
 .rp-disclaimer { font-size: var(--text-caption); color: var(--label-3); line-height: 1.45; padding: 0 var(--sp-1); }
+
+/* Pinned safety line — stays visible while the report scrolls */
+.rp-pin {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
+  margin: calc(var(--sp-3) * -1) calc(var(--sp-3) * -1) 0;
+  padding: 6px var(--sp-3);
+  font: 600 var(--text-caption) / 1.3 var(--font-sans);
+  color: var(--label);
+  background: color-mix(in srgb, var(--orange) 16%, var(--bg-grouped));
+  border-bottom: 0.5px solid color-mix(in srgb, var(--orange) 40%, transparent);
+}
+.rp-pin svg { flex: none; color: var(--orange); }
+.rp-pin-signed { background: color-mix(in srgb, var(--green) 12%, var(--bg-grouped)); border-bottom-color: color-mix(in srgb, var(--green) 35%, transparent); }
+.rp-pin-signed svg { color: var(--green); }
+
+.rp-patient-note {
+  font-size: var(--text-footnote); line-height: 1.45; color: var(--label);
+  padding: var(--sp-2); border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--orange) 10%, transparent);
+}
+
+/* Status banners: stale draft, regenerating, undo */
+.rp-banner { display: flex; align-items: center; gap: var(--sp-2); }
+.rp-banner-text { flex: 1; min-width: 0; font-size: var(--text-footnote); line-height: 1.45; color: var(--label); }
+.rp-banner-ico { flex: none; color: var(--label-2); }
+.rp-banner-ico-muted { color: var(--label-3); }
+.rp-banner-warn {
+  background: color-mix(in srgb, var(--orange) 10%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--orange) 40%, transparent);
+}
+.rp-banner-warn .rp-banner-ico { color: var(--orange); }
+.rp-banner .btn { flex: none; }
+
+/* Excluded-from-draft findings, above the Findings section */
+.rp-field-wrap { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rp-excl { padding: 0; overflow: hidden; border-style: dashed; border-color: var(--separator-strong); }
+.rp-excl-head {
+  display: flex; align-items: center; gap: var(--sp-2); width: 100%;
+  padding: var(--sp-2) var(--sp-3); border: none; background: transparent; cursor: pointer;
+  font: var(--text-footnote) / 1.3 var(--font-sans); color: var(--label); text-align: left;
+}
+.rp-excl-head:hover { background: var(--bg-hover); }
+.rp-excl-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.rp-excl-head svg { flex: none; color: var(--label-2); }
+.rp-excl-title { flex: 1; font-weight: 600; }
+.rp-excl-toggle { color: var(--accent); font-weight: 500; }
+.rp-excl-list { list-style: none; margin: 0; padding: 0; border-top: 0.5px solid var(--separator); }
+.rp-excl-item { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
+.rp-excl-item + .rp-excl-item { border-top: 0.5px solid var(--separator); }
+.rp-excl-body { flex: 1; min-width: 0; }
+.rp-excl-name { font-size: var(--text-footnote); font-weight: 600; color: var(--label); }
+.rp-excl-src { font-weight: 400; color: var(--label-2); }
+.rp-excl-meta { margin-top: 2px; font-size: var(--text-caption); line-height: 1.4; color: var(--label-2); }
+.rp-excl-item .btn { flex: none; }
+.rp-excl-hint { padding: 0 var(--sp-3) var(--sp-2); font-size: var(--text-caption); color: var(--label-2); }
+
+/* Signed seal with inline unlock confirmation */
+.rp-seal { flex-direction: column; align-items: stretch; }
+.rp-seal-row { display: flex; align-items: center; gap: var(--sp-3); }
+
+/* Amendment history */
+.rp-amend { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rp-amend-list { margin: 0; padding-left: 1.1em; font-size: var(--text-footnote); line-height: 1.5; color: var(--label-2); }
+
+/* Export: anonymise option */
+.rp-anon {
+  display: flex; align-items: flex-start; gap: var(--sp-2);
+  font-size: var(--text-caption); line-height: 1.4; color: var(--label-2); cursor: pointer;
+}
+.rp-anon input { flex: none; margin: 1px 0 0; accent-color: var(--accent); }
+
+/* Pre-sign checklist (inside the shared Sheet) */
+.rp-check-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.rp-check-item {
+  display: flex; align-items: flex-start; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm);
+  font: var(--text-body) / 1.45 var(--font-sans); color: var(--label);
+  background: color-mix(in srgb, var(--orange) 8%, var(--bg-elevated));
+}
+.rp-check-item svg { flex: none; margin-top: 2px; color: var(--orange); }
+
+/* Safety text must stay readable: the footer disclaimer uses label-2, not the faint label-3. */
+.rp-disclaimer { color: var(--label-2); }

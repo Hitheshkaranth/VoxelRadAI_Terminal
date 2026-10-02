@@ -2,24 +2,36 @@
 
 export type ToastKind = 'info' | 'success' | 'error'
 
+export interface ToastAction {
+  label: string
+  run: () => void
+}
+
 export interface Toast {
   id: number
   text: string
   kind: ToastKind
+  /** Optional inline action (e.g. Undo). Action toasts stay up longer so there is time to use them. */
+  action?: ToastAction
 }
 
 let toasts: Toast[] = []
 const listeners = new Set<() => void>()
 let seq = 1
 
-export function toast(text: string, kind: ToastKind = 'info'): void {
+const emit = () => listeners.forEach((l) => l())
+
+export function toast(text: string, kind: ToastKind = 'info', action?: ToastAction): void {
   const id = seq++
-  toasts = [...toasts, { id, text, kind }]
-  listeners.forEach((l) => l())
-  setTimeout(() => {
-    toasts = toasts.filter((t) => t.id !== id)
-    listeners.forEach((l) => l())
-  }, 3600)
+  toasts = [...toasts, { id, text, kind, action }]
+  emit()
+  setTimeout(() => dismissToast(id), action ? 8000 : 3600)
+}
+
+export function dismissToast(id: number): void {
+  if (!toasts.some((t) => t.id === id)) return
+  toasts = toasts.filter((t) => t.id !== id)
+  emit()
 }
 
 export function subscribeToasts(fn: () => void): () => void {

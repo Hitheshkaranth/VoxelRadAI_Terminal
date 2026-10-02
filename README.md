@@ -21,7 +21,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 
 <img src="docs/screenshots/hero-dark.png" alt="Skanda Radiology in dark mode: an adult chest X-ray with MedGemma findings drawn as dashed boxes because the classifier did not support them" width="100%">
 
-<sub>An NIH film labelled <i>effusion + atelectasis</i>. MedGemma called a right apical pneumothorax and a right lower lobe opacity; the classifier supported neither, so both are drawn dashed, flagged on their cards and kept out of the draft report.</sub>
+<sub>An NIH film labelled <i>effusion + atelectasis</i>. MedGemma called a right apical pneumothorax and a right lower lobe opacity; the classifier supported neither, so both are drawn dashed and flagged on their cards as unconfirmed.</sub>
 
 </div>
 
@@ -37,7 +37,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (window/level + rescale applied). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured finding boxes linked to the findings list. |
 | 🧠 **Analysis** | Streamed progress, urgency (routine / priority / urgent), severity breakdown, impression, findings, pertinent negatives, differential, recommendations, raw model output for audit. |
-| 🛡️ **Second opinion** | Every finding is cross-checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s). Unsupported findings are drawn dashed and left out of the count and the draft report. |
+| 🛡️ **Second opinion** | Every finding is cross-checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s). Unsupported findings stay in, drawn dashed and marked *unconfirmed*; the draft words them as possible and the pre-sign checklist lists them. Optional MAIRA-2 second reader for effusion, nodule/mass and atelectasis. |
 | 📊 **Honest confidence** | Each card shows how often that finding type was confirmed in the benchmark (e.g. *3/7 pneumothorax calls confirmed — verify carefully*) next to the model's self-stated confidence. |
 | 📝 **Report** | AI-drafted structured report (technique, comparison, findings, impression, recommendations), fully editable, sign-off, A4 print/PDF with annotated key images, plain-text and JSON export. |
 | 🔒 **Private by design** | Inference is local (LM Studio + a local Python service); studies persist in the browser's IndexedDB. Nothing is uploaded. |
@@ -51,7 +51,7 @@ All screenshots are real runs of the app on this Mac, using films from the bench
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/cross-check.png" alt="Normal film with a false consolidation finding drawn dashed">
-<p><b>Cross-check catching a false alarm.</b> An NIH film labelled <i>No Finding</i>. MedGemma reports a right lower lobe consolidation at 95% self-stated confidence; the classifier gives opacity only 36%, so the box is dashed and the finding is kept out of the report.</p>
+<p><b>Cross-check catching a false alarm.</b> An NIH film labelled <i>No Finding</i>. MedGemma reports a right lower lobe consolidation at 95% self-stated confidence; the classifier gives opacity only 36%, so the box is dashed and the finding is marked unconfirmed.</p>
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/pediatric-pneumonia.png" alt="Pediatric pneumonia with bilateral lower lobe consolidation boxes">
@@ -115,7 +115,7 @@ sequenceDiagram
     A->>M: Lung-pattern check (neutral 0–3 grade, temperature 0)
     M-->>A: Grade ≥ 2 adds an interstitial finding
     A->>C: Image + findings
-    C-->>A: Probability per finding type (< 0.5 = unsupported)
+    C-->>A: Probability per finding type (below the per-class threshold = unconfirmed)
     A->>U: Boxes, cards, reliability, priority
     U->>A: Open Report tab
     A->>M: Draft report from supported findings only
@@ -169,7 +169,22 @@ node --experimental-strip-types scripts/test-parse.ts  # model-output parser tes
 
 ## 📈 Benchmark
 
-[`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over **56 public, labelled chest X-rays** and scores it. Three approaches were compared on the same images:
+[`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
+
+**Held-out result (Oct 2026):** 111 [ChestX-Det](https://github.com/Deepwise-AILab/ChestX-Det-Dataset) test films labelled by 3 radiologists; every rule and threshold was chosen on a separate 106-film dev split. Wilson 95% CIs.
+
+| | 🧠 MedGemma 27B | 🧠 + 🔬 MAIRA-2 second reader |
+|---|:---:|:---:|
+| Abnormal films flagged | 74/82 (90%, CI 82–95) | 75/82 (91%, CI 83–96) |
+| Normal films called normal | 21/29 (72%, CI 54–85) | 21/29 (72%, CI 54–85) |
+| Right finding type, all labels | 90/220 (41%, CI 35–48) | **103/220 (47%, CI 40–53)** |
+| Effusion | 13/43 (30%) | **23/43 (53%)** |
+| Pneumothorax found / calls correct | 10/10 · 10/36 | 10/10 · 10/36 |
+| Box lands on the lesion | 14/85 (16%) | 22/97 (23%) |
+
+Using the classifier to *remove* MedGemma findings lost 17 true abnormal films for 3 more clear normals, so it now marks findings unconfirmed instead. Full tables and the ablation: [benchmark/README.md](benchmark/README.md#results--oct-2026-chestx-det-held-out-test-111-films).
+
+**Original in-sample set:** 56 films (NIH NLP-mined labels + Kermany pediatric). Three approaches were compared on the same images:
 
 | | 🧠 MedGemma 27B | 🧠 + 🛡️ cross-check | 🔬 MAIRA-2 7B |
 |---|:---:|:---:|:---:|
@@ -251,6 +266,8 @@ python3 score.py final results.jsonl         # score (works on the committed res
 
 Raw model outputs for every image are committed, so every number above can be audited without re-running a model. Methodology, what changed in the app, and approaches that were tried and rejected are in [benchmark/README.md](benchmark/README.md).
 
+The numbers above are in-sample: the prompts and rules were tuned while looking at these 56 films. The held-out protocol (ChestX-Det, 217 radiologist-labelled films split into dev and test, with Wilson CIs) is described in [benchmark/README.md § Methodology](benchmark/README.md#methodology). The cross-check's per-class thresholds are tuned on dev and reported on test, and are stored in [`app/server/thresholds.json`](app/server/thresholds.json) (`python3 benchmark/fuse.py`). The held-out MedGemma and MAIRA-2 results are at the top of this section.
+
 ## 🗂 Datasets
 
 Images are **not redistributed** in this repo; [`benchmark/fetch.py`](benchmark/fetch.py) downloads them and [`benchmark/manifest.json`](benchmark/manifest.json) lists the exact 56 images and labels used.
@@ -267,7 +284,8 @@ Manual test images are public chest radiographs from Wikimedia Commons: [normal 
 ## 🚧 Known limitations
 
 - MedGemma's bounding boxes are approximate, and **results vary between runs** (see the report screenshot above).
-- Self-reported confidence is uncalibrated; finding cards show the benchmark confirmation rate for each finding type instead (weak: pneumothorax 3/7, effusion 1/9, cardiomegaly 1/7).
+- Self-reported confidence is uncalibrated; finding cards show the held-out confirmation rate for each finding type instead (weak: pneumothorax 10/36, cardiomegaly 3/12 films with that call were right).
+- MedGemma misses fractures (0/12) and most pleural thickening (2/16), and its boxes land on the lesion only 16% of the time on radiologist-labelled films.
 - Subtle interstitial patterns (prominent bronchovascular markings, perihilar opacities, peribronchial cuffing) are under-called by the main read. A second, neutral graded lung-pattern check (0–3 scale, ~10 s) adds a finding when the grade is ≥ 2; on a 12-film labelled set this raised detection from 6/7 to 7/7 with no false positives on 5 normals. That is a small sample, so treat it as directional.
 - Leading yes/no questions ("is X present?") are unreliable: the model tends to agree with whatever is asked, including on normal films.
 - The classifier can miss real effusions (0.08–0.10 on 2 of 6), so a dashed finding is a prompt to look again, not a verdict.

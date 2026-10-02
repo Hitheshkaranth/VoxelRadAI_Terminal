@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint --react-plugin -D react/rules-of-hooks src",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "for f in scripts/test-*.ts; do node --experimental-strip-types $f || exit 1; done"
   },
   "dependencies": {
     "dicom-parser": "^1.8.21",

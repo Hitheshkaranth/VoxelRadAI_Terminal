@@ -2,7 +2,9 @@
 // retry, and a serial queue so only one inference hits LM Studio at a time.
 import type { AnalysisResult, ConnectionState, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
 import { buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT } from './prompts'
-import { extractJson, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
+import { extractJson, extractJsonWithInfo, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
+import { parseSseLines, type SseParse } from './sse'
+import { createSerialQueue } from './queue'
 
 export type GeneratedReport = Pick<ReportDraft, 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'>
 
@@ -17,27 +19,10 @@ interface ChatPart {
   image_url?: { url: string }
 }
 
-interface SseChoice {
-  delta?: { content?: string }
-}
-interface SsePayload {
-  error?: string | { message?: string }
-  choices?: SseChoice[]
-}
-
 // ---- Serial queue ----------------------------------------------------------
 
-type Task<T> = () => Promise<T>
-let chain: Promise<unknown> = Promise.resolve()
-/** Run `task` after every prior queued task, serially, regardless of earlier outcomes. */
-function enqueue<T>(task: Task<T>): Promise<T> {
-  const result = chain.then(task, task)
-  chain = result.then(
-    () => undefined,
-    () => undefined,
-  )
-  return result
-}
+/** One inference at a time hits LM Studio; a cancelled job that is still waiting never starts. */
+const queue = createSerialQueue()
 
 // ---- URL helpers -----------------------------------------------------------
 
@@ -62,9 +47,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** Downscale to a JPEG with long edge <= maxEdge. MedGemma internally uses ~896px. */
-async function reencodeImage(image: StudyImage, maxEdge = 1024): Promise<string> {
-  const img = await loadImage(image.dataUrl)
+/**
+ * Downscale to a JPEG with long edge <= 1024 px (MedGemma internally uses ~896 px). Shared by the
+ * model calls and the TorchXRayVision cross-check so every reader sees the same pixels.
+ */
+export async function reencodeForClassifier(dataUrl: string): Promise<string> {
+  const maxEdge = 1024
+  const img = await loadImage(dataUrl)
   const scale = Math.min(1, maxEdge / Math.max(img.width, img.height))
   const width = Math.max(1, Math.round(img.width * scale))
   const height = Math.max(1, Math.round(img.height * scale))
@@ -76,10 +65,19 @@ async function reencodeImage(image: StudyImage, maxEdge = 1024): Promise<string>
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, width, height)
   ctx.drawImage(img, 0, 0, width, height)
-  return canvas.toDataURL('image/jpeg', 0.92)
+  return canvas.toDataURL('image/jpeg', 0.9)
 }
 
 // ---- SSE streaming ---------------------------------------------------------
+
+/** No streamed bytes for this long → the request is aborted as stalled. */
+const IDLE_TIMEOUT_MS = 120_000
+
+export interface ChatResult {
+  text: string
+  /** choices[0].finish_reason of the last chunk ("stop", "length", ...), when the server sent one. */
+  finish?: string
+}
 
 export async function chatStream({
   settings,
@@ -95,90 +93,96 @@ export async function chatStream({
   onDelta?: (text: string) => void
   maxTokens?: number
   temperature?: number
-}): Promise<string> {
-  const url = endpoint(settings, '/chat/completions')
-  const init: RequestInit = {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: settings.model,
-      messages,
-      stream: true,
-      temperature: temperature ?? settings.temperature,
-      max_tokens: maxTokens ?? settings.maxTokens,
-    }),
-    signal,
+}): Promise<ChatResult> {
+  if (signal?.aborted) throw abortError()
+  // Own controller so a stalled stream can be aborted without touching the caller's signal.
+  const ac = new AbortController()
+  const forward = () => ac.abort()
+  signal?.addEventListener('abort', forward, { once: true })
+  let timedOut = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const arm = () => {
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      timedOut = true
+      ac.abort()
+    }, IDLE_TIMEOUT_MS)
   }
+  const stalled = () => new Error(`Model stopped responding (no output for ${IDLE_TIMEOUT_MS / 1000} s).`)
 
-  let res: Response
   try {
-    res = await fetch(url, init)
-  } catch (err) {
-    if (isAbort(err)) throw abortError()
-    throw new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
-  }
-  if (!res.ok) throw new Error(await readErrorBody(res))
-
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let out = ''
-  let cancelled = false
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    let nl: number
-    while ((nl = buffer.indexOf('\n')) >= 0) {
-      let line = buffer.slice(0, nl).trim()
-      buffer = buffer.slice(nl + 1)
-      if (!line.startsWith('data:')) continue
-      const payload = line.slice(5).trim()
-      if (payload === '[DONE]') {
-        cancelled = true
-        break
-      }
-      let json: SsePayload
-      try {
-        json = JSON.parse(payload)
-      } catch {
-        continue // partial line already buffered; wait for next chunk
-      }
-      if (json.error) {
-        const err = typeof json.error === 'string' ? json.error : (json.error.message ?? 'LM Studio returned an error.')
-        throw new Error(err)
-      }
-      const delta = json.choices?.[0]?.delta?.content
-      if (delta) {
-        out += delta
-        onDelta?.(delta)
-      }
-    }
-    if (cancelled) break
-  }
-
-  // Flush any trailing partial data line.
-  const rest = buffer.trim()
-  if (!cancelled && rest.startsWith('data:')) {
+    arm()
+    let res: Response
     try {
-      const json: SsePayload = JSON.parse(rest.slice(5).trim())
-      if (!json.error) {
-        const delta = json.choices?.[0]?.delta?.content
-        if (delta) out += delta
-      }
-    } catch {
-      // ignore
+      res = await fetch(endpoint(settings, '/chat/completions'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: settings.model,
+          messages,
+          stream: true,
+          temperature: temperature ?? settings.temperature,
+          max_tokens: maxTokens ?? settings.maxTokens,
+        }),
+        signal: ac.signal,
+      })
+    } catch (err) {
+      if (timedOut) throw stalled()
+      if (isAbort(err) || signal?.aborted) throw abortError()
+      throw new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
     }
-  }
+    if (!res.ok) throw new Error(await readErrorBody(res))
+    if (!res.body) throw new Error('LM Studio returned an empty response.')
 
-  try {
-    await reader.cancel()
-  } catch {
-    // ignore
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let text = ''
+    let finish: string | undefined
+    const bad: string[] = []
+    const absorb = (p: SseParse) => {
+      if (p.error) throw new Error(`LM Studio error: ${p.error}`)
+      bad.push(...p.bad)
+      if (p.finish) finish = p.finish
+      if (p.text) {
+        text += p.text
+        onDelta?.(p.text)
+      }
+    }
+
+    try {
+      let sawDone = false
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        arm()
+        const p = parseSseLines(buffer + decoder.decode(value, { stream: true }))
+        buffer = p.rest
+        absorb(p)
+        if (p.done) {
+          sawDone = true
+          break
+        }
+      }
+      // Flush a final line the server did not newline-terminate.
+      if (!sawDone) absorb(parseSseLines(buffer + decoder.decode() + '\n'))
+    } catch (err) {
+      if (timedOut) throw stalled()
+      if (isAbort(err) || signal?.aborted) throw abortError()
+      throw err
+    } finally {
+      reader.cancel().catch(() => undefined)
+    }
+
+    if (bad.length) {
+      if (!text) throw new Error(`LM Studio sent an unreadable stream (${bad[0].slice(0, 80)}).`)
+      console.warn(`[medgemma] ${bad.length} unreadable stream line(s) skipped`, bad)
+    }
+    return { text, finish }
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', forward)
   }
-  return out
 }
 
 async function readErrorBody(res: Response): Promise<string> {
@@ -219,10 +223,10 @@ export async function checkConnection(settings: Settings): Promise<ConnectionSta
     if (!res.ok) return 'offline'
     const data = await res.json().catch(() => null)
     const models: { id?: unknown }[] = Array.isArray(data?.data) ? data.data : []
-    const wanted = (settings.model || '').toLowerCase()
-    const exists = models.some(
-      (m) => m && typeof m.id === 'string' && (m.id === wanted || m.id.toLowerCase().includes(wanted)),
-    )
+    const wanted = (settings.model || '').trim().toLowerCase()
+    if (!wanted) return 'model-missing'
+    // Exact id match: a substring match would report "online" for a different model or quantisation.
+    const exists = models.some((m) => m && typeof m.id === 'string' && m.id.toLowerCase() === wanted)
     return exists ? 'online' : 'model-missing'
   } catch {
     return 'offline'
@@ -233,9 +237,11 @@ export async function checkConnection(settings: Settings): Promise<ConnectionSta
 
 // ---- analyzeImage ----------------------------------------------------------
 
-const RETRY_PROMPT = `The previous response could not be parsed. Return ONLY a single valid JSON
-object for the exact same schema and findings you already generated — no prose, no markdown, no
-code fences.`
+const RETRY_PROMPT = `Your previous reply could not be parsed as JSON. Return the same read again as ONLY a
+single valid JSON object that matches the schema in my first message: same findings, no new ones,
+no prose, no markdown, no code fences.`
+
+export type AnalyzeStage = 'queued' | 'reading' | 'retry' | 'lung-pattern'
 
 export async function analyzeImage(opts: {
   image: StudyImage
@@ -243,67 +249,112 @@ export async function analyzeImage(opts: {
   settings: Settings
   signal?: AbortSignal
   onProgress?: (text: string) => void
+  onStage?: (s: AnalyzeStage) => void
 }): Promise<AnalysisResult> {
   const t0 = Date.now()
-  let tokens = 0
+  const { settings, signal } = opts
+  let chars = 0
 
-  const run = async (followup: boolean): Promise<string> => {
-    opts.onProgress?.(followup ? 'Regenerating findings…' : 'Reviewing image…')
-    const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: await reencodeImage(opts.image) } },
-          { type: 'text', text: followup ? RETRY_PROMPT : buildAnalysisPrompt(opts.patient) },
-        ],
-      },
-    ]
-    return enqueue(() =>
-      chatStream({
-        settings: opts.settings,
-        messages,
-        signal: opts.signal,
-        onDelta: (d) => {
-          tokens += d.length
-          if (!followup) opts.onProgress?.(`Writing findings · ${tokens} tokens`)
-        },
-      }),
-    )
+  opts.onStage?.('queued')
+  if (queue.size() > 0) opts.onProgress?.('Waiting for the model…')
+  // Encode once; the retry and the lung-pattern pass reuse the same pixels.
+  const imageUrl = await reencodeForClassifier(opts.image.dataUrl)
+  const firstTurn: ChatMessage[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    {
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: imageUrl } },
+        { type: 'text', text: buildAnalysisPrompt(opts.patient) },
+      ],
+    },
+  ]
+  const onDelta = (d: string) => {
+    chars += d.length
+    opts.onProgress?.(`Writing findings · ${chars.toLocaleString()} chars`)
+  }
+
+  const toResult = (r: ChatResult): AnalysisResult => {
+    const info = extractJsonWithInfo(r.text)
+    return normalizeAnalysis(info.value, {
+      rawText: r.text,
+      model: settings.model,
+      durationMs: Date.now() - t0,
+      truncated: info.closedContainers || r.finish === 'length',
+    })
   }
 
   const withPattern = async (a: AnalysisResult) => {
-    const merged = mergeLungPattern(a, await checkLungPattern(opts))
+    const merged = mergeLungPattern(a, await checkLungPattern({ ...opts, imageUrl }))
     return { ...merged, durationMs: Date.now() - t0 }
   }
 
+  let first: ChatResult
   try {
-    const text = await run(false)
-    return await withPattern(normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 }))
+    first = await queue.enqueue(() => {
+      opts.onStage?.('reading')
+      opts.onProgress?.('Reviewing image…')
+      return chatStream({ settings, messages: firstTurn, signal, onDelta })
+    }, signal)
   } catch (err) {
-    if (isAbort(err) || opts.signal?.aborted) throw abortError()
-    // Retry only when the model produced non-JSON output; surface network errors directly.
-    if (!isParseableError(err)) {
-      throw isNetworkish(err)
-        ? new Error(`LM Studio is not reachable at ${opts.settings.baseUrl}. Ensure it is running.`)
-        : new Error(err instanceof Error ? err.message : 'Analysis failed.')
-    }
+    if (isAbort(err) || signal?.aborted) throw abortError()
+    throw isNetworkish(err)
+      ? new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
+      : new Error(err instanceof Error ? err.message : 'Analysis failed.')
+  }
+
+  let parsed: AnalysisResult
+  try {
+    parsed = toResult(first)
+  } catch (err) {
+    if (!isParseableError(err)) throw err
+    // Retry with the schema (first turn) and the unparseable answer in context, deterministically.
+    chars = 0
+    let second: ChatResult
     try {
-      const text = await run(true)
-      return await withPattern(normalizeAnalysis(extractJson(text), { rawText: text, model: opts.settings.model, durationMs: Date.now() - t0 }))
+      second = await queue.enqueue(() => {
+        opts.onStage?.('retry')
+        opts.onProgress?.('Answer was not valid JSON · asking again…')
+        return chatStream({
+          settings,
+          temperature: 0,
+          signal,
+          onDelta,
+          messages: [...firstTurn, { role: 'assistant', content: first.text || '(empty reply)' }, { role: 'user', content: RETRY_PROMPT }],
+        })
+      }, signal)
     } catch (retryErr) {
-      if (isAbort(retryErr) || opts.signal?.aborted) throw abortError()
+      if (isAbort(retryErr) || signal?.aborted) throw abortError()
       throw retryErr
     }
+    try {
+      parsed = toResult(second)
+    } catch (retryErr) {
+      if (!isParseableError(retryErr)) throw retryErr
+      const cut = first.finish === 'length' || second.finish === 'length'
+      throw new Error(
+        cut
+          ? 'The model output was cut off at the token limit and could not be read. Raise Max tokens in Settings and re-analyse.'
+          : 'The model did not return readable findings, even after a retry. Re-analyse or review the image manually.',
+      )
+    }
   }
+  return withPattern(parsed)
 }
 
 /** Neutral graded lung-pattern check (see LUNG_PATTERN_PROMPT). Best-effort: returns null on any non-abort failure. */
-async function checkLungPattern(opts: { image: StudyImage; settings: Settings; signal?: AbortSignal; onProgress?: (t: string) => void }) {
-  opts.onProgress?.('Checking lung markings…')
+async function checkLungPattern(opts: {
+  imageUrl: string
+  settings: Settings
+  signal?: AbortSignal
+  onProgress?: (t: string) => void
+  onStage?: (s: AnalyzeStage) => void
+}) {
   try {
-    const text = await enqueue(async () =>
-      chatStream({
+    const { text } = await queue.enqueue(() => {
+      opts.onStage?.('lung-pattern')
+      opts.onProgress?.('Checking lung markings…')
+      return chatStream({
         settings: opts.settings,
         temperature: 0,
         maxTokens: 200,
@@ -313,13 +364,13 @@ async function checkLungPattern(opts: { image: StudyImage; settings: Settings; s
           {
             role: 'user',
             content: [
-              { type: 'image_url', image_url: { url: await reencodeImage(opts.image) } },
+              { type: 'image_url', image_url: { url: opts.imageUrl } },
               { type: 'text', text: LUNG_PATTERN_PROMPT },
             ],
           },
         ],
-      }),
-    )
+      })
+    }, opts.signal)
     return parseLungPattern(extractJson(text))
   } catch (err) {
     if (isAbort(err) || opts.signal?.aborted) throw abortError()
@@ -331,13 +382,13 @@ async function checkLungPattern(opts: { image: StudyImage; settings: Settings; s
 function isParseableError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   const m = err.message.toLowerCase()
-  return m.includes('unable to parse json') || m.includes('could not recover') || m.includes('no json content') || m.includes('parse json from model')
+  return m.includes('unable to parse json') || m.includes('no json content')
 }
 
 function isNetworkish(err: unknown): boolean {
   if (err instanceof Error) {
     const m = err.message.toLowerCase()
-    return m.includes('lm studio is not') || m.includes('lm studio request failed') || m.includes('networkerror') || m.includes('fetch failed') || m.includes('aborted')
+    return m.includes('networkerror') || m.includes('fetch failed')
   }
   return false
 }
@@ -350,22 +401,37 @@ export async function generateReport(opts: {
   signal?: AbortSignal
   onProgress?: (text: string) => void
 }): Promise<GeneratedReport> {
-  return enqueue(async () => {
-    opts.onProgress?.('Compiling report…')
-    const prompt = buildReportPrompt(opts.study)
-    const text = await chatStream({
-      settings: opts.settings,
-      messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: prompt }],
-      signal: opts.signal,
-      onDelta: (d) => opts.onProgress?.(`Writing report · ${d.length} tokens`),
+  let chars = 0
+  const { text, finish } = await queue
+    .enqueue(() => {
+      opts.onProgress?.('Compiling report…')
+      return chatStream({
+        settings: opts.settings,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: buildReportPrompt(opts.study) },
+        ],
+        signal: opts.signal,
+        onDelta: (d) => {
+          chars += d.length
+          opts.onProgress?.(`Writing report · ${chars.toLocaleString()} chars`)
+        },
+      })
+    }, opts.signal)
+    .catch((err: unknown) => {
+      if (isAbort(err) || opts.signal?.aborted) throw abortError()
+      throw err
     })
-    let fields: ReportFields
-    try {
-      fields = normalizeReport(extractJson(text))
-    } catch {
-      if (opts.signal?.aborted) throw abortError()
-      throw new Error(`Could not parse the report. (${text.slice(0, 120)})`)
-    }
-    return fields
-  })
+  let fields: ReportFields
+  try {
+    fields = normalizeReport(extractJson(text))
+  } catch {
+    throw new Error(`Could not parse the report. (${text.slice(0, 120)})`)
+  }
+  if (finish === 'length') {
+    // Never let a cut-off draft pass as complete.
+    const note = 'Note: the generated draft was cut off at the token limit and may be incomplete; review before signing.'
+    fields = { ...fields, recommendations: fields.recommendations ? `${fields.recommendations}\n${note}` : note }
+  }
+  return fields
 }

@@ -4,6 +4,9 @@ import { Pencil, Plus, Scan, Search, Settings, Trash2 } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
 import { useApp } from '../../store'
+import { cancelImages } from '../../lib/analysis'
+import { findingCounts, worstSeverity } from '../../lib/classifier'
+import { countLabel } from './shellState'
 import { toast } from './toastStore'
 import './shell.css'
 
@@ -137,6 +140,8 @@ function StudyRow({
     setEditingId(null)
   }
   const deleteStudy = () => {
+    // Stop queued / running reads first so they don't write into a deleted study.
+    cancelImages(study.images.map((i) => i.id))
     useApp.getState().deleteStudy(study.id)
     useApp.getState().openSheet(null)
     toast('Study deleted', 'success')
@@ -170,12 +175,12 @@ function StudyRow({
       onClick={() => useApp.getState().selectStudy(study.id)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); useApp.getState().selectStudy(study.id) } }}
     >
-      <StatusDot sev={status.sev} analyzing={status.analyzing} />
+      <StatusDot sev={status.sev} analyzing={status.analyzing} read={status.read} />
       <div className="sh-row-main">
         <div className="sh-row-title">{name}</div>
         <div className="sh-row-sub">
           {study.patient.patientId && <>{study.patient.patientId} · </>}
-          <Subline study={study} sev={status.sev} analyzing={status.analyzing} />
+          <Subline study={study} status={status} />
         </div>
       </div>
       <div className="sh-row-actions">
@@ -192,25 +197,34 @@ function StudyRow({
   )
 }
 
-function Subline({ study, sev, analyzing }: { study: Study; sev: Severity | null; analyzing: boolean }) {
-  if (analyzing) return <>analyzing…</>
+function Subline({ study, status }: { study: Study; status: StudyStatus }) {
+  if (status.analyzing) return <>analyzing…</>
   const n = study.images.length
   return (
     <>
       {fmtDate(study.updatedAt)} · {n} image{n === 1 ? '' : 's'}
-      {sev && (
+      {status.read && (
         <>
-          · <span className="sh-sev-tag">{SEVERITY_LABEL[sev]}</span>
+          {' · '}
+          {countLabel(status.active, status.flagged)}
+        </>
+      )}
+      {status.sev && status.sev !== 'normal' && (
+        <>
+          {' · '}<span className="sh-sev-tag">{SEVERITY_LABEL[status.sev]}</span>
         </>
       )}
     </>
   )
 }
 
-function StatusDot({ sev, analyzing }: { sev: Severity | null; analyzing: boolean }) {
-  if (analyzing) return <span className="sh-ping sh-ping--spin" aria-label="Analyzing" />
-  if (sev) return <span className="sh-ping" data-severity={sev} aria-label={SEVERITY_LABEL[sev]} />
-  return <span className="sh-ping" style={{ '--c': 'var(--label-4)' } as React.CSSProperties} />
+function StatusDot({ sev, analyzing, read }: { sev: Severity | null; analyzing: boolean; read: boolean }) {
+  if (analyzing) return <span className="sh-ping sh-ping--spin" role="img" aria-label="Analyzing" />
+  if (sev) return <span className="sh-ping" data-severity={sev} role="img" aria-label={sev === 'normal' ? 'No acute findings' : SEVERITY_LABEL[sev]} />
+  return (
+    <span className="sh-ping" role="img" aria-label={read ? 'Read' : 'Not analyzed yet'}
+      style={{ '--c': 'var(--label-4)' } as React.CSSProperties} />
+  )
 }
 
 function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionState; onOpenSettings: () => void }) {
@@ -261,16 +275,25 @@ function fmtDate(ts: number): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function studyStatus(images: StudyImage[]): { sev: Severity | null; analyzing: boolean } {
+interface StudyStatus { sev: Severity | null; analyzing: boolean; read: boolean; active: number; flagged: number }
+
+/** Worst active severity and counts across a study — same helpers as the filmstrip and inspector. */
+function studyStatus(images: StudyImage[]): StudyStatus {
   let sev: Severity | null = null
   let analyzing = false
+  let read = false
+  let active = 0
+  let flagged = 0
   for (const img of images) {
     if (img.status === 'analyzing') analyzing = true
     const a = img.analysis
     if (!a) continue
-    for (const f of a.findings) {
-      if (sev === null || SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(sev)) sev = f.severity
-    }
+    read = true
+    const c = findingCounts(a)
+    active += c.active
+    flagged += c.flagged
+    const w = worstSeverity(a.findings) ?? 'normal'
+    if (sev === null || SEVERITY_ORDER.indexOf(w) < SEVERITY_ORDER.indexOf(sev)) sev = w
   }
-  return { sev, analyzing }
+  return { sev, analyzing, read, active, flagged }
 }

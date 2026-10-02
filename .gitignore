@@ -6,3 +6,4 @@ dist/
 swarm-logs/
 sample-xrays/
 *.log
+__pycache__/

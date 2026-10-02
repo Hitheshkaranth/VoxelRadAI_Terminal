@@ -468,6 +468,20 @@
 .sh-toast--success { background: var(--green); color: #06320f; }
 .sh-toast--error { background: var(--red); color: #3a0100; }
 .sh-toast svg { width: 16px; height: 16px; flex: none; }
+/* The stack ignores the pointer; an action button opts back in. */
+.sh-toast-action {
+  pointer-events: auto;
+  margin-left: var(--sp-1);
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+  font: 600 var(--text-footnote) / 1 var(--font-sans);
+  cursor: default;
+}
+.sh-toast-action:hover { background: color-mix(in srgb, currentColor 28%, transparent); }
+.sh-toast-action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 @keyframes sh-in {
   from { opacity: 0; }
@@ -527,3 +541,4 @@
 .sh-empty-features { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: var(--sp-5); margin-top: var(--sp-2); }
 .sh-inspector-head .segmented > button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 96px; }
 .sh-inspector-head .segmented .sh-count-badge { height: 16px; padding: 0 6px; font-size: 10px; }
+.sh-count-badge .sh-count-flag { font-weight: 500; color: var(--label-2); }

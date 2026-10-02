@@ -401,7 +401,7 @@
 .rp-footer-disclaimer {
   font-size: var(--text-caption);
   line-height: 1.4;
-  color: #8f8f94;
+  color: #55555a;
   max-width: none;
 }
 .rp-footer-page {
@@ -428,6 +428,29 @@
 .rp-table th:nth-child(4), .rp-table td:nth-child(4) { width: 96px; }
 .rp-table th:nth-child(5), .rp-table td:nth-child(5) { width: 78px; }
 .rp-text p, .rp-ordered li { white-space: pre-wrap; }
+/* Findings summary: #, finding, location, severity, benchmark, model-stated */
+.rp-table-findings th:nth-child(5), .rp-table-findings td:nth-child(5) { width: 70px; }
+.rp-table-findings th:nth-child(6), .rp-table-findings td:nth-child(6) { width: 92px; }
+/* Not-included table: #, finding, image, reason */
+.rp-table-excluded th:nth-child(3), .rp-table-excluded td:nth-child(3) { width: 120px; }
+.rp-table-excluded th:nth-child(4), .rp-table-excluded td:nth-child(4) { width: 42%; }
+.rp-table-excluded td { color: #6d6d72; }
+.rp-table-note { color: #6d6d72; font-style: italic; }
+.rp-table-foot {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  color: #6d6d72;
+}
+.rp-legend-excluded .rp-legend-text { color: #6d6d72; }
+.rp-legend-excluded .rp-legend-dot { background: transparent; border: 1px dotted #6d6d72; }
+.rp-amendments {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: var(--text-footnote);
+  line-height: 1.5;
+  color: #3c3c43;
+}
 .rp-thumb { max-width: 100%; }
 
 @media print {

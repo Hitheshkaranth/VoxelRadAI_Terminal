@@ -1,7 +1,9 @@
 // OWNER: Agent 1 (AI engine). Prompts for MedGemma analysis + report generation.
 // Medical decision-support persona. Content is user-facing (appears in logs/reports) — no secrets.
 
-import type { PatientInfo, Study } from '../types'
+import type { Finding, PatientInfo, Study } from '../types'
+// Explicit .ts extension: benchmark/run.mts imports this module under Node.
+import { isExcluded, isUnconfirmed } from './classifier.ts'
 
 /**
  * Board-certified radiologist persona. Instructs a systematic ABCDE-style chest review,
@@ -22,9 +24,11 @@ For CHEST radiographs, use this structured review:
 - Bones: ribs, clavicles, scapulae, spine, shoulders; alignment, fractures, lucencies/sclerosis.
 - Cardiac: heart size (CTR if PA), contours, aortic knob, pericardium.
 - Diaphragm: contour, position, free air beneath, pneumomediastinum.
-- Effusions / Everything else: lungs (parenchyma, consolidations, nodules, edema), pleura
-  (pneumothorax, effusion), mediastinum/hila (width, masses), soft tissues, and all devices/
-  lines/tubes (ET tube, central lines, NG tubes, chest drains, pacemaker leads) — note tip position.
+- Effusions / pleura: costophrenic angles (blunting, meniscus), pleural fluid, pneumothorax
+  (visible pleural edge, absent peripheral markings, apices), pleural thickening or plaques.
+- Everything else: lungs (parenchyma, consolidations, nodules, edema), mediastinum/hila (width,
+  masses), soft tissues, and all devices/lines/tubes (ET tube, central lines, NG tubes, chest
+  drains, pacemaker leads) — note tip position.
 
 For NON-CHEST radiographs, use this systematic review:
 - Bones/joints: alignment, fractures, joint space, lucencies, sclerosis, hardware.
@@ -67,11 +71,11 @@ prose, no markdown):
   "imageQuality": "short phrase: e.g. 'Adequate; mild rotation'",
   "findings": [
     {
-      "title": "short radiological label, e.g. 'Right lower lobe consolidation'",
+      "title": "short radiological label as <laterality> <zone> <finding>, e.g. 'Left apical pneumothorax'",
       "description": "1-3 sentences describing the abnormality concretely",
       "severity": "critical | significant | moderate | minor | normal",
       "confidence": 0.0-1.0,
-      "location": "anatomical location, patient's perspective, e.g. 'right lower zone'",
+      "location": "anatomical location, patient's perspective: <laterality> <zone>, e.g. 'left apex'",
       "category": "Lungs | Pleura | Cardiomediastinal | Bones | Devices | Soft tissue",
       "recommendation": "optional finding-specific follow-up",
       "box_2d": [ymin, xmin, ymax, xmax]  // 0-1000, tight around the abnormality; OMIT for diffuse findings
@@ -113,10 +117,26 @@ export function buildReportPrompt(study: Study): string {
     ? 'A prior study is available for comparison.'
     : 'None available.'
 
-  const images = study.images
-    .filter((i) => i.analysis)
-    // Findings the TorchXRayVision cross-check does not support stay visible (flagged) but are left out of the draft.
-    .map((i) => ({ name: i.name, analysis: { ...i.analysis, findings: i.analysis!.findings.filter((f) => f.classifier?.supported !== false) } }))
+  // Findings the reviewer dismissed are left out. Findings the TorchXRayVision cross-check did not support
+  // (and nobody has reviewed yet) stay in, marked unconfirmed so the draft words them as possible.
+  const images = study.images.flatMap((i) => {
+    const a = i.analysis
+    if (!a) return []
+    return [
+      {
+        name: i.name,
+        analysis: {
+          view: a.view,
+          imageQuality: a.imageQuality,
+          findings: a.findings.filter((f) => !isExcluded(f)).map(reportFinding),
+          pertinentNegatives: a.pertinentNegatives,
+          impression: a.impression,
+          recommendations: a.recommendations,
+          differential: a.differential,
+        },
+      },
+    ]
+  })
 
   return `You are the reporting radiologist. Using the structured findings produced from each image
 below, write a formal, professional radiology report in clear medical prose.
@@ -139,7 +159,24 @@ Report requirements:
 - findings: group by system (e.g. Cardiopulmonary, Bones/soft tissue, Devices). Do not list images
   one-by-one unless genuinely useful; synthesise across them.
 - impression: numbered, highest priority first; state what needs action and how urgently.
-- recommendations: each should carry a sensible timeframe (e.g. 'within 24-48h', '6 weeks').`
+- recommendations: each should carry a sensible timeframe (e.g. 'within 24-48h', '6 weeks').
+- Findings marked "(second reader)" came from a second AI reader; report them like the others.
+- Findings with "unconfirmed": true were not supported by an independent image classifier. Describe
+  them as possible (e.g. 'possible small left effusion'), never as definite, and add one recommendation
+  that they be verified on the image by the radiologist.`
+}
+
+/** Compact finding for the report prompt (no ids, boxes or uncalibrated confidence). */
+function reportFinding(f: Finding) {
+  return {
+    title: f.source === 'maira2' ? `${f.title} (second reader)` : f.title,
+    description: f.description,
+    severity: f.severity,
+    location: f.location,
+    category: f.category,
+    recommendation: f.recommendation,
+    ...(f.severity !== 'normal' && isUnconfirmed(f) ? { unconfirmed: true } : {}),
+  }
 }
 
 /**
@@ -170,3 +207,17 @@ export const LUNG_PATTERN_PROMPT = `Grade the pulmonary markings and perihilar l
 2 = definitely abnormal: increased or indistinct bronchovascular markings, peribronchial cuffing, perihilar haze or opacity
 3 = marked: extensive perihilar / interstitial or airspace opacity
 Return JSON only: {"grade":0-3,"evidence":"one sentence"}`
+
+const EMPTY_PATIENT: PatientInfo = {
+  name: '',
+  patientId: '',
+  age: '',
+  sex: '',
+  studyDate: '',
+  referringPhysician: '',
+  indication: '',
+  clinicalHistory: '',
+}
+
+/** Every prompt text that shapes a read; benchmark/run.mts hashes it to tag results with a prompt version. */
+export const PROMPT_VERSION_INPUT = SYSTEM_PROMPT + buildAnalysisPrompt(EMPTY_PATIENT) + LUNG_PATTERN_PROMPT
