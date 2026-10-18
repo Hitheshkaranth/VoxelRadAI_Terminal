@@ -79,50 +79,60 @@ The machine has 24 GB of unified memory. MedGemma 27B needs about 16 GB and MAIR
 
 `run.mts` checks `/v1/models` before the loop and stops if `$MODEL` is not served. Each row records `model`, `temp`, `finish` and `promptHash`, a sha1 of the system, analysis and lung-pattern prompts, so results from different prompt versions are never pooled by mistake.
 
-## Model comparison — MedGemma CXR fine-tune (Q4_K_M), ChestX-Det held-out test (111 films)
-`medgemma-27b-it-cxr-Q4_K_M.gguf`, a chest-X-ray fine-tune of MedGemma 27B (merged weights, no vision projector in the file), run through the same pipeline as the baseline below (`run.mts`, prompt `12ccde05461e`, temperature 0.2) on the same 111 test films. Raw outputs: `results-cxd-cxr.jsonl`.
+## Model comparison — MedGemma CXR fine-tune, ChestX-Det held-out test (111 films)
+`medgemma-27b-it-cxr-Q4_K_M.gguf` is a chest-X-ray fine-tune of MedGemma 27B (merged weights, no vision projector in the file). It was run through the same pipeline as the baseline below (`run.mts`, prompt `12ccde05461e`, temperature 0.2) on the same 111 test films, twice:
+- **Q4_K_M**: the file as supplied. Raw outputs in `results-cxd-cxr.jsonl`.
+- **Q3_K_S**: requantised to match the baseline's quantisation. Raw outputs in `results-cxd-cxr-q3.jsonl`.
 
 ```sh
 python3 -c "import json; json.dump([m for m in json.load(open('manifest-cxd.json')) if m['split']=='test'], open('/tmp/manifest-cxd-test.json','w'))"
-lms load medgemma-27b-it-cxr --context-length 4096 --parallel 1 --gpu max -y
+# Q4_K_M as supplied (needs 4k context / 1 slot to fit in Metal memory on 24 GB)
+lms load medgemma-27b-it-cxr@q4_k_m --identifier medgemma-27b-it-cxr --context-length 4096 --parallel 1 --gpu max -y
 MANIFEST=/tmp/manifest-cxd-test.json OUT=results-cxd-cxr.jsonl MODEL=medgemma-27b-it-cxr node --experimental-strip-types run.mts
-python3 score.py final results-cxd-cxr.jsonl --split test
+# Q3_K_S, same load settings as the baseline (16k context)
+llama-quantize --allow-requantize medgemma-27b-it-cxr-Q4_K_M.gguf medgemma-27b-it-cxr-Q3_K_S.gguf Q3_K_S
+lms load medgemma-27b-it-cxr@q3_k_s --identifier medgemma-27b-it-cxr-q3 --context-length 16384 -y
+MANIFEST=/tmp/manifest-cxd-test.json OUT=results-cxd-cxr-q3.jsonl MODEL=medgemma-27b-it-cxr-q3 node --experimental-strip-types run.mts
+python3 score.py final results-cxd-cxr-q3.jsonl --split test
 ```
 
-Setup differences from the baseline, all forced by the larger file on a 24 GB Mac:
-- **Quantisation**: Q4_K_M (16.5 GB) vs the baseline's Q3_K_S (12.2 GB). This confounds the comparison: a quantisation-matched run follows.
-- **Vision projector**: the GGUF has none, so it is paired with the base model's `mmproj-F32.gguf` (unsloth). If the fine-tune also changed the vision tower, this run understates it.
-- **Context**: 4k with one slot, because 16k × 4 slots ran out of Metal memory. Prompt plus output stays far below 4k (median 363 output tokens), and every reply finished with `stop`.
+Setup notes:
+- **Vision projector**: neither GGUF has one, so both runs use the base model's `mmproj-F32.gguf` (unsloth). If the fine-tune also changed the vision tower, both runs understate it.
+- **Q3_K_S is a double quantisation.** It was made from the Q4_K_M file because no F16 weights were available, so it is slightly worse than a direct Q3_K_S build. Its size, 12.18 GB, matches the baseline's 12.17 GB.
+- **Q4_K_M ran with 4k context and one slot** to fit in Metal memory. Every reply finished well within that, with `stop`.
 
-| | Base MedGemma 27B (Q3_K_S) | CXR fine-tune (Q4_K_M) | Paired: base-only / CXR-only hits, exact McNemar p |
+| | Base MedGemma 27B · Q3_K_S | CXR fine-tune · Q3_K_S | CXR fine-tune · Q4_K_M |
 |---|---|---|---|
-| Abnormal films flagged | 74/82 (90%, CI 82–95) | 71/82 (87%, CI 78–92) | 4 / 1, p = 0.38 |
-| Normal films called normal | 21/29 (72%, CI 54–85) | 22/29 (76%, CI 58–88) | 1 / 2, p = 1.0 |
-| **Right finding type, all labels** | **90/220 (41%, CI 35–48)** | 73/220 (33%, CI 27–40) | **35 / 18, p = 0.027** |
-| Effusion | 13/43 (30%) | 13/43 (30%) | |
-| Consolidation | 33/48 (69%) | 34/48 (71%) | |
-| Pneumothorax | 10/10 | 10/10 | |
-| Atelectasis · fibrosis | 5/11 · 5/16 | 5/11 · 5/16 | |
-| Mass | 6/9 | 0/9 | 6 / 0, p = 0.031 |
-| Nodule · diffuse nodule | 8/19 · 0/6 | 3/19 · 1/6 | nodule 5 / 0, p = 0.06 |
-| Cardiomegaly | 3/12 | 1/12 | |
-| Pleural thickening · calcification · emphysema | 2/16 · 2/10 · 3/8 | 0/16 · 0/10 · 1/8 | |
-| Fracture | 0/12 | 0/12 | |
-| Precision: pneumothorax calls correct | 10/36 (28%) | 10/26 (38%) | |
-| Precision: effusion calls correct | 12/20 (60%) | 12/16 (75%) | |
-| Localised (box centre in radiologist box) | 14/85 (16%) | 7/60 (12%) | |
-| JSON parsed | 111/111 | 111/111 | |
-| Median output tokens | 470 | 363 | |
-| Median latency per film (main + lung pattern) | 55 s | 53 s | |
+| Abnormal films flagged | 74/82 (90%, CI 82–95) | 76/82 (93%, CI 85–97) | 71/82 (87%, CI 78–92) |
+| Normal films called normal | 21/29 (72%, CI 54–85) | 20/29 (69%, CI 51–83) | 22/29 (76%, CI 58–88) |
+| **Right finding type, all labels** | **90/220 (41%, CI 35–48)** | **87/220 (40%, CI 33–46)** | 73/220 (33%, CI 27–40) |
+| Effusion | 13/43 | 10/43 | 13/43 |
+| Consolidation | 33/48 | 38/48 | 34/48 |
+| Pneumothorax | 10/10 | 9/10 | 10/10 |
+| Atelectasis | 5/11 | 8/11 | 5/11 |
+| Mass · nodule · diffuse nodule | 6/9 · 8/19 · 0/6 | 6/9 · 9/19 · 2/6 | 0/9 · 3/19 · 1/6 |
+| Cardiomegaly | 3/12 | 0/12 | 1/12 |
+| Fibrosis · pleural thickening | 5/16 · 2/16 | 1/16 · 1/16 | 5/16 · 0/16 |
+| Calcification · emphysema · fracture | 2/10 · 3/8 · 0/12 | 0/10 · 2/8 · 1/12 | 0/10 · 1/8 · 0/12 |
+| Precision: pneumothorax calls correct | 10/36 (28%) | 9/22 (41%) | 10/26 (38%) |
+| Precision: effusion calls correct | 12/20 (60%) | 7/9 (78%) | 12/16 (75%) |
+| Localised (box centre in radiologist box) | 14/85 (16%) | 12/77 (16%) | 7/60 (12%) |
+| JSON parsed · replies cut at 3072 tokens | 111/111 · 0 | 111/111 · 2 | 111/111 · 0 |
+| Median output tokens | 470 | 395 | 363 |
+| Median latency per film | 55 s | 53 s | 53 s |
 
-The latency rows are hardware-bound on this Mac and not a model property: with the CXR file nearly filling memory, the first films ran at about 150 s while macOS was swapping.
+Paired tests use exact McNemar on the same film/label pairs, reported as hits only the first model found / hits only the second found:
 
-What it shows (one run per model, so run-to-run variance is not measured):
-- **Overall the fine-tune finds fewer labelled abnormalities** (33% vs 41% right type, a paired difference significant at p = 0.03). The loss is concentrated in focal and chronic findings: mass 6/9 → 0/9, nodule 8/19 → 3/19, plus pleural thickening, calcification and emphysema. These are classes a report-trained CXR model tends to leave out of a short impression.
-- **Acute findings are unchanged**: effusion, consolidation, pneumothorax, atelectasis.
-- **It is terser and slightly more specific**: about 23% fewer output tokens, one more normal film cleared, and fewer pneumothorax over-calls (26 calls vs 36, with the same 10 correct).
-- **Its boxes land on the lesion less often**: 12% vs 16%, and it gives fewer boxes.
-- Not yet separated: how much of the drop comes from the fine-tune itself versus the quantisation and the borrowed vision projector.
+| Pair | Right type, all labels | Mass | Nodule | Consolidation | Effusion |
+|---|---|---|---|---|---|
+| Base vs CXR Q3_K_S | 29 / 26, p = 0.79 | 1 / 1 | 2 / 3 | 3 / 8, p = 0.23 | 8 / 5, p = 0.58 |
+| Base vs CXR Q4_K_M | 35 / 18, **p = 0.027** | 6 / 0, p = 0.03 | 5 / 0, p = 0.06 | | |
+| CXR Q4_K_M vs CXR Q3_K_S | 17 / 31, p = 0.06 | 0 / 6, p = 0.03 | 0 / 6, p = 0.03 | | |
+
+What it shows (one run per configuration, so run-to-run variance is not measured):
+- **At matched quantisation, the fine-tune and the base model are statistically indistinguishable**: 87 vs 90 of 220 right type, p = 0.79. The fine-tune trades cardiomegaly, fibrosis and effusion for consolidation, atelectasis and diffuse nodule. It makes fewer, more precise pneumothorax and effusion calls, gives shorter replies, and lands its boxes on the lesion equally often.
+- **The Q4_K_M run's deficit does not replicate.** Mass and nodule were 0/9 and 3/19 at Q4_K_M but 6/9 and 9/19 at Q3_K_S. A more precise quantisation should not lose findings, so that drop is most likely run-to-run variance at temperature 0.2, or the 4k-context, single-slot load. It does not reflect the fine-tune itself. Treat any single-run difference under about 15 labels with caution.
+- **The fine-tune does not justify replacing the base model in the app**, given equal accuracy, the double-quantised file and the borrowed vision projector. A fair retest would use its F16 weights (and its own projector, if it has one), with `RUNS=3`.
 
 ## Results — Oct 2026, ChestX-Det held-out test (111 films)
 One MedGemma pass (`results-cxd.jsonl`, medgemma-27b-it, temperature 0.2, prompt `12ccde05461e`, 217/217 parsed), one MAIRA-2 pass (`results-maira2-cxd.jsonl`) and TorchXRayVision (`txrv-cxd.jsonl`). Fused rows: `results-fused-cxd.jsonl` (`python3 fuse.py`). Re-score with `python3 score.py final <file> --split test`. A single run, so run-to-run variance is not yet measured.

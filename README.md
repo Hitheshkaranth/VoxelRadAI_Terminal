@@ -410,14 +410,15 @@ cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.p
 
 Using the classifier to *remove* MedGemma findings lost 17 true abnormal films for 3 more clear normals, so it now marks findings unconfirmed instead.
 
-**MedGemma CXR fine-tune (Q4_K_M), same 111 test films:**
+**MedGemma CXR fine-tune, same 111 test films:**
 
 | | Abnormal flagged | Normals clear | Right type | Mass | Nodule |
 |---|---|---|---|---|---|
-| Base MedGemma | 74/82 | 21/29 | 90/220 (41%) | 6/9 | 8/19 |
-| CXR fine-tune | 71/82 | 22/29 | 73/220 (33%) | 0/9 | 3/19 |
+| Base MedGemma · Q3_K_S | 74/82 | 21/29 | 90/220 (41%) | 6/9 | 8/19 |
+| CXR fine-tune · Q3_K_S (matched) | 76/82 | 20/29 | 87/220 (40%) | 6/9 | 9/19 |
+| CXR fine-tune · Q4_K_M | 71/82 | 22/29 | 73/220 (33%) | 0/9 | 3/19 |
 
-The paired difference in right finding type is significant (p = 0.03, McNemar). The two models tie on effusion, consolidation and pneumothorax. The app keeps the base model. Details and setup caveats: [benchmark/README.md](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-q4_k_m-chestx-det-held-out-test-111-films).
+At the same quantisation the fine-tune matches the base model (p = 0.79, paired McNemar). The Q4_K_M run's lower score did not replicate, so it is most likely run-to-run variance. The app keeps the base model. Details and setup caveats: [benchmark/README.md](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films).
 
 <a id="localisation-held-out"></a>**Localisation (held-out test, [`benchmark/localise.py`](benchmark/localise.py)):** does the marker land on the radiologist-boxed lesion?
 
