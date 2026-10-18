@@ -425,6 +425,11 @@ MedGemma's boxes are usually in the right region but large and off-centre; the h
 
 The CXR fine-tune of MedGemma 27B ([`medgemma-27b-it-cxr`](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films)) was run on the same 111 held-out ChestX-Det test films, with the same prompts and the same scorer, at two quantisations:
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/benchmark/cxr-comparison-dark.png">
+  <img src="docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S and CXR fine-tune Q4_K_M on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
+</picture>
+
 | | Abnormal flagged | Normals clear | Right type | Mass | Nodule |
 |---|---|---|---|---|---|
 | Base MedGemma · Q3_K_S | 74/82 | 21/29 | 90/220 (41%) | 6/9 | 8/19 |

@@ -101,6 +101,13 @@ Setup notes:
 - **Q3_K_S is a double quantisation.** It was made from the Q4_K_M file because no F16 weights were available, so it is slightly worse than a direct Q3_K_S build. Its size, 12.18 GB, matches the baseline's 12.17 GB.
 - **Q4_K_M ran with 4k context and one slot** to fit in Metal memory. Every reply finished well within that, with `stop`.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../docs/benchmark/cxr-comparison-dark.png">
+  <img src="../docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S and CXR fine-tune Q4_K_M on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
+</picture>
+
+<sub>Regenerate with <code>uv run --with matplotlib plot_comparison.py</code>; it reads the committed results files through <code>score.py</code>.</sub>
+
 | | Base MedGemma 27B · Q3_K_S | CXR fine-tune · Q3_K_S | CXR fine-tune · Q4_K_M |
 |---|---|---|---|
 | Abnormal films flagged | 74/82 (90%, CI 82–95) | 76/82 (93%, CI 85–97) | 71/82 (87%, CI 78–92) |
