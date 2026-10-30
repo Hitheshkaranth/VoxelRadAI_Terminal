@@ -430,6 +430,19 @@ X-ray: this app's benchmark below, same runner for every model. CT and MRI: 580 
 lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI MedGemma calls almost every case
 abnormal (6% / 2% of normals cleared), while Skanda clears 88% / 97% and names the right finding far more often.
 
+### 🦠 Detection by disease
+
+How often each model names each kind of finding, on the same held-out cases as the table above.
+
+<p align="center"><img src="docs/disease-card.svg" alt="Detection by disease for MedGemma 27B, MedGemma + MAIRA-2 and Skanda run 2. Chest X-ray, 111 ChestX-Det test films: MedGemma leads on pneumothorax (100% vs 20%), atelectasis, nodule, mass, fibrosis and emphysema; Skanda leads on effusion (59% vs 30%, 53% fused) and cardiomegaly (83% vs 25%). CT, 340 cases: Skanda leads on lung (89% vs 76%), liver (64% vs 57%), pancreatic (39% vs 0%) and mediastinal lesions (85% vs 38%); MedGemma on colon (20% vs 13%). MRI, 240 cases: brain tumour 96% vs 74%, acute stroke 75% vs 0%." width="100%"></p>
+
+- 🩻 **X-ray:** MedGemma names pneumothorax, atelectasis, nodule, mass and emphysema far more often; Skanda leads on
+  effusion and cardiomegaly. MAIRA-2 adds effusions and nodules to MedGemma's read (30% → 53%, 42% → 53%).
+- 🫁 **CT:** Skanda leads on every organ except colon. MedGemma never names a pancreatic lesion (0 of 28).
+- 🧠 **MRI:** MedGemma never names an acute stroke (0 of 60); Skanda finds 45. Brain tumour: 96% vs 74%.
+- Groups under about 15 cases (kidney, mediastinum, colon, most rare X-ray labels) are directional only.
+  Built in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding) (`docs/build_disease_chart.py`).
+
 ### 🔍 Side by side: X-ray, CT and MRI
 
 The same held-out image read by each model. Each figure shows the radiologist's outline, MedGemma 27B's read and
