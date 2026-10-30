@@ -428,13 +428,13 @@ Using the classifier to *remove* MedGemma findings lost 17 true abnormal films f
 MedGemma's boxes are usually in the right region but large and off-centre; the heatmap is coarser still. The app therefore zooms to the box and shows the heatmap as a labelled hint, and every finding still needs the radiologist's eye. Full tables and the ablation: [benchmark/README.md](benchmark/README.md#results--oct-2026-chestx-det-held-out-test-111-films).
 
 <a id="model-comparison-cxr"></a>
-### 🔁 Model comparison: MedGemma CXR fine-tune (Oct 2026)
+### 🔁 Model comparison: MedGemma CXR fine-tune and Skanda (Oct 2026)
 
 The CXR fine-tune of MedGemma 27B ([`medgemma-27b-it-cxr`](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films)) was run on the same 111 held-out ChestX-Det test films, with the same prompts and the same scorer, at two quantisations:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmark/cxr-comparison-dark.png">
-  <img src="docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S and CXR fine-tune Q4_K_M on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
+  <img src="docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S, CXR fine-tune Q4_K_M and Skanda run 2 (two passes) on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
 </picture>
 
 | | Abnormal flagged | Normals clear | Right type | Mass | Nodule |
@@ -442,6 +442,11 @@ The CXR fine-tune of MedGemma 27B ([`medgemma-27b-it-cxr`](benchmark/README.md#m
 | Base MedGemma · Q3_K_S | 74/82 | 21/29 | 90/220 (41%) | 6/9 | 8/19 |
 | CXR fine-tune · Q3_K_S (matched) | 76/82 | 20/29 | 87/220 (40%) | 6/9 | 9/19 |
 | CXR fine-tune · Q4_K_M | 71/82 | 22/29 | 73/220 (33%) | 0/9 | 3/19 |
+| Skanda run 2 · pass 1 / pass 2 | 70/82 · 70/82 | 24/29 · 24/29 | 81/220 (37%) · 81/220 | 1/9 · 3/9 | 3/19 · 2/19 |
+
+Skanda run 2 ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)) is on the chart too: most normals
+called normal (83%), box centre inside the lesion 49–55% (MedGemma 16%), effusion 56–63% and cardiomegaly 83% (MedGemma
+30% and 25%). MedGemma is far ahead on pneumothorax (100% vs 20%), atelectasis, nodule, mass and emphysema.
 
 At the same quantisation the fine-tune matches the base model (p = 0.79, paired McNemar). The Q4_K_M run's lower score did not replicate, so it is most likely run-to-run variance. The app keeps the base model. Details and setup caveats: [benchmark/README.md](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films).
 
