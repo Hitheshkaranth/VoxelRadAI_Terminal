@@ -397,6 +397,13 @@ cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.p
 
 [`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
 
+<p align="center"><img src="docs/benchmark-skanda.svg" alt="Chest X-ray benchmark on 111 held-out ChestX-Det test films, same runner and scorer for every model. Abnormal films flagged: MedGemma 90%, MedGemma fine-tuned 83%, MedGemma + MAIRA-2 91%, MAIRA-2 90%, Skanda run 1 stage 1 77%, Skanda run 1 final 100% (flags everything), Skanda run 2 85% on both passes. Normal films called normal: 72, 69, 72, 72, 83, 0, 83, 83. Right finding type: 41, 39, 47, 34, 40, 37, 37, 37. Box precision: 6, 7, not measured, 30, 32, 30, 27, 29. Box recall: 4, 3, not measured, 12, 20, 10, 15, 16." width="100%"></p>
+
+**Skanda (our own grounding model, run 2, 30 Oct 2026):** on the same 111 test films it calls 83% of normals normal and
+flags 85% of abnormal films; its boxes land on the radiologist's lesion about 4× as often as MedGemma's (27–29% vs 6%
+precision, 15–16% vs 4% recall). It still names the right finding type less often than MedGemma (37% vs 41%). Two passes
+at the app's temperature 0.2 are shown. Training and details: [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding).
+
 **Held-out result (Oct 2026):** 111 [ChestX-Det](https://github.com/Deepwise-AILab/ChestX-Det-Dataset) test films labelled by 3 radiologists; every rule and threshold was chosen on a separate 106-film dev split. Wilson 95% CIs.
 
 | | 🧠 MedGemma 27B | 🧠 + 🔬 MAIRA-2 second reader |
