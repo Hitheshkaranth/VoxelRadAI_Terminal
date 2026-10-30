@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🩻 Skanda Radiology
+<img src="docs/brand/skanda-banner.jpg" alt="Skanda: AI for healthier tomorrows" width="100%">
+
+# Skanda Radiology
 
 **AI-assisted chest X-ray reading that runs entirely on your Mac.**
 
@@ -397,12 +399,42 @@ cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.p
 
 [`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
 
-<p align="center"><img src="docs/benchmark-skanda.svg" alt="Chest X-ray benchmark on 111 held-out ChestX-Det test films, same runner and scorer for every model. Abnormal films flagged: MedGemma 90%, MedGemma fine-tuned 83%, MedGemma + MAIRA-2 91%, MAIRA-2 90%, Skanda run 1 stage 1 77%, Skanda run 1 final 100% (flags everything), Skanda run 2 85% on both passes. Normal films called normal: 72, 69, 72, 72, 83, 0, 83, 83. Right finding type: 41, 39, 47, 34, 40, 37, 37, 37. Box precision: 6, 7, not measured, 30, 32, 30, 27, 29. Box recall: 4, 3, not measured, 12, 20, 10, 15, 16." width="100%"></p>
+<p align="center"><img src="docs/benchmark-card.svg" alt="Benchmark on held-out test cases. Chest X-ray (111 films): MedGemma 27B 90/72/41/6/4, MedGemma + MAIRA-2 91/72/47, Skanda run 2 85/83/37/28/15.5 (abnormal flagged / normals called normal / right finding type / box precision / box recall, %). CT (340 cases): MedGemma 97/6/49/1/3, Skanda 80/88/69/20/14. MRI (240 cases): MedGemma 99/2/42/6/8, Skanda 89/97/87/64/59." width="100%"></p>
 
-**Skanda (our own grounding model, run 2, 30 Oct 2026):** on the same 111 test films it calls 83% of normals normal and
-flags 85% of abnormal films; its boxes land on the radiologist's lesion about 4× as often as MedGemma's (27–29% vs 6%
-precision, 15–16% vs 4% recall). It still names the right finding type less often than MedGemma (37% vs 41%). Two passes
-at the app's temperature 0.2 are shown. Training and details: [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding).
+| 🩻 Chest X-ray (111) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
+|---|---:|---:|---:|
+| Abnormal flagged | 90 | **91** | 85 |
+| Normals called normal | 72 | 72 | **83** |
+| Right finding type | 41 | **47** | 37 |
+| Box precision | 6 | – | **28** |
+| Box recall | 4 | – | **15.5** |
+
+| 🫁 CT (340) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
+|---|---:|---:|---:|
+| Abnormal flagged | **97** | – | 80 |
+| Normals called normal | 6 | – | **88** |
+| Right finding type | 49 | – | **69** |
+| Box precision | 1 | – | **20** |
+| Box recall | 3 | – | **14** |
+
+| 🧠 MRI (240) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
+|---|---:|---:|---:|
+| Abnormal flagged | **99** | – | 89 |
+| Normals called normal | 2 | – | **97** |
+| Right finding type | 42 | – | **87** |
+| Box precision | 6 | – | **64** |
+| Box recall | 8 | – | **59** |
+
+Percent, higher is better; **bold** = best. **Skanda** is our own grounding model ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)), run 2.
+X-ray: this app's benchmark below, same runner for every model. CT and MRI: 580 held-out slices and volumes, lesion and
+lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI MedGemma calls almost every case
+abnormal (6% / 2% of normals cleared), while Skanda clears 88% / 97% and names the right finding far more often.
+
+<details>
+<summary><b>Skanda: run 1 → run 2</b></summary>
+
+<p align="center"><img src="docs/progress-card.svg" alt="Skanda progress from run 1 to run 2 on the same held-out cases, per modality." width="100%"></p>
+</details>
 
 **Held-out result (Oct 2026):** 111 [ChestX-Det](https://github.com/Deepwise-AILab/ChestX-Det-Dataset) test films labelled by 3 radiologists; every rule and threshold was chosen on a separate 106-film dev split. Wilson 95% CIs.
 

@@ -1,6 +1,6 @@
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useState } from 'react'
-import { Pencil, Plus, Scan, Search, Settings, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Search, Settings, Trash2 } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
 import { useApp } from '../../store'
@@ -38,9 +38,7 @@ export function Sidebar() {
     <nav className="sh-sidebar" aria-label="Studies">
       <div className="sh-sidebar-head">
         <div className="sh-brand">
-          <span className="sh-brand-mark" aria-hidden>
-            <Scan />
-          </span>
+          <img className="sh-brand-logo" src="/skanda-mark.png" alt="" aria-hidden />
           Skanda
         </div>
         <button type="button" className="icon-btn" aria-label="New study" onClick={newStudy}>
