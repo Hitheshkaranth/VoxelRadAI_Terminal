@@ -430,6 +430,36 @@ X-ray: this app's benchmark below, same runner for every model. CT and MRI: 580 
 lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI MedGemma calls almost every case
 abnormal (6% / 2% of normals cleared), while Skanda clears 88% / 97% and names the right finding far more often.
 
+### 🔍 Side by side: X-ray, CT and MRI
+
+The same held-out image read by each model. Each figure shows the radiologist's outline, MedGemma 27B's read and
+Skanda's read, with that modality's benchmark bars above. These are the saved benchmark reads; nothing was re-run for
+the figures. The cases are chosen by a fixed rule:
+- **Abnormal case:** the one where Skanda's box best overlaps the radiologist's.
+- **Normal case:** a random pick (seed 0) from the lesion-free cases Skanda cleared.
+
+Both rules favour Skanda: the images show what a good read looks like, and the bars show how often one happens.
+
+<details open>
+<summary><b>🩻 Chest X-ray</b></summary>
+
+<p align="center"><img src="docs/examples-xray.svg" alt="Chest X-ray side by side. Abnormal film cxd_45926: radiologists marked consolidation, effusion, emphysema and more; MedGemma 27B called it abnormal (bilateral diffuse interstitial opacities) with no box on a lesion; Skanda run 2 called it abnormal (left and right upper zone consolidation) with a best box overlap of 0.91 IoU. Normal film cxd_46915: both models called it normal." width="100%"></p>
+</details>
+
+<details open>
+<summary><b>🫁 CT</b></summary>
+
+<p align="center"><img src="docs/examples-ct.svg" alt="CT side by side. Abnormal slice hepaticvessel_442_z35 (liver tumour, right liver): MedGemma 27B called a liver mass and spleen enlargement with boxes of 0.07 IoU; Skanda run 2 called a right liver lesion and outlined it at 0.85 IoU. Normal slice lung_065_z35: MedGemma called liver and lung metastases; Skanda called it normal." width="100%"></p>
+</details>
+
+<details open>
+<summary><b>🧠 MRI</b></summary>
+
+<p align="center"><img src="docs/examples-mri.svg" alt="MRI side by side. Abnormal slice BRATS_040_z71 (right-hemisphere brain tumour with oedema): MedGemma 27B called a mass, oedema and midline shift with boxes of 0.19 IoU; Skanda run 2 named the oedema, non-enhancing and enhancing tumour on the right and outlined it at 0.95 IoU. Normal slice isles_strokecase0050_z15: MedGemma called abnormal signal intensity; Skanda called it normal." width="100%"></p>
+</details>
+
+Built by `docs/build_examples.py` in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding).
+
 <details>
 <summary><b>Skanda: run 1 → run 2</b></summary>
 
