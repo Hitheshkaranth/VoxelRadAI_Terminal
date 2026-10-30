@@ -433,7 +433,15 @@ abnormal (6% / 2% of normals cleared), while Skanda clears 88% / 97% and names t
 ### 🔍 Side by side: X-ray, CT and MRI
 
 The same held-out image read by each model. Each figure shows the radiologist's outline, MedGemma 27B's read and
-Skanda's read, with that modality's benchmark bars above. These are the saved benchmark reads; nothing was re-run for
+Skanda's read, with that modality's benchmark bars above. For an abnormal case, each panel lists **what was found and on
+what grounds**, using the report's own fields:
+- **Type:** the finding's title, e.g. "Liver lesion".
+- **Where:** side and zone, or organ.
+- **Severity.**
+- **Evidence:** what is seen, with size in mm, volume in mL and how far it extends.
+
+The radiologist's panel shows the same fields, measured from the radiologist's outline. Skanda's panel also shows its
+abnormality score. These are the saved benchmark reads; nothing was re-run for
 the figures. The cases are chosen by a fixed rule:
 - **Abnormal case:** the one where Skanda's box best overlaps the radiologist's.
 - **Normal case:** a random pick (seed 0) from the lesion-free cases Skanda cleared.
