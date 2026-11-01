@@ -1,0 +1,159 @@
+1
+00:00:00,300 --> 00:00:04,531
+This is Skanda Radiology, tested with actual X-ray, C T, and
+
+2
+00:00:04,531 --> 00:00:08,762
+M R I images. This time, all three examples have reference
+
+3
+00:00:08,762 --> 00:00:12,992
+annotations. We will separate what the model says from where it
+
+4
+00:00:12,992 --> 00:00:15,300
+points. This is synthetic Sarvam narration.
+
+5
+00:00:16,300 --> 00:00:21,617
+The chest X-ray comes from Chest X Det. The connected model
+
+6
+00:00:21,617 --> 00:00:26,933
+reported atelectasis, which matches one reference category. The reference also includes
+
+7
+00:00:26,933 --> 00:00:32,250
+consolidation, effusion, and fibrosis, which were omitted. No usable reader box
+
+8
+00:00:32,250 --> 00:00:37,567
+or segmentation was returned. The colored heatmap is auxiliary classifier evidence,
+
+9
+00:00:37,567 --> 00:00:42,883
+not a confirmed lesion outline. So this is a partial label
+
+10
+00:00:42,883 --> 00:00:45,300
+match, with localization still unverified.
+
+11
+00:00:46,300 --> 00:00:51,176
+For C T, we loaded a labeled liver volume from the
+
+12
+00:00:51,176 --> 00:00:56,053
+Medical Segmentation Decathlon into the existing application. Before inference, we selected
+
+13
+00:00:56,053 --> 00:01:00,929
+three slices containing annotated tumors and one slice without a tumor
+
+14
+00:01:00,929 --> 00:01:05,805
+annotation. The model reported a liver lesion on each positive slice.
+
+15
+00:01:05,805 --> 00:01:10,681
+But the location matters. Green contours show the reference tumors; amber
+
+16
+00:01:10,681 --> 00:01:15,558
+boxes show the model's raw candidates. None of the three boxes
+
+17
+00:01:15,558 --> 00:01:20,434
+overlap the tumor masks. The model also reported a lesion on
+
+18
+00:01:20,434 --> 00:01:25,310
+the reference-negative slice. The application flagged unsupported measurements and withheld those
+
+19
+00:01:25,310 --> 00:01:29,300
+overlays. Finding names alone do not establish correct detection.
+
+20
+00:01:30,300 --> 00:01:35,201
+For M R I, we used a labeled BraTS brain-tumor case,
+
+21
+00:01:35,201 --> 00:01:40,102
+with a post-contrast T one sequence. Again, three reference-positive slices and
+
+22
+00:01:40,102 --> 00:01:45,003
+one reference-negative slice were tested in the app. The model described
+
+23
+00:01:45,003 --> 00:01:49,904
+a focal lesion on all three positive slices, and no abnormality
+
+24
+00:01:49,904 --> 00:01:54,805
+on the negative slice. Spatial accuracy was much weaker. On slice
+
+25
+00:01:54,805 --> 00:01:59,706
+sixty-one, a large box only partly overlaps the reference region and
+
+26
+00:01:59,706 --> 00:02:04,607
+includes substantial unrelated tissue. On slices seventy-five and eighty-five, the boxes
+
+27
+00:02:04,607 --> 00:02:09,508
+miss the reference region completely. A region can pass the application's
+
+28
+00:02:09,508 --> 00:02:14,409
+consistency checks and still be wrong. These results do not demonstrate
+
+29
+00:02:14,409 --> 00:02:15,300
+reliable segmentation.
+
+30
+00:02:16,300 --> 00:02:20,483
+The tests used the connected Skanda Q three mixed model. Reference
+
+31
+00:02:20,483 --> 00:02:24,666
+masks were kept out of its inputs. Image dimensions, voxel values,
+
+32
+00:02:24,666 --> 00:02:28,849
+and spatial coordinates were preserved during conversion. The final run checked
+
+33
+00:02:28,849 --> 00:02:33,032
+that each request and result referred to the intended slice. This
+
+34
+00:02:33,032 --> 00:02:37,215
+is four selected slices per volume, not a completed whole-volume assessment.
+
+35
+00:02:37,215 --> 00:02:41,399
+These public training examples may overlap with model training data, so
+
+36
+00:02:41,399 --> 00:02:43,300
+they cannot establish general accuracy.
+
+37
+00:02:44,300 --> 00:02:48,642
+The workspace supports reviewing all three modalities. The labeled tests show
+
+38
+00:02:48,642 --> 00:02:52,984
+why detection and localization must be checked separately. Today, the model
+
+39
+00:02:52,984 --> 00:02:57,326
+results are mixed, and the boxes are not reliable segmentation. Every
+
+40
+00:02:57,326 --> 00:02:59,300
+candidate still needs qualified review.

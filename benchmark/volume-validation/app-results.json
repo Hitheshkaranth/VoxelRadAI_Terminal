@@ -1,0 +1,518 @@
+[
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 59,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 58,
+      "number": 59,
+      "positive": true,
+      "referencePixels": 538,
+      "bbox": {
+        "x": 0.318359375,
+        "y": 0.345703125,
+        "w": 0.15234375,
+        "h": 0.359375
+      }
+    },
+    "requestLabel": "Liver CT reference case · axial 59/75 · W 400 / L 50 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Liver CT reference case · axial 59/75 · W 400 / L 50 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 41/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 59/75 · W 400 / L 50 · top A, left R\n\nThese results are for a different slice or window. Analyze the current slice to update.\n\nFocal lesion in the liver, right liver.\n\nFocal lesion in the liver, right liver\n\nHypodense focal lesion in the patient's right liver parenchyma, irregular with a visible rim on this slice, about 23 mm across on the image.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 46.5 s",
+    "analysis": {
+      "modality": "CT",
+      "bodyPart": "liver, right liver",
+      "view": "axial",
+      "imageQuality": "No significant limitations for visible anatomy in the midline and left. Right side shows partial volume from rib cage and bony structures, limiting assessment of small lesions.",
+      "findings": [
+        {
+          "id": "c1f7814c-b32d-4122-88bc-8a6818249dbf",
+          "title": "Focal lesion in the liver, right liver",
+          "description": "Hypodense focal lesion in the patient's right liver parenchyma, irregular with a visible rim on this slice, about 23 mm across on the image.",
+          "severity": "significant",
+          "confidence": 0.8,
+          "location": "right liver",
+          "bbox": {
+            "x": 0.307,
+            "y": 0.416,
+            "w": 0.085,
+            "h": 0.092
+          },
+          "category": "liver",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the liver, right liver.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"CT\",\"bodyPart\":\"liver, right liver\",\"view\":\"axial\",\"imageQuality\":\"No significant limitations for visible anatomy in the midline and left. Right side shows partial volume from rib cage and bony structures, limiting assessment of small lesions.\",\"findings\":[{\"title\":\"Focal lesion in the liver, right liver\",\"description\":\"Hypodense focal lesion in the patient's right liver parenchyma, irregular with a visible rim on this slice, about 23 mm across on the image.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[416,307,508,392]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the liver, right liver.\",\"recommendations\":[{\"text\":\"Assess for lesion enhancement and capsule on contrast-enhanced slices if available.\"}],\"differential\":[]}\n\n```json\n{\"modality\":\"CT\",\"bodyPart\":\"liver, right liver\",\"view\":\"axial\",\"imageQuality\":\"No significant limitations for visible anatomy in the midline and left. Right side shows partial volume from rib cage and bony structures, limiting assessment of small lesions.\",\"findings\":[{\"title\":\"Focal lesion in the liver, right liver\",\"description\":\"Hypodense focal lesion in the patient's right liver parenchyma, irregular with a visible rim on this slice, about 23 mm across on the image.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[416,307,508,392]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the liver, right liver.\",\"recommendations\":[{\"text\":\"Assess for lesion enhancement and capsule on contrast-enhanced slices if available.\"}],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 46484,
+      "createdAt": 1793557813899
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:30:15.921Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 60,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 59,
+      "number": 60,
+      "positive": true,
+      "referencePixels": 377,
+      "bbox": {
+        "x": 0.31640625,
+        "y": 0.61328125,
+        "w": 0.0703125,
+        "h": 0.09375
+      }
+    },
+    "requestLabel": "Liver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Liver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R\n\nFocal lesion in the right liver on this slice.\n\nLiver tumour, right liver\n\nFocal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 19 mm across on this slice, mean attenuation 54 HU.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 7.4 s",
+    "analysis": {
+      "modality": "CT",
+      "bodyPart": "abdomen, liver",
+      "view": "axial",
+      "imageQuality": "Adequate contrast resolution for focal lesion detection in relevant tissues.",
+      "findings": [
+        {
+          "id": "2ef39e11-2feb-408a-8bdc-831ada18309a",
+          "title": "Liver tumour, right liver",
+          "description": "Focal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 19 mm across on this slice, mean attenuation 54 HU.",
+          "severity": "significant",
+          "confidence": 0.8,
+          "location": "right liver",
+          "bbox": {
+            "x": 0.418,
+            "y": 0.35,
+            "w": 0.051,
+            "h": 0.067
+          },
+          "category": "liver",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the right liver on this slice.",
+      "recommendations": [
+        "Assess for lesion continuity across adjacent slices."
+      ],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"CT\",\"bodyPart\":\"abdomen, liver\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast resolution for focal lesion detection in relevant tissues.\",\"findings\":[{\"title\":\"Liver tumour, right liver\",\"description\":\"Focal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 19 mm across on this slice, mean attenuation 54 HU.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[350,418,417,469]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the right liver on this slice.\",\"recommendations\":[\"Assess for lesion continuity across adjacent slices.\"],\"differential\":[]}\n\n```json\n{\"modality\":\"CT\",\"bodyPart\":\"abdomen, liver\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast resolution for focal lesion detection in relevant tissues.\",\"findings\":[{\"title\":\"Liver tumour, right liver\",\"description\":\"Focal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 19 mm across on this slice, mean attenuation 54 HU.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[350,418,417,469]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the right liver on this slice.\",\"recommendations\":[\"Assess for lesion continuity across adjacent slices.\"],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 7437,
+      "createdAt": 1793557824280
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:30:25.990Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 70,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 69,
+      "number": 70,
+      "positive": true,
+      "referencePixels": 136,
+      "bbox": {
+        "x": 0.22265625,
+        "y": 0.423828125,
+        "w": 0.365234375,
+        "h": 0.0703125
+      }
+    },
+    "requestLabel": "Liver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Liver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R\n\nOne focal lesion in the right liver on this slice.\n\nLiver lesion, right liver\n\nFocal lesion in the liver parenchyma of the patient's right liver, rounded, about 12 mm across on this slice, mean attenuation higher than the surrounding liver parenchyma (likely hyperattenuating on this non-contrast image).\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 6.0 s",
+    "analysis": {
+      "modality": "CT",
+      "bodyPart": "liver",
+      "view": "axial",
+      "imageQuality": "Adequate contrast resolution for liver parenchyma assessment.",
+      "findings": [
+        {
+          "id": "30b10ff7-d47c-4a23-b80a-27136d7e1eee",
+          "title": "Liver lesion, right liver",
+          "description": "Focal lesion in the liver parenchyma of the patient's right liver, rounded, about 12 mm across on this slice, mean attenuation higher than the surrounding liver parenchyma (likely hyperattenuating on this non-contrast image).",
+          "severity": "significant",
+          "confidence": 0.85,
+          "location": "right liver",
+          "bbox": {
+            "x": 0.176,
+            "y": 0.394,
+            "w": 0.03,
+            "h": 0.064
+          },
+          "category": "liver lesion",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool."
+          ]
+        }
+      ],
+      "pertinentNegatives": [
+        "No focal lesion in the left liver on this slice."
+      ],
+      "impression": "One focal lesion in the right liver on this slice.",
+      "recommendations": [
+        "Assess for lesion continuity and characteristics across all relevant slices."
+      ],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"CT\",\"bodyPart\":\"liver\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast resolution for liver parenchyma assessment.\",\"findings\":[{\"title\":\"Liver lesion, right liver\",\"description\":\"Focal lesion in the liver parenchyma of the patient's right liver, rounded, about 12 mm across on this slice, mean attenuation higher than the surrounding liver parenchyma (likely hyperattenuating on this non-contrast image).\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"right liver\",\"box_2d\":[394,176,458,206],\"category\":\"liver lesion\"}],\"pertinentNegatives\":[\"No focal lesion in the left liver on this slice.\"],\"impression\":\"One focal lesion in the right liver on this slice.\",\"recommendations\":[\"Assess for lesion continuity and characteristics across all relevant slices.\"],\"differential\":[]}\n\n```json\n{\"modality\":\"CT\",\"bodyPart\":\"liver\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast resolution for liver parenchyma assessment.\",\"findings\":[{\"title\":\"Liver lesion, right liver\",\"description\":\"Focal lesion in the liver parenchyma of the patient's right liver, rounded, about 12 mm across on this slice, mean attenuation higher than the surrounding liver parenchyma (likely hyperattenuating on this non-contrast image).\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"right liver\",\"box_2d\":[394,176,458,206],\"category\":\"liver lesion\"}],\"pertinentNegatives\":[\"No focal lesion in the left liver on this slice.\"],\"impression\":\"One focal lesion in the right liver on this slice.\",\"recommendations\":[\"Assess for lesion continuity and characteristics across all relevant slices.\"],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 6003,
+      "createdAt": 1793557832848
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:30:34.518Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 56,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 55,
+      "number": 56,
+      "positive": false,
+      "referencePixels": 0,
+      "bbox": null
+    },
+    "requestLabel": "Liver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Liver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R\n\nLiver lesion in the right liver.\n\nLiver lesion, right liver\n\nFocal lesion in the liver, midline to left of the liver parenchyma. Faintly hyperattenuating relative to the surrounding liver on this non-contrast slice, irregular in shape, about 27 mm across on this slice, involving approximately 4 separate areas within the liver lesion.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool. Localization is almost entirely in display background at the analysis window; verify on source images.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 7.6 s",
+    "analysis": {
+      "modality": "CT",
+      "bodyPart": "abdomen",
+      "view": "axial",
+      "imageQuality": "Adequate contrast and resolution for the visible structures.",
+      "findings": [
+        {
+          "id": "e0af34b9-cd65-4e61-8939-f08847acd387",
+          "title": "Liver lesion, right liver",
+          "description": "Focal lesion in the liver, midline to left of the liver parenchyma. Faintly hyperattenuating relative to the surrounding liver on this non-contrast slice, irregular in shape, about 27 mm across on this slice, involving approximately 4 separate areas within the liver lesion.",
+          "severity": "significant",
+          "confidence": 0.8,
+          "location": "right liver",
+          "bbox": {
+            "x": 0.158,
+            "y": 0.134,
+            "w": 0.132,
+            "h": 0.133
+          },
+          "category": "liver",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool.",
+            "Localization is almost entirely in display background at the analysis window; verify on source images."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Liver lesion in the right liver.",
+      "recommendations": [
+        "Assess for enhancement on contrast-enhanced slices if available."
+      ],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"CT\",\"bodyPart\":\"abdomen\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast and resolution for the visible structures.\",\"findings\":[{\"title\":\"Liver lesion, right liver\",\"description\":\"Focal lesion in the liver, midline to left of the liver parenchyma. Faintly hyperattenuating relative to the surrounding liver on this non-contrast slice, irregular in shape, about 27 mm across on this slice, involving approximately 4 separate areas within the liver lesion.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[134,158,267,290]}],\"pertinentNegatives\":[],\"impression\":\"Liver lesion in the right liver.\",\"recommendations\":[\"Assess for enhancement on contrast-enhanced slices if available.\"],\"differential\":[]}\n\n```json\n{\"modality\":\"CT\",\"bodyPart\":\"abdomen\",\"view\":\"axial\",\"imageQuality\":\"Adequate contrast and resolution for the visible structures.\",\"findings\":[{\"title\":\"Liver lesion, right liver\",\"description\":\"Focal lesion in the liver, midline to left of the liver parenchyma. Faintly hyperattenuating relative to the surrounding liver on this non-contrast slice, irregular in shape, about 27 mm across on this slice, involving approximately 4 separate areas within the liver lesion.\",\"severity\":\"significant\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[134,158,267,290]}],\"pertinentNegatives\":[],\"impression\":\"Liver lesion in the right liver.\",\"recommendations\":[\"Assess for enhancement on contrast-enhanced slices if available.\"],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 7590,
+      "createdAt": 1793557842974
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:30:44.663Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 61,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 60,
+      "number": 61,
+      "positive": true,
+      "referencePixels": 1414,
+      "bbox": {
+        "x": 0.5125,
+        "y": 0.24166666666666667,
+        "w": 0.15833333333333333,
+        "h": 0.21666666666666667
+      }
+    },
+    "requestLabel": "Brain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Brain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R\n\nFocal lesion in the left cerebral hemisphere, midline to right.\n\nFocal lesion in the left cerebral hemisphere, midline to right.\n\nHigh signal lesion within the brain parenchyma in the patient's left cerebral hemisphere, involving the midline to right side of the brain. The lesion shows heterogeneous enhancement with irregular margins and intratumoral signal variations, involving about 13% of the cerebral hemisphere on this slice (58 of 100 non-background pixels in the brain mask).\n\nleft cerebral hemisphere, midline to right · significant\n\nskanda-grounding-q3-mixed · 7.0 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "moderate, some image noise and smoothing visible",
+      "findings": [
+        {
+          "id": "1e999c2c-ebb6-4322-a740-2bb3162c2742",
+          "title": "Focal lesion in the left cerebral hemisphere, midline to right.",
+          "description": "High signal lesion within the brain parenchyma in the patient's left cerebral hemisphere, involving the midline to right side of the brain. The lesion shows heterogeneous enhancement with irregular margins and intratumoral signal variations, involving about 13% of the cerebral hemisphere on this slice (58 of 100 non-background pixels in the brain mask).",
+          "severity": "significant",
+          "confidence": 0.85,
+          "location": "left cerebral hemisphere, midline to right",
+          "bbox": {
+            "x": 0.19,
+            "y": 0.346,
+            "w": 0.528,
+            "h": 0.312
+          },
+          "category": "cerebral lesion",
+          "recommendation": "",
+          "validationIssues": []
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the left cerebral hemisphere, midline to right.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"moderate, some image noise and smoothing visible\",\"findings\":[{\"title\":\"Focal lesion in the left cerebral hemisphere, midline to right.\",\"description\":\"High signal lesion within the brain parenchyma in the patient's left cerebral hemisphere, involving the midline to right side of the brain. The lesion shows heterogeneous enhancement with irregular margins and intratumoral signal variations, involving about 13% of the cerebral hemisphere on this slice (58 of 100 non-background pixels in the brain mask).\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"left cerebral hemisphere, midline to right\",\"category\":\"cerebral lesion\",\"box_2d\":[346,190,658,718]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the left cerebral hemisphere, midline to right.\",\"recommendations\":[],\"differential\":[]}\n\n```json\n{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"moderate, some image noise and smoothing visible\",\"findings\":[{\"title\":\"Focal lesion in the left cerebral hemisphere, midline to right.\",\"description\":\"High signal lesion within the brain parenchyma in the patient's left cerebral hemisphere, involving the midline to right side of the brain. The lesion shows heterogeneous enhancement with irregular margins and intratumoral signal variations, involving about 13% of the cerebral hemisphere on this slice (58 of 100 non-background pixels in the brain mask).\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"left cerebral hemisphere, midline to right\",\"category\":\"cerebral lesion\",\"box_2d\":[346,190,658,718]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the left cerebral hemisphere, midline to right.\",\"recommendations\":[],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 6952,
+      "createdAt": 1793557855455
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:30:57.110Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 75,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 74,
+      "number": 75,
+      "positive": true,
+      "referencePixels": 1978,
+      "bbox": {
+        "x": 0.49583333333333335,
+        "y": 0.1875,
+        "w": 0.1875,
+        "h": 0.2875
+      }
+    },
+    "requestLabel": "Brain MRI T1 post-contrast reference case · axial 75/155 · W 5574 / L 2787 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Brain MRI T1 post-contrast reference case · axial 75/155 · W 5574 / L 2787 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 75/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 75/155 · W 5574 / L 2787 · top A, left R\n\nFocal lesion in the left cerebral hemisphere, midline right.\n\nFocal lesion in the left cerebral hemisphere, midline right.\n\nAbnormal enhancing lesion within the brain parenchyma in the left cerebral hemisphere, involving the corticomedullary and deep white matter. The lesion is irregular with a heterogeneous enhancing rim on the contrast-enhanced sequence, showing significant enhancement within both solid and cystic parts of the lesion. The mean ADC value is 1370 mm²/s, and the lesion size on this slice is approximately 84 mm across its longest axis.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool. MRI sequence or contrast was inferred without acquisition metadata.\n\nleft cerebral hemisphere, corticomedullary and deep white matter · significant\n\nskanda-grounding-q3-mixed · 3.5 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "adequate for assessment on this slice",
+      "findings": [
+        {
+          "id": "5d6752d5-a5c8-48d2-add7-2bbc65d8742a",
+          "title": "Focal lesion in the left cerebral hemisphere, midline right.",
+          "description": "Abnormal enhancing lesion within the brain parenchyma in the left cerebral hemisphere, involving the corticomedullary and deep white matter. The lesion is irregular with a heterogeneous enhancing rim on the contrast-enhanced sequence, showing significant enhancement within both solid and cystic parts of the lesion. The mean ADC value is 1370 mm²/s, and the lesion size on this slice is approximately 84 mm across its longest axis.",
+          "severity": "significant",
+          "confidence": 0.95,
+          "location": "left cerebral hemisphere, corticomedullary and deep white matter",
+          "bbox": {
+            "x": 0.198,
+            "y": 0.415,
+            "w": 0.24,
+            "h": 0.192
+          },
+          "category": "brain parenchyma",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool.",
+            "MRI sequence or contrast was inferred without acquisition metadata."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the left cerebral hemisphere, midline right.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for assessment on this slice\",\"findings\":[{\"title\":\"Focal lesion in the left cerebral hemisphere, midline right.\",\"description\":\"Abnormal enhancing lesion within the brain parenchyma in the left cerebral hemisphere, involving the corticomedullary and deep white matter. The lesion is irregular with a heterogeneous enhancing rim on the contrast-enhanced sequence, showing significant enhancement within both solid and cystic parts of the lesion. The mean ADC value is 1370 mm²/s, and the lesion size on this slice is approximately 84 mm across its longest axis.\",\"severity\":\"significant\",\"confidence\":0.95,\"location\":\"left cerebral hemisphere, corticomedullary and deep white matter\",\"category\":\"brain parenchyma\",\"box_2d\":[415,198,607,438]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the left cerebral hemisphere, midline right.\",\"recommendations\":[],\"differential\":[]}",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 3492,
+      "createdAt": 1793557861444
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:31:03.097Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 85,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 84,
+      "number": 85,
+      "positive": true,
+      "referencePixels": 1298,
+      "bbox": {
+        "x": 0.49583333333333335,
+        "y": 0.20833333333333334,
+        "w": 0.15833333333333333,
+        "h": 0.24583333333333332
+      }
+    },
+    "requestLabel": "Brain MRI T1 post-contrast reference case · axial 85/155 · W 5574 / L 2787 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Brain MRI T1 post-contrast reference case · axial 85/155 · W 5574 / L 2787 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 85/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 85/155 · W 5574 / L 2787 · top A, left R\n\nFocal lesion in the right cerebral hemisphere, midline side.\n\nFocal lesion in the right cerebral hemisphere, midline side.\n\nHyperintense lesion with irregular borders in the right cerebral hemisphere, involving about 10% of the brain parenchyma on this slice.\n\nright cerebral hemisphere, midline side · significant\n\nskanda-grounding-q3-mixed · 4.8 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "adequate for slice-level assessment",
+      "findings": [
+        {
+          "id": "b5fcebb1-9686-492f-ab96-70d5b785c64e",
+          "title": "Focal lesion in the right cerebral hemisphere, midline side.",
+          "description": "Hyperintense lesion with irregular borders in the right cerebral hemisphere, involving about 10% of the brain parenchyma on this slice.",
+          "severity": "significant",
+          "confidence": 0.85,
+          "location": "right cerebral hemisphere, midline side",
+          "bbox": {
+            "x": 0.196,
+            "y": 0.435,
+            "w": 0.11,
+            "h": 0.143
+          },
+          "category": "brain parenchyma",
+          "recommendation": "",
+          "validationIssues": []
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the right cerebral hemisphere, midline side.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Focal lesion in the right cerebral hemisphere, midline side.\",\"description\":\"Hyperintense lesion with irregular borders in the right cerebral hemisphere, involving about 10% of the brain parenchyma on this slice.\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"right cerebral hemisphere, midline side\",\"category\":\"brain parenchyma\",\"box_2d\":[435,196,578,306]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the right cerebral hemisphere, midline side.\",\"recommendations\":[],\"differential\":[]}",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 4812,
+      "createdAt": 1793557869514
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:31:11.166Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 97,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 96,
+      "number": 97,
+      "positive": false,
+      "referencePixels": 0,
+      "bbox": null
+    },
+    "requestLabel": "Brain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R · Selected slice only",
+    "resultLabel": "Results: Brain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R",
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R\n\nNo focal abnormality in the brain parenchyma of this slice.\n\nNormal brain parenchyma\n\nUniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma.\n\ncerebral hemispheres · normal\n\nskanda-grounding-q3-mixed · 4.1 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "adequate for slice-level assessment",
+      "findings": [
+        {
+          "id": "f58154ba-2967-42b6-aea1-cec369fb3f59",
+          "title": "Normal brain parenchyma",
+          "description": "Uniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma.",
+          "severity": "normal",
+          "confidence": 0.9,
+          "location": "cerebral hemispheres",
+          "category": "brain parenchyma",
+          "recommendation": "",
+          "validationIssues": []
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "No focal abnormality in the brain parenchyma of this slice.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "routine",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal brain parenchyma\",\"description\":\"Uniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres\",\"category\":\"brain parenchyma\"}],\"pertinentNegatives\":[],\"impression\":\"No focal abnormality in the brain parenchyma of this slice.\",\"recommendations\":[],\"differential\":[]}\n\n```json\n{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal brain parenchyma\",\"description\":\"Uniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres\",\"category\":\"brain parenchyma\"}],\"pertinentNegatives\":[],\"impression\":\"No focal abnormality in the brain parenchyma of this slice.\",\"recommendations\":[],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 4148,
+      "createdAt": 1793557876154
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:31:17.820Z"
+  }
+]

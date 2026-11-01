@@ -1,0 +1,369 @@
+[
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 59,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 58,
+      "number": 59,
+      "positive": true,
+      "referencePixels": 538,
+      "bbox": {
+        "x": 0.318359375,
+        "y": 0.345703125,
+        "w": 0.15234375,
+        "h": 0.359375
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 59/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 59/75 · W 400 / L 50 · top A, left R\n\nRight liver lesion in the patient's right liver, involving mid and deep parenchyma.\n\nRight liver lesion, mid and deep parenchyma\n\nFocal lesion in the patient's right liver, involving mid and deep parenchyma. Faintly hypodense relative to surrounding liver on this slice, irregular with a visible size of about 26 mm across the lesion on the image plane.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver lesion, mid and deep parenchyma · significant\n\nskanda-grounding-q3-mixed · 64.2 s",
+    "analysis": null,
+    "responses": [],
+    "timestamp": "2026-11-01T18:27:07.806Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 60,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 59,
+      "number": 60,
+      "positive": true,
+      "referencePixels": 377,
+      "bbox": {
+        "x": 0.31640625,
+        "y": 0.61328125,
+        "w": 0.0703125,
+        "h": 0.09375
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 60/75 · W 400 / L 50 · top A, left R\n\nFocal lesion in the right liver on this slice.\n\nLiver tumour, right liver\n\nFocal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 21 mm across on this slice, mean attenuation 63 HU.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · moderate\n\nskanda-grounding-q3-mixed · 19.8 s",
+    "analysis": {
+      "modality": "CT",
+      "bodyPart": "abdomen, liver, spleen, kidney, gastrointestinal tract",
+      "view": "axial",
+      "imageQuality": "No obvious artifactual degradation. Contrast and noise adequate for assessment on this slice.",
+      "findings": [
+        {
+          "id": "a8b0418e-9410-4280-ae68-0d9455e0f72b",
+          "title": "Liver tumour, right liver",
+          "description": "Focal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 21 mm across on this slice, mean attenuation 63 HU.",
+          "severity": "moderate",
+          "confidence": 0.8,
+          "location": "right liver",
+          "bbox": {
+            "x": 0.467,
+            "y": 0.351,
+            "w": 0.021,
+            "h": 0.058
+          },
+          "category": "liver",
+          "recommendation": "",
+          "validationIssues": [
+            "Unsupported physical measurement: the model received no calibrated measurement tool."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the right liver on this slice.",
+      "recommendations": [
+        "Assess for tumour continuity and characteristics across relevant slices."
+      ],
+      "differential": [],
+      "urgency": "routine",
+      "rawText": "{\"modality\":\"CT\",\"bodyPart\":\"abdomen, liver, spleen, kidney, gastrointestinal tract\",\"view\":\"axial\",\"imageQuality\":\"No obvious artifactual degradation. Contrast and noise adequate for assessment on this slice.\",\"findings\":[{\"title\":\"Liver tumour, right liver\",\"description\":\"Focal lesion in the patient's right liver, rounded, soft-tissue attenuation, about 21 mm across on this slice, mean attenuation 63 HU.\",\"severity\":\"moderate\",\"confidence\":0.8,\"location\":\"right liver\",\"category\":\"liver\",\"box_2d\":[351,467,409,488]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the right liver on this slice.\",\"recommendations\":[\"Assess for tumour continuity and characteristics across relevant slices.\"],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 19802,
+      "createdAt": 1793557648536
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:27:29.927Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 70,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 69,
+      "number": 70,
+      "positive": true,
+      "referencePixels": 136,
+      "bbox": {
+        "x": 0.22265625,
+        "y": 0.423828125,
+        "w": 0.365234375,
+        "h": 0.0703125
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 70/75 · W 400 / L 50 · top A, left R\n\nLiver lesion, right liver.\n\nLiver lesion, right liver\n\nFocal lesion in the patient's right liver, rounded, mid-level attenuation lesion about 17 mm across on this slice, mean attenuation 52 HU.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 7.4 s",
+    "analysis": null,
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:27:39.601Z"
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 56,
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "reference": {
+      "index": 55,
+      "number": 56,
+      "positive": false,
+      "referencePixels": 0,
+      "bbox": null
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nLiver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R · Selected slice only\n\nResults: Liver CT reference case · axial 56/75 · W 400 / L 50 · top A, left R\n\nOne focal lesion in the liver on this slice.\n\nLiver lesion, right liver\n\nFocal lesion in the liver parenchyma on the patient's right side, irregular with internal calcification or high attenuation, about 28 mm across on this slice.\n\nUnverified model claim — overlay withheld. Unsupported physical measurement: the model received no calibrated measurement tool.\n\nright liver · significant\n\nskanda-grounding-q3-mixed · 7.3 s",
+    "analysis": null,
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:27:49.136Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 61,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 60,
+      "number": 61,
+      "positive": true,
+      "referencePixels": 1414,
+      "bbox": {
+        "x": 0.5125,
+        "y": 0.24166666666666667,
+        "w": 0.15833333333333333,
+        "h": 0.21666666666666667
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 61/155 · W 5574 / L 2787 · top A, left R\n\nLeft cerebral lesion with rim enhancement.\n\nLeft cerebral lesion with rim enhancement\n\nFocal lesion in the left cerebral hemisphere, involving cortical and subcortical grey matter. The lesion shows heterogeneous internal signal with a distinct enhancing rim on this contrast-enhanced sequence, irregular in shape, involving about 13% of the left cerebral hemisphere on this slice.\n\nUnverified model claim — overlay withheld. MRI sequence or contrast was inferred without acquisition metadata.\n\nleft cerebral hemisphere, cortical and subcortical grey matter · significant\n\nskanda-grounding-q3-mixed · 6.3 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "moderate, some noise and smoothing visible in brain parenchyma",
+      "findings": [
+        {
+          "id": "824c472a-3358-460f-88a3-1b0595c3a8a1",
+          "title": "Left cerebral lesion with rim enhancement",
+          "description": "Focal lesion in the left cerebral hemisphere, involving cortical and subcortical grey matter. The lesion shows heterogeneous internal signal with a distinct enhancing rim on this contrast-enhanced sequence, irregular in shape, involving about 13% of the left cerebral hemisphere on this slice.",
+          "severity": "significant",
+          "confidence": 0.85,
+          "location": "left cerebral hemisphere, cortical and subcortical grey matter",
+          "bbox": {
+            "x": 0.196,
+            "y": 0.458,
+            "w": 0.216,
+            "h": 0.245
+          },
+          "category": "lesion",
+          "recommendation": "",
+          "validationIssues": [
+            "MRI sequence or contrast was inferred without acquisition metadata."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Left cerebral lesion with rim enhancement.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"moderate, some noise and smoothing visible in brain parenchyma\",\"findings\":[{\"title\":\"Left cerebral lesion with rim enhancement\",\"description\":\"Focal lesion in the left cerebral hemisphere, involving cortical and subcortical grey matter. The lesion shows heterogeneous internal signal with a distinct enhancing rim on this contrast-enhanced sequence, irregular in shape, involving about 13% of the left cerebral hemisphere on this slice.\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"left cerebral hemisphere, cortical and subcortical grey matter\",\"category\":\"lesion\",\"box_2d\":[458,196,703,412]}],\"pertinentNegatives\":[],\"impression\":\"Left cerebral lesion with rim enhancement.\",\"recommendations\":[],\"differential\":[]}\n\n```json\n{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"moderate, some noise and smoothing visible in brain parenchyma\",\"findings\":[{\"title\":\"Left cerebral lesion with rim enhancement\",\"description\":\"Focal lesion in the left cerebral hemisphere, involving cortical and subcortical grey matter. The lesion shows heterogeneous internal signal with a distinct enhancing rim on this contrast-enhanced sequence, irregular in shape, involving about 13% of the left cerebral hemisphere on this slice.\",\"severity\":\"significant\",\"confidence\":0.85,\"location\":\"left cerebral hemisphere, cortical and subcortical grey matter\",\"category\":\"lesion\",\"box_2d\":[458,196,703,412]}],\"pertinentNegatives\":[],\"impression\":\"Left cerebral lesion with rim enhancement.\",\"recommendations\":[],\"differential\":[]}\n```",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 6313,
+      "createdAt": 1793557679331
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:28:00.673Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 75,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 74,
+      "number": 75,
+      "positive": true,
+      "referencePixels": 1978,
+      "bbox": {
+        "x": 0.49583333333333335,
+        "y": 0.1875,
+        "w": 0.1875,
+        "h": 0.2875
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 141/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 75/155 · W 5574 / L 2787 · top A, left R\n\nThese results are for a different slice or window. Analyze the current slice to update.\n\nFocal lesion in the left cerebral hemisphere, midline right.\n\nFocal lesion in the left cerebral hemisphere, midline right.\n\nHyperintense lesion with irregular borders and heterogeneous internal contrast enhancement in the cerebral hemisphere, involving the left cerebral hemisphere on this slice, midline right.\n\nUnverified model claim — overlay withheld. MRI sequence or contrast was inferred without acquisition metadata.\n\nleft cerebral hemisphere, midline right · significant\n\nskanda-grounding-q3-mixed · 2.5 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "adequate for assessment on this slice",
+      "findings": [
+        {
+          "id": "861881c8-61a2-4c23-9076-66589a5e270c",
+          "title": "Focal lesion in the left cerebral hemisphere, midline right.",
+          "description": "Hyperintense lesion with irregular borders and heterogeneous internal contrast enhancement in the cerebral hemisphere, involving the left cerebral hemisphere on this slice, midline right.",
+          "severity": "significant",
+          "confidence": 0.9,
+          "location": "left cerebral hemisphere, midline right",
+          "bbox": {
+            "x": 0.137,
+            "y": 0.45,
+            "w": 0.261,
+            "h": 0.158
+          },
+          "category": "focal lesion",
+          "recommendation": "",
+          "validationIssues": [
+            "MRI sequence or contrast was inferred without acquisition metadata."
+          ]
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "Focal lesion in the left cerebral hemisphere, midline right.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "priority",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for assessment on this slice\",\"findings\":[{\"title\":\"Focal lesion in the left cerebral hemisphere, midline right.\",\"description\":\"Hyperintense lesion with irregular borders and heterogeneous internal contrast enhancement in the cerebral hemisphere, involving the left cerebral hemisphere on this slice, midline right.\",\"severity\":\"significant\",\"confidence\":0.9,\"location\":\"left cerebral hemisphere, midline right\",\"category\":\"focal lesion\",\"box_2d\":[450,137,608,398]}],\"pertinentNegatives\":[],\"impression\":\"Focal lesion in the left cerebral hemisphere, midline right.\",\"recommendations\":[],\"differential\":[]}",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 2504,
+      "createdAt": 1793557684025
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:28:05.358Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 85,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 84,
+      "number": 85,
+      "positive": true,
+      "referencePixels": 1298,
+      "bbox": {
+        "x": 0.49583333333333335,
+        "y": 0.20833333333333334,
+        "w": 0.15833333333333333,
+        "h": 0.24583333333333332
+      }
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 1/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 15/155 · W 5574 / L 2787 · top A, left R\n\nThese results are for a different slice or window. Analyze the current slice to update.\n\nNo abnormality identified in this slice due to lack of relevant anatomical content.\n\nNo abnormality reported on this slice. This does not assess the rest of the scan.\n\nskanda-grounding-q3-mixed · 1.9 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "Inadequate for assessment; the slice shows only non-cerebral structures at the periphery, with no visible brain tissue or relevant intracranial anatomy on this image.",
+      "findings": [],
+      "pertinentNegatives": [],
+      "impression": "No abnormality identified in this slice due to lack of relevant anatomical content.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "routine",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"Inadequate for assessment; the slice shows only non-cerebral structures at the periphery, with no visible brain tissue or relevant intracranial anatomy on this image.\",\"findings\":[],\"pertinentNegatives\":[],\"impression\":\"No abnormality identified in this slice due to lack of relevant anatomical content.\",\"recommendations\":[],\"differential\":[]}",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 1880,
+      "createdAt": 1793557688103
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:28:09.427Z"
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 97,
+    "window": {
+      "center": 2787,
+      "width": 5574
+    },
+    "reference": {
+      "index": 96,
+      "number": 97,
+      "positive": false,
+      "referencePixels": 0,
+      "bbox": null
+    },
+    "ui": "Single-slice analysis\nAnalyze slice\n\nBrain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R · Selected slice only\n\nResults: Brain MRI T1 post-contrast reference case · axial 97/155 · W 5574 / L 2787 · top A, left R\n\nNo abnormality in the visible brain parenchyma on this slice.\n\nNormal brain parenchyma\n\nUniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma of this slice.\n\ncerebral hemispheres · normal\n\nskanda-grounding-q3-mixed · 7.4 s",
+    "analysis": {
+      "modality": "MR",
+      "bodyPart": "brain",
+      "view": "axial",
+      "imageQuality": "adequate for slice-level assessment",
+      "findings": [
+        {
+          "id": "35e496b3-f3ba-4edf-b235-e60a9880198f",
+          "title": "Normal brain parenchyma",
+          "description": "Uniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma of this slice.",
+          "severity": "normal",
+          "confidence": 0.9,
+          "location": "cerebral hemispheres",
+          "category": "brain parenchyma",
+          "recommendation": "",
+          "validationIssues": []
+        }
+      ],
+      "pertinentNegatives": [],
+      "impression": "No abnormality in the visible brain parenchyma on this slice.",
+      "recommendations": [],
+      "differential": [],
+      "urgency": "routine",
+      "rawText": "{\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal brain parenchyma\",\"description\":\"Uniform grey and white matter differentiation in the cerebral hemispheres, with typical cortical gyration and white matter tracts. No focal abnormality in the brain parenchyma of this slice.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres\",\"category\":\"brain parenchyma\"}],\"pertinentNegatives\":[],\"impression\":\"No abnormality in the visible brain parenchyma on this slice.\",\"recommendations\":[],\"differential\":[]}, {\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal cerebral cortex and subcortical white matter\",\"description\":\"Continuous grey matter rim with smooth convexity, typical cortical gyri and sulci, and uniform subcortical white matter in the cerebral hemispheres. No focal lesion in the cortex or white matter on this slice.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres, cortex and subcortical white matter\",\"category\":\"cortex; white matter\"}],\"pertinentNegatives\":[],\"impression\":\"No abnormality in the cerebral cortex or subcortical white matter on this slice.\",\"recommendations\":[],\"differential\":[]}, {\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal cerebral white matter\",\"description\":\"Uniform mid-grey signal of the cerebral subcortical and deep white matter in the hemispheres, without focal abnormality on this slice.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres, white matter\",\"category\":\"white matter\"}],\"pertinentNegatives\":[],\"impression\":\"No focal lesion in the cerebral white matter on this slice.\",\"recommendations\":[],\"differential\":[]}, {\"modality\":\"MR\",\"bodyPart\":\"brain\",\"view\":\"axial\",\"imageQuality\":\"adequate for slice-level assessment\",\"findings\":[{\"title\":\"Normal cerebral cortex\",\"description\":\"Continuous grey matter rim with typical cortical gyri and sulci in the cerebral hemispheres, no focal cortical abnormality on this slice.\",\"severity\":\"normal\",\"confidence\":0.9,\"location\":\"cerebral hemispheres, cortex\",\"category\":\"cortex\"}],\"pertinentNegatives\":[],\"impression\":\"No focal lesion in the cerebral cortex on this slice.\",\"recommendations\":[],\"differential\":[]}]",
+      "model": "skanda-grounding-q3-mixed",
+      "durationMs": 7442,
+      "createdAt": 1793557697708
+    },
+    "responses": [
+      {
+        "error": "Error: response.text: Protocol error (Network.getResponseBody): No data found for resource with given identifier\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+      }
+    ],
+    "timestamp": "2026-11-01T18:28:19.058Z"
+  }
+]

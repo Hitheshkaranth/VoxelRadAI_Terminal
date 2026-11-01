@@ -1,0 +1,24 @@
+{
+  "ct": {
+    "dataset": "Medical Segmentation Decathlon Task03 Liver / LiTS",
+    "case": "liver_0", "split": "public training",
+    "image": "https://huggingface.co/datasets/MedOtter/msd-liver/resolve/main/imagesTr/liver_0.nii.gz",
+    "mask": "https://huggingface.co/datasets/MedOtter/msd-liver/resolve/main/labelsTr/liver_0.nii.gz",
+    "datasetCard": "https://huggingface.co/datasets/MedOtter/msd-liver",
+    "originalSource": "https://medicaldecathlon.com/",
+    "licenseAsDeclaredByMirror": "CC-BY-SA-4.0",
+    "labels": {"0":"background", "1":"liver", "2":"liver tumor"}
+  },
+  "mri": {
+    "dataset": "BraTS 2023 Adult Glioma",
+    "case": "BraTS-GLI-00000-000", "split": "public training", "sequence": "T1 post-contrast (t1c)",
+    "image": "https://huggingface.co/datasets/MedOtter/brats2023-gli-dataset/resolve/main/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData/BraTS-GLI-00000-000/BraTS-GLI-00000-000-t1c.nii.gz",
+    "mask": "https://huggingface.co/datasets/MedOtter/brats2023-gli-dataset/resolve/main/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData/BraTS-GLI-00000-000/BraTS-GLI-00000-000-seg.nii.gz",
+    "datasetCard": "https://huggingface.co/datasets/MedOtter/brats2023-gli-dataset",
+    "originalSource": "https://www.synapse.org/Synapse:syn51156910/wiki/622351",
+    "licenseAsDeclaredByMirror": "CC-BY-4.0",
+    "labels": {"0":"background", "1":"necrotic/non-enhancing tumor core", "2":"peritumoral edema", "3":"enhancing tumor"},
+    "comparisonTarget": "Union of labels 1, 2, 3; tumor-associated region, not just enhancing tumor."
+  },
+  "method": "One volume per modality. Three reference-positive and one reference-negative axial slice per case, selected before model inference. Native integer voxel values and affine preserved in NRRD, no resampling. CT W400/L50; MRI W5574/L2787. Only image pixels and normal image context sent to the existing app model; no reference masks or diagnostic labels supplied. Unknown training-set overlap: this is a labeled-case demonstration, not an independent generalization benchmark. A negative mask slice means no annotated target, not absence of every possible disease."
+}

@@ -1,0 +1,180 @@
+[
+  {
+    "modality": "ct",
+    "case": "liver_0",
+    "dimensions": [
+      512,
+      512,
+      75
+    ],
+    "window": {
+      "center": 50,
+      "width": 400
+    },
+    "slices": [
+      {
+        "index": 58,
+        "number": 59,
+        "positive": true,
+        "referencePixels": 538,
+        "bbox": {
+          "x": 0.318359375,
+          "y": 0.345703125,
+          "w": 0.15234375,
+          "h": 0.359375
+        }
+      },
+      {
+        "index": 59,
+        "number": 60,
+        "positive": true,
+        "referencePixels": 377,
+        "bbox": {
+          "x": 0.31640625,
+          "y": 0.61328125,
+          "w": 0.0703125,
+          "h": 0.09375
+        }
+      },
+      {
+        "index": 69,
+        "number": 70,
+        "positive": true,
+        "referencePixels": 136,
+        "bbox": {
+          "x": 0.22265625,
+          "y": 0.423828125,
+          "w": 0.365234375,
+          "h": 0.0703125
+        }
+      },
+      {
+        "index": 55,
+        "number": 56,
+        "positive": false,
+        "referencePixels": 0,
+        "bbox": null
+      }
+    ],
+    "peak": 59,
+    "affineLPS": [
+      [
+        -0.703125,
+        0.0,
+        0.0,
+        186.39688110351562
+      ],
+      [
+        0.0,
+        -0.703125,
+        0.0,
+        179.296875
+      ],
+      [
+        0.0,
+        0.0,
+        5.0,
+        -368.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "imageSha256": "ffc5bbc51875660f7e72a8b3b5391a8b256e3b83edffc7428041a54422d3fec7",
+    "maskSha256": "8915868143a1f73096c8068f80049c41f09466abce2bb6731f60c3a4e4e2a0cb",
+    "maskTarget": "label 2 liver tumor",
+    "selection": "Three positive slices selected from reference extent and peak area, plus nearest non-target slice with sufficient image content; selection fixed before inference."
+  },
+  {
+    "modality": "mri",
+    "case": "BraTS-GLI-00000-000",
+    "dimensions": [
+      240,
+      240,
+      155
+    ],
+    "window": {
+      "center": 2787.0,
+      "width": 5574.0
+    },
+    "slices": [
+      {
+        "index": 60,
+        "number": 61,
+        "positive": true,
+        "referencePixels": 1414,
+        "bbox": {
+          "x": 0.5125,
+          "y": 0.24166666666666667,
+          "w": 0.15833333333333333,
+          "h": 0.21666666666666667
+        }
+      },
+      {
+        "index": 74,
+        "number": 75,
+        "positive": true,
+        "referencePixels": 1978,
+        "bbox": {
+          "x": 0.49583333333333335,
+          "y": 0.1875,
+          "w": 0.1875,
+          "h": 0.2875
+        }
+      },
+      {
+        "index": 84,
+        "number": 85,
+        "positive": true,
+        "referencePixels": 1298,
+        "bbox": {
+          "x": 0.49583333333333335,
+          "y": 0.20833333333333334,
+          "w": 0.15833333333333333,
+          "h": 0.24583333333333332
+        }
+      },
+      {
+        "index": 96,
+        "number": 97,
+        "positive": false,
+        "referencePixels": 0,
+        "bbox": null
+      }
+    ],
+    "peak": 75,
+    "affineLPS": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -239.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "imageSha256": "735c27fd7a17b1702875837bcc843eedc88ced6ac2cb0e73cdf995e3e64ba82f",
+    "maskSha256": "5f74bef54e7c4eda1a8c329c1f73ef863460294525b82e99ac587fe72f10f6c6",
+    "maskTarget": "union of labels 1, 2, 3 tumor-associated regions",
+    "selection": "Three positive slices selected from reference extent and peak area, plus nearest non-target slice with sufficient image content; selection fixed before inference."
+  }
+]

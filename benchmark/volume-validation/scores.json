@@ -1,0 +1,160 @@
+[
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 59,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Focal lesion in the liver, right liver"
+    ],
+    "impression": "Focal lesion in the liver, right liver.",
+    "returnedBoxes": 1,
+    "referencePixels": 538,
+    "candidateBoxPixels": 2156,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": 0.0,
+    "appFlagged": true,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 60,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Liver tumour, right liver"
+    ],
+    "impression": "Focal lesion in the right liver on this slice.",
+    "returnedBoxes": 1,
+    "referencePixels": 377,
+    "candidateBoxPixels": 945,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": 0.0,
+    "appFlagged": true,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 70,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Liver lesion, right liver"
+    ],
+    "impression": "One focal lesion in the right liver on this slice.",
+    "returnedBoxes": 1,
+    "referencePixels": 136,
+    "candidateBoxPixels": 544,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": 0.0,
+    "appFlagged": true,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "liver_0",
+    "modality": "ct",
+    "slice": 56,
+    "referencePositive": false,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Liver lesion, right liver"
+    ],
+    "impression": "Liver lesion in the right liver.",
+    "returnedBoxes": 1,
+    "referencePixels": 0,
+    "candidateBoxPixels": 4761,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": null,
+    "appFlagged": true,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 61,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Focal lesion in the left cerebral hemisphere, midline to right."
+    ],
+    "impression": "Focal lesion in the left cerebral hemisphere, midline to right.",
+    "returnedBoxes": 1,
+    "referencePixels": 1414,
+    "candidateBoxPixels": 9600,
+    "intersectionPixels": 758,
+    "boxToReferenceMaskIoU": 0.07390795631825273,
+    "referenceCoverageByBoxes": 0.536067892503536,
+    "appFlagged": false,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 75,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Focal lesion in the left cerebral hemisphere, midline right."
+    ],
+    "impression": "Focal lesion in the left cerebral hemisphere, midline right.",
+    "returnedBoxes": 1,
+    "referencePixels": 1978,
+    "candidateBoxPixels": 2773,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": 0.0,
+    "appFlagged": true,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 85,
+    "referencePositive": true,
+    "reportedAbnormal": true,
+    "modelFindings": [
+      "Focal lesion in the right cerebral hemisphere, midline side."
+    ],
+    "impression": "Focal lesion in the right cerebral hemisphere, midline side.",
+    "returnedBoxes": 1,
+    "referencePixels": 1298,
+    "candidateBoxPixels": 945,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": 0.0,
+    "referenceCoverageByBoxes": 0.0,
+    "appFlagged": false,
+    "truncated": false,
+    "identityVerified": true
+  },
+  {
+    "case": "BraTS-GLI-00000-000",
+    "modality": "mri",
+    "slice": 97,
+    "referencePositive": false,
+    "reportedAbnormal": false,
+    "modelFindings": [],
+    "impression": "No focal abnormality in the brain parenchyma of this slice.",
+    "returnedBoxes": 0,
+    "referencePixels": 0,
+    "candidateBoxPixels": 0,
+    "intersectionPixels": 0,
+    "boxToReferenceMaskIoU": null,
+    "referenceCoverageByBoxes": null,
+    "appFlagged": false,
+    "truncated": false,
+    "identityVerified": true
+  }
+]

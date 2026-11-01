@@ -10,3 +10,6 @@ __pycache__/
 model-runtime/
 .playwright-cli/
 output/playwright/
+
+# Local rendered videos, downloaded evaluation volumes, and working captures
+output/
