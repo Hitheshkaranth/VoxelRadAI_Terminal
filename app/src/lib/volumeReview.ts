@@ -31,7 +31,7 @@ export const volumeFindingKey = (index: number, findingId: string) => `${index}:
 export function volumeFindingRows(job: ReviewableVolume) {
   return job.reads.flatMap((read) => (read.analysis?.findings ?? []).filter((f) => f.severity !== 'normal').map((finding) => {
     const key = volumeFindingKey(read.index, finding.id), review = job.reviews?.[key]
-    return { index: read.index, key, finding, decision: review?.decision ?? 'pending', description: review?.description ?? finding.description, edited: review?.description !== undefined, incomplete: !!read.analysis?.truncated }
+    return { index: read.index, key, finding, decision: review?.decision ?? 'pending', description: review?.description ?? finding.description, edited: review?.description !== undefined, incomplete: !!read.analysis?.truncated, blocked: !!finding.validationIssues?.length }
   }))
 }
 export function nextPendingFinding(rows: ReturnType<typeof volumeFindingRows>, currentKey: string | null, direction: 1 | -1 = 1) {
@@ -58,19 +58,20 @@ export function validateFindingGroup(job: ReviewableVolume, label: string, membe
 export function reviewedVolumeReads(job: Pick<ReviewableVolume, 'reads' | 'reviews'>): SliceRead[] {
   return job.reads.map((read) => ({ ...read, analysis: read.analysis ? { ...read.analysis, findings: read.analysis.findings.map((finding): Finding => {
     const review = job.reviews?.[volumeFindingKey(read.index, finding.id)]
-    return review ? { ...finding, description: review.description ?? finding.description, review: review.decision === 'pending' ? undefined : review.decision } : finding
+    const safe = finding.validationIssues?.length ? {...finding,bbox:undefined,mask:undefined} : finding
+    return review ? { ...safe, description: review.description ?? finding.description, review: review.decision === 'pending' ? undefined : review.decision } : safe
   }) } : undefined }))
 }
 export function volumeReportSourceKey(job: ReviewableVolume): string {
   return JSON.stringify({ id: job.id, count: job.count, snapshot: job.snapshot,
-    reads: job.reads.map((r) => [r.index, r.error, r.analysis?.truncated, r.analysis?.createdAt, r.analysis?.findings.map((f) => [f.id,f.title,f.description,f.severity])]),
+    reads: job.reads.map((r) => [r.index, r.error, r.analysis?.truncated, r.analysis?.createdAt, r.analysis?.findings.map((f) => [f.id,f.title,f.description,f.severity,f.validationIssues])]),
     findingGroups: job.findingGroups ?? [],
     reviews: Object.entries(job.reviews ?? {}).sort(([a],[b]) => a.localeCompare(b)),
   })
 }
 export function buildVolumeDraft(job: ReviewableVolume): string {
   const coverage = volumeCoverage(job.reads,job.count), rows = volumeFindingRows(job)
-  const accepted = rows.filter((row) => row.decision === 'accepted' && !row.incomplete)
+  const accepted = rows.filter((row) => row.decision === 'accepted' && !row.incomplete && !row.blocked)
   const pending = rows.filter((row) => row.decision === 'pending').length
   const rejected = rows.filter((row) => row.decision === 'dismissed').length
   const lines = [
@@ -81,7 +82,7 @@ export function buildVolumeDraft(job: ReviewableVolume): string {
     'ACCEPTED FINDINGS',
     ...accepted.map((row) => `Slice ${row.index + 1}: ${row.finding.title}. ${row.description}${row.finding.location ? ` Location: ${row.finding.location}.` : ''}`),
     ...(accepted.length ? [] : ['No findings have been accepted for this draft. This does not establish a normal examination.']), '',
-    'REVIEW STATUS', `${accepted.length} accepted findings included; ${pending} pending; ${rejected} rejected. Findings from incomplete responses are excluded.`,
+    'REVIEW STATUS', `${rows.filter(row=>row.blocked).length} model claims withheld by consistency checks.`, `${accepted.length} accepted findings included; ${pending} pending; ${rejected} rejected. Findings from incomplete responses are excluded.`,
     'Review source images and edit this draft before clinical use. Separate slice findings have not been merged into lesions.',
   ]
   return lines.join('\n')

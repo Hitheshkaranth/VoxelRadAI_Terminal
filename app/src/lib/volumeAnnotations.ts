@@ -7,7 +7,7 @@ export interface VolumeRegion {
 /** Bounding regions only. A single-slice finding gets exactly one voxel's depth. */
 export function findingRegion(volume: Volume, plane: VolumePlane, index: number, finding: Finding): VolumeRegion | null {
   const box = finding.bbox
-  if (!box || finding.severity === 'normal' || finding.review === 'dismissed') return null
+  if (finding.validationIssues?.length || !box || finding.severity === 'normal' || finding.review === 'dismissed') return null
   if (![box.x, box.y, box.w, box.h].every(Number.isFinite) || box.w <= 0 || box.h <= 0) return null
   const g = getSliceGeometry(volume, plane)
   if (index < 0 || index >= g.count) return null

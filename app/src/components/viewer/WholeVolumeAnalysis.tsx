@@ -4,7 +4,7 @@ import { getSliceGeometry, type Volume, type VolumePlane } from '../../lib/volum
 import { reviewedVolumeReads } from '../../lib/volumeReview'
 import { volumeCoverage, type SliceRead } from '../../lib/volumeAnalysis'
 import { volumeFingerprint } from '../../lib/volumeJobIdentity'
-import { loadVolumeJob, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
+import { auditVolumeJob, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
 
 const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
 const EMPTY_READS: SliceRead[] = []
@@ -31,7 +31,7 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
     void (async () => {
       try {
         const id = `${await volumeFingerprint(volume)}:${modality.toUpperCase()}`
-        const restored = await loadVolumeJob(id)
+        const restored = await auditVolumeJob(id,volume)
         if (!active) return
         setIdentity(id); setJob(restored); setLoading(false)
         unsubscribe = subscribeVolumeJob(id, setJob)
@@ -66,9 +66,10 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
   return <section className="volume-analysis" aria-label="Whole volume analysis">
     <div className="volume-analysis-heading"><h3>Volume analysis</h3><button className="btn btn-primary btn-sm" disabled={loading || !!loadError || running || connection !== 'online' || coverage.complete} onClick={() => run()}>{loading ? 'Restoring…' : coverage.complete ? 'Analysis complete' : running ? 'Analyzing…' : job ? 'Resume analysis' : 'Analyze volume'}</button></div>
     <p role="status"><strong>{status}</strong>{job ? ` · ${coverage.completed}/${count} slices analyzed` : ''}</p>
+    {!!reads.flatMap(read=>read.analysis?.findings??[]).filter(f=>f.validationIssues?.length).length && <p className="volume-review-note">Some model claims failed source-consistency checks and are withheld from overlays and reports. Review the flagged findings below.</p>}
     {job && <progress aria-label="Volume analysis coverage" max={count} value={coverage.completed} style={{ width: '100%', accentColor: 'var(--accent)' }} />}
     {job && !coverage.complete && <p className="volume-review-note">Incomplete coverage: {count - coverage.completed} slices still need a complete response.</p>}
-    {running && <><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><button className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</button></>}
+    {running && <><p role="status">{job?.progress}</p><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><button className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</button></>}
     {!running && job && <p>Elapsed {duration(elapsed)} · {coverage.complete ? 'Review findings before clinical use.' : 'Resume retries failed or incomplete slices.'}</p>}
     <details className="volume-analysis-method"><summary>Analysis scope &amp; storage</summary>
       <p>{count} acquired {plane} slices, analyzed independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>

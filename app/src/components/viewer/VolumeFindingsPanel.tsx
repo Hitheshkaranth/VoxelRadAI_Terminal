@@ -34,7 +34,7 @@ function FindingQueue({identity,job,onNavigate,onSelectFinding,keyboardEnabled}:
   }
   const move=(direction:1|-1)=>{const next=nextPendingFinding(rows,active?.key??null,direction);if(next)open(next)}
   const decide=async(decision:'accepted'|'dismissed')=>{
-    if(!active||active.decision!=='pending'||opened!==active.key||lock.current||(decision==='accepted'&&active.incomplete))return
+    if(!active||active.decision!=='pending'||opened!==active.key||lock.current||(decision==='accepted'&&(active.incomplete||active.blocked)))return
     lock.current=true;setBusy(true);setError('')
     try {
       await updateVolumeFinding(identity,job.id,active.index,active.finding.id,{decision})
@@ -65,15 +65,15 @@ function FindingQueue({identity,job,onNavigate,onSelectFinding,keyboardEnabled}:
     try{await action();setMembers([]);setLabel('')}catch(e){setError(e instanceof Error?e.message:'Could not save group')}finally{lock.current=false;setBusy(false)}
   }
   return <section ref={panel} className="volume-review-panel" aria-label="Volume findings review">
-    <h2>Findings</h2><p>{coverage.completed}/{job.count} slices analyzed · {pending.length} findings awaiting review</p>
+    <h2>Findings</h2><p>AI candidates require source-image verification. Automated checks cannot confirm a lesion.</p><p>{coverage.completed}/{job.count} slices analyzed · {pending.length} findings awaiting review</p>
     {!coverage.complete&&<p className="volume-review-note">Coverage incomplete. Unreviewed slices have no result.</p>}
     <p role="status" className="review-announcement">{announcement}</p>
     {active&&<div className="volume-guided-review" aria-label="Guided finding review">
       <div className="volume-review-finding-head"><h3>{active.finding.title}</h3><span>Slice {active.index+1} · {active.decision==='dismissed'?'Rejected':active.decision}</span></div>
-      <p>{active.description}</p>
+      <p>{active.description}</p>{active.blocked&&<p className="volume-review-note">Unverified model claim — withheld from overlays and reports. {active.finding.validationIssues?.join(" ")}</p>}
       {active.incomplete&&<p className="volume-review-note">Incomplete response: retry this slice before acceptance.</p>}
       <div className="volume-review-actions"><button className="btn btn-sm" disabled={busy} onClick={()=>open(active)}>Open finding</button><button className="btn btn-sm" disabled={busy||!nextPendingFinding(rows,active.key,-1)} onClick={()=>move(-1)}>Previous pending (K)</button><button className="btn btn-sm" disabled={busy||!nextPendingFinding(rows,active.key)} onClick={()=>move(1)}>Next pending (J)</button></div>
-      <div className="volume-review-actions"><button className="btn btn-sm" disabled={busy||opened!==active.key||active.incomplete||active.decision!=='pending'} onClick={()=>void decide('accepted')}>Accept & next (A)</button><button className="btn btn-sm" disabled={busy||opened!==active.key||active.decision!=='pending'} onClick={()=>void decide('dismissed')}>Reject & next (R)</button></div>
+      <div className="volume-review-actions"><button className="btn btn-sm" disabled={busy||opened!==active.key||active.incomplete||active.blocked||active.decision!=='pending'} onClick={()=>void decide('accepted')}>Accept & next (A)</button><button className="btn btn-sm" disabled={busy||opened!==active.key||active.decision!=='pending'} onClick={()=>void decide('dismissed')}>Reject & next (R)</button></div>
       {opened!==active.key&&<p>Open the finding to review its source image before deciding.</p>}
     </div>}
     <div className="volume-review-filters" role="group" aria-label="Filter volume findings">{(['all','pending','accepted','dismissed'] as const).map(value=><button key={value} className="btn btn-sm" aria-pressed={filter===value} onClick={()=>setFilter(value)}>{value==='dismissed'?'Rejected':value[0].toUpperCase()+value.slice(1)}</button>)}</div>
@@ -97,10 +97,11 @@ function FindingReview({identity,job,row,onNavigate}:{identity:string;job:Volume
     <div className="volume-review-finding-head"><h3>{row.finding.title}</h3><span>{row.decision==='dismissed'?'Rejected':row.decision==='accepted'?'Accepted':'Pending'}</span></div>
     <button className="btn btn-sm" onClick={()=>onNavigate(job.plane,row.index,job.snapshot)}>View {job.plane} slice {row.index+1}</button>
     <p>{row.finding.location || 'Location not described'} · {row.finding.severity}</p>
+    {row.blocked&&<p className="volume-review-note">Unverified model claim — withheld from overlays and reports. {row.finding.validationIssues?.join(" ")}</p>}
     {row.incomplete&&<p className="volume-review-note">The model response was incomplete. Retry this slice before including it in a draft.</p>}
     {editing?<div><label>Description<textarea aria-label={`Edit description for ${row.finding.title}`} value={text} onChange={e=>setText(e.target.value)}/></label><div className="volume-review-actions"><button className="btn btn-sm" disabled={busy||!text.trim()} onClick={()=>void change({description:text.trim()})}>Save description</button><button className="btn btn-sm" disabled={busy} onClick={()=>setEditing(false)}>Cancel edit</button></div></div>:<p>{row.description}</p>}
     {row.edited&&<details><summary>Original model description</summary><p>{row.finding.description}</p></details>}
-    <div className="volume-review-actions"><button className="btn btn-sm" aria-pressed={row.decision==='accepted'} disabled={busy||row.incomplete} onClick={()=>void change({decision:'accepted'})}>Accept finding</button><button className="btn btn-sm" aria-pressed={row.decision==='dismissed'} disabled={busy} onClick={()=>void change({decision:'dismissed'})}>Reject finding</button><button className="btn btn-sm" disabled={busy} onClick={()=>{setText(row.description);setEditing(true)}}>Edit description</button>{row.decision!=='pending'&&<button className="btn btn-sm" disabled={busy} onClick={()=>void change({decision:'pending'})}>Reset decision</button>}</div>
+    <div className="volume-review-actions"><button className="btn btn-sm" aria-pressed={row.decision==='accepted'} disabled={busy||row.incomplete||row.blocked} onClick={()=>void change({decision:'accepted'})}>Accept finding</button><button className="btn btn-sm" aria-pressed={row.decision==='dismissed'} disabled={busy} onClick={()=>void change({decision:'dismissed'})}>Reject finding</button><button className="btn btn-sm" disabled={busy} onClick={()=>{setText(row.description);setEditing(true)}}>Edit description</button>{row.decision!=='pending'&&<button className="btn btn-sm" disabled={busy} onClick={()=>void change({decision:'pending'})}>Reset decision</button>}</div>
     {error&&<p role="alert">{error}</p>}
   </article>
 }

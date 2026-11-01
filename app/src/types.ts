@@ -27,6 +27,8 @@ export type FindingSource = 'medgemma' | 'maira2'
 export type FindingReview = 'accepted' | 'dismissed'
 
 export interface Finding {
+  /** Automated source-consistency concerns; not a diagnosis. Raw claims remain available. */
+  validationIssues?: string[]
   id: string
   /** Short radiological label, e.g. "Right lower lobe consolidation". */
   title: string

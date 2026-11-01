@@ -17,7 +17,7 @@ export function VolumeReportPanel({volume,modality,onNavigateEvidence}:{volume:V
   const text=edit?.text??job.draftReport?.text??'', sourceKey=edit?.sourceKey??job.draftReport?.sourceKey??''
   const currentKey=volumeReportSourceKey(job), stale=!!text&&sourceKey!==currentKey
   const coverage=volumeCoverage(job.reads,job.count), pending=volumeFindingRows(job).filter(r=>r.decision==='pending').length
-  const accepted=volumeFindingRows(job).filter(row=>row.decision==='accepted'&&!row.incomplete)
+  const accepted=volumeFindingRows(job).filter(row=>row.decision==='accepted'&&!row.incomplete&&!row.blocked)
   const reviewed=!!job.draftReport?.reviewedAt&&!stale&&!edit
   const save=async(nextText:string,key:string,markReviewed=false)=>{
     setBusy(true);setError('')

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Volume } from '../../lib/volume'
 import { volumeFingerprint } from '../../lib/volumeJobIdentity'
-import { loadVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
+import { auditVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
 
 export function useVolumeReview(volume: Volume, modality: string) {
   const [state,setState] = useState<{ volume: Volume; identity: string; job: VolumeJob | null; error: string } | null>(null)
@@ -10,7 +10,7 @@ export function useVolumeReview(volume: Volume, modality: string) {
     void (async()=>{
       try {
         const identity=`${await volumeFingerprint(volume)}:${modality.toUpperCase()}`
-        const job=await loadVolumeJob(identity)
+        const job=await auditVolumeJob(identity,volume)
         if(!active)return
         setState({volume,identity,job,error:''})
         unsubscribe=subscribeVolumeJob(identity,(updated)=>{ if(active)setState({volume,identity,job:updated,error:''}) })

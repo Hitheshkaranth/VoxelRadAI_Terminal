@@ -1,3 +1,4 @@
+import { validateVolumeAnalysis } from './volumeValidation'
 import { get, set } from 'idb-keyval'
 import { analyzeImage } from './medgemma'
 import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './volume'
@@ -97,7 +98,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
   try {
     await save(job)
     if (!current()) return
-    await reviewAllSlices({ count: job.count, previous: job.reads, signal: controller.signal,
+    await reviewAllSlices({ retries: 2, onRetry: (index,attempt) => { if(current())patch({progress:`Connection interrupted at slice ${index+1}. Retrying ${attempt}/2…`}) }, count: job.count, previous: job.reads, signal: controller.signal,
       onStart: (index) => { if (current()) patch({ progress: `Reviewing ${job.plane} slice ${index + 1} of ${job.count}` }) },
       onSlice: async (read) => {
         if (!current()) return
@@ -117,10 +118,11 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         canvas.getContext('2d')!.drawImage(raw, 0, 0, canvas.width, canvas.height)
         const label = `${job.title} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
         let lastProgress = 0
-        return analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal,
+        const analysis = await analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal,
           image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
           onProgress: (text) => { if (current() && Date.now() - lastProgress >= 200) { lastProgress = Date.now(); patch({ progress: `Slice ${index + 1}/${job.count} · ${text}` }) } },
         })
+        return validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis)
       },
     })
     if (current()) {
@@ -143,6 +145,7 @@ export async function updateVolumeFinding(identity: string, jobId: string, index
   if (!job || job.id !== jobId) throw new Error('This review changed. Reopen the current findings before editing.')
   const finding = job.reads.find((r) => r.index === index)?.analysis?.findings.find((f) => f.id === findingId)
   if (!finding) throw new Error('This finding is no longer available.')
+  if (patch.decision === 'accepted' && finding.validationIssues?.length) throw new Error('This model claim failed source-consistency checks. Reject it or obtain a corrected analysis before acceptance.')
   const key = volumeFindingKey(index, findingId), prior = job.reviews?.[key]
   const review: VolumeFindingReview = { decision: prior?.decision ?? 'pending', ...prior, ...patch, updatedAt: Date.now() }
   if (review.description !== undefined && !review.description.trim()) throw new Error('Enter a description before saving.')
@@ -154,7 +157,7 @@ export async function saveVolumeDraft(identity: string, jobId: string, text: str
   if (!text.trim()) throw new Error('The report cannot be empty.')
   if (reviewed) {
     const pending = job.reads.some((r) => r.analysis?.findings.some((f) => f.severity !== 'normal' && (!job.reviews?.[volumeFindingKey(r.index,f.id)] || job.reviews[volumeFindingKey(r.index,f.id)].decision === 'pending')))
-    if (!volumeCoverage(job.reads,job.count).complete || pending || sourceKey !== volumeReportSourceKey(job)) throw new Error('Complete coverage and finding review, then regenerate the draft before marking it reviewed.')
+    if (job.reads.some(r=>r.analysis?.findings.some(f=>f.validationIssues?.length && job.reviews?.[volumeFindingKey(r.index,f.id)]?.decision==='accepted')) || !volumeCoverage(job.reads,job.count).complete || pending || sourceKey !== volumeReportSourceKey(job)) throw new Error('Complete coverage and finding review, then regenerate the draft before marking it reviewed.')
   }
   await save(publish({ ...job, draftReport: { text, sourceKey, updatedAt: Date.now(), ...(reviewed ? { reviewedAt: Date.now() } : {}) }, updatedAt: Date.now() }))
 }
@@ -170,4 +173,14 @@ export async function removeVolumeFindingGroup(identity: string, jobId: string, 
   const job = records.get(identity)
   if (!job || job.id !== jobId) throw new Error('This analysis has changed. Reopen the findings.')
   await save(publish({ ...job, findingGroups: (job.findingGroups ?? []).filter(group => group.id !== groupId), updatedAt: Date.now() }))
+}
+
+export async function auditVolumeJob(identity: string, volume: Volume): Promise<VolumeJob | null> {
+  const job = await loadVolumeJob(identity)
+  if (!job) return null
+  const reads = job.reads.map(read => ({...read, analysis: read.analysis ? validateVolumeAnalysis(volume,job.plane,read.index,job.snapshot,read.analysis) : undefined}))
+  if (JSON.stringify(reads) === JSON.stringify(job.reads)) return job
+  const next = publish({...job,reads,updatedAt:Date.now()})
+  await save(next)
+  return next
 }

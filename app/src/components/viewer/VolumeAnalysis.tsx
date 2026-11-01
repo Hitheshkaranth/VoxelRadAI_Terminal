@@ -5,7 +5,7 @@ import type { AnalysisResult, PatientInfo } from '../../types'
 
 const patient: PatientInfo = { name: '', patientId: '', age: '', sex: '', studyDate: '', referringPhysician: '', indication: '', clinicalHistory: '' }
 
-export function VolumeAnalysis({ image, modality, label, width, height, onResult }: { image: string; modality: string; label: string; width: number; height: number; onResult?: (result: AnalysisResult | null) => void }) {
+export function VolumeAnalysis({ image, modality, label, width, height, onResult, validate }: { image: string; modality: string; label: string; width: number; height: number; onResult?: (result: AnalysisResult | null) => void; validate?: (result: AnalysisResult) => AnalysisResult }) {
   const settings = useApp((s) => s.settings)
   const connection = useApp((s) => s.connection)
   const [progress, setProgress] = useState('')
@@ -19,10 +19,11 @@ export function VolumeAnalysis({ image, modality, label, width, height, onResult
     controller.current = request
     setError(''); setProgress('Reviewing selected slice…'); setResult(null); onResult?.(null)
     try {
-      const analysis = await analyzeImage({ settings, patient, signal: request.signal,
+      const raw = await analyzeImage({ settings, patient, signal: request.signal,
         image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: image, width, height, addedAt: Date.now(), status: 'idle', sourceModality: modality === 'MRI' ? 'MR' : modality },
         onProgress: (text) => { if (controller.current === request) setProgress(text) },
       })
+      const analysis = validate ? validate(raw) : raw
       if (controller.current === request && !request.signal.aborted) { setResult({ analysis, label }); onResult?.(analysis) }
     } catch (reason) {
       if (controller.current === request && !request.signal.aborted) setError(reason instanceof Error ? reason.message : 'Analysis failed. Try again.')
@@ -41,7 +42,7 @@ export function VolumeAnalysis({ image, modality, label, width, height, onResult
       {result.label !== label && <p>These results are for a different slice or window. Analyze the current slice to update.</p>}
       <p>{result.analysis.impression}</p>
       {result.analysis.truncated && <p>Output was cut off; findings may be incomplete.</p>}
-      {result.analysis.findings.length ? result.analysis.findings.map((finding) => <article key={finding.id}><strong>{finding.title}</strong><p>{finding.description}</p><p>{finding.location} · {finding.severity}</p>{finding.severity !== 'normal' && !finding.bbox && <p>No location coordinates returned; no box available.</p>}</article>) : <p>No abnormality reported on this slice. This does not assess the rest of the scan.</p>}
+      {result.analysis.findings.length ? result.analysis.findings.map((finding) => <article key={finding.id}><strong>{finding.title}</strong><p>{finding.description}</p>{!!finding.validationIssues?.length && <p className="volume-review-note">Unverified model claim — overlay withheld. {finding.validationIssues.join(" ")}</p>}<p>{finding.location} · {finding.severity}</p>{finding.severity !== 'normal' && !finding.bbox && <p>No location coordinates returned; no box available.</p>}</article>) : <p>No abnormality reported on this slice. This does not assess the rest of the scan.</p>}
       <p>{result.analysis.model} · {(result.analysis.durationMs / 1000).toFixed(1)} s</p>
     </div>}
   </section>

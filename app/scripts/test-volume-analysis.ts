@@ -26,3 +26,17 @@ visited=[]
 await assert.rejects(reviewAllSlices({count:3,signal:controller.signal,read:async(i)=>{visited.push(i);return result},onSlice:async()=>{throw new Error('checkpoint failed')}}),/checkpoint failed/)
 assert.deepEqual(visited,[0])
 console.log('Whole-volume coverage, cancellation, resume, failures, truncation and checkpoint ordering: 15 checks passed')
+let attempts=0
+reads=[]
+await reviewAllSlices({count:1,retries:2,retryDelayMs:0,signal:controller.signal,read:async()=>{if(++attempts<3)throw new Error('network error');return result},onSlice:r=>reads.push(r)})
+assert.equal(attempts,3);assert.equal(volumeCoverage(reads,1).completed,1)
+attempts=0
+await reviewAllSlices({count:1,retries:2,retryDelayMs:0,signal:controller.signal,read:async()=>{attempts++;throw new Error('invalid model configuration')},onSlice:()=>{}})
+assert.equal(attempts,1)
+attempts=0;reads=[]
+await reviewAllSlices({count:2,retries:2,retryDelayMs:0,signal:controller.signal,read:async()=>{attempts++;throw new Error('network error')},onSlice:r=>reads.push(r)})
+assert.equal(attempts,3);assert.equal(reads.length,1);assert.equal(reads[0].error,'network error')
+const retryCancel=new AbortController();attempts=0;reads=[]
+await reviewAllSlices({count:1,retries:2,retryDelayMs:0,signal:retryCancel.signal,onRetry:()=>retryCancel.abort(),read:async()=>{attempts++;throw new Error('network error')},onSlice:r=>reads.push(r)})
+assert.equal(attempts,1);assert.equal(reads.length,0)
+console.log('Bounded transient retries and cancellation: 8 checks passed')
