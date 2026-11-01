@@ -39,6 +39,7 @@
   place-items: center;
 }
 .sh-brand .sh-brand-mark svg { width: 13px; height: 13px; }
+.sh-brand .sh-brand-logo { width: 24px; height: 24px; flex: none; }
 
 .sh-search {
   height: 40px;
@@ -423,6 +424,7 @@
 .sh-delete-confirm .sh-delete-note { flex: 1; font: var(--text-body) / 1.4 var(--font-sans); color: var(--label-2); }
 
 .sh-about { display: flex; flex-direction: column; gap: var(--sp-3); }
+.sh-about-logo { width: 56px; height: 56px; }
 .sh-about-title { font: 600 var(--text-title1) / 1.1 var(--font-sans); color: var(--label); }
 .sh-about-sub { font: var(--text-body) / 1.4 var(--font-sans); color: var(--label-2); }
 .sh-disclaimer {

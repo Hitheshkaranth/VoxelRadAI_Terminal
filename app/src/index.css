@@ -126,6 +126,7 @@ html.sh-ready .sh-app { opacity: 1; }
   box-shadow: var(--shadow-md);
 }
 .sh-empty-mark svg { width: 38px; height: 38px; }
+.sh-empty-logo { width: 96px; height: 96px; }
 
 .sh-empty-title { font-size: var(--text-title2); font-weight: 600; color: var(--label); letter-spacing: -0.01em; }
 .sh-empty-desc { font-size: var(--text-callout); color: var(--label-2); max-width: 420px; line-height: 1.45; }

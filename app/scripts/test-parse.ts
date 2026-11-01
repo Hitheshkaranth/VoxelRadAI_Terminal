@@ -68,6 +68,20 @@ eq('confidence clamp <0→0', result.findings.find((f) => f.title === 'No label'
 eq('unknown severity→minor', result.findings.find((f) => f.title === 'No label')!.severity, 'minor')
 eq('normal severity', result.findings.find((f) => f.title === 'Normal heart')!.severity, 'normal')
 eq('box_2d 0-1000→bbox', result.findings.find((f) => f.title === 'Tension PTX')!.bbox, { x: 0.2, y: 0.1, w: 0.2, h: 0.2 })
+
+// Skanda's outline masks (skanda/serve.py mask_png) are kept; anything that is not a PNG data URL is dropped
+{
+  const png = 'data:image/png;base64,iVBORw0KGgo='
+  const r = normalizeAnalysis(
+    { findings: [
+      { title: 'Left pneumothorax', severity: 'critical', box_2d: [100, 500, 400, 900], mask_png: png },
+      { title: 'Effusion', severity: 'moderate', mask_png: 'javascript:alert(1)' },
+    ] },
+    meta,
+  )
+  eq('mask_png kept', r.findings.find((f) => f.title === 'Left pneumothorax')!.mask, png)
+  eq('non-PNG mask dropped', r.findings.find((f) => f.title === 'Effusion')!.mask, undefined)
+}
 eq('degenerate box dropped', result.findings.find((f) => f.title === 'Minor nodule')!.bbox, undefined)
 eq('boxless finding has no bbox', result.findings.find((f) => f.title === 'Normal heart')!.bbox, undefined)
 eq('pertinent negatives', result.pertinentNegatives, ['No effusion', 'No fracture'])

@@ -51,7 +51,7 @@ export function mergeSecondReader(analysis: AnalysisResult, mairaFindings: Maira
     if (!kind || !kinds.includes(kind) || seen.has(kind)) continue
     seen.add(kind)
     added.push({
-      id: crypto.randomUUID(),
+      id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `m${Date.now()}-${Math.random().toString(16).slice(2)}`,
       title: m.title,
       description: m.description,
       // MAIRA-2 gives no grading; never let it raise urgency on its own.

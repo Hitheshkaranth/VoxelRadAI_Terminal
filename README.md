@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🩻 Skanda Radiology
+<img src="docs/brand/skanda-banner.jpg" alt="Skanda: AI for healthier tomorrows" width="100%">
+
+# Skanda Radiology
 
 **AI-assisted chest X-ray reading that runs entirely on your Mac.**
 
@@ -43,6 +45,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
 | 🎯 **Localised view** | Classifier **heatmap** painted on the X-ray, **one per finding** (its type's evidence within its own region; jet colour map, hot regions outlined, each peak labelled with the finding number and regional strength): all findings at once, or the selected one; **H** toggles it. The printed report repeats it as one figure per finding. Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
+| ✏️ **Segmentation display** | With the [Skanda](https://github.com/Hitheshkaranth/skanda-grounding) reader, each finding arrives with its outline mask. The viewer draws it as a smooth outline in the finding's severity colour, or filled with adjustable opacity (**M** cycles box / outline / fill). A **before/after divider** (**C**) shows the plain film on one side and the overlays on the other. The overlay panel turns single findings on and off, so you can see what lies under an outline. Readers that give boxes only (MedGemma) keep their boxes. |
 | 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
 | 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
 | 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
@@ -98,6 +101,9 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 </td>
 </tr>
 </table>
+
+<p align="center"><img src="docs/screenshots/segmentation-outline.png" alt="Skanda read of ChestX-Det test film cxd_69598 in the viewer: four findings (bilateral consolidation and a right pleural effusion), each drawn as a smooth orange outline over the lungs with its numbered chip, findings list and impression on the right" width="80%"></p>
+<p align="center"><sub><b>Segmentation display.</b> A saved Skanda run 3 read of a ChestX-Det test film, replayed into the app: each finding is drawn as its outline (<b>M</b> switches to filled, <b>C</b> adds the before/after divider).</sub></p>
 
 ### Sample report (excerpt from [`docs/sample-report.pdf`](docs/sample-report.pdf))
 
@@ -397,6 +403,97 @@ cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.p
 
 [`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
 
+<p align="center"><img src="docs/benchmark-card.svg" alt="Benchmark on held-out test cases (abnormal flagged / normals called normal / right finding type / box precision / box recall, %). Chest X-ray (111 films): MedGemma 27B 90/72/41/6/4, MedGemma + MAIRA-2 91/72/47, Skanda run 2 85/83/37/28/15.5, Skanda run 3 84/69/40.5/25.5/10. CT (340 cases): MedGemma 97/6/49/1/3, Skanda run 2 80/88/69/20/14, run 3 82/91/72/22/16. MRI (240 cases): MedGemma 99/2/42/6/8, Skanda run 2 89/97/87/64/59, run 3 89/94/89/70/65." width="100%"></p>
+
+| 🩻 Chest X-ray (111) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | 90 | **91** | 85 | 84 |
+| Normals called normal | 72 | 72 | **83** | 69 |
+| Right finding type | 41 | **47** | 37 | 40.5 |
+| Box precision | 6 | – | **28** | 25.5 |
+| Box recall | 4 | – | **15.5** | 10 |
+
+| 🫁 CT (340) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | **97** | – | 80 | 82 |
+| Normals called normal | 6 | – | 88 | **91** |
+| Right finding type | 49 | – | 69 | **72** |
+| Box precision | 1 | – | 20 | **22** |
+| Box recall | 3 | – | 14 | **16** |
+
+| 🧠 MRI (240) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | **99** | – | 89 | 89 |
+| Normals called normal | 2 | – | **97** | 94 |
+| Right finding type | 42 | – | 87 | **89** |
+| Box precision | 6 | – | 64 | **70** |
+| Box recall | 8 | – | 59 | **65** |
+
+Percent, higher is better; **bold** = best. **Skanda** is our own grounding model ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)).
+X-ray: this app's benchmark below, same runner for every model (Skanda: mean of two passes). CT and MRI: 580 held-out
+slices and volumes, lesion and lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI
+MedGemma calls almost every case abnormal (6% / 2% of normals cleared); Skanda run 3 clears 91% / 94% and names the
+right finding 72% / 89% of the time (MedGemma 49% / 42%). On chest X-ray run 3 names the right finding type more often
+than run 2 (40.5% vs 37%) but clears fewer normals (69% vs 83%) and finds fewer boxes (recall 10% vs 15.5%).
+
+### 🦠 Detection by disease
+
+How often each model names each kind of finding, on the same held-out cases as the table above.
+
+<p align="center"><img src="docs/disease-card.svg" alt="Detection by disease for MedGemma 27B, MedGemma + MAIRA-2 and Skanda run 3. Chest X-ray, 111 ChestX-Det test films: MedGemma leads on pneumothorax (100% vs 15%), atelectasis, nodule, mass, fibrosis and emphysema; Skanda leads on consolidation (78% vs 69%), effusion (64% vs 30%, 53% fused), cardiomegaly (75% vs 25%) and diffuse nodule (50% vs 0%). CT, 340 cases: Skanda leads on lung (92% vs 76%), liver (74% vs 57%), pancreatic (46% vs 0%) and mediastinal lesions (69% vs 38%); MedGemma on colon (20% vs 13%). MRI, 240 cases: brain tumour 96% vs 74%, acute stroke 78% vs 0%." width="100%"></p>
+
+- 🩻 **X-ray:** MedGemma names pneumothorax, atelectasis, nodule, mass and emphysema far more often; Skanda leads on
+  consolidation, effusion, cardiomegaly and diffuse nodule. MAIRA-2 adds effusions and nodules to MedGemma's read
+  (30% → 53%, 42% → 53%).
+- 🫁 **CT:** Skanda leads on every organ except colon. MedGemma never names a pancreatic lesion (0 of 28); Skanda 13.
+- 🧠 **MRI:** MedGemma never names an acute stroke (0 of 60); Skanda finds 47. Brain tumour: 96% vs 74%.
+- Groups under about 15 cases (kidney, mediastinum, colon, most rare X-ray labels) are directional only.
+  Built in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding) (`docs/build_disease_chart.py`).
+
+### 🔍 Side by side: X-ray, CT and MRI
+
+The same held-out image read by each model. Each figure shows the radiologist's outline, MedGemma 27B's read and
+Skanda's read, with that modality's benchmark bars above. For an abnormal case, each panel lists **what was found and on
+what grounds**, using the report's own fields:
+- **Type:** the finding's title, e.g. "Liver lesion".
+- **Where:** side and zone, or organ.
+- **Severity.**
+- **Evidence:** what is seen, with size in mm, volume in mL and how far it extends.
+
+The radiologist's panel shows the same fields, measured from the radiologist's outline. Skanda's panel also shows its
+abnormality score. These are the saved benchmark reads; nothing was re-run for
+the figures. The cases are chosen by a fixed rule:
+- **Abnormal case:** the one where Skanda's box best overlaps the radiologist's.
+- **Normal case:** a random pick (seed 0) from the lesion-free cases Skanda cleared.
+
+Both rules favour Skanda: the images show what a good read looks like, and the bars show how often one happens.
+
+<details open>
+<summary><b>🩻 Chest X-ray</b></summary>
+
+<p align="center"><img src="docs/examples-xray.svg" alt="Chest X-ray side by side. Abnormal film cxd_69598: radiologists marked bilateral effusion and consolidation; MedGemma 27B called bilateral interstitial opacities and a right lower lobe opacity (best box overlap 0.50 IoU); Skanda run 3 called left and right pleural effusions and consolidation (0.89 IoU). Normal film cxd_59621: both models called it normal." width="100%"></p>
+</details>
+
+<details open>
+<summary><b>🫁 CT</b></summary>
+
+<p align="center"><img src="docs/examples-ct.svg" alt="CT side by side. Abnormal slice lung_001_z238 (right lung tumour): MedGemma 27B called a right upper lobe mass and mediastinal lymphadenopathy with boxes of 0.01 IoU; Skanda run 3 called a right lung lesion and outlined it at 0.91 IoU. Normal slice lung_009_z80: MedGemma called a pleural effusion; Skanda called it normal." width="100%"></p>
+</details>
+
+<details open>
+<summary><b>🧠 MRI</b></summary>
+
+<p align="center"><img src="docs/examples-mri.svg" alt="MRI side by side. Abnormal slice BRATS_234_z78 (right-hemisphere brain tumour with oedema): MedGemma 27B called a right frontal mass and oedema with boxes of 0.24 IoU; Skanda run 3 named the oedema, non-enhancing and enhancing tumour on the right and outlined it at 0.97 IoU. Normal slice isles_strokecase0070_z19: MedGemma called cerebellar atrophy; Skanda called it normal." width="100%"></p>
+</details>
+
+Built by `docs/build_examples.py` in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding).
+
+<details>
+<summary><b>Skanda: run 1 → run 3</b></summary>
+
+<p align="center"><img src="docs/progress-card.svg" alt="Skanda progress from run 1 to run 3 on the same held-out cases, per modality." width="100%"></p>
+</details>
+
 **Held-out result (Oct 2026):** 111 [ChestX-Det](https://github.com/Deepwise-AILab/ChestX-Det-Dataset) test films labelled by 3 radiologists; every rule and threshold was chosen on a separate 106-film dev split. Wilson 95% CIs.
 
 | | 🧠 MedGemma 27B | 🧠 + 🔬 MAIRA-2 second reader |
@@ -421,13 +518,13 @@ Using the classifier to *remove* MedGemma findings lost 17 true abnormal films f
 MedGemma's boxes are usually in the right region but large and off-centre; the heatmap is coarser still. The app therefore zooms to the box and shows the heatmap as a labelled hint, and every finding still needs the radiologist's eye. Full tables and the ablation: [benchmark/README.md](benchmark/README.md#results--oct-2026-chestx-det-held-out-test-111-films).
 
 <a id="model-comparison-cxr"></a>
-### 🔁 Model comparison: MedGemma CXR fine-tune (Oct 2026)
+### 🔁 Model comparison: MedGemma CXR fine-tune and Skanda (Oct 2026)
 
 The CXR fine-tune of MedGemma 27B ([`medgemma-27b-it-cxr`](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films)) was run on the same 111 held-out ChestX-Det test films, with the same prompts and the same scorer, at two quantisations:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmark/cxr-comparison-dark.png">
-  <img src="docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S and CXR fine-tune Q4_K_M on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
+  <img src="docs/benchmark/cxr-comparison-light.png" alt="Grouped bar charts comparing base MedGemma Q3_K_S, CXR fine-tune Q3_K_S, CXR fine-tune Q4_K_M and Skanda run 2 (two passes) on 111 ChestX-Det test films: headline rates with 95% intervals, and sensitivity for each of 13 radiologist labels" width="100%">
 </picture>
 
 | | Abnormal flagged | Normals clear | Right type | Mass | Nodule |
@@ -435,6 +532,11 @@ The CXR fine-tune of MedGemma 27B ([`medgemma-27b-it-cxr`](benchmark/README.md#m
 | Base MedGemma · Q3_K_S | 74/82 | 21/29 | 90/220 (41%) | 6/9 | 8/19 |
 | CXR fine-tune · Q3_K_S (matched) | 76/82 | 20/29 | 87/220 (40%) | 6/9 | 9/19 |
 | CXR fine-tune · Q4_K_M | 71/82 | 22/29 | 73/220 (33%) | 0/9 | 3/19 |
+| Skanda run 2 · pass 1 / pass 2 | 70/82 · 70/82 | 24/29 · 24/29 | 81/220 (37%) · 81/220 | 1/9 · 3/9 | 3/19 · 2/19 |
+
+Skanda run 2 ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)) is on the chart too: most normals
+called normal (83%), box centre inside the lesion 49–55% (MedGemma 16%), effusion 56–63% and cardiomegaly 83% (MedGemma
+30% and 25%). MedGemma is far ahead on pneumothorax (100% vs 20%), atelectasis, nodule, mass and emphysema.
 
 At the same quantisation the fine-tune matches the base model (p = 0.79, paired McNemar). The Q4_K_M run's lower score did not replicate, so it is most likely run-to-run variance. The app keeps the base model. Details and setup caveats: [benchmark/README.md](benchmark/README.md#model-comparison--medgemma-cxr-fine-tune-chestx-det-held-out-test-111-films).
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileImage, FileText, Plus, ScanLine, ShieldCheck, Target } from 'lucide-react'
+import { FileImage, FileText, Plus, ShieldCheck, Target } from 'lucide-react'
 import { hydrate, useActiveStudy, useApp } from './store'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
@@ -242,9 +242,7 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const model = useApp((s) => s.settings.model)
   return (
     <div className="sh-empty">
-      <div className="sh-empty-mark">
-        <ScanLine strokeWidth={1.5} />
-      </div>
+      <img className="sh-empty-logo" src="/skanda-mark.png" alt="Skanda" />
       <h1 className="sh-empty-title">Skanda Radiology</h1>
       <p className="sh-empty-desc">
         {hasStudies

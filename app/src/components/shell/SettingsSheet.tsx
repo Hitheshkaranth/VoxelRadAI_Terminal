@@ -428,6 +428,7 @@ function AboutSection() {
   return (
     <Section title="About" desc="Skanda Radiology decision support.">
       <div className="sh-about">
+        <img className="sh-about-logo" src="/skanda-mark.png" alt="" aria-hidden />
         <div className="sh-about-title">Skanda Radiology</div>
         <div className="sh-about-sub">Version {VERSION}</div>
         <div className="sh-disclaimer">

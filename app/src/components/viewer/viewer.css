@@ -258,7 +258,13 @@
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
   z-index: 5;
+  /* Narrow viewers (sidebar + inspector open): scroll the tools sideways instead of clipping them. */
+  max-width: calc(100% - 2 * var(--sp-3));
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.vw-toolbox::-webkit-scrollbar { display: none; }
+.vw-toolbox > * { flex-shrink: 0; }
 .vw-toolbox .vw-tool {
   display: inline-grid;
   place-items: center;
@@ -604,7 +610,7 @@
 .vw-heat-ends { display: flex; justify-content: space-between; font-size: 9px; opacity: 0.8; }
 
 /* Reading workspace: image owns its viewport; controls never cover the film. */
-.vw-workspace { height: 100%; display: flex; flex-direction: column; min-width: 0; background: var(--viewer-bg); }
+.vw-workspace { position: relative; height: 100%; display: flex; flex-direction: column; min-width: 0; background: var(--viewer-bg); }
 .vw-workspace > .vw-stage { flex: 1; height: auto; touch-action: none; }
 .vw-workspace > .vw-toolbox {
   position: static; transform: none; flex: none; flex-wrap: wrap; justify-content: center;
@@ -654,3 +660,110 @@
   .vw-evidence-details { flex-basis: auto; }
   .vw-strip { max-height: 64px; }
 }
+
+/* ── Segmentation display (Skanda outline masks), before/after divider, overlay display panel ── */
+.vw-layers { position: absolute; inset: 0; pointer-events: none; }
+.vw-layers > * { pointer-events: none; }
+.vw-layers .vw-overlays .vw-finding { pointer-events: auto; }
+.vw-masks { position: absolute; inset: 0; pointer-events: none; }
+.vw-mask-group { position: absolute; inset: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.vw-mask {
+  position: absolute;
+  inset: 0;
+  background: var(--c);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+.vw-mask-edge { filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7)); }
+.vw-mask-group[data-excluded] .vw-mask-fill { display: none; }
+/* With a finding focused, the others step back (as the boxes do). */
+.vw-hl .vw-mask-group:not(.vw-mask-on) { opacity: 0.3; }
+/* A segmented finding's box becomes a quiet hit area: the outline carries the shape, the chip and label stay. */
+.vw-finding[data-masked] {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.vw-finding[data-masked].vw-hl-on,
+.vw-finding[data-masked].vw-found {
+  border: 1px dashed color-mix(in srgb, var(--c) 70%, transparent);
+}
+
+.vw-compare {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+.vw-compare::before { content: ''; position: absolute; top: 0; bottom: 0; left: -10px; width: 20px; }
+.vw-compare-grip {
+  position: absolute;
+  top: 50%;
+  left: -13px;
+  width: 24px;
+  height: 36px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+.vw-compare:focus-visible .vw-compare-grip { outline: 2px solid var(--accent, #52cafc); outline-offset: 2px; }
+.vw-compare-tag {
+  position: absolute;
+  top: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.vw-compare-l { right: 8px; }
+.vw-compare-r { left: 8px; }
+
+.vw-layers-panel {
+  position: absolute;
+  right: var(--sp-3);
+  bottom: 64px;
+  width: min(320px, calc(100% - 2 * var(--sp-3)));
+  max-height: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(18, 18, 18, 0.92);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+.vw-lp-row { display: flex; align-items: center; gap: 8px; }
+.vw-lp-k { width: 38px; color: rgba(255, 255, 255, 0.6); }
+.vw-lp-v { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.vw-lp-row input[type='range'] { flex: 1; accent-color: #52cafc; }
+.vw-seg { display: inline-flex; border-radius: 999px; background: rgba(255, 255, 255, 0.08); padding: 2px; }
+.vw-seg button {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+.vw-seg button[aria-checked='true'] { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.vw-lp-note { margin: 0; color: rgba(255, 255, 255, 0.55); font-size: 11.5px; }
+.vw-lp-list { overflow: auto; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 6px; }
+.vw-lp-item { display: flex; align-items: center; gap: 6px; padding: 3px 2px; border-radius: 6px; cursor: pointer; }
+.vw-lp-item:hover { background: rgba(255, 255, 255, 0.06); }
+.vw-lp-n { color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; }
+.vw-lp-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vw-lp-tag { font-size: 10.5px; padding: 0 5px; border-radius: 999px; background: rgba(82, 202, 252, 0.18); color: #a5e3fd; }

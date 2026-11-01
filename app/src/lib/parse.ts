@@ -409,6 +409,7 @@ function normalizeFinding(raw: unknown, index: number): Finding {
     confidence: asConfidence(raw.confidence),
     location: asString(raw.location),
     bbox: toBBox(raw.box_2d ?? raw.bbox),
+    mask: typeof raw.mask_png === 'string' && raw.mask_png.startsWith('data:image/png;base64,') ? raw.mask_png : undefined,
     category: category || (isDevice(title, '') ? 'Devices' : ''),
     recommendation: asString(raw.recommendation),
   }

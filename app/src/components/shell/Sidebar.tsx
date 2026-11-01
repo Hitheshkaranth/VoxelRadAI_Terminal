@@ -46,8 +46,8 @@ export function Sidebar() {
     <nav className="sh-sidebar wl-sidebar" aria-label="Studies">
       <div className="sh-sidebar-head">
         <div className="sh-brand">
-          <span className="sh-brand-mark" aria-hidden><Scan /></span>
-          <span>Skanda</span>
+          <img className="sh-brand-logo" src="/skanda-mark.png" alt="" aria-hidden />
+          Skanda
         </div>
       </div>
 

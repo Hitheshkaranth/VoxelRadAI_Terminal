@@ -16,7 +16,16 @@ import type {
   ViewerState,
 } from './types'
 
-export const uid = () => crypto.randomUUID()
+// crypto.randomUUID exists only in secure contexts (https, localhost); opened over the LAN or a tailnet by plain http
+// the app would fail to create a study, so fall back to getRandomValues, which works everywhere.
+export const uid = (): string => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   baseUrl: '/lmstudio/v1',
@@ -39,7 +48,19 @@ export const DEFAULT_VIEWER: ViewerState = {
   invert: false,
   showOverlay: true,
   showHeatmap: true,
+  overlayStyle: 'outline',
+  overlayOpacity: 0.35,
+  compare: false,
+  comparePos: 0.5,
+  hiddenFindings: [],
 }
+
+/** Display preferences that survive switching images or resetting the view (zoom, window and hidden findings do not). */
+const keepDisplay = (v: ViewerState): ViewerState => ({
+  ...DEFAULT_VIEWER,
+  overlayStyle: v.overlayStyle,
+  overlayOpacity: v.overlayOpacity,
+})
 
 export const emptyPatient = (): PatientInfo => ({
   name: '',
@@ -176,7 +197,7 @@ export const useApp = create<AppState>()((set, get) => ({
           : image) }
     }),
   })),
-  selectImage: (imageId) => set({ activeImageId: imageId, selectedFindingId: null, viewer: DEFAULT_VIEWER }),
+  selectImage: (imageId) => set((st) => ({ activeImageId: imageId, selectedFindingId: null, viewer: keepDisplay(st.viewer) })),
   setImageStatus: (studyId, imageId, status, extra) =>
     set((st) => ({
       studies: mapStudy(st.studies, studyId, (s) => ({
@@ -262,7 +283,7 @@ export const useApp = create<AppState>()((set, get) => ({
 
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
   setViewer: (patch) => set((st) => ({ viewer: { ...st.viewer, ...patch } })),
-  resetViewer: () => set({ viewer: DEFAULT_VIEWER }),
+  resetViewer: () => set((st) => ({ viewer: keepDisplay(st.viewer) })),
   updateSettings: (patch) => set((st) => ({ settings: { ...st.settings, ...patch } })),
   setConnection: (connection) => set({ connection }),
   openSheet: (sheet) => set({ sheet }),

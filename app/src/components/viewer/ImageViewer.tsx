@@ -1,12 +1,13 @@
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { Contrast, Eye, EyeOff, Flame, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
-import type { Finding, Heatmap, ViewerState } from '../../types'
+import { Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import type { Finding, Heatmap, OverlayStyle, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
 import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
 import { pinchTransform, touchGeometry, type PinchAnchor, type TouchPoint } from './gestures'
+import { maskAlphaUrl } from '../../lib/maskOverlay'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
@@ -27,6 +28,14 @@ const PRESETS: { id: string; label: string; brightness: number; contrast: number
   { id: 'soft', label: 'Soft tissue', brightness: 112, contrast: 80 },
 ]
 
+const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
+  { id: 'box', label: 'Box', hint: 'Boxes only' },
+  { id: 'outline', label: 'Outline', hint: 'Outline of each segmented finding' },
+  { id: 'fill', label: 'Fill', hint: 'Filled outline (opacity below)' },
+]
+/** Clicks on these never start a pan or window-level drag. */
+const UI = '.vw-toolbox, .vw-finding, .vw-compare, .vw-layers-panel'
+
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
 
@@ -41,6 +50,8 @@ export function ImageViewer() {
   const touches = useRef(new Map<number, TouchPoint>())
   const pinch = useRef<PinchAnchor | null>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const [layersOpen, setLayersOpen] = useState(false)
   const [stage, setStage] = useState({ w: 0, h: 0 })
   const [animating, setAnimating] = useState(false)
   const focused = useRef(false)
@@ -121,7 +132,7 @@ export function ImageViewer() {
     return { x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 }
   }
   const onPointerDown = (e: ReactPointerEvent) => {
-    if ((e.target as HTMLElement).closest('.vw-toolbox, .vw-finding, .vw-evidence')) return
+    if ((e.target as HTMLElement).closest(UI)) return
     const wl = e.button === 2 || e.altKey
     if (e.button !== 0 && !wl) return
     // Use exactly two contacts; extra fingers cannot replace the active pair.
@@ -202,11 +213,20 @@ export function ImageViewer() {
         case 'h':
           setViewer({ showHeatmap: !v.showHeatmap })
           break
+        case 'm': {
+          const k = STYLES.findIndex((x) => x.id === v.overlayStyle)
+          setViewer({ overlayStyle: STYLES[(k + 1) % STYLES.length].id })
+          break
+        }
+        case 'c':
+          setViewer({ compare: !v.compare })
+          break
         case 'r':
           resetViewer()
           break
         case 'Escape':
-          selectFinding(null)
+          if (layersOpen) setLayersOpen(false)
+          else selectFinding(null)
           break
         case 'ArrowRight':
         case 'ArrowLeft': {
@@ -221,7 +241,7 @@ export function ImageViewer() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage])
+  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage, layersOpen])
 
   // Selecting a finding zooms onto its box; clearing the selection (Esc, click again) returns to the whole film.
   useEffect(() => {
@@ -282,6 +302,16 @@ export function ImageViewer() {
   const presetId =
     PRESETS.find((p) => p.brightness === viewer.brightness && p.contrast === viewer.contrast)?.id ?? 'custom'
   const p = study.patient
+  const hidden = new Set(viewer.hiddenFindings)
+  const shown = findings.map((f, i) => ({ f, i })).filter(({ f }) => !hidden.has(f.id))
+  const hasMasks = findings.some((f) => f.mask)
+  const maskMode = viewer.overlayStyle === 'box' ? null : viewer.overlayStyle
+  const toggleHidden = (id: string) =>
+    setViewer({ hiddenFindings: hidden.has(id) ? viewer.hiddenFindings.filter((x) => x !== id) : [...viewer.hiddenFindings, id] })
+  const dragCompare = (e: ReactPointerEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (rect && rect.width) setViewer({ comparePos: clamp((e.clientX - rect.left) / rect.width, 0, 1) })
+  }
 
   return (
     <div className="vw-workspace">
@@ -300,7 +330,7 @@ export function ImageViewer() {
       }}
       onContextMenu={(e) => e.preventDefault()}
       onDoubleClick={(e) => {
-        if ((e.target as HTMLElement).closest('.vw-toolbox, .vw-finding')) return
+        if ((e.target as HTMLElement).closest(UI)) return
         if (viewer.zoom > 1.01) setViewer({ zoom: 1, panX: 0, panY: 0 })
         else {
           const rect = stageRef.current!.getBoundingClientRect()
@@ -311,6 +341,7 @@ export function ImageViewer() {
       aria-label={`Image viewer: ${image.name}`}
     >
       <div
+        ref={canvasRef}
         className={`vw-canvas${animating ? ' vw-anim' : ''}`}
         style={{
           width: dispW,
@@ -330,18 +361,38 @@ export function ImageViewer() {
           }}
         />
         {showLat && <div className="vw-lat">R</div>}
+        {/* Everything drawn over the film; with the divider on, only to its right (the left shows the plain film). */}
+        <div
+          className="vw-layers"
+          style={viewer.compare ? { clipPath: `inset(0 0 0 ${viewer.comparePos * 100}%)` } : undefined}
+        >
         {heatSources.length > 0 && <HeatmapLayer sources={heatSources} />}
+        {viewer.showOverlay && maskMode && (
+          <div className="vw-masks" aria-hidden="true">
+            {shown
+              .filter(({ f }) => f.mask)
+              .map(({ f }) => (
+                <MaskLayer
+                  key={f.id}
+                  f={f}
+                  fill={maskMode === 'fill'}
+                  opacity={viewer.overlayOpacity}
+                  on={f.id === focusId}
+                />
+              ))}
+          </div>
+        )}
         {viewer.showOverlay && (
           <div className="vw-overlays">
             {/* Larger boxes first so smaller (nested) boxes stay on top and clickable. */}
-            {findings
-              .map((f, i) => ({ f, i }))
+            {shown
               .sort((a, b) => area(b.f) - area(a.f))
               .map(({ f, i }) => (
               <FindingBox
                 key={f.id}
                 f={f}
                 n={i + 1}
+                masked={!!maskMode && !!f.mask}
                 on={f.id === focusId}
                 selected={f.id === selectedId}
                 onHover={(on) => hoverFinding(on ? f.id : null)}
@@ -351,6 +402,37 @@ export function ImageViewer() {
                 }}
               />
             ))}
+          </div>
+        )}
+        </div>
+        {viewer.compare && (
+          <div
+            className="vw-compare"
+            style={{ left: `${viewer.comparePos * 100}%` }}
+            role="slider"
+            aria-label="Before / after divider (C)"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(viewer.comparePos * 100)}
+            tabIndex={0}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              e.currentTarget.setPointerCapture(e.pointerId)
+              dragCompare(e)
+            }}
+            onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && dragCompare(e)}
+            onKeyDown={(e) => {
+              const step = e.key === 'ArrowLeft' ? -0.05 : e.key === 'ArrowRight' ? 0.05 : 0
+              if (step) {
+                e.preventDefault()
+                e.stopPropagation()
+                setViewer({ comparePos: clamp(viewer.comparePos + step, 0, 1) })
+              }
+            }}
+          >
+            <span className="vw-compare-grip" />
+            <span className="vw-compare-tag vw-compare-l">Film</span>
+            <span className="vw-compare-tag vw-compare-r">Overlay</span>
           </div>
         )}
         {image.status === 'analyzing' && <div className="vw-scan" />}
@@ -463,11 +545,109 @@ export function ImageViewer() {
         >
           <Flame strokeWidth={1.75} />
         </button>
+        <button
+          className="vw-tool"
+          aria-label="Before / after divider (C)"
+          title="Before / after divider (C): plain film on the left, overlays on the right"
+          aria-pressed={viewer.compare}
+          disabled={!findings.length && !hasHeatmaps}
+          onClick={() => setViewer({ compare: !viewer.compare })}
+        >
+          <Columns2 strokeWidth={1.75} />
+        </button>
+        <button
+          className="vw-tool"
+          aria-label="Overlay display"
+          title="Overlay display: outline / fill (M), opacity, which findings to show"
+          aria-pressed={layersOpen}
+          aria-expanded={layersOpen}
+          disabled={!findings.length}
+          onClick={() => setLayersOpen(!layersOpen)}
+        >
+          <Layers strokeWidth={1.75} />
+        </button>
         <span className="vw-sep" />
         <button className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
           <RotateCcw strokeWidth={1.75} />
         </button>
       </div>
+
+      {layersOpen && findings.length > 0 && (
+        <div className="vw-layers-panel" role="dialog" aria-label="Overlay display" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="vw-lp-row">
+            <span className="vw-lp-k">Style</span>
+            <div className="vw-seg" role="radiogroup" aria-label="Overlay style">
+              {STYLES.map((st) => (
+                <button
+                  key={st.id}
+                  role="radio"
+                  aria-checked={viewer.overlayStyle === st.id}
+                  title={st.hint + (st.id !== 'box' && !hasMasks ? ' (this reader gave boxes only)' : '')}
+                  onClick={() => setViewer({ overlayStyle: st.id })}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="vw-lp-row">
+            <span className="vw-lp-k">Fill</span>
+            <input
+              type="range"
+              min={10}
+              max={90}
+              step={5}
+              value={Math.round(viewer.overlayOpacity * 100)}
+              disabled={viewer.overlayStyle !== 'fill'}
+              onChange={(e) => setViewer({ overlayOpacity: Number(e.target.value) / 100 })}
+              aria-label="Fill opacity"
+            />
+            <span className="vw-lp-v">{Math.round(viewer.overlayOpacity * 100)}%</span>
+          </label>
+          {!hasMasks && <p className="vw-lp-note">This reader gave boxes, not outlines; outline and fill apply to Skanda reads.</p>}
+          <div className="vw-lp-list" role="group" aria-label="Findings shown on the image">
+            {findings.map((f, i) => (
+              <label key={f.id} className="vw-lp-item" data-severity={f.severity}>
+                <input type="checkbox" checked={!hidden.has(f.id)} onChange={() => toggleHidden(f.id)} />
+                <span className="vw-sev" style={{ background: 'var(--c)' }} />
+                <span className="vw-lp-n">{i + 1}</span>
+                <span className="vw-lp-t">{f.title}</span>
+                {f.mask && <span className="vw-lp-tag">outline</span>}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** One finding's segmentation, tinted with its severity colour; the outline is always drawn, the fill only in Fill. */
+function MaskLayer({ f, fill, opacity, on }: { f: Finding; fill: boolean; opacity: number; on: boolean }) {
+  const [edge, setEdge] = useState<string | null>(null)
+  const [area_, setArea] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    if (f.mask) {
+      maskAlphaUrl(f.mask, 'outline').then((u) => live && setEdge(u)).catch(() => {})
+      if (fill) maskAlphaUrl(f.mask, 'fill').then((u) => live && setArea(u)).catch(() => {})
+    }
+    return () => {
+      live = false
+    }
+  }, [f.mask, fill])
+  const excluded = f.severity !== 'normal' && isExcluded(f)
+  const layer = (url: string, o: number, cls: string) => (
+    <div
+      className={`vw-mask ${cls}`}
+      data-severity={f.severity}
+      style={{ maskImage: `url(${url})`, WebkitMaskImage: `url(${url})`, opacity: o }}
+    />
+  )
+  return (
+    <div className={`vw-mask-group${on ? ' vw-mask-on' : ''}`} data-excluded={excluded || undefined}>
+      {fill && area_ && layer(area_, opacity, 'vw-mask-fill')}
+      {edge && layer(edge, excluded ? 0.6 : 0.95, 'vw-mask-edge')}
     </div>
   )
 }
@@ -475,6 +655,7 @@ export function ImageViewer() {
 function FindingBox({
   f,
   n,
+  masked,
   on,
   selected,
   onHover,
@@ -482,6 +663,7 @@ function FindingBox({
 }: {
   f: Finding
   n: number
+  masked: boolean
   on: boolean
   selected: boolean
   onHover: (on: boolean) => void
@@ -496,6 +678,7 @@ function FindingBox({
       data-severity={f.severity}
       data-excluded={excluded || undefined}
       data-unconfirmed={(f.severity !== 'normal' && isUnconfirmed(f)) || undefined}
+      data-masked={masked || undefined}
       style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` }}
       onPointerEnter={() => onHover(true)}
       onPointerLeave={() => onHover(false)}
