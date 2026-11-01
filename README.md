@@ -45,6 +45,7 @@ cross-checked by an independent classifier, and drafted into a signable radiolog
 | 📥 **Intake** | Drag & drop anywhere, paste (⌘V) or file picker. PNG, JPEG, WebP and uncompressed DICOM (correct tag parsing, BitsStored, MONOCHROME1, window/level, downscaling). |
 | 🔬 **Diagnostic viewer** | Zoom/pan, window-level (right/⌥-drag) with Lung / Bone / Soft-tissue presets, invert, keyboard shortcuts, numbered severity-coloured boxes linked to the findings list, "not localized" legend. |
 | 🎯 **Localised view** | Classifier **heatmap** painted on the X-ray, **one per finding** (its type's evidence within its own region; jet colour map, hot regions outlined, each peak labelled with the finding number and regional strength): all findings at once, or the selected one; **H** toggles it. The printed report repeats it as one figure per finding. Selecting a finding zooms the viewer onto its box (Esc returns to the whole film) and its card shows a close-up crop. Boxes and heatmaps are approximate: see [localisation](#localisation-held-out). |
+| ✏️ **Segmentation display** | With the [Skanda](https://github.com/Hitheshkaranth/skanda-grounding) reader, each finding arrives with its outline mask. The viewer draws it as a smooth outline in the finding's severity colour, or filled with adjustable opacity (**M** cycles box / outline / fill). A **before/after divider** (**C**) shows the plain film on one side and the overlays on the other. The overlay panel turns single findings on and off, so you can see what lies under an outline. Readers that give boxes only (MedGemma) keep their boxes. |
 | 🧠 **Analysis** | Staged progress with ETA (reading → lung-pattern → cross-check → second reader), urgency, severity breakdown, impression, pertinent negatives, differential. A failed or truncated read is shown as an error, never as "normal". |
 | 🛡️ **Cross-check** | Every finding is checked by a local [TorchXRayVision](https://github.com/mlmed/torchxrayvision) classifier (~0.1 s) with per-class thresholds tuned on held-out data. Unsupported findings stay in, drawn dashed and marked **unconfirmed**; the draft words them as *possible*. |
 | 🔬 **Second reader** | Optional [MAIRA-2](https://huggingface.co/microsoft/maira-2) service adds effusion, nodule/mass and atelectasis findings MedGemma missed, only where the classifier agrees. On held-out films: right finding type 41% → 47%, effusion 30% → 53%. |
@@ -100,6 +101,9 @@ Real runs of the current app on this Mac (Oct 2026), using ChestX-Det test films
 </td>
 </tr>
 </table>
+
+<p align="center"><img src="docs/screenshots/segmentation-outline.png" alt="Skanda read of ChestX-Det test film cxd_69598 in the viewer: four findings (bilateral consolidation and a right pleural effusion), each drawn as a smooth orange outline over the lungs with its numbered chip, findings list and impression on the right" width="80%"></p>
+<p align="center"><sub><b>Segmentation display.</b> A saved Skanda run 3 read of a ChestX-Det test film, replayed into the app: each finding is drawn as its outline (<b>M</b> switches to filled, <b>C</b> adds the before/after divider).</sub></p>
 
 ### Sample report (excerpt from [`docs/sample-report.pdf`](docs/sample-report.pdf))
 

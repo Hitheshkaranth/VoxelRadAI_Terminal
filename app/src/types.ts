@@ -39,6 +39,8 @@ export interface Finding {
   location: string
   /** Approximate region on the image, if the model could localize it. */
   bbox?: BBox
+  /** Outline mask over the whole image (PNG data URL, white = finding), from readers that segment (Skanda). */
+  mask?: string
   /** e.g. "Lungs", "Pleura", "Cardiomediastinal", "Bones", "Devices", "Soft tissue". */
   category?: string
   /** Optional finding-specific follow-up. */
@@ -201,7 +203,18 @@ export interface ViewerState {
   showOverlay: boolean
   /** Classifier heatmap for the selected finding. */
   showHeatmap: boolean
+  /** How findings with an outline mask are drawn: box only, mask outline, or filled mask with its outline. */
+  overlayStyle: OverlayStyle
+  /** Fill opacity of mask overlays, 0..1. */
+  overlayOpacity: number
+  /** Before/after divider: overlays only to the right of comparePos (0..1 of the image width). */
+  compare: boolean
+  comparePos: number
+  /** Findings hidden from the image (ids), e.g. to see what lies under one outline. */
+  hiddenFindings: string[]
 }
+
+export type OverlayStyle = 'box' | 'outline' | 'fill'
 
 export type InspectorTab = 'findings' | 'report'
 
