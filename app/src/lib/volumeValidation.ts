@@ -27,7 +27,7 @@ export function findingIssues(finding: Finding, pixels: Uint8ClampedArray, width
 }
 export function validateVolumeAnalysis(volume: Volume, plane: VolumePlane, index: number, window: {center:number;width:number}, analysis: AnalysisResult): AnalysisResult {
   const slice=renderSlice(volume,plane,index,window)
-  return {...analysis,findings:analysis.findings.map(finding=>({...finding,validationIssues:findingIssues(finding,slice.pixels,slice.width,slice.height)}))}
+  return {...analysis,findings:analysis.findings.map(finding=>({...finding,validationIssues:[...new Set([...(finding.validationIssues??[]),...findingIssues(finding,slice.pixels,slice.width,slice.height)])]}))}
 }
 
 /** Only near-black pixels connected to the image border; enclosed dark anatomy is retained. */
