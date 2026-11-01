@@ -2,6 +2,7 @@
 // retry, and a serial queue so only one inference hits LM Studio at a time.
 import type { AnalysisResult, ConnectionState, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
 import { isCrossSectional } from './modality'
+import type { SkandaSliceInput } from './skandaSlice'
 import { buildSlicePrompt, buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT, SKANDA_SYSTEM_PROMPT, SKANDA_ANALYSIS_PROMPT } from './prompts'
 import { extractJson, extractJsonWithInfo, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
 import { parseSseLines, type SseParse } from './sse'
@@ -87,6 +88,7 @@ export async function chatStream({
   onDelta,
   maxTokens,
   temperature,
+  extra,
 }: {
   settings: Settings
   messages: ChatMessage[]
@@ -94,6 +96,8 @@ export async function chatStream({
   onDelta?: (text: string) => void
   maxTokens?: number
   temperature?: number
+  /** Extra request fields (Skanda's server reads "skanda"; other servers ignore unknown fields). */
+  extra?: Record<string, unknown>
 }): Promise<ChatResult> {
   if (signal?.aborted) throw abortError()
   // Own controller so a stalled stream can be aborted without touching the caller's signal.
@@ -124,6 +128,7 @@ export async function chatStream({
           stream: true,
           temperature: temperature ?? settings.temperature,
           max_tokens: maxTokens ?? settings.maxTokens,
+          ...extra,
         }),
         signal: ac.signal,
       })
@@ -245,6 +250,9 @@ const RETRY_PROMPT = `Your previous reply could not be parsed as JSON. Return th
 single valid JSON object that matches the schema in my first message: same findings, no new ones,
 no prose, no markdown, no code fences.`
 
+/** Skanda models (its own server, or a build of it in LM Studio) are named skanda-…. */
+export const isSkandaModel = (model: string) => /(^|\/)skanda-/i.test(model)
+
 export type AnalyzeStage = 'queued' | 'reading' | 'retry' | 'lung-pattern'
 
 export async function analyzeImage(opts: {
@@ -254,27 +262,33 @@ export async function analyzeImage(opts: {
   signal?: AbortSignal
   onProgress?: (text: string) => void
   onStage?: (s: AnalyzeStage) => void
+  /** CT/MRI with a Skanda model: the slice as Skanda was trained to see it, plus spacing and raw HU (lib/skandaSlice). */
+  skanda?: SkandaSliceInput
 }): Promise<AnalysisResult> {
   const t0 = Date.now()
   const { settings, signal } = opts
   const crossSectional = isCrossSectional(opts.image)
-  const skanda = /(^|\/)skanda-/i.test(settings.model)
+  const skanda = isSkandaModel(settings.model)
   let chars = 0
 
   opts.onStage?.('queued')
   if (queue.size() > 0) opts.onProgress?.('Waiting for the model…')
   // Encode once; the retry and the lung-pattern pass reuse the same pixels.
-  const imageUrl = await reencodeForClassifier(opts.image.dataUrl)
+  // Skanda on CT/MRI: its own prompt and training rendering, never the generic box_2d prompt it was not trained on.
+  const skandaSlice = skanda && crossSectional ? opts.skanda : undefined
+  if (skanda && crossSectional && !skandaSlice) throw new Error('Skanda needs the CT/MRI volume data for this slice (axial plane). Open the slice from a volume to analyze it with Skanda.')
+  const imageUrl = skandaSlice ? skandaSlice.dataUrl : await reencodeForClassifier(opts.image.dataUrl)
   const firstTurn: ChatMessage[] = [
-    { role: 'system', content: crossSectional ? 'You are a radiology assistant reviewing a CT or MRI image for a radiologist. Describe only visible evidence and return the requested JSON schema.' : skanda ? SKANDA_SYSTEM_PROMPT : SYSTEM_PROMPT },
+    { role: 'system', content: skanda ? SKANDA_SYSTEM_PROMPT : crossSectional ? 'You are a radiology assistant reviewing a CT or MRI image for a radiologist. Describe only visible evidence and return the requested JSON schema.' : SYSTEM_PROMPT },
     {
       role: 'user',
       content: [
         { type: 'image_url', image_url: { url: imageUrl } },
-        { type: 'text', text: crossSectional ? buildSlicePrompt(opts.image.sourceModality!, opts.image.name, opts.patient) : skanda ? SKANDA_ANALYSIS_PROMPT : buildAnalysisPrompt(opts.patient) },
+        { type: 'text', text: skandaSlice ? skandaSlicePrompt(skandaSlice) : crossSectional ? buildSlicePrompt(opts.image.sourceModality!, opts.image.name, opts.patient) : skanda ? SKANDA_ANALYSIS_PROMPT : buildAnalysisPrompt(opts.patient) },
       ],
     },
   ]
+  const extra = skandaSlice ? { skanda: skandaSlice.extension } : undefined
   const onDelta = (d: string) => {
     chars += d.length
     opts.onProgress?.(`Writing findings · ${chars.toLocaleString()} chars`)
@@ -302,7 +316,7 @@ export async function analyzeImage(opts: {
     first = await queue.enqueue(() => {
       opts.onStage?.('reading')
       opts.onProgress?.('Reviewing image…')
-      return chatStream({ settings, messages: firstTurn, signal, onDelta })
+      return chatStream({ settings, messages: firstTurn, signal, onDelta, extra })
     }, signal)
   } catch (err) {
     if (isAbort(err) || signal?.aborted) throw abortError()
@@ -328,6 +342,7 @@ export async function analyzeImage(opts: {
           temperature: 0,
           signal,
           onDelta,
+          extra,
           messages: [...firstTurn, { role: 'assistant', content: first.text || '(empty reply)' }, { role: 'user', content: RETRY_PROMPT }],
         })
       }, signal)
@@ -347,7 +362,28 @@ export async function analyzeImage(opts: {
       )
     }
   }
-  return withPattern(parsed)
+  return withPattern(skandaSlice ? groundedOnly(parsed, skandaSlice) : parsed)
+}
+
+/** Skanda's training prompt for one axial slice (skanda-grounding skanda/ctmri.prompt; its server uses its own copy). */
+function skandaSlicePrompt(input: SkandaSliceInput): string {
+  const m = input.extension.modality
+  const body = m === 'mri' ? 'brain' : /liver|abdom|pancrea|kidney|colon|pelvi|hepat/i.test(input.extension.body) ? 'abdomen' : /chest|lung|thora|pulmon|mediast/i.test(input.extension.body) ? 'chest' : 'body'
+  return `Read this axial slice of a ${body} ${m === 'ct' ? 'CT' : 'MRI'}. Reply as JSON: normal, findings (title, evidence, location, severity, mask), impression.`
+}
+
+/** A Skanda location is only grounded when its outline came back. Builds without the outline path (a GGUF in LM Studio,
+ * which cannot run SAM 2) write coordinates Skanda was never trained to produce: drop those boxes and say why. */
+function groundedOnly(a: AnalysisResult, input: SkandaSliceInput): AnalysisResult {
+  const notes = [...input.limitations]
+  let dropped = 0
+  const findings = a.findings.map((f) => {
+    if (f.mask || !f.bbox) return f
+    dropped++
+    return { ...f, bbox: undefined, validationIssues: [...(f.validationIssues ?? []), 'No outline returned: this Skanda build cannot draw outlines (for example a GGUF in LM Studio), so its coordinates are not grounded and were removed. Use the Skanda server for CT/MRI.'] }
+  })
+  if (dropped) notes.push(`${dropped} ungrounded location${dropped > 1 ? 's' : ''} removed (no outline).`)
+  return notes.length ? { ...a, findings, imageQuality: [a.imageQuality, ...notes].filter(Boolean).join(' ') } : { ...a, findings }
 }
 
 /** Neutral graded lung-pattern check (see LUNG_PATTERN_PROMPT). Best-effort: returns null on any non-abort failure. */

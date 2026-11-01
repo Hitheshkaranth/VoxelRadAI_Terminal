@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../store'
-import { analyzeImage } from '../../lib/medgemma'
+import { analyzeImage, isSkandaModel } from '../../lib/medgemma'
+import type { SkandaSliceInput } from '../../lib/skandaSlice'
 import type { AnalysisResult, PatientInfo } from '../../types'
 
 const patient: PatientInfo = { name: '', patientId: '', age: '', sex: '', studyDate: '', referringPhysician: '', indication: '', clinicalHistory: '' }
 
-export function VolumeAnalysis({ image, modality, label, width, height, onResult, validate }: { image: string; modality: string; label: string; width: number; height: number; onResult?: (result: AnalysisResult | null) => void; validate?: (result: AnalysisResult) => AnalysisResult }) {
+export function VolumeAnalysis({ image, modality, label, width, height, onResult, validate, skandaInput }: { image: string; modality: string; label: string; width: number; height: number; onResult?: (result: AnalysisResult | null) => void; validate?: (result: AnalysisResult) => AnalysisResult; skandaInput?: () => { input: SkandaSliceInput | null; reason?: string } }) {
   const settings = useApp((s) => s.settings)
   const connection = useApp((s) => s.connection)
   const [progress, setProgress] = useState('')
@@ -19,7 +20,13 @@ export function VolumeAnalysis({ image, modality, label, width, height, onResult
     controller.current = request
     setError(''); setProgress('Reviewing selected slice…'); setResult(null); onResult?.(null)
     try {
-      const raw = await analyzeImage({ settings, patient, signal: request.signal,
+      let skanda: SkandaSliceInput | undefined
+      if (isSkandaModel(settings.model)) {
+        const built = skandaInput?.() ?? { input: null, reason: 'Skanda needs the volume data for this slice.' }
+        if (!built.input) throw new Error(built.reason ?? 'Skanda cannot read this slice.')
+        skanda = built.input
+      }
+      const raw = await analyzeImage({ settings, patient, signal: request.signal, skanda,
         image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: image, width, height, addedAt: Date.now(), status: 'idle', sourceModality: modality === 'MRI' ? 'MR' : modality },
         onProgress: (text) => { if (controller.current === request) setProgress(text) },
       })

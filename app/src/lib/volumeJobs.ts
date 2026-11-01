@@ -1,6 +1,7 @@
 import { validateVolumeAnalysis } from './volumeValidation'
 import { get, set } from 'idb-keyval'
-import { analyzeImage } from './medgemma'
+import { analyzeImage, isSkandaModel } from './medgemma'
+import { skandaSliceInput, type SkandaSliceInput } from './skandaSlice'
 import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './volume'
 import { reviewAllSlices, volumeCoverage, type SliceRead } from './volumeAnalysis'
 import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type VolumeFindingGroup, type VolumeFindingReview, type VolumeDraftReport } from './volumeReview'
@@ -98,6 +99,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
   try {
     await save(job)
     if (!current()) return
+    const skandaCache: { mriRange?: [number, number] } = {}  // one MRI normalisation per job (Skanda reads)
     await reviewAllSlices({ retries: 2, onRetry: (index,attempt) => { if(current())patch({progress:`Connection interrupted at slice ${index+1}. Retrying ${attempt}/2…`}) }, count: job.count, previous: job.reads, signal: controller.signal,
       onStart: (index) => { if (current()) patch({ progress: `Reviewing ${job.plane} slice ${index + 1} of ${job.count}` }) },
       onSlice: async (read) => {
@@ -118,7 +120,13 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         canvas.getContext('2d')!.drawImage(raw, 0, 0, canvas.width, canvas.height)
         const label = `${job.title} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
         let lastProgress = 0
-        const analysis = await analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal,
+        let skanda: SkandaSliceInput | undefined
+        if (isSkandaModel(job.snapshot.settings.model)) {
+          const built = skandaSliceInput(opts.volume, job.plane, index, { modality: job.modality, title: job.title }, skandaCache)
+          if (!built.input) throw new Error(built.reason ?? 'Skanda cannot read this slice.')
+          skanda = built.input
+        }
+        const analysis = await analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal, skanda,
           image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
           onProgress: (text) => { if (current() && Date.now() - lastProgress >= 200) { lastProgress = Date.now(); patch({ progress: `Slice ${index + 1}/${job.count} · ${text}` }) } },
         })
