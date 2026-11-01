@@ -399,47 +399,50 @@ cd app && uv run --with torchxrayvision --with scikit-image server/txrv_server.p
 
 [`benchmark/`](benchmark) runs the app's exact pipeline (same prompts, parser and lung-pattern pass) over public, labelled chest X-rays and scores it.
 
-<p align="center"><img src="docs/benchmark-card.svg" alt="Benchmark on held-out test cases. Chest X-ray (111 films): MedGemma 27B 90/72/41/6/4, MedGemma + MAIRA-2 91/72/47, Skanda run 2 85/83/37/28/15.5 (abnormal flagged / normals called normal / right finding type / box precision / box recall, %). CT (340 cases): MedGemma 97/6/49/1/3, Skanda 80/88/69/20/14. MRI (240 cases): MedGemma 99/2/42/6/8, Skanda 89/97/87/64/59." width="100%"></p>
+<p align="center"><img src="docs/benchmark-card.svg" alt="Benchmark on held-out test cases (abnormal flagged / normals called normal / right finding type / box precision / box recall, %). Chest X-ray (111 films): MedGemma 27B 90/72/41/6/4, MedGemma + MAIRA-2 91/72/47, Skanda run 2 85/83/37/28/15.5, Skanda run 3 84/69/40.5/25.5/10. CT (340 cases): MedGemma 97/6/49/1/3, Skanda run 2 80/88/69/20/14, run 3 82/91/72/22/16. MRI (240 cases): MedGemma 99/2/42/6/8, Skanda run 2 89/97/87/64/59, run 3 89/94/89/70/65." width="100%"></p>
 
-| 🩻 Chest X-ray (111) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
-|---|---:|---:|---:|
-| Abnormal flagged | 90 | **91** | 85 |
-| Normals called normal | 72 | 72 | **83** |
-| Right finding type | 41 | **47** | 37 |
-| Box precision | 6 | – | **28** |
-| Box recall | 4 | – | **15.5** |
+| 🩻 Chest X-ray (111) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | 90 | **91** | 85 | 84 |
+| Normals called normal | 72 | 72 | **83** | 69 |
+| Right finding type | 41 | **47** | 37 | 40.5 |
+| Box precision | 6 | – | **28** | 25.5 |
+| Box recall | 4 | – | **15.5** | 10 |
 
-| 🫁 CT (340) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
-|---|---:|---:|---:|
-| Abnormal flagged | **97** | – | 80 |
-| Normals called normal | 6 | – | **88** |
-| Right finding type | 49 | – | **69** |
-| Box precision | 1 | – | **20** |
-| Box recall | 3 | – | **14** |
+| 🫁 CT (340) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | **97** | – | 80 | 82 |
+| Normals called normal | 6 | – | 88 | **91** |
+| Right finding type | 49 | – | 69 | **72** |
+| Box precision | 1 | – | 20 | **22** |
+| Box recall | 3 | – | 14 | **16** |
 
-| 🧠 MRI (240) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 |
-|---|---:|---:|---:|
-| Abnormal flagged | **99** | – | 89 |
-| Normals called normal | 2 | – | **97** |
-| Right finding type | 42 | – | **87** |
-| Box precision | 6 | – | **64** |
-| Box recall | 8 | – | **59** |
+| 🧠 MRI (240) | MedGemma 27B | MedGemma + MAIRA-2 | Skanda run 2 | Skanda run 3 |
+|---|---:|---:|---:|---:|
+| Abnormal flagged | **99** | – | 89 | 89 |
+| Normals called normal | 2 | – | **97** | 94 |
+| Right finding type | 42 | – | 87 | **89** |
+| Box precision | 6 | – | 64 | **70** |
+| Box recall | 8 | – | 59 | **65** |
 
-Percent, higher is better; **bold** = best. **Skanda** is our own grounding model ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)), run 2.
-X-ray: this app's benchmark below, same runner for every model. CT and MRI: 580 held-out slices and volumes, lesion and
-lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI MedGemma calls almost every case
-abnormal (6% / 2% of normals cleared), while Skanda clears 88% / 97% and names the right finding far more often.
+Percent, higher is better; **bold** = best. **Skanda** is our own grounding model ([skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding)).
+X-ray: this app's benchmark below, same runner for every model (Skanda: mean of two passes). CT and MRI: 580 held-out
+slices and volumes, lesion and lesion-free, one scorer for every model. MAIRA-2 reads chest X-rays only. On CT and MRI
+MedGemma calls almost every case abnormal (6% / 2% of normals cleared); Skanda run 3 clears 91% / 94% and names the
+right finding 72% / 89% of the time (MedGemma 49% / 42%). On chest X-ray run 3 names the right finding type more often
+than run 2 (40.5% vs 37%) but clears fewer normals (69% vs 83%) and finds fewer boxes (recall 10% vs 15.5%).
 
 ### 🦠 Detection by disease
 
 How often each model names each kind of finding, on the same held-out cases as the table above.
 
-<p align="center"><img src="docs/disease-card.svg" alt="Detection by disease for MedGemma 27B, MedGemma + MAIRA-2 and Skanda run 2. Chest X-ray, 111 ChestX-Det test films: MedGemma leads on pneumothorax (100% vs 20%), atelectasis, nodule, mass, fibrosis and emphysema; Skanda leads on effusion (59% vs 30%, 53% fused) and cardiomegaly (83% vs 25%). CT, 340 cases: Skanda leads on lung (89% vs 76%), liver (64% vs 57%), pancreatic (39% vs 0%) and mediastinal lesions (85% vs 38%); MedGemma on colon (20% vs 13%). MRI, 240 cases: brain tumour 96% vs 74%, acute stroke 75% vs 0%." width="100%"></p>
+<p align="center"><img src="docs/disease-card.svg" alt="Detection by disease for MedGemma 27B, MedGemma + MAIRA-2 and Skanda run 3. Chest X-ray, 111 ChestX-Det test films: MedGemma leads on pneumothorax (100% vs 15%), atelectasis, nodule, mass, fibrosis and emphysema; Skanda leads on consolidation (78% vs 69%), effusion (64% vs 30%, 53% fused), cardiomegaly (75% vs 25%) and diffuse nodule (50% vs 0%). CT, 340 cases: Skanda leads on lung (92% vs 76%), liver (74% vs 57%), pancreatic (46% vs 0%) and mediastinal lesions (69% vs 38%); MedGemma on colon (20% vs 13%). MRI, 240 cases: brain tumour 96% vs 74%, acute stroke 78% vs 0%." width="100%"></p>
 
 - 🩻 **X-ray:** MedGemma names pneumothorax, atelectasis, nodule, mass and emphysema far more often; Skanda leads on
-  effusion and cardiomegaly. MAIRA-2 adds effusions and nodules to MedGemma's read (30% → 53%, 42% → 53%).
-- 🫁 **CT:** Skanda leads on every organ except colon. MedGemma never names a pancreatic lesion (0 of 28).
-- 🧠 **MRI:** MedGemma never names an acute stroke (0 of 60); Skanda finds 45. Brain tumour: 96% vs 74%.
+  consolidation, effusion, cardiomegaly and diffuse nodule. MAIRA-2 adds effusions and nodules to MedGemma's read
+  (30% → 53%, 42% → 53%).
+- 🫁 **CT:** Skanda leads on every organ except colon. MedGemma never names a pancreatic lesion (0 of 28); Skanda 13.
+- 🧠 **MRI:** MedGemma never names an acute stroke (0 of 60); Skanda finds 47. Brain tumour: 96% vs 74%.
 - Groups under about 15 cases (kidney, mediastinum, colon, most rare X-ray labels) are directional only.
   Built in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding) (`docs/build_disease_chart.py`).
 
@@ -464,27 +467,27 @@ Both rules favour Skanda: the images show what a good read looks like, and the b
 <details open>
 <summary><b>🩻 Chest X-ray</b></summary>
 
-<p align="center"><img src="docs/examples-xray.svg" alt="Chest X-ray side by side. Abnormal film cxd_45926: radiologists marked consolidation, effusion, emphysema and more; MedGemma 27B called it abnormal (bilateral diffuse interstitial opacities) with no box on a lesion; Skanda run 2 called it abnormal (left and right upper zone consolidation) with a best box overlap of 0.91 IoU. Normal film cxd_46915: both models called it normal." width="100%"></p>
+<p align="center"><img src="docs/examples-xray.svg" alt="Chest X-ray side by side. Abnormal film cxd_69598: radiologists marked bilateral effusion and consolidation; MedGemma 27B called bilateral interstitial opacities and a right lower lobe opacity (best box overlap 0.50 IoU); Skanda run 3 called left and right pleural effusions and consolidation (0.89 IoU). Normal film cxd_59621: both models called it normal." width="100%"></p>
 </details>
 
 <details open>
 <summary><b>🫁 CT</b></summary>
 
-<p align="center"><img src="docs/examples-ct.svg" alt="CT side by side. Abnormal slice hepaticvessel_442_z35 (liver tumour, right liver): MedGemma 27B called a liver mass and spleen enlargement with boxes of 0.07 IoU; Skanda run 2 called a right liver lesion and outlined it at 0.85 IoU. Normal slice lung_065_z35: MedGemma called liver and lung metastases; Skanda called it normal." width="100%"></p>
+<p align="center"><img src="docs/examples-ct.svg" alt="CT side by side. Abnormal slice lung_001_z238 (right lung tumour): MedGemma 27B called a right upper lobe mass and mediastinal lymphadenopathy with boxes of 0.01 IoU; Skanda run 3 called a right lung lesion and outlined it at 0.91 IoU. Normal slice lung_009_z80: MedGemma called a pleural effusion; Skanda called it normal." width="100%"></p>
 </details>
 
 <details open>
 <summary><b>🧠 MRI</b></summary>
 
-<p align="center"><img src="docs/examples-mri.svg" alt="MRI side by side. Abnormal slice BRATS_040_z71 (right-hemisphere brain tumour with oedema): MedGemma 27B called a mass, oedema and midline shift with boxes of 0.19 IoU; Skanda run 2 named the oedema, non-enhancing and enhancing tumour on the right and outlined it at 0.95 IoU. Normal slice isles_strokecase0050_z15: MedGemma called abnormal signal intensity; Skanda called it normal." width="100%"></p>
+<p align="center"><img src="docs/examples-mri.svg" alt="MRI side by side. Abnormal slice BRATS_234_z78 (right-hemisphere brain tumour with oedema): MedGemma 27B called a right frontal mass and oedema with boxes of 0.24 IoU; Skanda run 3 named the oedema, non-enhancing and enhancing tumour on the right and outlined it at 0.97 IoU. Normal slice isles_strokecase0070_z19: MedGemma called cerebellar atrophy; Skanda called it normal." width="100%"></p>
 </details>
 
 Built by `docs/build_examples.py` in [skanda-grounding](https://github.com/Hitheshkaranth/skanda-grounding).
 
 <details>
-<summary><b>Skanda: run 1 → run 2</b></summary>
+<summary><b>Skanda: run 1 → run 3</b></summary>
 
-<p align="center"><img src="docs/progress-card.svg" alt="Skanda progress from run 1 to run 2 on the same held-out cases, per modality." width="100%"></p>
+<p align="center"><img src="docs/progress-card.svg" alt="Skanda progress from run 1 to run 3 on the same held-out cases, per modality." width="100%"></p>
 </details>
 
 **Held-out result (Oct 2026):** 111 [ChestX-Det](https://github.com/Deepwise-AILab/ChestX-Det-Dataset) test films labelled by 3 radiologists; every rule and threshold was chosen on a separate 106-film dev split. Wilson 95% CIs.
