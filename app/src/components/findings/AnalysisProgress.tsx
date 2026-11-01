@@ -2,6 +2,7 @@
 // Elapsed time is derived from the image's own start time, so switching images and back does not reset it.
 import { useEffect, useState } from 'react'
 import type { AnalysisStage } from '../../types'
+import { useApp } from '../../store'
 import './findings.css'
 
 const STAGE_LABEL: Record<AnalysisStage, string> = {
@@ -31,6 +32,7 @@ export function AnalysisProgress({
   etaMs: number
   onCancel: () => void
 }) {
+  const model = useApp((s) => s.settings.model)
   const [mountedAt] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -61,7 +63,7 @@ export function AnalysisProgress({
           {timing}
           {stage && detail && detail !== 'Queued' ? ` · ${detail}` : ''}
         </p>
-        <p className="fd-progress-sub">MedGemma 27B running locally — no data leaves this Mac.</p>
+        <p className="fd-progress-sub">Reading with {model}.</p>
         <div className="fd-bar" role="progressbar" aria-label="Analysis in progress" />
         <button type="button" className="btn btn-plain fd-progress-cancel" onClick={onCancel}>
           Cancel

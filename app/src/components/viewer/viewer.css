@@ -577,7 +577,7 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.vw-thumb:focus-within .vw-remove { opacity: 1; }
+.vw-thumb:focus-within .vw-remove { display: grid; opacity: 1; }
 .vw-remove:focus-visible { outline: 2px solid var(--viewer-fg); outline-offset: 1px; }
 
 /* Smooth move when a finding is focused or the focus is cleared; dragging and wheel zoom stay immediate. */
@@ -602,3 +602,55 @@
 .vw-heat-scale { flex: none; display: flex; flex-direction: column; gap: 2px; width: 56px; }
 .vw-heat-ramp { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #00f, #0ff, #0f0, #ff0, #f00); }
 .vw-heat-ends { display: flex; justify-content: space-between; font-size: 9px; opacity: 0.8; }
+
+/* Reading workspace: image owns its viewport; controls never cover the film. */
+.vw-workspace { height: 100%; display: flex; flex-direction: column; min-width: 0; background: var(--viewer-bg); }
+.vw-workspace > .vw-stage { flex: 1; height: auto; touch-action: none; }
+.vw-workspace > .vw-toolbox {
+  position: static; transform: none; flex: none; flex-wrap: wrap; justify-content: center;
+  border-radius: 0; padding: 6px 12px; gap: 4px; background: #171b22;
+  border-top: 1px solid #2b323e; box-shadow: none; backdrop-filter: none;
+}
+.vw-workspace .vw-toolbox .vw-tool { width: 36px; height: 36px; border-radius: 5px; color: #cbd3df; }
+.vw-workspace .vw-toolbox .vw-tool[aria-pressed='true'] { color: #99d6ff; background: #233b50; }
+.vw-workspace .vw-toolbox .vw-sel { border-radius: 5px; min-height: 36px; }
+.vw-evidence { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; flex: none; padding: 8px 12px; background: #10141b; border-top: 1px solid #29313c; color: #cbd3df; font-size: 11px; line-height: 1.4; }
+.vw-evidence .vw-badge-rt, .vw-evidence .vw-legend { padding: 0; border-radius: 0; background: none; backdrop-filter: none; font-size: 11px; }
+.vw-evidence .vw-badge-rt { font-weight: 600; }
+.vw-evidence-details { flex: 1 1 100%; min-width: 0; }
+.vw-evidence-details summary { display: flex; gap: 8px; align-items: center; cursor: pointer; min-height: 24px; list-style: none; }
+.vw-evidence-details summary::-webkit-details-marker { display: none; }
+.vw-evidence-details summary .vw-heat-ramp { width: 32px; height: 5px; border-radius: 2px; flex: none; }
+.vw-evidence-more { margin-left: auto; text-decoration: underline; color: #9cc9ed; }
+.vw-evidence-description { max-width: 640px; padding: 8px 0 4px; line-height: 1.6; color: #cbd3df; }
+.vw-workspace .vw-info { background: #10141bbd; backdrop-filter: none; border-radius: 3px; font-size: 10px; max-width: calc(100% - 24px); }
+.vw-workspace .vw-info .vw-k { color: #b4becc; }
+.vw-workspace .vw-info .vw-row { overflow-wrap: anywhere; }
+.vw-strip { background: #141820; border-top: 1px solid #2b323e; }
+.vw-thumb { border-radius: 5px; }
+.vw-add { border-radius: 5px; }
+
+@media screen and (max-width: 1023px) {
+  .vw-workspace > .vw-toolbox { gap: 0; padding: 4px 8px; }
+  .vw-workspace .vw-toolbox .vw-tool { width: 44px; height: 44px; }
+  .vw-workspace .vw-toolbox .vw-sel { min-height: 44px; font-size: 16px; }
+  .vw-workspace .vw-toolbox .vw-sep { display: none; }
+  .vw-workspace .vw-toolbox .vw-zoom { width: 40px; }
+  .vw-workspace .vw-info { padding: 4px 6px; }
+  .vw-workspace .vw-info .vw-name { display: none; }
+  .vw-workspace .vw-info .vw-row { gap: 6px; }
+  .vw-evidence { padding: 6px 12px; gap: 2px 12px; }
+  .vw-evidence-details summary { min-height: 36px; }
+  .vw-evidence-description { max-height: 120px; overflow: auto; }
+  .vw-strip { flex: none; height: 80px; padding: 8px 12px; gap: 8px; }
+  .vw-thumb, .vw-add { width: 64px; height: 64px; flex-shrink: 0; }
+  .vw-remove { display: grid; opacity: 1; min-width: 32px; min-height: 32px; }
+  .vw-drop { padding: 20px; }
+}
+@media screen and (max-width: 1023px) and (max-height: 500px) {
+  .vw-workspace > .vw-toolbox { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+  .vw-workspace .vw-toolbox > * { flex-shrink: 0; }
+  .vw-evidence { padding: 2px 8px; }
+  .vw-evidence-details { flex-basis: auto; }
+  .vw-strip { max-height: 64px; }
+}

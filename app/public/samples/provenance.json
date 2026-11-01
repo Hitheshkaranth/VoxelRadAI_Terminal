@@ -1,0 +1,98 @@
+[
+  {
+    "file": "ct-brain.nrrd",
+    "label": "Slicer CT brain",
+    "modality": "CT",
+    "bytes": 16366792,
+    "sha256": "6a5b6caccb76576a863beb095e3bfb910c50ca78f4c9bf043aa42f976cfa53d1",
+    "sourceUrl": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/6a5b6caccb76576a863beb095e3bfb910c50ca78f4c9bf043aa42f976cfa53d1",
+    "sourceRegistry": "https://github.com/Slicer/Slicer/blob/main/Modules/Scripted/SampleData/SampleData.py",
+    "retrieved": "2026-11-01",
+    "rights": "The official Slicer SampleData acknowledgements identify MRHead and CT-MR Brain as datasets donated by the depicted persons for unrestricted use. No separate SPDX dataset license is stated there.",
+    "dimensions": [
+      512,
+      507,
+      76
+    ],
+    "scalarType": "int",
+    "encoding": "gzip",
+    "endian": "little",
+    "space": "left-posterior-superior",
+    "spaceDirections": [
+      [
+        -0.42945838976884687,
+        0.011954782123250228,
+        -0.007372379909829386
+      ],
+      [
+        -0.012933324238533593,
+        -0.42455280370071824,
+        0.06495708843536878
+      ],
+      [
+        -0.03222325684744404,
+        0.3832658473357249,
+        2.498570058012522
+      ]
+    ],
+    "spacing": [
+      0.429688,
+      0.42968799999999996,
+      2.5279998779296893
+    ],
+    "spaceOrigin": [
+      104.99526085155622,
+      73.98130928772783,
+      -87.83400008611339
+    ],
+    "notes": "Public teaching/demo volume. Native voxel array and direction vectors retained unchanged. Does not establish clinical validation or AI modality support."
+  },
+  {
+    "file": "mr-head.nrrd",
+    "label": "Slicer MR head",
+    "modality": "MR",
+    "bytes": 6607313,
+    "sha256": "cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286affadf823a7e58df93",
+    "sourceUrl": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286affadf823a7e58df93",
+    "sourceRegistry": "https://github.com/Slicer/Slicer/blob/main/Modules/Scripted/SampleData/SampleData.py",
+    "retrieved": "2026-11-01",
+    "rights": "The official Slicer SampleData acknowledgements identify MRHead and CT-MR Brain as datasets donated by the depicted persons for unrestricted use. No separate SPDX dataset license is stated there.",
+    "dimensions": [
+      256,
+      256,
+      130
+    ],
+    "scalarType": "short",
+    "encoding": "gzip",
+    "endian": "little",
+    "space": "left-posterior-superior",
+    "spaceDirections": [
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      [
+        -1.2999954223632812,
+        0.0,
+        0.0
+      ]
+    ],
+    "spacing": [
+      1.0,
+      1.0,
+      1.2999954223632812
+    ],
+    "spaceOrigin": [
+      86.64489746093749,
+      -133.92860412597656,
+      116.78569793701172
+    ],
+    "notes": "Public teaching/demo volume. Native voxel array and direction vectors retained unchanged. Does not establish clinical validation or AI modality support."
+  }
+]

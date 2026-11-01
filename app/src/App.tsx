@@ -5,6 +5,8 @@ import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
 import { extractImagesFromClipboard } from './lib/imageIntake'
 import { addFilesToActiveStudy } from './lib/upload'
+import { ClinicalContext } from './components/shell/ClinicalContext'
+import { MobileNavigation, MobileHeader } from './components/shell/MobileNavigation'
 import { Sidebar } from './components/shell/Sidebar'
 import { Toolbar } from './components/shell/Toolbar'
 import { Inspector } from './components/shell/Inspector'
@@ -13,11 +15,17 @@ import { SettingsSheet } from './components/shell/SettingsSheet'
 import { Toasts } from './components/shell/Toasts'
 import { analyzeImageAction, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
+import { VOLUME_SAMPLES } from './lib/volumeSources'
+import { VolumeJobIndicator } from './components/shell/VolumeJobIndicator'
+import { VolumeViewer } from './components/viewer/VolumeViewer'
+import { ImageContext } from './components/viewer/ImageContext'
 import { ImageViewer } from './components/viewer/ImageViewer'
 import { Filmstrip } from './components/viewer/Filmstrip'
 
 function useTheme() {
   const theme = useApp((s) => s.settings.theme)
+  const material = useApp((s) => s.settings.material ?? 'glass')
+  useEffect(() => { document.documentElement.dataset.material = material }, [material])
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const apply = () =>
@@ -61,12 +69,12 @@ function useShortcuts() {
       const st = useApp.getState()
       const shell = useShell.getState()
       const k = e.key.toLowerCase()
-      if (k === 'n' && !e.shiftKey) st.createStudy()
+      if (k === 'n' && !e.shiftKey) { shell.closeVolume(); st.createStudy(); shell.setMobileView('viewer') }
       else if (k === ',') st.openSheet('settings')
       else if (k === 'i' && e.altKey) shell.toggleInspector()
       else if (k === 'i' && st.activeStudyId) st.openSheet('patient')
       else if (k === '\\') shell.toggleSidebar()
-      else if (k === 'enter' && st.activeStudyId) {
+      else if (k === 'enter' && st.activeStudyId && !shell.volumeSource) {
         if (e.shiftKey) runAnalysisForStudy(st.activeStudyId)
         else if (st.activeImageId) analyzeImageAction(st.activeStudyId, st.activeImageId)
       } else return
@@ -104,7 +112,10 @@ function useGlobalUpload() {
       setDragging(false)
       if (!hasFiles(e)) return
       e.preventDefault()
-      void addFilesToActiveStudy(Array.from(e.dataTransfer!.files))
+      const files = Array.from(e.dataTransfer!.files)
+      const volumeFile = files.find((file) => file.name.toLowerCase().endsWith('.nrrd'))
+      if (volumeFile) useShell.getState().openVolume({ id: crypto.randomUUID(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
+      else { useShell.getState().closeVolume(); void addFilesToActiveStudy(files) }
     }
     // Capture phase so nested drop targets can't swallow the event and leave the overlay stuck.
     const reset = () => {
@@ -144,11 +155,24 @@ export default function App() {
   const hasStudies = useApp((s) => s.studies.length > 0)
   const study = useActiveStudy()
   const activeImageId = useApp((s) => s.activeImageId)
-  const { sidebarCollapsed, inspectorCollapsed } = useShell()
+  const { sidebarCollapsed, inspectorCollapsed, mobileView, volumeSource } = useShell()
 
   useEffect(() => {
     hydrate().then(() => requestAnimationFrame(() => document.documentElement.classList.add('sh-ready')))
   }, [])
+  useEffect(() => {
+    const followAddress = () => {
+      const id = new URLSearchParams(window.location.hash.slice(1)).get('volume')
+      const source = VOLUME_SAMPLES.find((sample) => sample.id === id)
+      if (source) useShell.getState().openVolume(source)
+      else if (useShell.getState().volumeSource) useShell.getState().closeVolume()
+    }
+    window.addEventListener('hashchange', followAddress)
+    return () => window.removeEventListener('hashchange', followAddress)
+  }, [])
+  useEffect(() => {
+    if (activeImageId && !volumeSource) useShell.getState().setSidebarCollapsed(true)
+  }, [activeImageId, volumeSource])
   useTheme()
   useConnectionPolling()
   useDocumentTitle()
@@ -158,7 +182,8 @@ export default function App() {
   if (!hydrated) return null
 
   return (
-    <div className="sh-app">
+    <div className="sh-app" data-mobile-view={study || volumeSource ? mobileView : 'studies'}>
+      <MobileHeader />
       <div className={`sh-sidebar-frame${sidebarCollapsed ? ' sh-collapsed' : ''}`}>
         <div style={{ width: 'var(--sidebar-w)', height: '100%' }}>
           <Sidebar />
@@ -166,17 +191,20 @@ export default function App() {
       </div>
 
       <main className="sh-content">
-        {study ? (
+        <VolumeJobIndicator />
+        {volumeSource ? <VolumeViewer key={volumeSource.id} source={volumeSource} /> : study ? (
           <>
             <Toolbar />
+            <ClinicalContext />
             <div className="sh-reading">
               <section className="sh-viewer-col" aria-label="Image viewer">
+                <ImageContext />
                 <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                   <ErrorBoundary label="Viewer" resetKey={activeImageId}>
                     <ImageViewer />
                   </ErrorBoundary>
                 </div>
-                {study.images.length > 0 && <Filmstrip />}
+                {study.images.length > 0 && <details className="image-series-tray"><summary>Images ({study.images.length})</summary><Filmstrip /></details>}
               </section>
               <div className={`sh-inspector-frame${inspectorCollapsed ? ' sh-collapsed' : ''}`}>
                 <div style={{ width: 'var(--inspector-w)', height: '100%' }}>
@@ -192,6 +220,7 @@ export default function App() {
         )}
       </main>
 
+      <MobileNavigation />
       {sheet === 'patient' && <PatientSheet />}
       {sheet === 'settings' && <SettingsSheet />}
       <Toasts />
@@ -199,7 +228,7 @@ export default function App() {
         <div className="sh-dropveil" aria-hidden>
           <div className="sh-dropveil-card">
             <FileImage strokeWidth={1.5} />
-            <div>Drop to add X-ray images</div>
+            <div>Drop to add images</div>
             <span>{study ? `to “${study.patient.name || study.title}”` : 'A new study will be created'}</span>
           </div>
         </div>
@@ -210,6 +239,7 @@ export default function App() {
 
 function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const createStudy = useApp((s) => s.createStudy)
+  const model = useApp((s) => s.settings.model)
   return (
     <div className="sh-empty">
       <div className="sh-empty-mark">
@@ -219,14 +249,14 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
       <p className="sh-empty-desc">
         {hasStudies
           ? 'Select a study from the sidebar, or start a new one.'
-          : 'AI-assisted X-ray reading with MedGemma 27B, running entirely on this Mac. Add images, review localized findings, and sign a structured report.'}
+          : `AI-assisted X-ray reading with ${model}. Add images, review localized findings, and sign a structured report.`}
       </p>
       <button className="btn btn-primary btn-lg" onClick={() => createStudy()}>
         <Plus strokeWidth={2} /> New Study
         <span className="kbd" style={{ color: 'inherit', borderColor: 'currentColor', opacity: 0.7 }}>⌘N</span>
       </button>
       <div className="sh-empty-features">
-        <div className="sh-empty-feature"><ShieldCheck strokeWidth={1.75} /> Local MedGemma 27B — no data leaves this device</div>
+        <div className="sh-empty-feature"><ShieldCheck strokeWidth={1.75} /> Reading with {model}</div>
         <div className="sh-empty-feature"><Target strokeWidth={1.75} /> Findings localized on the image</div>
         <div className="sh-empty-feature"><FileText strokeWidth={1.75} /> Structured, signable reports</div>
       </div>

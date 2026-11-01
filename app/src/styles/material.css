@@ -1,0 +1,57 @@
+/* Apple-inspired web materials, not native Liquid Glass. Image pixels remain opaque. */
+:root[data-theme='dark'] {
+  --bg-window: #111318;
+  --bg-content: #1c1e24;
+  --bg-sidebar: #1c1e24;
+  --bg-elevated: #292c33;
+  --bg-grouped: #202229;
+  --label: #f1f2f6;
+  --label-2: #b7bbc5;
+  --label-3: #a5aab5;
+  --accent: #91bfff;
+  --accent-hover: #b6d5ff;
+  --accent-fg: #101e33;
+  --accent-soft: rgba(104, 166, 255, .16);
+  --bg-selected: rgba(104, 166, 255, .13);
+  --separator: rgba(221, 229, 255, .09);
+  --separator-strong: rgba(221, 229, 255, .19);
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --workstation-glass: rgba(24, 29, 38, .44);
+}
+:root[data-theme='dark'] .sh-app {
+  background: radial-gradient(ellipse at 5% 18%, #536a82 0, transparent 42%), radial-gradient(ellipse at 95% 78%, #465d6c 0, transparent 45%), linear-gradient(130deg, #29313f, #10151e 48%, #313c4b);
+}
+:root[data-theme='dark'] :is(.wl-sidebar, .sh-inspector, .sh-toolbar, .mobile-header, .mobile-nav, .volume-locator-column, .sh-sheet) {
+  background: var(--workstation-glass);
+  -webkit-backdrop-filter: blur(30px) saturate(140%);
+  backdrop-filter: blur(30px) saturate(140%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .16);
+}
+:root[data-theme='dark'] :is(.volume-workspace, .sh-content, .sh-sidebar-frame, .sh-inspector-frame) { background: transparent; }
+:root[data-theme='dark'] :is(.volume-header, .volume-toolbar, .volume-analysis-status, .clinical-context) { background: rgba(22, 27, 36, .36); }
+:root[data-theme='dark'] :is(.vr-volume, .sh-inspector-head, .sh-inspector-body, .volume-footnote) { background: transparent; }
+:root[data-theme='dark'] :is(.btn, .icon-btn, .wl-new, .fd-review-btn, .volume-view-switch button, .vr-presets button, .vr-rotation button, .volume-workspace input[type='number']) { border-radius: 7px; }
+:root[data-theme='dark'] :is(.sh-search-field, .input, .segmented) { border-radius: 9px; }
+:root[data-theme='dark'] .wl-sidebar .wl-study { margin: 3px 8px; border: 0; border-radius: 9px; }
+:root[data-theme='dark'] .wl-sidebar .wl-study.sh-row--active { border: 0; box-shadow: inset 0 0 0 1px rgba(145, 191, 255, .18); background: var(--bg-selected); }
+:root[data-theme='dark'] .wl-sidebar .sh-search-field { background: rgba(8, 10, 14, .32); }
+:root[data-theme='dark'] .sh-sheet { border: 1px solid var(--separator-strong); }
+:root[data-theme='dark'] .volume-view-switch { padding: 3px; background: rgba(0, 0, 0, .22); border-radius: 10px; }
+:root[data-theme='dark'] .volume-view-switch button { border-color: transparent; }
+:root[data-theme='dark'] .volume-view-switch button[aria-pressed='true'] { background: rgba(145, 191, 255, .18); box-shadow: inset 0 1px rgba(255, 255, 255, .08); }
+:root[data-theme='dark'] :is(.volume-display-controls, .volume-slice-controls) { background: rgba(29, 32, 39, .88); }
+:root[data-theme='dark'] .vr-stage { background: #090e12; }
+@media screen and (min-width: 1024px) {
+  :root[data-theme='dark'] .sh-app { padding: 10px; gap: 10px; }
+  :root[data-theme='dark'] .sh-sidebar-frame { border: 1px solid rgba(222, 235, 255, .18); border-radius: 16px; }
+  :root[data-theme='dark'] .sh-content { border: 1px solid rgba(222, 235, 255, .14); border-radius: 16px; overflow: hidden; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  :root[data-theme='dark'] { --workstation-glass: #22252d; }
+}
+/* Explicit in-app appearance choice; does not change the OS accessibility setting. */
+:root[data-theme='dark'][data-material='solid'] { --workstation-glass: #22252d; }
+:root[data-material='solid'] :is(.wl-sidebar, .sh-inspector, .sh-toolbar, .mobile-header, .mobile-nav, .volume-locator-column, .sh-sheet) { backdrop-filter: none; -webkit-backdrop-filter: none; }

@@ -10,12 +10,15 @@ import { FindingCard } from './FindingCard'
 
 interface Group { severity: Severity; items: { number: number; finding: Finding }[] }
 
-function buildGroups(analysis: AnalysisResult): Group[] {
+type ReviewFilter = 'all' | 'pending' | 'reviewed'
+
+function buildGroups(analysis: AnalysisResult, filter: ReviewFilter): Group[] {
   const groups: Group[] = []
   for (const severity of SEVERITY_ORDER) {
     const items: { number: number; finding: Finding }[] = []
     analysis.findings.forEach((finding, index) => {
-      if (finding.severity === severity) items.push({ number: index + 1, finding })
+      const matches = filter === 'all' || (finding.severity !== 'normal' && (filter === 'pending' ? !finding.review : !!finding.review))
+      if (finding.severity === severity && matches) items.push({ number: index + 1, finding })
     })
     if (items.length) groups.push({ severity, items })
   }
@@ -42,7 +45,11 @@ export function FindingList({
   /** Reviewer accept / dismiss; undefined clears the decision. */
   onReview: (id: string, review: FindingReview | undefined) => void
 }) {
-  const groups = useMemo(() => buildGroups(analysis), [analysis])
+  const [filter, setFilter] = useState<ReviewFilter>('all')
+  const groups = useMemo(() => buildGroups(analysis, filter), [analysis, filter])
+  const abnormal = analysis.findings.filter((f) => f.severity !== 'normal')
+  const pending = abnormal.filter((f) => !f.review).length
+  const reviewed = abnormal.length - pending
 
   // Flat display order (grouped by severity, preserving original index within each group).
   const flatIds = useMemo(() => groups.flatMap((g) => g.items.map((it) => it.finding.id)), [groups])
@@ -50,11 +57,25 @@ export function FindingList({
 
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const cardEls = useRef<Record<string, HTMLButtonElement>>({})
+  const filterButtons = useRef<Record<string, HTMLButtonElement>>({})
+
+  const reviewFinding = (id: string, review: FindingReview | undefined) => {
+    const focusedInside = cardEls.current[id]?.closest('li')?.contains(document.activeElement)
+    const leavesFilter = (filter === 'pending' && !!review) || (filter === 'reviewed' && !review)
+    const remaining = flatIds.filter((other) => other !== id)
+    const next = remaining[Math.min(flatIds.indexOf(id), remaining.length - 1)]
+    onReview(id, review)
+    // A decision can remove the focused card from this queue. Keep keyboard focus in the workflow.
+    if (leavesFilter && focusedInside) requestAnimationFrame(() => {
+      if (next) { onSelect(next); cardEls.current[next]?.focus() }
+      else filterButtons.current[filter]?.focus()
+    })
+  }
 
   // Scroll the selected card into view when selection changes (incl. from the viewer).
   useEffect(() => {
     if (!selectedFindingId) return
-    cardEls.current[selectedFindingId]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    cardEls.current[selectedFindingId]?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }, [selectedFindingId])
 
   const onCardKeyDown = useCallback(
@@ -67,7 +88,7 @@ export function FindingList({
       else if (e.key === 'End') next = flatIds[flatIds.length - 1]
       else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
-        onSelect(id)
+        onToggle(id)
         return
       }
       if (!next) return
@@ -75,10 +96,10 @@ export function FindingList({
       onSelect(next)
       cardEls.current[next]?.focus()
     },
-    [flatIds, onSelect],
+    [flatIds, onSelect, onToggle],
   )
 
-  if (groups.length === 0) {
+  if (analysis.findings.length === 0) {
     return (
       <section className="fd-findings">
         <div className="fd-findings-empty">The model reported no focal findings on this image.</div>
@@ -88,6 +109,16 @@ export function FindingList({
 
   return (
     <section className="fd-findings" aria-label="Detected findings">
+      <div className="fd-review-heading">
+        <div><h2>Review findings</h2><span aria-live="polite">{reviewed} of {abnormal.length} abnormal findings reviewed</span></div>
+        <span className="fd-review-total">{analysis.findings.length}</span>
+      </div>
+      <div className="fd-review-filters" role="group" aria-label="Filter findings by review status">
+        {([['all', 'All', analysis.findings.length], ['pending', 'To review', pending], ['reviewed', 'Reviewed', reviewed]] as const).map(([value, label, count]) => (
+          <button key={value} ref={(el) => { if (el) filterButtons.current[value] = el; else delete filterButtons.current[value] }} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>
+        ))}
+      </div>
+      {groups.length === 0 && <div className="fd-filter-empty" role="status">{filter === 'pending' ? 'All abnormal findings have a review decision.' : 'No findings reviewed yet. Accept or dismiss a finding to record your decision.'}</div>}
       {groups.map((g) => (
         <div key={g.severity} className="fd-sev-group">
           <div className="fd-sev-group-title" id={`fd-group-${g.severity}`}>
@@ -111,7 +142,7 @@ export function FindingList({
                 isFocused={focusedId === it.finding.id}
                 onHover={onHover}
                 onToggle={onToggle}
-                onReview={onReview}
+                onReview={reviewFinding}
                 onFocusChange={setFocusedId}
                 onKeyDown={(e) => onCardKeyDown(it.finding.id, e)}
                 buttonRef={(el) => {

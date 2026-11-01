@@ -502,3 +502,61 @@
 
 /* Safety text must stay readable: the footer disclaimer uses label-2, not the faint label-3. */
 .rp-disclaimer { color: var(--label-2); }
+
+/* Structured reporting workspace. */
+.rp-panel { padding: 16px 16px 28px; gap: 16px; }
+.rp-workspace-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.rp-workspace-title > div > span { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--label-2); }
+.rp-workspace-title h1 { font-size: 22px; font-weight: 650; line-height: 1.35; letter-spacing: -.02em; }
+.rp-stage-label { font-size: 11px; color: var(--label-2); padding-bottom: 4px; }
+.rp-panel .rp-card, .rp-panel .rp-sec { border-radius: 6px; box-shadow: none; }
+.rp-panel .rp-pin { position: static; margin: 0; border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--separator)); padding: 10px 12px; border-radius: 6px; line-height: 1.5; font-weight: 500; }
+.rp-panel .rp-pin-signed { border-color: color-mix(in srgb, var(--green) 35%, var(--separator)); }
+.rp-readiness { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--separator); padding: 12px 0; }
+.rp-readiness > div { display: flex; flex-direction: column; gap: 5px; padding: 0 8px; }
+.rp-readiness > div:first-child { padding-left: 0; }
+.rp-readiness > div + div { border-left: 1px solid var(--separator); }
+.rp-readiness strong { font: 600 15px / 1.3 var(--font-mono); }
+.rp-readiness span { font-size: 10px; color: var(--label-2); }
+.rp-section-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-section-nav button { background: var(--bg-content); color: var(--label-2); border: 1px solid var(--separator-strong); border-radius: 5px; padding: 6px 10px; font-size: 11px; font-weight: 500; min-height: 32px; cursor: pointer; }
+.rp-section-nav button:hover { color: var(--accent); border-color: var(--accent); }
+.rp-panel .rp-sec { scroll-margin-top: 12px; padding: 14px 12px; }
+.rp-panel .rp-sec-head { color: var(--label-2); font-size: 11px; letter-spacing: .035em; }
+.rp-panel .rp-sec-text { font-size: 13px; line-height: 1.65; min-height: 40px; }
+.rp-panel .rp-sec-em { border-left: 2px solid var(--accent); }
+.rp-panel .rp-sec-em .rp-sec-text { font-size: 14px; }
+.rp-signoff-hint { font-size: 12px; line-height: 1.5; color: var(--label-2); }
+.rp-panel .rp-signoff-row .input { min-height: 36px; }
+.rp-panel .rp-signoff-row .btn { min-height: 36px; }
+.rp-export-title { font-size: 13px; font-weight: 650; margin-bottom: 4px; }
+.rp-panel .rp-avatar { border-radius: 6px; }
+.rp-panel .rp-report-meta { color: var(--label-2); line-height: 1.5; }
+.rp-panel .rp-patient-id > div:last-child { min-width: 0; }
+.rp-panel .rp-patient-name { overflow-wrap: anywhere; }
+.rp-panel .rp-banner { flex-wrap: wrap; }
+.rp-panel .rp-banner .rp-banner-text { flex-basis: 65%; }
+.rp-panel .rp-banner .btn { margin-left: auto; }
+.rp-panel .rp-anon { padding: 8px 0; line-height: 1.5; }
+.rp-panel .rp-anon input { width: 16px; height: 16px; margin-top: 2px; }
+.rp-panel .rp-empty { max-width: 100%; text-align: left; padding: 24px 8px; }
+.rp-panel .rp-empty-ico { margin: 0 0 20px; border-radius: 8px; color: var(--accent); background: var(--accent-soft); }
+.rp-panel .rp-empty-title { font-size: 22px; line-height: 1.3; }
+.rp-panel .rp-empty-text { font-size: 13px; line-height: 1.65; margin-top: 12px; }
+
+@media screen and (max-width: 1023px) {
+  .rp-panel { padding: 20px 16px 28px; }
+  .rp-workspace-title h1 { font-size: 24px; }
+  .rp-stage-label { text-align: right; }
+  .rp-section-nav button { min-height: 44px; font-size: 12px; }
+  .rp-readiness span { font-size: 11px; }
+  .rp-panel .rp-signoff-row .input { min-height: 44px; }
+  .rp-panel .rp-export-row { gap: 6px; }
+  .rp-panel .rp-export-row .btn { padding-inline: 8px; }
+  .rp-panel .rp-excl-head { min-height: 48px; }
+  .rp-panel .rp-excl-item { flex-wrap: wrap; }
+  .rp-panel .rp-excl-body { flex-basis: 65%; }
+  .rp-panel .rp-anon { min-height: 44px; font-size: 12px; }
+  .rp-panel .rp-anon input { width: 20px; height: 20px; }
+  .rp-panel .rp-confirm-actions { flex-wrap: wrap; }
+}

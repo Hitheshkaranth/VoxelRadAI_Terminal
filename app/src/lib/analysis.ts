@@ -4,6 +4,7 @@ import { toast } from '../components/shell/toastStore'
 import { useApp } from '../store'
 import type { AnalysisResult, AnalysisStage, ReportDraft, Settings, StudyImage } from '../types'
 import { crossCheck, reportSourceKey, reportTraceLines } from './classifier'
+import { analysisEligibility, isCrossSectional } from './modality'
 import { augment, mairaHealth } from './maira'
 import { analyzeImage, generateReport, reencodeForClassifier } from './medgemma'
 
@@ -31,6 +32,8 @@ export function runAnalysis(studyId: string, imageId: string, opts?: { force?: b
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   const image = study?.images.find((i) => i.id === imageId)
   if (!study || !image) return
+  const eligibility = analysisEligibility(image)
+  if (!eligibility.supported) { toast(eligibility.reason!, 'info'); return }
   if (opts?.force) useApp.getState().resetImageAnalysis(studyId, imageId)
   else if (image.status === 'done' || image.status === 'analyzing') return
 
@@ -58,6 +61,8 @@ async function runStudyImage(studyId: string, imageId: string, controller: Abort
   }
 
   try {
+    const eligibility = analysisEligibility(image)
+    if (!eligibility.supported) throw new Error(eligibility.reason)
     const read = await analyzeImage({
       image,
       patient: study.patient,
@@ -68,12 +73,19 @@ async function runStudyImage(studyId: string, imageId: string, controller: Abort
       },
       onStage: stage,
     })
-    stage('cross-check')
-    const small = await classifierImage(image)
-    let result = await crossCheck(image, read, controller.signal, small)
-    if (settings.maira.enabled && (await mairaHealth()).loaded) {
-      stage('second-reader')
-      result = await withSecondReader(image, result, settings, controller.signal, small)
+    const currentImage = useApp.getState().studies.find((s) => s.id === studyId)?.images.find((i) => i.id === imageId)
+    if (!currentImage) return
+    const currentEligibility = analysisEligibility(currentImage)
+    if (!currentEligibility.supported) throw new Error(currentEligibility.reason)
+    let result = read
+    if (!isCrossSectional(image)) {
+      stage('cross-check')
+      const small = await classifierImage(image)
+      result = await crossCheck(image, read, controller.signal, small)
+      if (settings.maira.enabled && (await mairaHealth()).loaded) {
+        stage('second-reader')
+        result = await withSecondReader(image, result, settings, controller.signal, small)
+      }
     }
     if (!current()) return
     useApp.getState().setImageAnalysis(studyId, imageId, result)
@@ -207,6 +219,8 @@ export function isAnalyzing(imageId: string): boolean {
  * Images re-analysed meanwhile are left alone.
  */
 export async function runSecondReader(studyId: string): Promise<{ added: number; status: string }> {
+  const eligible = useApp.getState().studies.find((s) => s.id === studyId)?.images.some((image) => image.status === 'done' && image.analysis && analysisEligibility(image).supported && !isCrossSectional(image))
+  if (!eligible) return { added: 0, status: 'unsupported' }
   const health = await mairaHealth()
   if (!health.running) return { added: 0, status: 'unavailable' }
   if (!health.loaded) return { added: 0, status: 'not-loaded' }
@@ -217,11 +231,11 @@ export async function runSecondReader(studyId: string): Promise<{ added: number;
   let added = 0
   let status = 'ok'
   for (const image of study?.images ?? []) {
-    if (image.status !== 'done' || !image.analysis) continue
+    if (image.status !== 'done' || !image.analysis || !analysisEligibility(image).supported || isCrossSectional(image)) continue
     const small = await classifierImage(image)
     const result = await withSecondReader(image, image.analysis, settings, undefined, small)
     const now = useApp.getState().studies.find((s) => s.id === studyId)?.images.find((i) => i.id === image.id)
-    if (now?.status !== 'done' || now.analysis?.createdAt !== image.analysis.createdAt) continue
+    if (now?.status !== 'done' || now.analysis?.createdAt !== image.analysis.createdAt || !analysisEligibility(now).supported) continue
     // Keep review decisions made while MAIRA-2 was running.
     const reviews = new Map(now.analysis.findings.map((f) => [f.id, f.review]))
     useApp.getState().setImageAnalysis(studyId, image.id, {

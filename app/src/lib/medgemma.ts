@@ -1,7 +1,8 @@
 // OWNER: Agent 1 (AI engine). MedGemma OpenAI-compatible client with streaming, re-encoding,
 // retry, and a serial queue so only one inference hits LM Studio at a time.
 import type { AnalysisResult, ConnectionState, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
-import { buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT } from './prompts'
+import { isCrossSectional } from './modality'
+import { buildSlicePrompt, buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT, SKANDA_SYSTEM_PROMPT, SKANDA_ANALYSIS_PROMPT } from './prompts'
 import { extractJson, extractJsonWithInfo, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
 import { parseSseLines, type SseParse } from './sse'
 import { createSerialQueue } from './queue'
@@ -219,14 +220,17 @@ export async function checkConnection(settings: Settings): Promise<ConnectionSta
   const ac = new AbortController()
   const timer = setTimeout(() => ac.abort(), 4000)
   try {
-    const res = await fetch(endpoint(settings, '/models'), { signal: ac.signal })
+    // The local LM Studio inventory distinguishes loaded models from downloaded files.
+    const localStudio = settings.baseUrl.replace(/\/$/, '') === '/lmstudio/v1'
+    const url = localStudio ? '/lmstudio/api/v0/models' : endpoint(settings, '/models')
+    const res = await fetch(url, { signal: ac.signal })
     if (!res.ok) return 'offline'
     const data = await res.json().catch(() => null)
-    const models: { id?: unknown }[] = Array.isArray(data?.data) ? data.data : []
+    const models: { id?: unknown; state?: string }[] = Array.isArray(data?.data) ? data.data : []
     const wanted = (settings.model || '').trim().toLowerCase()
     if (!wanted) return 'model-missing'
     // Exact id match: a substring match would report "online" for a different model or quantisation.
-    const exists = models.some((m) => m && typeof m.id === 'string' && m.id.toLowerCase() === wanted)
+    const exists = models.some((m) => m && typeof m.id === 'string' && m.id.toLowerCase() === wanted && (!localStudio || m.state === 'loaded'))
     return exists ? 'online' : 'model-missing'
   } catch {
     return 'offline'
@@ -253,6 +257,8 @@ export async function analyzeImage(opts: {
 }): Promise<AnalysisResult> {
   const t0 = Date.now()
   const { settings, signal } = opts
+  const crossSectional = isCrossSectional(opts.image)
+  const skanda = /(^|\/)skanda-/i.test(settings.model)
   let chars = 0
 
   opts.onStage?.('queued')
@@ -260,12 +266,12 @@ export async function analyzeImage(opts: {
   // Encode once; the retry and the lung-pattern pass reuse the same pixels.
   const imageUrl = await reencodeForClassifier(opts.image.dataUrl)
   const firstTurn: ChatMessage[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: crossSectional ? 'You are a radiology assistant reviewing a CT or MRI image for a radiologist. Describe only visible evidence and return the requested JSON schema.' : skanda ? SKANDA_SYSTEM_PROMPT : SYSTEM_PROMPT },
     {
       role: 'user',
       content: [
         { type: 'image_url', image_url: { url: imageUrl } },
-        { type: 'text', text: buildAnalysisPrompt(opts.patient) },
+        { type: 'text', text: crossSectional ? buildSlicePrompt(opts.image.sourceModality!, opts.image.name, opts.patient) : skanda ? SKANDA_ANALYSIS_PROMPT : buildAnalysisPrompt(opts.patient) },
       ],
     },
   ]
@@ -285,6 +291,8 @@ export async function analyzeImage(opts: {
   }
 
   const withPattern = async (a: AnalysisResult) => {
+    // Skanda was not trained for MedGemma's separate lung-pattern grading task.
+    if (skanda || crossSectional) return a
     const merged = mergeLungPattern(a, await checkLungPattern({ ...opts, imageUrl }))
     return { ...merged, durationMs: Date.now() - t0 }
   }

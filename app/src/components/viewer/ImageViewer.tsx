@@ -6,6 +6,7 @@ import type { Finding, Heatmap, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
 import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
+import { pinchTransform, touchGeometry, type PinchAnchor, type TouchPoint } from './gestures'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
@@ -37,21 +38,52 @@ export function ImageViewer() {
   const hoveredId = useApp((s) => s.hoveredFindingId)
   const { setViewer, resetViewer, selectFinding, hoverFinding, setInspectorTab, selectImage } = useApp.getState()
 
+  const touches = useRef(new Map<number, TouchPoint>())
+  const pinch = useRef<PinchAnchor | null>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState({ w: 0, h: 0 })
   const [animating, setAnimating] = useState(false)
   const focused = useRef(false)
-  const drag = useRef<null | { mode: 'pan' | 'wl'; x: number; y: number; v: ViewerState }>(null)
+  const drag = useRef<null | { pointerId: number; mode: 'pan' | 'wl'; x: number; y: number; v: ViewerState }>(null)
+
+  const cancelGesture = useCallback(() => {
+    const ids = [...touches.current.keys()]
+    if (drag.current) ids.push(drag.current.pointerId)
+    touches.current.clear()
+    pinch.current = null
+    drag.current = null
+    // Clear state before release: lostpointercapture can be delivered synchronously.
+    for (const id of ids) {
+      const el = stageRef.current
+      if (el?.hasPointerCapture(id)) el.releasePointerCapture(id)
+    }
+  }, [])
 
   useLayoutEffect(() => {
+    cancelGesture()
     const el = stageRef.current
     if (!el) return
-    const ro = new ResizeObserver(([e]) => setStage({ w: e.contentRect.width, h: e.contentRect.height }))
+    const ro = new ResizeObserver(([e]) => {
+      // Rotation, panel resize and display:none change the coordinate origin/fit.
+      // End the gesture rather than applying its old anchor to the new viewport.
+      cancelGesture()
+      setStage({ w: e.contentRect.width, h: e.contentRect.height })
+    })
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [image?.id])
+    return () => { ro.disconnect(); cancelGesture() }
+  }, [image?.id, cancelGesture])
 
-  const fit = image && stage.w ? Math.min(stage.w / image.width, stage.h / image.height) * 0.94 : 1
+  useEffect(() => {
+    const onVisibility = () => { if (document.hidden) cancelGesture() }
+    window.addEventListener('blur', cancelGesture)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('blur', cancelGesture)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [cancelGesture])
+
+  const fit = image && stage.w ? Math.min(stage.w / image.width, stage.h / image.height) * 0.98 : 1
   const scale = fit * viewer.zoom
   const dispW = image ? image.width * scale : 0
   const dispH = image ? image.height * scale : 0
@@ -84,16 +116,39 @@ export function ImageViewer() {
     return () => el.removeEventListener('wheel', stop)
   }, [image?.id])
 
+  const localPoint = (e: ReactPointerEvent): TouchPoint => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    return { x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 }
+  }
   const onPointerDown = (e: ReactPointerEvent) => {
-    if ((e.target as HTMLElement).closest('.vw-toolbox, .vw-finding')) return
+    if ((e.target as HTMLElement).closest('.vw-toolbox, .vw-finding, .vw-evidence')) return
     const wl = e.button === 2 || e.altKey
     if (e.button !== 0 && !wl) return
+    // Use exactly two contacts; extra fingers cannot replace the active pair.
+    if (e.pointerType === 'touch' && touches.current.size >= 2) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    drag.current = { mode: wl ? 'wl' : 'pan', x: e.clientX, y: e.clientY, v: useApp.getState().viewer }
+    if (e.pointerType === 'touch') {
+      touches.current.set(e.pointerId, localPoint(e))
+      if (touches.current.size >= 2) {
+        const [a, b] = [...touches.current.values()]
+        pinch.current = { ...touchGeometry(a, b), view: useApp.getState().viewer }
+        drag.current = null
+        return
+      }
+    }
+    drag.current = { pointerId: e.pointerId, mode: wl ? 'wl' : 'pan', x: e.clientX, y: e.clientY, v: useApp.getState().viewer }
   }
   const onPointerMove = (e: ReactPointerEvent) => {
+    if (touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, localPoint(e))
+      if (touches.current.size >= 2 && pinch.current) {
+        const [a, b] = [...touches.current.values()]
+        setViewer(pinchTransform(pinch.current, a, b))
+        return
+      }
+    }
     const d = drag.current
-    if (!d) return
+    if (!d || d.pointerId !== e.pointerId) return
     const dx = e.clientX - d.x
     const dy = e.clientY - d.y
     if (d.mode === 'pan') setViewer({ panX: d.v.panX + dx, panY: d.v.panY + dy })
@@ -103,13 +158,27 @@ export function ImageViewer() {
         brightness: clamp(Math.round(d.v.brightness - dy * 0.4), 20, 300),
       })
   }
-  const onPointerUp = () => (drag.current = null)
+  const onPointerUp = (e: ReactPointerEvent) => {
+    if (!touches.current.has(e.pointerId) && drag.current?.pointerId !== e.pointerId) return
+    touches.current.delete(e.pointerId)
+    pinch.current = null
+    drag.current = null
+    if (touches.current.size >= 2) {
+      const [a, b] = [...touches.current.values()]
+      pinch.current = { ...touchGeometry(a, b), view: useApp.getState().viewer }
+    } else if (touches.current.size === 1) {
+      // Rebase the remaining finger after a pinch so the next pan cannot jump.
+      const [pointerId, point] = [...touches.current.entries()][0]
+      const rect = e.currentTarget.getBoundingClientRect()
+      drag.current = { pointerId, mode: 'pan', x: point.x + rect.left + rect.width / 2, y: point.y + rect.top + rect.height / 2, v: useApp.getState().viewer }
+    }
+  }
 
   // Keyboard shortcuts.
   useEffect(() => {
     if (!image) return
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.metaKey || e.ctrlKey) return
+      if (isTyping(e.target) || e.metaKey || e.ctrlKey || !stageRef.current?.getClientRects().length) return
       const v = useApp.getState().viewer
       const imgs = study?.images ?? []
       const idx = imgs.findIndex((i) => i.id === image.id)
@@ -215,6 +284,7 @@ export function ImageViewer() {
   const p = study.patient
 
   return (
+    <div className="vw-workspace">
     <div
       ref={stageRef}
       className={`vw-stage${focusId && viewer.showOverlay ? ' vw-hl' : ''}`}
@@ -222,7 +292,12 @@ export function ImageViewer() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={cancelGesture}
+      onLostPointerCapture={(e) => {
+        // Normal pointerup already removes the pointer. An unexpected capture
+        // loss ends the entire gesture, including any remaining touch contact.
+        if (touches.current.has(e.pointerId) || drag.current?.pointerId === e.pointerId) cancelGesture()
+      }}
       onContextMenu={(e) => e.preventDefault()}
       onDoubleClick={(e) => {
         if ((e.target as HTMLElement).closest('.vw-toolbox, .vw-finding')) return
@@ -233,7 +308,7 @@ export function ImageViewer() {
         }
       }}
       style={{ cursor: drag.current ? 'grabbing' : 'grab' }}
-      aria-label={`X-ray viewer: ${image.name}`}
+      aria-label={`Image viewer: ${image.name}`}
     >
       <div
         className={`vw-canvas${animating ? ' vw-anim' : ''}`}
@@ -289,8 +364,8 @@ export function ImageViewer() {
         </span>
         <span className="vw-row"><span className="vw-val">{image.name}</span></span>
         <span className="vw-row">
-          <span><span className="vw-k">W </span><span className="vw-val">{viewer.contrast}</span></span>
-          <span><span className="vw-k">L </span><span className="vw-val">{viewer.brightness}</span></span>
+          <span><span className="vw-k">Contrast </span><span className="vw-val">{viewer.contrast}</span></span>
+          <span><span className="vw-k">Brightness </span><span className="vw-val">{viewer.brightness}</span></span>
           <span><span className="vw-k">Zoom </span><span className="vw-val">{Math.round(scale * 100)}%</span></span>
           {viewer.invert && <span className="vw-val">INV</span>}
         </span>
@@ -303,8 +378,9 @@ export function ImageViewer() {
         </div>
       )}
 
+    </div>
       {image.analysis && (
-        <div className="vw-hud-rt">
+        <div className="vw-evidence" aria-label="Image analysis context">
           <div className="vw-badge-rt">
             <span className="vw-sev" style={{ background: `var(--sev-${worst ?? 'normal'})` }} />
             {counts.active || counts.flagged ? countLabel(counts.active, counts.flagged) : 'No acute findings'}
@@ -313,18 +389,15 @@ export function ImageViewer() {
             <div className="vw-legend">Not localized: {unlocalized.map((n) => `#${n}`).join(', ')}</div>
           )}
           {viewer.showHeatmap && hasHeatmaps && (
-            <div className="vw-legend vw-legend-heat">
-              <span className="vw-heat-scale" aria-hidden="true">
-                <span className="vw-heat-ramp" />
-                <span className="vw-heat-ends"><span>low</span><span>high</span></span>
-              </span>
-              <span>
+            <details className="vw-evidence-details">
+              <summary><span className="vw-heat-ramp" aria-hidden="true" />Classifier heatmap · coarse evidence <span className="vw-evidence-more">Details</span></summary>
+              <div className="vw-evidence-description">
                 {heatKinds.length
                   ? `Classifier evidence for ${heatKinds.join(', ')} within each finding's region (#n: strength vs the film's peak)${focusFinding ? '' : ', all findings'}. `
                   : 'No classifier region for this finding type. '}
-                Coarse: on held-out films the peak hit the lesion {HEAT_ACCURACY} of the time.
-              </span>
-            </div>
+                On held-out films the peak hit the lesion {HEAT_ACCURACY} of the time. This is classifier evidence, not a segmentation mask.
+              </div>
+            </details>
           )}
           {viewer.showOverlay && counts.flagged > 0 && (
             <div className="vw-legend">

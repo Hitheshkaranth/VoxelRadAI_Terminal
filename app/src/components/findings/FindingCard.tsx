@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'react'
 import type { FocusEvent, KeyboardEvent, MouseEvent } from 'react'
 import type { AnalysisResult, Finding, FindingReview } from '../../types'
 import { SEVERITY_LABEL } from '../../types'
-import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop, HelpCircle, Users, X } from 'lucide-react'
+import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop, Eye, HelpCircle, Users, X } from 'lucide-react'
 import { BENCHMARK, reliabilityFor } from '../../lib/reliability'
 import { isExcluded, isUnconfirmed, isUnsupported } from '../../lib/classifier'
 import { useActiveImage } from '../../store'
+import { useShell } from '../shell/shellState'
 import './findings.css'
 
 interface Props {
@@ -59,7 +60,7 @@ function draftNote(f: Finding): string | null {
   if (f.severity === 'normal') return null
   if (f.review === 'dismissed') return 'Dismissed by reviewer · Not in draft report'
   if (isUnconfirmed(f)) return 'In draft as unconfirmed · classifier did not support it — verify, then Accept or Dismiss'
-  if (f.review === 'accepted' && isUnsupported(f)) return 'Accepted by reviewer · included despite classifier'
+  if (f.review === 'accepted') return isUnsupported(f) ? 'Accepted by reviewer · included despite classifier' : 'Accepted by reviewer · included in draft report'
   return null
 }
 
@@ -82,7 +83,8 @@ export function FindingCard({
   buttonRef,
 }: Props) {
   const localized = finding.bbox != null && (finding.bbox.w ?? 0) > 0
-  const rel = reliabilityFor(finding)
+  const activeImage = useActiveImage()
+  const rel = reliabilityFor(finding, activeImage?.analysis?.model ?? '')
   const evidence = evidenceLine(finding, classifierStatus)
   const excluded = finding.severity !== 'normal' && isExcluded(finding)
   const unconfirmed = finding.severity !== 'normal' && isUnconfirmed(finding)
@@ -171,7 +173,10 @@ export function FindingCard({
         {confText}
       </div>
 
-      {isExpanded && localized && <FindingCrop finding={finding} dashed={unconfirmed} />}
+      {isExpanded && localized && <>
+        <FindingCrop finding={finding} dashed={unconfirmed} />
+        <button className="fd-view-image" type="button" onClick={() => useShell.getState().setMobileView('viewer')}><Eye size={15} /> View location on image</button>
+      </>}
 
       <p className={`fd-desc ${isExpanded ? 'fd-desc--open' : ''}`}>{finding.description}</p>
 

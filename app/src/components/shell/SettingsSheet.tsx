@@ -1,5 +1,5 @@
 // OWNER: Agent 5. SettingsSheet — Model / Connection / Report / Appearance / Data / About.
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Children, cloneElement, isValidElement, useId, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, RotateCcw, Trash2 } from 'lucide-react'
 import { clear } from 'idb-keyval'
 import { useApp, DEFAULT_VIEWER, storageInfo } from '../../store'
@@ -34,7 +34,7 @@ export function SettingsSheet() {
 
   return (
     <Sheet open={open} onClose={() => openSheet(null)} title="Settings" subtitle="Model, connection, and appearance.">
-      <Section title="Model" desc="Local MedGemma 27B served through LM Studio.">
+      <Section title="Model" desc={`${settings.model} served through LM Studio.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
           <Field label="LM Studio base URL" fullWidth>
             <input
@@ -97,6 +97,11 @@ export function SettingsSheet() {
 
       <Section title="Appearance">
         <div className="sh-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+          <Field label="Panel appearance">
+            <div className="segmented" role="group" aria-label="Panel appearance">
+              {(['glass', 'solid'] as const).map((material) => <button key={material} type="button" aria-pressed={(settings.material ?? 'glass') === material} onClick={() => change({ material })}>{material === 'glass' ? 'Glass' : 'Solid'}</button>)}
+            </div>
+          </Field>
           <Field label="Theme">
             <div className="segmented" role="tablist" aria-label="Theme">
               {(['system', 'light', 'dark'] as const).map((t) => (
@@ -450,10 +455,12 @@ function Section({ title, desc, children }: { title: string; desc?: string; chil
 }
 
 function Field({ label, hint, children, fullWidth }: { label: string; hint?: string; children: ReactNode; fullWidth?: boolean }) {
+  const fieldId = useId()
   return (
     <div className="field" style={fullWidth ? { flex: '1 1 100%' } : undefined}>
-      <label className="field-label">{label}</label>
-      {children}
+      <label className="field-label" htmlFor={fieldId}>{label}</label>
+      {Children.map(children, (child) => isValidElement<{ id?: string }>(child) && typeof child.type === 'string' && ['input', 'textarea', 'select'].includes(child.type)
+        ? cloneElement(child, { id: fieldId }) : child)}
       {hint && <div className="sh-field-hint">{hint}</div>}
     </div>
   )

@@ -5,6 +5,10 @@ import type { Finding, PatientInfo, Study } from '../types'
 // Explicit .ts extension: benchmark/run.mts imports this module under Node.
 import { isExcluded, isUnconfirmed } from './classifier.ts'
 
+// The native Skanda training format, from skanda/templates.py in its inference repository.
+export const SKANDA_SYSTEM_PROMPT = 'You are Skanda, a radiology assistant that drafts findings for a radiologist to review. For each abnormal finding, state the visible evidence with its measured extent and its location from the patient\'s perspective, and put the mask token in its "mask" field so its outline can be drawn. Report only what the image supports. Reply with one JSON object and nothing else.'
+export const SKANDA_ANALYSIS_PROMPT = 'Read this chest radiograph. Reply as JSON: normal, findings (title, evidence, location, severity, mask), impression.'
+
 /**
  * Board-certified radiologist persona. Instructs a systematic ABCDE-style chest review,
  * a generic systematic review for other body parts, strict JSON-only output, and explicit
@@ -221,3 +225,12 @@ const EMPTY_PATIENT: PatientInfo = {
 
 /** Every prompt text that shapes a read; benchmark/run.mts hashes it to tag results with a prompt version. */
 export const PROMPT_VERSION_INPUT = SYSTEM_PROMPT + buildAnalysisPrompt(EMPTY_PATIENT) + LUNG_PATTERN_PROMPT
+
+/** Single displayed slice only: no inference about unseen slices or unavailable sequences. */
+export function buildSlicePrompt(modality: string, name: string, patient: PatientInfo): string {
+  return `Review this ${modality} image (${name}) for visible abnormalities. This is one displayed slice, not the complete scan. Describe only visible evidence. Do not infer MRI sequence, contrast phase, physical measurements, or findings in unseen slices. If the image/window is inadequate, state the limitation. An empty finding list means no abnormality identified in this image, not a normal whole study. Use image-relative locations unless orientation is supplied.
+Clinical context: ${patient.indication || 'Not provided'}. ${patient.clinicalHistory || ''}
+Return only JSON with this schema:
+{"modality":"${modality}","bodyPart":"visible anatomy","view":"provided plane or unknown","imageQuality":"limitations of this image","findings":[{"title":"abnormality","description":"visible evidence","severity":"critical | significant | moderate | minor | normal","confidence":0.5,"location":"anatomical location","category":"relevant anatomy","box_2d":[0,0,1000,1000]}],"pertinentNegatives":[],"impression":"summary limited to this slice","recommendations":[],"differential":[]}
+Findings may be empty. box_2d is optional: use a tight box [ymin,xmin,ymax,xmax] on a 0–1000 scale only when the abnormality can be localized. Omit boxes for diffuse findings. Do not copy the example full-image box. Confidence is your estimate, not a calibrated probability.`
+}

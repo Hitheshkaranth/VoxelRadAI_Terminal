@@ -404,7 +404,7 @@ function normalizeFinding(raw: unknown, index: number): Finding {
   return {
     id: uid(),
     title,
-    description: asString(raw.description),
+    description: asString(raw.description) || asString(raw.evidence),
     severity,
     confidence: asConfidence(raw.confidence),
     location: asString(raw.location),

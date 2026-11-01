@@ -1,11 +1,10 @@
 // OWNER: Agent 3 (Findings Inspector). Summary header card for a completed analysis.
 // Counts and urgency come from the shared classifier helpers so every surface (filmstrip, sidebar, inspector
 // badge, viewer badge) agrees: findings the classifier rejected or the reviewer dismissed are "flagged", not counted.
-import type { AnalysisResult, Severity } from '../../types'
-import { SEVERITY_ORDER, SEVERITY_LABEL } from '../../types'
-import { Activity, AlertTriangle, EyeOff } from 'lucide-react'
+import type { AnalysisResult } from '../../types'
+import { AlertTriangle, EyeOff } from 'lucide-react'
 import { activeFindings, deriveUrgencyFromActive, findingCounts } from '../../lib/classifier'
-import { BLIND_SPOTS } from '../../lib/reliability'
+import { BLIND_SPOTS, hasReliabilityForModel } from '../../lib/reliability'
 import { countLabel } from '../shell/shellState'
 import './findings.css'
 
@@ -17,9 +16,6 @@ const URGENCY_LABEL: Record<AnalysisResult['urgency'], string> = {
 
 export function SummaryHeader({ analysis }: { analysis: AnalysisResult }) {
   const { active, flagged } = findingCounts(analysis)
-  const shown = [...activeFindings(analysis.findings), ...analysis.findings.filter((f) => f.severity === 'normal')]
-  const counts: Record<Severity, number> = { critical: 0, significant: 0, moderate: 0, minor: 0, normal: 0 }
-  for (const f of shown) counts[f.severity] += 1
   const urgency = deriveUrgencyFromActive(activeFindings(analysis.findings))
 
   const metaPairs: { label: string; value: string }[] = [
@@ -35,29 +31,9 @@ export function SummaryHeader({ analysis }: { analysis: AnalysisResult }) {
     <section className="fd-summary">
       <div className="fd-summary-top">
         <span className="fd-urgency" data-urgency={urgency}>
-          <Activity aria-hidden="true" />
           {URGENCY_LABEL[urgency]}
         </span>
         <span className="fd-urgency-count">{countLabel(active, flagged)}</span>
-      </div>
-
-      <div className="fd-sevbar" aria-hidden="true">
-        <div className="fd-sevbar-track">
-          {SEVERITY_ORDER.map((sev) =>
-            counts[sev] > 0 ? <span key={sev} className="fd-sevbar-seg" data-sev={sev} style={{ flex: counts[sev] }} /> : null,
-          )}
-        </div>
-      </div>
-      <div className="fd-legend">
-        {SEVERITY_ORDER.map((sev) =>
-          counts[sev] > 0 ? (
-            <span key={sev} className="fd-legend-item">
-              <span className="fd-legend-dot" data-sev={sev} />
-              {SEVERITY_LABEL[sev]}
-              <b>{counts[sev]}</b>
-            </span>
-          ) : null,
-        )}
       </div>
 
       {classifierDown && (
@@ -90,8 +66,8 @@ export function SummaryHeader({ analysis }: { analysis: AnalysisResult }) {
  * Fixed reminder of the classes the model misses most in the local benchmark. Shown on every completed read,
  * including normal-looking ones, because a clean read is exactly when a missed effusion or nodule goes unnoticed.
  */
-export function BlindSpotNote() {
-  if (!BLIND_SPOTS.length) return null
+export function BlindSpotNote({ model }: { model: string }) {
+  if (!BLIND_SPOTS.length || !hasReliabilityForModel(model)) return null
   return (
     <div className="fd-blind">
       <EyeOff aria-hidden="true" />

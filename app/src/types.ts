@@ -112,6 +112,11 @@ export type ImageStatus = 'idle' | 'analyzing' | 'done' | 'error'
 export type AnalysisStage = 'queued' | 'reading' | 'retry' | 'lung-pattern' | 'cross-check' | 'second-reader'
 
 export interface StudyImage {
+  /** Source metadata from DICOM, or an explicit user selection for raster imports. */
+  sourceModality?: string
+  sourceBodyPart?: string
+  /** DICOM frame count; intake currently displays only the first frame. */
+  sourceFrameCount?: number
   id: string
   name: string
   mime: string
@@ -179,6 +184,7 @@ export interface Study {
 }
 
 export interface Settings {
+  material?: 'glass' | 'solid'
   /** OpenAI-compatible base URL. Default '/lmstudio/v1' (Vite proxy to localhost:1234). */
   baseUrl: string
   model: string

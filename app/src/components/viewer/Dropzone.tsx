@@ -76,7 +76,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
         className={['vw-drop', dragging ? 'vw-active' : ''].filter(Boolean).join(' ')}
         role="button"
         tabIndex={0}
-        aria-label="Drop X-ray images here or choose files"
+        aria-label="Drop images here or choose files"
         onDragEnter={(e) => {
           e.preventDefault()
           if (e.dataTransfer.types?.includes('Files')) setDragging(true)
@@ -119,7 +119,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
             <div className="vw-drop-icon">
               <FileImage />
             </div>
-            <div className="vw-title">Add X-ray images</div>
+            <div className="vw-title">Add images</div>
             <div className="vw-sub">
               Drag and drop PNG, JPEG or DICOM files here, paste from the clipboard, or
             </div>

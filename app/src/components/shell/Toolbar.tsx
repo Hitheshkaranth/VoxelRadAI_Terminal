@@ -1,12 +1,13 @@
+import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 5. Toolbar — sidebar toggle, editable title, patient chip, Analyze All, connection pill, inspector toggle.
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, PanelRight, Settings, User, Zap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PanelRight, Settings, Zap } from 'lucide-react'
 import { useApp, useActiveStudy } from '../../store'
 import { toast } from './toastStore'
 import { runAnalysisForStudy } from '../../lib/analysis'
 import { checkNow } from '../../lib/connection'
 import { useShell } from './shellState'
-import type { ConnectionState, PatientInfo, StudyImage } from '../../types'
+import type { ConnectionState, StudyImage } from '../../types'
 import './shell.css'
 
 export function Toolbar() {
@@ -35,9 +36,11 @@ export function Toolbar() {
     <header className="sh-toolbar">
       <div className="sh-toolbar-left">
         <SidebarToggle />
+        <div className="workspace-title">
         {editing ? (
           <input
             className="sh-title-edit"
+            aria-label="Study title"
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -45,11 +48,11 @@ export function Toolbar() {
             onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(false) }}
           />
         ) : (
-          <button type="button" className="sh-title-static" onMouseUp={startRename}>
+          <button type="button" className="sh-title-static" onClick={startRename}>
             {titleText}
           </button>
         )}
-        {study && <PatientChip patient={study.patient} onOpen={() => useApp.getState().openSheet('patient')} />}
+        </div>
       </div>
 
       <div className="sh-toolbar-right">
@@ -83,6 +86,7 @@ function InspectorToggle() {
 }
 
 function ConnectionPill({ connection }: { connection: ConnectionState }) {
+  const model = useApp((s) => s.settings.model)
   const label =
     connection === 'online' ? 'Connected' :
       connection === 'model-missing' ? 'Model not loaded' :
@@ -96,7 +100,7 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
       type="button"
       className={`sh-connection-pill ${cls}`}
       title="Check the LM Studio connection now"
-      aria-label={`MedGemma: ${label}. Check connection`}
+      aria-label={`${model}: ${label}. Check connection`}
       disabled={connection === 'checking'}
       onClick={() => {
         void checkNow().then((c) => {
@@ -112,7 +116,7 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
 
 function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; images: StudyImage[]; connection: ConnectionState }) {
   const analyzingCount = images.filter((i) => i.status === 'analyzing').length
-  const idleCount = images.filter((i) => i.status === 'idle').length
+  const idleCount = images.filter((i) => i.status === 'idle' && analysisEligibility(i).supported).length
   const off = connection === 'offline' || connection === 'model-missing'
 
   const analyze = () => {
@@ -148,47 +152,4 @@ function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; i
       {label}
     </button>
   )
-}
-
-function PatientChip({ patient, onOpen }: { patient: PatientInfo; onOpen: () => void }) {
-  const initials = initialsFrom(patient.name)
-  return (
-    <button type="button" className="sh-patient-chip" onClick={onOpen}>
-      {initials ? (
-        <span className="sh-avatar">{initials}</span>
-      ) : (
-        <span className="sh-avatar sh-avatar--empty" aria-hidden>
-          <User />
-        </span>
-      )}
-      {initials ? (
-        <span className="sh-patient-info">
-          <span className="sh-patient-name">{patient.name}</span>
-          <span className="sh-patient-desc">{patientDesc(patient)}</span>
-        </span>
-      ) : (
-        <span className="sh-patient-add">
-          <User />
-          Add patient details
-        </span>
-      )}
-    </button>
-  )
-}
-
-function patientDesc(patient: PatientInfo): string {
-  const parts: string[] = []
-  if (patient.age) parts.push(`${patient.age}y`)
-  if (patient.sex) parts.push(patient.sex === 'Other' ? 'Non-binary' : patient.sex)
-  return parts.join(' · ')
-}
-
-function initialsFrom(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  let out = ''
-  for (const w of words) {
-    out += w[0]
-    if (out.length >= 2) break
-  }
-  return out.toUpperCase()
 }

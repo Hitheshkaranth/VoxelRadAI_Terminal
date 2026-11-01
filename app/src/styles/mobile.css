@@ -1,0 +1,130 @@
+/* Compact workspace: independent screens, shared study and report state. */
+.mobile-header, .mobile-nav { display: none; }
+
+@media screen and (max-width: 1279px) and (min-width: 1024px) {
+  :root { --sidebar-w: 210px; --inspector-w: 330px; }
+  .sh-toolbar-left { min-width: 0; }
+  .sh-title-static { max-width: 180px; }
+  .sh-patient-chip { max-width: 180px; }
+  .sh-patient-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sh-connection-pill { display: none; }
+}
+
+@media screen and (max-width: 1023px) {
+  .sh-app {
+    display: flex; flex-direction: column; height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+  .mobile-header {
+    display: flex; align-items: center; gap: 4px; flex: none;
+    padding: 12px 16px; border-bottom: 1px solid var(--separator);
+    background: var(--bg-content); min-height: 88px;
+  }
+  .mobile-heading { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+  .mobile-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .13em; color: var(--label-2); }
+  .mobile-heading strong { font-size: 19px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-context { font-size: 12px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-settings { position: relative; }
+  .mobile-connection { position: absolute; right: 8px; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); outline: 2px solid var(--bg-content); }
+  .mobile-connection[data-online='true'] { background: var(--green); }
+  .mobile-nav {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: none;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--separator); background: var(--bg-content);
+  }
+  .mobile-nav button { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; background: none; border: 0; color: var(--label-2); font-size: 11px; font-weight: 600; border-radius: 8px; }
+  .mobile-nav svg { width: 21px; height: 21px; }
+  .mobile-nav [aria-current] { color: var(--accent); background: var(--accent-soft); }
+  .mobile-nav button:disabled { opacity: .4; }
+  .sh-sidebar-frame, .sh-sidebar-frame.sh-collapsed { display: none; width: 100%; min-height: 0; flex: 1; border: 0; transition: none; }
+  .sh-sidebar-frame > div { width: 100% !important; }
+  .sh-content { display: flex; flex: 1; min-height: 0; height: auto; }
+  .sh-app[data-mobile-view='studies'] .sh-sidebar-frame { display: block; }
+  .sh-app[data-mobile-view='studies'] .sh-content { display: none; }
+  .sh-toolbar { display: none; }
+  .sh-sidebar-head { height: 62px; padding: 8px 16px; }
+  .sh-brand { font-size: 15px; }
+  .sh-brand::after { content: ' / Studies'; font-weight: 400; color: var(--label-2); }
+  .sh-search { height: 60px; padding: 0 16px 12px; }
+  .sh-search-field { height: 44px; }
+  .sh-studies { padding: 0 8px; }
+  .sh-row { min-height: 76px; border-bottom: 1px solid var(--separator); border-radius: 6px; margin: 0; gap: 12px; }
+  .sh-row-title { font-size: 15px; }
+  .sh-row-sub { white-space: normal; line-height: 1.5; font-size: 12px; }
+  .sh-row-actions { opacity: 1; }
+  .sh-sidebar-foot { height: 62px; }
+  .sh-status-a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sh-reading { min-width: 0; }
+  .sh-inspector-frame, .sh-inspector-frame.sh-collapsed { display: none; width: 100%; transition: none; }
+  .sh-inspector-frame > div { width: 100% !important; }
+  .sh-app[data-mobile-view='findings'] .sh-viewer-col,
+  .sh-app[data-mobile-view='report'] .sh-viewer-col { display: none; }
+  .sh-app[data-mobile-view='findings'] .sh-inspector-frame,
+  .sh-app[data-mobile-view='report'] .sh-inspector-frame { display: block; }
+  .sh-inspector { border-left: 0; }
+  .sh-inspector-head { display: none; }
+  .sh-inspector-body { overscroll-behavior: contain; }
+  .sh-app .icon-btn, .sh-sheet .icon-btn { width: 44px; height: 44px; flex: none; }
+  .sh-app .btn, .sh-sheet .btn { min-height: 44px; }
+  input:not([type='range']), textarea, select { font-size: 16px !important; }
+  .sh-sheet-backdrop { padding: env(safe-area-inset-top) 0 0; align-items: flex-end; }
+  .sh-sheet { width: 100%; max-height: 100%; border-radius: 16px 16px 0 0; }
+  .sh-sheet-head, .sh-sheet-body { padding: 16px; }
+  .sh-sheet-foot { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); flex-wrap: wrap; }
+  .sh-grid { grid-template-columns: minmax(0, 1fr); }
+  .sh-settings-row { flex-wrap: wrap; padding: 12px; }
+  .sh-settings-row .field { flex-basis: 100%; }
+  .sh-sheet-body { overscroll-behavior: contain; overflow-wrap: anywhere; }
+  .sh-toasts { bottom: calc(76px + env(safe-area-inset-bottom)); width: calc(100% - 24px); }
+  .sh-toast { height: auto; min-height: 44px; padding: 10px 16px; max-width: 100%; border-radius: 10px; }
+  .sh-empty { padding: 20px; }
+  .sh-dropveil-card { max-width: calc(100% - 24px); padding: 24px; }
+}
+@media screen and (max-width: 1023px) and (max-height: 500px) {
+  .mobile-header { min-height: 56px; padding: 6px 12px; }
+  .mobile-eyebrow, .mobile-context { display: none; }
+  .mobile-nav button { min-height: 44px; flex-direction: row; }
+}
+/* Landscape uses a vertical series rail to keep a useful image viewport. */
+@media screen and (max-width: 1023px) and (max-height: 500px) {
+  .sh-app[data-mobile-view='viewer'] .clinical-context { display: none; }
+  .sh-app[data-mobile-view='viewer'] .sh-viewer-col { flex-direction: row; }
+  .sh-viewer-col > div:first-child { min-width: 0; }
+  .sh-viewer-col .vw-strip { flex-direction: column; width: 84px; height: 100%; max-height: none; overflow-y: auto; overflow-x: hidden; padding: 6px; }
+  .vw-workspace > .vw-evidence { gap: 4px 12px; padding: 4px 8px; max-height: 90px; overflow-y: auto; }
+  .vw-workspace .vw-evidence-details { flex: 1 1 240px; }
+  .vw-workspace > .vw-toolbox { padding: 2px 6px; gap: 0; }
+  .vw-workspace .vw-toolbox .vw-tool { width: 44px; height: 44px; }
+}
+
+/* Volume workspaces expose the same Viewer / Findings / Report destinations. */
+.volume-mobile-actions { display: none; }
+@media screen and (max-width: 1023px) {
+  .sh-app .mobile-header { min-height: 56px; padding: 6px 12px; }
+  .sh-app .mobile-heading strong { font-size: 15px; }
+  .sh-app .mobile-context { font-size: 11px; }
+  .sh-app .volume-model-status { display: none; }
+  .volume-mobile-actions { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--separator); background: var(--bg-content); }
+  .volume-mobile-actions > span { font-size: 12px; color: var(--label-2); }
+  .volume-mobile-actions .btn { min-height: 44px; font-size: 12px; }
+  .volume-mobile-actions svg { width: 16px; height: 16px; }
+  .sh-app[data-mobile-view='viewer'] .volume-results-panel { display: none; }
+  .sh-app[data-mobile-view='findings'] .volume-image-column,
+  .sh-app[data-mobile-view='findings'] .volume-spatial-panel,
+  .sh-app[data-mobile-view='report'] .volume-image-column,
+  .sh-app[data-mobile-view='report'] .volume-spatial-panel,
+  .sh-app[data-mobile-view='findings'] .volume-toolbar,
+  .sh-app[data-mobile-view='report'] .volume-toolbar,
+  .sh-app[data-mobile-view='findings'] .volume-mobile-actions,
+  .sh-app[data-mobile-view='report'] .volume-mobile-actions { display: none; }
+  .sh-app[data-mobile-view='findings'] .volume-mobile-report,
+  .sh-app[data-mobile-view='report'] .volume-mobile-findings { display: none; }
+  .sh-app[data-mobile-view='findings'] .volume-mobile-findings,
+  .sh-app[data-mobile-view='report'] .volume-mobile-report { display: block; }
+  .sh-app[data-mobile-view='findings'] .volume-locator-column,
+  .sh-app[data-mobile-view='report'] .volume-locator-column { flex: 1; min-height: 0; border-top: 0; }
+  .sh-app[data-mobile-view='findings'] .volume-results-panel,
+  .sh-app[data-mobile-view='report'] .volume-results-panel { display: block; flex: 1; min-height: 0; overflow: visible; }
+  .sh-app[data-mobile-view='findings'] .volume-results-tabs,
+  .sh-app[data-mobile-view='report'] .volume-results-tabs { display: none; }
+}

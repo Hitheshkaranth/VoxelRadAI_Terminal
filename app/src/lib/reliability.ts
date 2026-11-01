@@ -51,7 +51,10 @@ export interface Reliability {
   lower: number
 }
 
-export function reliabilityFor(f: Finding): Reliability | null {
+export const hasReliabilityForModel = (model: string) => model === 'medgemma-27b-it'
+
+export function reliabilityFor(f: Finding, model?: string): Reliability | null {
+  if (model !== undefined && !hasReliabilityForModel(model)) return null
   if (f.severity === 'normal') return null
   const title = f.title.toLowerCase()
   const text = `${title} ${(f.description ?? '').toLowerCase()}`

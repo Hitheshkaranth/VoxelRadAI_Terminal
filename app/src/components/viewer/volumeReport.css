@@ -1,0 +1,8 @@
+.volume-report-evidence { margin-block: 14px; }
+.volume-report-evidence summary { cursor: pointer; font-weight: 600; }
+.volume-report-evidence ul { list-style: none; padding: 0; margin: 8px 0; }
+.volume-report-evidence li { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding-block: 10px; border-bottom: 1px solid var(--border); }
+.volume-report-evidence li > div { min-width: 0; }
+.volume-report-evidence li p { margin-block: 4px 0; overflow-wrap: anywhere; }
+.volume-report-evidence li button { flex-shrink: 0; text-transform: capitalize; }
+@media (max-width: 480px) { .volume-report-evidence li { flex-wrap: wrap; } }

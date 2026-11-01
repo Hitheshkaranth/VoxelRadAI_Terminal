@@ -1,3 +1,4 @@
+import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 3 (Findings Inspector). Orchestrates the five analysis states.
 import { useCallback, useState } from 'react'
 import type { AnalysisResult, ConnectionState, FindingReview, Settings, Study } from '../../types'
@@ -92,9 +93,9 @@ function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId:
       <div className="fd-idle-head">
         <div className="fd-idle-badge"><Brain /></div>
         <div>
-          <h2 className="fd-idle-title">Ready for analysis</h2>
+          <h2 className="fd-idle-title">Image analysis</h2>
           <p className="fd-idle-sub">
-            MedGemma 27B will perform a systematic review and localize abnormalities. Runs locally — no data leaves this Mac.
+            {model} drafts findings for review. CT and MRI analysis covers the displayed image, not unseen slices.
           </p>
         </div>
       </div>
@@ -124,6 +125,10 @@ function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId:
 
 /** Turn the raw error into the most likely fix. */
 function errorHint(error: string, settings: Settings): string {
+  if (/out.of.memory|insufficient memory|kIOGPUCommandBufferCallbackErrorOutOfMemory/i.test(error))
+    return 'The model ran out of GPU memory while reading the image. Use a smaller model or quantization, reduce image processing size, and reload it in LM Studio.'
+  if (/no output for|stopped responding/i.test(error))
+    return 'The model did not produce output in time. Check LM Studio for memory errors before retrying; a connected server may still be unable to run the model.'
   if (/fetch|network|ECONN|refused|offline|reach|connect|timed? ?out|50[234]/i.test(error))
     return `LM Studio did not respond at ${settings.baseUrl}. Check that its local server is running.`
   if (/model|not found|404|no models? loaded/i.test(error))
@@ -251,7 +256,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
         onReview={review}
       />
 
-      <Sec icon={<ListChecks />} title="Pertinent negatives">
+      {analysis.pertinentNegatives.length > 0 && <Sec icon={<ListChecks />} title="Pertinent negatives">
         <div className="fd-list">
           {analysis.pertinentNegatives.map((n, i) => (
             <div className="fd-list-row fd-neg" key={i}>
@@ -260,10 +265,10 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
             </div>
           ))}
         </div>
-        <BlindSpotNote />
-      </Sec>
+      </Sec>}
+      <BlindSpotNote model={analysis.model} />
 
-      <Sec icon={<ListTree />} title="Differential diagnosis">
+      {analysis.differential.length > 0 && <Sec icon={<ListTree />} title="Differential diagnosis">
         <div className="fd-list">
           {analysis.differential.map((d, i) => (
             <div className="fd-list-row" key={i}>
@@ -272,9 +277,9 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
             </div>
           ))}
         </div>
-      </Sec>
+      </Sec>}
 
-      <Sec icon={<Stethoscope />} title="Recommendations">
+      {analysis.recommendations.length > 0 && <Sec icon={<Stethoscope />} title="Recommendations">
         <div className="fd-list">
           {analysis.recommendations.map((r, i) => (
             <div className="fd-list-row" key={i}>
@@ -283,7 +288,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
             </div>
           ))}
         </div>
-      </Sec>
+      </Sec>}
 
       <details className="fd-disc">
         <summary>
@@ -310,7 +315,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
           <RotateCcw /> Re-analyze
         </button>
         <button className="btn btn-primary fd-footer-btn" onClick={() => setInspectorTab('report')}>
-          <FileText /> Create Report
+          <FileText /> Open report
         </button>
       </div>
 
@@ -328,6 +333,9 @@ export function FindingsPanel() {
   const etaMs = useApp((s) => medianDuration(s.studies))
 
   if (!image) return <EmptyState />
+
+  const eligibility = analysisEligibility(image)
+  if (!eligibility.supported) return <div className="fd-inner"><h2 className="preview-heading">Preview only</h2><p>{eligibility.reason}</p><p className="preview-note">This image can be viewed and compared. CT and MRI interpretation is not available in the connected chest-radiograph pipeline.</p></div>
 
   const studyId = study?.id ?? ''
   const imageId = image.id
@@ -351,11 +359,14 @@ export function FindingsPanel() {
       block = <ErrorState studyId={studyId} imageId={imageId} error={image.error ?? ''} />
       break
     case 'done':
-      block = image.analysis ? <FindingsDone analysis={image.analysis} studyId={studyId} imageId={imageId} /> : <EmptyState />
+      block = image.analysis ? <FindingsDone key={imageId} analysis={image.analysis} studyId={studyId} imageId={imageId} /> : <EmptyState />
       break
     default:
       block = <IdleState studyId={studyId} imageId={imageId} unanalyzed={unanalyzed} />
   }
 
-  return <div className="fd-root"><div className="fd-inner">{block}</div></div>
+  return <div className="fd-root"><div className="fd-inner">
+    <header className="fd-workspace-title"><div><h1>Findings</h1></div><span className="fd-image-context" title={image.name}>{image.name}</span></header>
+    {block}
+  </div></div>
 }

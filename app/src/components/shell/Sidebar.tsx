@@ -1,76 +1,105 @@
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useState } from 'react'
-import { Pencil, Plus, Scan, Search, Settings, Trash2 } from 'lucide-react'
+import { CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
 import { useApp } from '../../store'
 import { cancelImages } from '../../lib/analysis'
 import { findingCounts, worstSeverity } from '../../lib/classifier'
-import { countLabel } from './shellState'
+import { countLabel, useShell } from './shellState'
 import { toast } from './toastStore'
+import { filterWorklist, needsReview, studyPriority, workflowLabel, type WorklistFilter, type WorklistSort } from '../../lib/worklist'
+import { SampleStudies } from './SampleStudies'
+import { volumeSourceKind } from '../../lib/volumeIdentity'
 import './shell.css'
+import './worklist.css'
+import './volumeIdentity.css'
 
-type Group = 'today' | 'week' | 'older'
 
 export function Sidebar() {
   const studies = useApp((s) => s.studies)
   const activeStudyId = useApp((s) => s.activeStudyId)
+  const volume = useShell((s) => s.volumeSource)
   const connection = useApp((s) => s.connection)
 
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<WorklistFilter>('all')
+  const [sort, setSort] = useState<WorklistSort>('recent')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
   const openSettings = () => useApp.getState().openSheet('settings')
 
-  const sorted = studies.filter((s) => matches(s, query)).sort((a, b) => b.createdAt - a.createdAt)
-
-  const groups: Record<Group, Study[]> = { today: [], week: [], older: [] }
-  for (const s of sorted) groups[groupOf(s.createdAt)].push(s)
+  const sorted = filterWorklist(studies, query, filter, sort)
+  const reviewCount = studies.filter(needsReview).length
+  const signedCount = studies.filter((s) => s.report?.signed).length
 
   const newStudy = () => {
+    useShell.getState().closeVolume()
     useApp.getState().createStudy()
     useApp.getState().selectStudy(useApp.getState().activeStudyId!)
+    useShell.getState().setMobileView('viewer')
   }
 
   return (
-    <nav className="sh-sidebar" aria-label="Studies">
+    <nav className="sh-sidebar wl-sidebar" aria-label="Studies">
       <div className="sh-sidebar-head">
         <div className="sh-brand">
-          <span className="sh-brand-mark" aria-hidden>
-            <Scan />
-          </span>
-          Skanda
+          <span className="sh-brand-mark" aria-hidden><Scan /></span>
+          <span>Skanda</span>
         </div>
-        <button type="button" className="icon-btn" aria-label="New study" onClick={newStudy}>
-          <Plus />
-        </button>
       </div>
 
+      {volume && <section className="wl-volume-context" aria-label="Open volume">
+        <div className="wl-volume-context-label">Open volume</div>
+        <button className="wl-volume-current" aria-current="page" onClick={() => useShell.getState().setMobileView('viewer')}>
+          <Scan aria-hidden="true" />
+          <span><strong>{volume.title}</strong><small>{volumeSourceKind(volume)} · {volume.modality === 'Volume' ? 'Modality not specified' : volume.modality}</small><small>Patient not linked</small></span>
+        </button>
+      </section>}
+      <div className="wl-heading">
+        <div><h2>Studies <span>{studies.length}</span></h2></div>
+        <button type="button" className="wl-new" aria-label="New study" onClick={newStudy}><Plus /><span>New</span></button>
+      </div>
       <div className="sh-search">
         <div className="sh-search-field">
-          <Search />
-          <input type="text" placeholder="Search studies" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Search aria-hidden="true" />
+          <input type="search" aria-label="Search studies" placeholder="Patient, ID or study" value={query} onChange={(e) => setQuery(e.target.value)} />
+          {query && <button className="wl-clear" aria-label="Clear study search" onClick={() => setQuery('')}><X /></button>}
         </div>
       </div>
-
-      <div className="sh-studies scroll">
-        {sorted.length === 0 && (
-          <div className="sh-group-label" style={{ marginTop: 24 }}>
-            {query ? 'No matches' : 'No studies yet'}
-          </div>
-        )}
-        <GroupBlock label="Today" items={groups.today} activeId={activeStudyId}
-          editingId={editingId} setEditingId={setEditingId} editTitle={editTitle} setEditTitle={setEditTitle}
-          confirmId={confirmId} setConfirmId={setConfirmId} />
-        <GroupBlock label="Previous 7 Days" items={groups.week} activeId={activeStudyId}
-          editingId={editingId} setEditingId={setEditingId} editTitle={editTitle} setEditTitle={setEditTitle}
-          confirmId={confirmId} setConfirmId={setConfirmId} />
-        <GroupBlock label="Older" items={groups.older} activeId={activeStudyId}
-          editingId={editingId} setEditingId={setEditingId} editTitle={editTitle} setEditTitle={setEditTitle}
-          confirmId={confirmId} setConfirmId={setConfirmId} />
+      <div className="wl-filters" role="group" aria-label="Filter studies">
+        {([
+          ['all', 'All', studies.length], ['review', 'Review', reviewCount], ['signed', 'Signed', signedCount],
+        ] as const).map(([key, label, count]) => (
+          <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} title={key === 'review' ? 'Analyzed studies awaiting a signed report' : undefined}>
+            {label}<span>{count}</span>
+          </button>
+        ))}
       </div>
+      <div className="wl-list-heading">
+        <span aria-live="polite">{sorted.length} {sorted.length === 1 ? 'study' : 'studies'}</span>
+        <select aria-label="Sort studies" value={sort} onChange={(e) => setSort(e.target.value as WorklistSort)}>
+          <option value="recent">Recently updated</option><option value="priority">AI priority first</option>
+        </select>
+      </div>
+      <div className="sh-studies scroll">
+        {sorted.length === 0 ? (
+          <div className="wl-empty">
+            {filter === 'signed' ? <CheckCheck /> : <ClipboardList />}
+            <strong>{!studies.length ? (volume ? 'No image studies' : 'No studies') : query ? 'No matching studies' : filter === 'signed' ? 'No signed reports yet' : 'No studies awaiting review'}</strong>
+            <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : filter === 'signed' ? 'Signed reports will appear here after review.' : 'Analyzed, unsigned studies appear in this queue.'}</p>
+            {!studies.length ? <button className="btn btn-primary" onClick={newStudy}><Plus /> Create study</button> : (query || filter !== 'all') && <button className="btn" onClick={() => { setQuery(''); setFilter('all') }}>Show all studies</button>}
+          </div>
+        ) : (
+          <GroupBlock label={sort === 'priority' ? 'Ordered by model urgency' : 'Most recently updated'} items={sorted} activeId={volume ? null : activeStudyId}
+            editingId={editingId} setEditingId={setEditingId} editTitle={editTitle} setEditTitle={setEditTitle}
+            confirmId={confirmId} setConfirmId={setConfirmId} />
+        )}
+      </div>
+      <SampleStudies onOpen={() => { setQuery(''); setFilter('all') }} />
+      <div className="wl-storage-note">Stored in this browser</div>
 
       <SidebarFooter connection={connection} onOpenSettings={openSettings} />
     </nav>
@@ -78,7 +107,6 @@ export function Sidebar() {
 }
 
 function GroupBlock({
-  label,
   items,
   activeId,
   editingId,
@@ -101,7 +129,7 @@ function GroupBlock({
   if (!items.length) return null
   return (
     <section className="sh-group">
-      <div className="sh-group-label">{label}</div>
+
       {items.map((s) => (
         <StudyRow key={s.id} study={s} activeStudyId={activeId} editingId={editingId} setEditingId={setEditingId}
           editTitle={editTitle} setEditTitle={setEditTitle} confirmId={confirmId} setConfirmId={setConfirmId} />
@@ -131,6 +159,8 @@ function StudyRow({
 }) {
   const name = study.patient.name || study.title
   const status = studyStatus(study.images)
+  const priority = studyPriority(study)
+  const workflow = workflowLabel(study)
   const editing = editingId === study.id
   const confirming = confirmId === study.id
 
@@ -152,7 +182,7 @@ function StudyRow({
   if (editing)
     return (
       <div className="sh-row sh-row--active">
-        <input className="input sh-row-edit" autoFocus value={editTitle}
+        <input className="input sh-row-edit" aria-label="Study title" autoFocus value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null) }}
           onBlur={commitRename} />
@@ -167,22 +197,21 @@ function StudyRow({
       </div>
     )
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-current={active ? 'true' : undefined}
-      className={`sh-row${active ? ' sh-row--active' : ''}`}
-      onClick={() => useApp.getState().selectStudy(study.id)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); useApp.getState().selectStudy(study.id) } }}
-    >
+    <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}`}>
+      <button type="button" className="wl-open-study"
+        aria-current={active ? 'true' : undefined}
+        onClick={() => { useShell.getState().closeVolume(); useApp.getState().selectStudy(study.id); useShell.getState().setMobileView('viewer') }}>
       <StatusDot sev={status.sev} analyzing={status.analyzing} read={status.read} />
-      <div className="sh-row-main">
-        <div className="sh-row-title">{name}</div>
-        <div className="sh-row-sub">
-          {study.patient.patientId && <>{study.patient.patientId} · </>}
-          <Subline study={study} status={status} />
-        </div>
-      </div>
+      <span className="sh-row-main">
+        <span className="wl-study-top"><span className="sh-row-title">{name}</span><ChevronRight aria-hidden="true" /></span>
+        <span className="wl-patient-id">{study.patient.patientId || 'Patient ID not entered'}</span>
+        <span className="sh-row-sub"><Subline study={study} status={status} /></span>
+        <span className="wl-study-status">
+          <span className="wl-workflow" data-state={study.report?.signed ? 'signed' : status.analyzing ? 'analyzing' : 'pending'}>{workflow}</span>
+          {priority > 0 && <span className="wl-priority" data-priority={priority}>AI {priority === 2 ? 'urgent' : 'priority'}</span>}
+        </span>
+      </span>
+      </button>
       <div className="sh-row-actions">
         <button type="button" className="icon-btn" aria-label="Rename study"
           onClick={(e) => { e.stopPropagation(); setEditTitle(study.title); setEditingId(study.id) }}>
@@ -228,6 +257,7 @@ function StatusDot({ sev, analyzing, read }: { sev: Severity | null; analyzing: 
 }
 
 function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionState; onOpenSettings: () => void }) {
+  const model = useApp((s) => s.settings.model)
   const label =
     connection === 'online' ? 'Connected' :
       connection === 'model-missing' ? 'Model not loaded' :
@@ -242,7 +272,7 @@ function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionS
       <button type="button" className="sh-status" onClick={onOpenSettings}>
         <span className={`sh-status-dot ${dot}`} />
         <span className="sh-status-text">
-          <span className="sh-status-a">MedGemma 27B</span>
+          <span className="sh-status-a" title={model}>{model}</span>
           <span className="sh-status-b">{label}</span>
         </span>
       </button>
@@ -251,23 +281,6 @@ function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionS
       </button>
     </div>
   )
-}
-
-function matches(s: Study, query: string): boolean {
-  if (!query) return true
-  const q = query.toLowerCase()
-  return s.title.toLowerCase().includes(q) || s.patient.name.toLowerCase().includes(q) || s.patient.patientId.toLowerCase().includes(q)
-}
-
-function groupOf(ts: number): Group {
-  const d = daysAgo(ts)
-  return d <= 1 ? 'today' : d <= 7 ? 'week' : 'older'
-}
-
-function daysAgo(ts: number): number {
-  const start = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
-  const date = new Date(new Date(ts).getFullYear(), new Date(ts).getMonth(), new Date(ts).getDate())
-  return Math.round((start.getTime() - date.getTime()) / 86400000)
 }
 
 function fmtDate(ts: number): string {

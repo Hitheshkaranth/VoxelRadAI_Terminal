@@ -205,5 +205,9 @@ eq('pattern not duplicated when covered', mergeLungPattern(covered, { grade: 3, 
 const knee = normalizeAnalysis({ bodyPart: 'Knee', findings: [] }, meta)
 eq('pattern ignored for non-chest', mergeLungPattern(knee, { grade: 3, evidence: '' }).findings.length, 0)
 
+const skandaRead = normalizeAnalysis({ normal: false, findings: [{ title: 'Consolidation', evidence: 'Visible airspace opacity.', severity: 'moderate', mask: '[SEG]' }], impression: 'Consolidation.' }, { ...meta, model: 'skanda-grounding-q3-mixed' })
+eq('Skanda evidence preserved', skandaRead.findings[0].description, 'Visible airspace opacity.')
+eq('SEG token does not fabricate localization', skandaRead.findings[0].bbox, undefined)
+
 console.log(`\nparse tests: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

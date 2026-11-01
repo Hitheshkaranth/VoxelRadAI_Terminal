@@ -5,6 +5,7 @@ import { createSerialQueue } from '../src/lib/queue.ts'
 import { dicomPixelsToGray, type DicomPixelMeta } from '../src/lib/dicomPixels.ts'
 import { deriveUrgency, sortBySeverity, toBBox } from '../src/lib/parse.ts'
 import type { Finding } from '../src/types.ts'
+import { reliabilityFor } from '../src/lib/reliability.ts'
 
 let passed = 0
 let failed = 0
@@ -199,6 +200,9 @@ eq('deriveUrgency critical', deriveUrgency([f('a', 'minor'), f('b', 'critical')]
 eq('deriveUrgency significant', deriveUrgency([f('a', 'significant')]), 'priority')
 eq('deriveUrgency moderate', deriveUrgency([f('a', 'moderate')]), 'routine')
 eq('deriveUrgency empty', deriveUrgency([]), 'routine')
+
+check('MedGemma benchmark retained for its model', reliabilityFor(f('Consolidation', 'moderate'), 'medgemma-27b-it') !== null)
+eq('MedGemma benchmark not attributed to Skanda', reliabilityFor(f('Consolidation', 'moderate'), 'skanda-grounding-q3-mixed'), null)
 
 console.log(`\nlib tests: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

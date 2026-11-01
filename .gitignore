@@ -7,3 +7,6 @@ swarm-logs/
 sample-xrays/
 *.log
 __pycache__/
+model-runtime/
+.playwright-cli/
+output/playwright/

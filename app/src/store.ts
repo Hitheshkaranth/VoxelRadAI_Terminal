@@ -20,12 +20,13 @@ export const uid = () => crypto.randomUUID()
 
 export const DEFAULT_SETTINGS: Settings = {
   baseUrl: '/lmstudio/v1',
-  model: 'medgemma-27b-it',
+  model: 'skanda-grounding-q3-mixed',
   temperature: 0.2,
   maxTokens: 3072,
   institution: 'Skanda Radiology',
   radiologist: '',
-  theme: 'system',
+  theme: 'dark',
+  material: 'glass',
   maira: { enabled: false, kinds: ['effusion', 'nodule / mass', 'atelectasis'] },
 }
 
@@ -84,6 +85,7 @@ interface AppState {
   // Images
   addImages: (studyId: string, images: StudyImage[]) => void
   removeImage: (studyId: string, imageId: string) => void
+  setImageModality: (studyId: string, imageId: string, modality: string) => void
   selectImage: (imageId: string) => void
   setImageStatus: (
     studyId: string,
@@ -165,6 +167,15 @@ export const useApp = create<AppState>()((set, get) => ({
       const imgs = studies.find((s) => s.id === studyId)?.images ?? []
       return { studies, activeImageId: st.activeImageId === imageId ? (imgs[0]?.id ?? null) : st.activeImageId }
     }),
+  setImageModality: (studyId, imageId, modality) => set((st) => ({
+    studies: mapStudy(st.studies, studyId, (study) => {
+      if (study.report) return study
+      return { ...study, images: study.images.map((image) =>
+        image.id === imageId && !image.analysis && image.status !== 'analyzing' && image.sourceFrameCount === undefined
+          ? { ...image, sourceModality: modality || undefined, sourceBodyPart: modality === 'CR' ? 'CHEST' : undefined, status: 'idle' as const, error: undefined }
+          : image) }
+    }),
+  })),
   selectImage: (imageId) => set({ activeImageId: imageId, selectedFindingId: null, viewer: DEFAULT_VIEWER }),
   setImageStatus: (studyId, imageId, status, extra) =>
     set((st) => ({

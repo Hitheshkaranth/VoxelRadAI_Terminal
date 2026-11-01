@@ -1,10 +1,18 @@
 // OWNER: Agent 5. Shared shell-layout state (collapsible sidebar / inspector) so
 // App, Toolbar and Inspector can drive the same animation without store coupling.
+import { VOLUME_SAMPLES, type VolumeSource } from '../../lib/volumeSources'
 import { create } from 'zustand'
 import { useApp } from '../../store'
 import { runAnalysis } from '../../lib/analysis'
 
+export type MobileView = 'studies' | 'viewer' | 'findings' | 'report'
+
 interface ShellState {
+  volumeSource: VolumeSource | null
+  openVolume: (source: VolumeSource) => void
+  closeVolume: () => void
+  mobileView: MobileView
+  setMobileView: (view: MobileView) => void
   sidebarCollapsed: boolean
   inspectorCollapsed: boolean
   toggleSidebar: () => void
@@ -13,7 +21,22 @@ interface ShellState {
   setInspectorCollapsed: (v: boolean) => void
 }
 
-export const useShell = create<ShellState>()((set) => ({
+const initialVolume = VOLUME_SAMPLES.find((source) => source.id === new URLSearchParams(window.location.hash.slice(1)).get('volume')) ?? null
+function volumeAddress(source: VolumeSource | null) {
+  const url = new URL(window.location.href)
+  url.hash = source && !source.file ? `volume=${source.id}` : ''
+  window.history.replaceState(null, '', url)
+}
+
+export const useShell = create<ShellState>()((set, get) => ({
+  volumeSource: initialVolume,
+  openVolume: (volumeSource) => { volumeAddress(volumeSource); set({ volumeSource, mobileView: 'viewer' }) },
+  closeVolume: () => { volumeAddress(null); set({ volumeSource: null }) },
+  mobileView: initialVolume ? 'viewer' : 'studies',
+  setMobileView: (mobileView) => {
+    if (!get().volumeSource && (mobileView === 'findings' || mobileView === 'report')) useApp.getState().setInspectorTab(mobileView)
+    set({ mobileView })
+  },
   sidebarCollapsed: false,
   inspectorCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),

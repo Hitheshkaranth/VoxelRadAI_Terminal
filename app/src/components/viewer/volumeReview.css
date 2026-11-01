@@ -1,0 +1,28 @@
+.volume-review-panel { padding: 14px; color: var(--label); min-width: 0; }
+.volume-review-panel h2 { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+.volume-review-panel h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.volume-review-panel p { color: var(--label-2); font-size: 12px; line-height: 1.55; margin: 8px 0; overflow-wrap: anywhere; }
+.volume-review-note { padding: 8px 10px; border-left: 2px solid var(--accent); background: var(--accent-soft); }
+.volume-review-filters, .volume-review-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.volume-review-filters button[aria-pressed='true'], .volume-review-actions button[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.volume-review-finding { padding: 14px 0; border-bottom: 1px solid var(--separator); }
+.volume-review-finding-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.volume-review-finding-head span { color: var(--label-2); font-size: 11px; flex: none; }
+.volume-review-panel textarea { width: 100%; min-height: 110px; resize: vertical; padding: 10px; border: 1px solid var(--separator-strong); border-radius: 7px; color: var(--label); background: var(--bg-content); font: 13px/1.55 var(--font-sans); }
+.volume-review-panel label { display: block; font-size: 12px; margin-top: 10px; }
+.volume-review-panel summary { font-size: 12px; cursor: pointer; min-height: 30px; padding: 5px 0; }
+.volume-report-editor textarea { min-height: 360px; }
+.volume-review-panel .volume-report-confirm { display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; margin: 14px 0; }
+.volume-report-confirm input { margin-top: 2px; accent-color: var(--accent); }
+@media (max-width: 1023px) { .volume-review-panel { padding: 16px; } .volume-review-panel .btn { min-height: 44px; } .volume-review-panel p { font-size: 13px; } .volume-review-panel textarea { font-size: 16px; } }
+
+.volume-guided-review { border: 1px solid var(--separator-strong); border-radius: 10px; padding: 12px; background: var(--accent-soft); margin: 12px 0; }
+.volume-finding-entry[data-active='true'] { box-shadow: inset 2px 0 var(--accent); padding-left: 10px; }
+.volume-group-builder { border-bottom: 1px solid var(--separator); padding: 10px 0; }
+.volume-group-builder input { display: block; width: 100%; margin: 6px 0 10px; padding: 9px; color: var(--label); background: var(--bg-content); border: 1px solid var(--separator-strong); border-radius: 6px; }
+.volume-review-panel .volume-group-select { display: flex; gap: 8px; align-items: center; padding-top: 10px; line-height: 1.5; }
+.volume-group-select input { accent-color: var(--accent); width: 18px; height: 18px; flex-shrink: 0; }
+.volume-finding-groups { padding-top: 16px; }
+.volume-finding-groups > div { padding: 12px 0; border-bottom: 1px solid var(--separator); }
+.review-announcement:empty { display: none; }
+@media (max-width: 1023px) { .volume-group-builder input { font-size: 16px; } }

@@ -1,0 +1,52 @@
+.vr-volume { min-width: 0; width: 100%; color: var(--label); background: var(--bg-content); border: 1px solid var(--separator); border-radius: 8px; overflow: hidden; }
+.vr-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px; }
+.vr-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.vr-header button { display: grid; place-items: center; width: 32px; height: 32px; border: 0; background: transparent; color: var(--label-2); border-radius: 5px; cursor: pointer; }
+.vr-header button:hover { background: var(--bg-hover); }
+.vr-header svg { width: 16px; height: 16px; }
+.vr-stage { position: relative; background: #09121a; }
+.vr-stage canvas { display: block; width: 100%; height: 230px; touch-action: none; cursor: grab; }
+.vr-stage canvas:active { cursor: grabbing; }
+.vr-status { position: absolute; inset: 0; display: grid; place-items: center; padding: 28px; color: #dce8ec; background: #09121a; font-size: 12px; line-height: 1.6; text-align: center; }
+.vr-hint { position: absolute; bottom: 9px; left: 12px; color: #a9bec9; font-size: 12px; pointer-events: none; }
+.vr-controls { padding: 0 14px 12px; }
+.vr-controls:not([open]) { padding-bottom: 0; }
+.vr-presets { display: flex; gap: 6px; margin-top: 8px; margin-bottom: 14px; }
+.vr-presets button, .vr-rotation button { min-height: 36px; padding: 5px 8px; border: 1px solid var(--separator); border-radius: 5px; background: var(--bg-content); color: var(--label); cursor: pointer; font-size: 12px; }
+.vr-presets button:hover, .vr-rotation button:hover { background: var(--accent-soft); border-color: var(--accent); }
+.vr-field { display: block; margin: 10px 0; }
+.vr-field > span { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--label-2); }
+.vr-field output { font: 12px var(--font-mono); color: var(--label); }
+.vr-field input { display: block; width: 100%; height: 26px; accent-color: var(--accent); }
+.vr-check { display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1.4; min-height: 36px; }
+.vr-check input { width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+.vr-rotation { display: flex; gap: 5px; margin-top: 8px; }
+.vr-rotation button { flex: 1; }
+.vr-resolution { margin: 12px 0 0; font-size: 12px; color: var(--label-2); line-height: 1.5; }
+@media (pointer: coarse), (max-width: 760px) {
+ .vr-stage canvas { height: 300px; }
+ .vr-presets button, .vr-rotation button, .vr-header button { min-height: 44px; }
+ .vr-header button { width: 44px; }
+ .vr-field input { height: 44px; }
+ .vr-check { min-height: 44px; }
+}
+
+.vr-region-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.vr-region-overlay g { pointer-events: all; cursor: pointer; }
+.vr-region-overlay line { stroke: #ffb65c; stroke-width: 1.5; }
+.vr-region-overlay polygon { fill: rgba(255, 169, 77, .18); stroke: none; }
+.vr-region-overlay text { fill: #ffd394; font: 12px var(--font-sans); stroke: #17120a; stroke-width: 3; paint-order: stroke; }
+.vr-region-overlay g[data-selected='true'] line { stroke: #fff; stroke-width: 2; }
+.vr-region-overlay g[data-selected='true'] polygon { fill: rgba(255, 169, 77, .35); }
+
+.vr-region-hit { fill: transparent; pointer-events: all; }
+.vr-region-overlay { z-index: 1; }
+
+.vr-controls > summary { min-height: 40px; margin: 0 -14px; padding: 10px 14px; border-top: 1px solid var(--separator); font-size: 12px; color: var(--label); cursor: pointer; }
+.vr-controls > summary:focus-visible, .vr-controls button:focus-visible, .vr-controls input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+@media (pointer: coarse), (max-width: 1023px) {
+  .vr-stage canvas { height: 260px; }
+  .vr-controls > summary { min-height: 44px; }
+  .vr-presets button, .vr-rotation button { min-height: 44px; }
+}

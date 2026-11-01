@@ -1,5 +1,5 @@
 // OWNER: Agent 5. PatientSheet — modal form for patient demographic + clinical details, live-saved.
-import { useState } from 'react'
+import { Children, cloneElement, isValidElement, useId, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { useApp, useActiveStudy } from '../../store'
 import { Sheet } from './Sheet'
@@ -152,10 +152,12 @@ export function PatientSheet() {
 }
 
 function Field({ label, children, fullWidth }: { label: string; children: React.ReactNode; fullWidth?: boolean }) {
+  const fieldId = useId()
   return (
     <div className={`field${fullWidth ? ' sh-full' : ''}`}>
-      <label className="field-label">{label}</label>
-      {children}
+      <label className="field-label" htmlFor={fieldId}>{label}</label>
+      {Children.map(children, (child) => isValidElement<{ id?: string }>(child) && typeof child.type === 'string' && ['input', 'textarea', 'select'].includes(child.type)
+        ? cloneElement(child, { id: fieldId }) : child)}
     </div>
   )
 }

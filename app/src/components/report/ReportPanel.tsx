@@ -1,5 +1,6 @@
+import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 4 (Report). The inspector report editor, sign-off, and print/copy/export bar.
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -35,6 +36,7 @@ import {
   studyToJson,
 } from '../../lib/reportExport'
 import { Sheet } from '../shell/Sheet'
+import { toast } from '../shell/toastStore'
 import { PrintReport } from './PrintReport'
 import './report.css'
 
@@ -60,11 +62,13 @@ interface AutoGrowFieldProps {
   hint?: string
   icon?: ReactNode
   emphasis?: boolean
+  sectionId?: string
 }
 
 /** A textarea that grows to fit its content. Value is the single source of truth; caret stays stable. */
-function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint, icon, emphasis }: AutoGrowFieldProps) {
+function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint, icon, emphasis, sectionId }: AutoGrowFieldProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const fieldId = useId()
 
   const adjust = useCallback(() => {
     const el = ref.current
@@ -84,14 +88,16 @@ function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint, ic
   }, [adjust])
 
   return (
-    <section className={`rp-sec${readOnly ? ' rp-sec-ro' : ''}${emphasis ? ' rp-sec-em' : ''}`}>
+    <section id={sectionId} className={`rp-sec${readOnly ? ' rp-sec-ro' : ''}${emphasis ? ' rp-sec-em' : ''}`}>
       {label ? (
-        <label className="rp-sec-head">
+        <label className="rp-sec-head" htmlFor={fieldId}>
           {icon}
           {label}
         </label>
       ) : null}
       <textarea
+        id={fieldId}
+        aria-describedby={hint ? `${fieldId}-hint` : undefined}
         ref={ref}
         className="rp-sec-text"
         rows={1}
@@ -101,7 +107,7 @@ function AutoGrowField({ value, onChange, readOnly, placeholder, label, hint, ic
         aria-label={label}
         onChange={(e) => onChange?.(e.target.value)}
       />
-      {hint ? <div className="rp-sec-hint">{hint}</div> : null}
+      {hint ? <div id={`${fieldId}-hint`} className="rp-sec-hint">{hint}</div> : null}
     </section>
   )
 }
@@ -292,6 +298,7 @@ export function ReportPanel() {
       setTimeout(() => setCopied(false), 1800)
     } catch {
       setCopied(false)
+      toast('Clipboard unavailable. Use Text to download the report.', 'error')
     }
   }, [plain])
 
@@ -332,6 +339,10 @@ export function ReportPanel() {
     )
   }
 
+  if (!report && study.images.length > 0 && study.images.every((image) => !analysisEligibility(image).supported)) {
+    return <div className="rp-panel"><h2 className="preview-heading">Report unavailable</h2><p className="preview-note">These images are available for preview. Analysis supports chest X-rays and CT/MRI images.</p></div>
+  }
+
   if (analyzedCount === 0 && !report) {
     return (
       <div className="rp-panel">
@@ -341,7 +352,7 @@ export function ReportPanel() {
           </div>
           <div className="rp-empty-title">Draft your report</div>
           <div className="rp-empty-text">
-            Analyze at least one image to draft a report. MedGemma will synthesize all analyzed images and patient
+            Analyze at least one image to draft a report. {settings.model} will synthesize all analyzed images and patient
             context into a structured, signable report.
           </div>
           <div className="rp-empty-count">{analyzedCount} of {totalCount} images analyzed</div>
@@ -368,7 +379,7 @@ export function ReportPanel() {
             <>
               <div className="rp-draft-title">Draft report from analyzed images</div>
               <div className="rp-draft-text">
-                MedGemma will synthesize all {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'} and the
+                {settings.model} will synthesize all {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'} and the
                 patient context into a structured, editable, signable report.
                 {analyzedCount < totalCount ? ` ${totalCount - analyzedCount} image${totalCount - analyzedCount === 1 ? ' is' : 's are'} not analyzed yet and will be left out.` : ''}
               </div>
@@ -402,9 +413,13 @@ export function ReportPanel() {
   const patientChangedSinceSign = signed && !!report.patientSnapshot && !samePatient(report.patientSnapshot, study.patient)
   const updatedLabel = report.updatedAt ? new Date(report.updatedAt).toLocaleString() : ''
   const amendments = report.amendments ?? []
+  const completedSections = REPORT_FIELDS.filter((field) => report[field.key].trim()).length
+  const reviewFindings = study.images.flatMap((img) => img.analysis?.findings ?? []).filter((f) => f.severity !== 'normal')
+  const reviewedFindings = reviewFindings.filter((f) => !!f.review).length
 
   return (
     <div className="rp-panel">
+      <header className="rp-workspace-title"><div><h1>{signed ? 'Signed report' : 'Report draft'}</h1></div></header>
       <div className={`rp-pin${signed ? ' rp-pin-signed' : ''}`} role="note">
         {signed ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
         {signed
@@ -515,6 +530,19 @@ export function ReportPanel() {
         </section>
       ) : null}
 
+      <section className="rp-readiness" aria-label="Report progress">
+        <span>{completedSections}/{REPORT_FIELDS.length} sections</span>
+        <span>{reviewedFindings}/{reviewFindings.length} findings reviewed</span>
+        <span>{analyzedCount}/{totalCount} images analyzed</span>
+      </section>
+      <nav className="rp-section-nav" aria-label="Report sections">
+        {REPORT_FIELDS.map((field) => <button key={field.key} type="button" onClick={() => {
+          const section = document.getElementById(`report-${field.key}`)
+          section?.scrollIntoView({ block: 'start', behavior: 'instant' })
+          section?.querySelector('textarea')?.focus({ preventScroll: true })
+        }}>{field.label}</button>)}
+      </nav>
+
       <AutoGrowField
         value={patient.indication}
         readOnly={signed}
@@ -530,6 +558,7 @@ export function ReportPanel() {
           {field.key === 'findings' ? <ExcludedBanner study={study} locked={signed} /> : null}
           <AutoGrowField
             value={report[field.key]}
+            sectionId={`report-${field.key}`}
             icon={field.icon}
             emphasis={field.emphasis}
             label={field.label}
@@ -544,8 +573,9 @@ export function ReportPanel() {
         <section className="rp-card rp-signoff">
           <div className="rp-sec-head">
             <ShieldCheck />
-            Sign-off
+            Radiologist sign-off
           </div>
+          <p className="rp-signoff-hint">Review the draft and enter your name to sign. Signing locks the report and records the patient details.</p>
           <div className="rp-signoff-row">
             <input
               className="input"
@@ -560,7 +590,7 @@ export function ReportPanel() {
               disabled={!report.radiologist.trim() || reportJob.running}
               onClick={onSign}
             >
-              Sign
+              Sign report
             </button>
           </div>
           {confirmRegen ? (
@@ -606,6 +636,7 @@ export function ReportPanel() {
       ) : null}
 
       <section className="rp-card rp-export">
+        <h2 className="rp-export-title">Export report</h2>
         <button type="button" className="btn btn-primary btn-lg rp-btn-full" onClick={() => setPreviewOpen(true)}>
           <Printer size={16} /> Preview &amp; Print / PDF
         </button>

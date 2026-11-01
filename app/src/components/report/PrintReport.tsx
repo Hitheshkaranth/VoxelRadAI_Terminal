@@ -1,5 +1,5 @@
 // OWNER: Agent 4 (Report). The formal, print-perfect A4 report overlay (portal to document.body).
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { SEVERITY_LABEL } from '../../types'
@@ -105,10 +105,14 @@ function regionalNote(heat: Heatmap, finding: Finding): string {
 }
 
 export function PrintReport({ study, settings, onClose }: PrintReportProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
+  useLayoutEffect(() => { closeRef.current = onClose }, [onClose])
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const [heatFigs, setHeatFigs] = useState<Record<string, string>>({})
   const exam = examSummary(study)
   const analyzed = analyzedImages(study)
+  const analysisModels = [...new Set(analyzed.map((image) => image.analysis?.model).filter(Boolean))].join(', ')
   const patient = reportPatient(study)
   const report = study.report
   const { included, excluded } = splitFindings(study)
@@ -169,13 +173,28 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
     }
   }, [heatKey])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const before = document.activeElement as HTMLElement | null
+    const dialog = dialogRef.current
+    dialog?.focus({ preventScroll: true })
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      // Keep viewer shortcuts behind the modal from changing the image while previewing a report.
+      e.stopPropagation()
+      if (e.key === 'Escape') { e.preventDefault(); closeRef.current(); return }
+      if (e.key !== 'Tab' || !dialog) return
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [tabindex="0"]')).filter((node) => node.offsetParent !== null)
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (!first) { e.preventDefault(); return }
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && (document.activeElement === last || document.activeElement === dialog)) { e.preventDefault(); first.focus() }
     }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+    dialog?.addEventListener('keydown', onKey)
+    return () => {
+      dialog?.removeEventListener('keydown', onKey)
+      before?.focus({ preventScroll: true })
+    }
+  }, [])
 
   const amendments = report?.amendments ?? []
 
@@ -183,7 +202,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const accession = ACCESSION(study.id)
 
   return createPortal(
-    <div className="rp-print-root">
+    <div className="rp-print-root" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Report print preview" tabIndex={-1}>
       <div className="rp-print-backdrop">
         <div className="rp-print-toolbar glass">
           <span className="rp-print-toolbar-label">Preview &amp; Print</span>
@@ -205,7 +224,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
           </div>
         </div>
 
-        <div className="rp-print-scroll">
+        <div className="rp-print-scroll" tabIndex={0} aria-label="Report preview document">
           <div className="rp-print-page" role="document">
             <div className="rp-print-inner">
               <header className="rp-lh">
@@ -350,8 +369,8 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {included.map(({ ref, finding: f }) => {
-                        const rel = reliabilityFor(f)
+                      {included.map(({ ref, finding: f, imageId }) => {
+                        const rel = reliabilityFor(f, analyzed.find((image) => image.id === imageId)?.analysis?.model ?? '')
                         return (
                           <tr key={ref + f.id}>
                             <td>{ref}</td>
@@ -428,7 +447,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
 
               <footer className="rp-footer">
                 <span className="rp-footer-disclaimer">
-                  {DISCLAIMER} Drafted with AI assistance (MedGemma 27B, run locally
+                  {DISCLAIMER} Drafted with AI assistance ({analysisModels || 'model not recorded'}
                   {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
                 </span>
               </footer>

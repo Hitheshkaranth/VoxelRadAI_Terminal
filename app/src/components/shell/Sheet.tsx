@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import './shell.css'
 
 interface SheetProps {
+  wide?: boolean
   open: boolean
   onClose: () => void
   title: string
@@ -15,15 +16,18 @@ interface SheetProps {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
-export function Sheet({ open, onClose, title, subtitle, children, footer }: SheetProps) {
+export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: SheetProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const lastFocused = useRef<HTMLElement | null>(null)
+  const closeRef = useRef(onClose)
+  useLayoutEffect(() => { closeRef.current = onClose }, [onClose])
 
   useLayoutEffect(() => {
     if (!open) return
     lastFocused.current = document.activeElement as HTMLElement | null
     cardRef.current?.focus({ preventScroll: true })
+    return () => { lastFocused.current?.focus?.(); lastFocused.current = null }
   }, [open])
 
   useEffect(() => {
@@ -34,7 +38,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
       if (e.key === 'Escape') {
         e.stopPropagation()
         e.preventDefault()
-        onClose()
+        closeRef.current()
         return
       }
       if (e.key !== 'Tab') return
@@ -65,10 +69,8 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
     node?.addEventListener('keydown', onKey)
     return () => {
       node?.removeEventListener('keydown', onKey)
-      lastFocused.current?.focus?.()
-      lastFocused.current = null
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
@@ -82,7 +84,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: Shee
     >
       <div
         ref={cardRef}
-        className="sh-sheet"
+        className={`sh-sheet${wide ? ' sh-sheet--wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
