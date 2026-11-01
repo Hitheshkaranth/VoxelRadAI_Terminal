@@ -6,6 +6,7 @@ import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './
 import { reviewAllSlices, volumeCoverage, type SliceRead } from './volumeAnalysis'
 import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type VolumeFindingGroup, type VolumeFindingReview, type VolumeDraftReport } from './volumeReview'
 import type { PatientInfo, Settings } from '../types'
+import { uid } from '../store'
 
 export interface VolumeJobSnapshot { center: number; width: number; model: string; settings: Settings }
 export interface VolumeJob {
@@ -84,7 +85,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
   const previous = records.get(opts.identity)
   const now = Date.now()
   const job: VolumeJob = previous && !opts.restart ? { ...previous, status: 'running', runStartedAt: now, progress: '', error: undefined, storageError: undefined } : {
-    version: 1, id: crypto.randomUUID(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count: opts.volume.dimensions[2],
+    version: 1, id: uid(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count: opts.volume.dimensions[2],
     snapshot: { center: opts.center, width: opts.width, model: opts.settings.model, settings: structuredClone(opts.settings) },
     reads: [], status: 'running', progress: '', elapsedMs: 0, runStartedAt: now, updatedAt: now,
   }
@@ -127,7 +128,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
           skanda = built.input
         }
         const analysis = await analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal, skanda,
-          image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
+          image: { id: uid(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
           onProgress: (text) => { if (current() && Date.now() - lastProgress >= 200) { lastProgress = Date.now(); patch({ progress: `Slice ${index + 1}/${job.count} · ${text}` }) } },
         })
         return validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis)
@@ -174,7 +175,7 @@ export async function createVolumeFindingGroup(identity: string, jobId: string, 
   const job = records.get(identity)
   if (!job || job.id !== jobId) throw new Error('This analysis has changed. Reopen the findings.')
   const validated = validateFindingGroup(job, label, members)
-  const group: VolumeFindingGroup = { ...validated, id: crypto.randomUUID(), createdAt: Date.now() }
+  const group: VolumeFindingGroup = { ...validated, id: uid(), createdAt: Date.now() }
   await save(publish({ ...job, findingGroups: [...(job.findingGroups ?? []), group], updatedAt: Date.now() }))
 }
 export async function removeVolumeFindingGroup(identity: string, jobId: string, groupId: string) {

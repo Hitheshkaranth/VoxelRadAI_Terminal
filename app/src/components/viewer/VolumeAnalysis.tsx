@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useApp } from '../../store'
+import { uid, useApp } from '../../store'
 import { analyzeImage, isSkandaModel } from '../../lib/medgemma'
 import type { SkandaSliceInput } from '../../lib/skandaSlice'
 import type { AnalysisResult, PatientInfo } from '../../types'
@@ -27,7 +27,7 @@ export function VolumeAnalysis({ image, modality, label, width, height, onResult
         skanda = built.input
       }
       const raw = await analyzeImage({ settings, patient, signal: request.signal, skanda,
-        image: { id: crypto.randomUUID(), name: label, mime: 'image/png', dataUrl: image, width, height, addedAt: Date.now(), status: 'idle', sourceModality: modality === 'MRI' ? 'MR' : modality },
+        image: { id: uid(), name: label, mime: 'image/png', dataUrl: image, width, height, addedAt: Date.now(), status: 'idle', sourceModality: modality === 'MRI' ? 'MR' : modality },
         onProgress: (text) => { if (controller.current === request) setProgress(text) },
       })
       const analysis = validate ? validate(raw) : raw

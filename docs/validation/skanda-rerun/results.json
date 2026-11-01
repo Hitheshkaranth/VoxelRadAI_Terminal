@@ -1,0 +1,474 @@
+[
+ {
+  "modality": "ct",
+  "slice": 59,
+  "reference_pixels": 538,
+  "reported_abnormal": true,
+  "box_iou": 0.0195,
+  "outline_dice": 0.1442,
+  "outline_covers_reference": 0.539,
+  "outline_pixels_outside_reference": 3194,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9988304972648621,
+   "decision": null
+  },
+  "impression": "Liver tumour, right liver.",
+  "image_quality": "adequate",
+  "findings": [
+   {
+    "title": "Liver tumour, right liver",
+    "description": "Focal hypoattenuating mass within the liver, next to the hepatic vessels in the patient's right liver, rounded. Measured from the outline: about 40 mm across on this slice (area 1722 mm\u00b2), mean attenuation 133 HU (SD 31), 16 separate parts.",
+    "severity": "significant",
+    "confidence": 0.999,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "right liver",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     320,
+     188,
+     672,
+     422
+    ],
+    "measurements": {
+     "side": "right",
+     "parts": 16,
+     "diameter_mm": 40.2,
+     "area_mm2": 1722.4,
+     "mean_hu": 133,
+     "hu_sd": 31,
+     "source": "outline",
+     "removed_model_numbers": 3,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 12.4
+ },
+ {
+  "modality": "ct",
+  "slice": 60,
+  "reference_pixels": 377,
+  "reported_abnormal": true,
+  "box_iou": 0.0158,
+  "outline_dice": 0.1974,
+  "outline_covers_reference": 0.305,
+  "outline_pixels_outside_reference": 673,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9947799444198608,
+   "decision": null
+  },
+  "impression": "Liver tumour, right liver.",
+  "image_quality": "adequate",
+  "findings": [
+   {
+    "title": "Liver tumour, right liver",
+    "description": "Focal hypoattenuating mass within the liver, next to the hepatic vessels in the patient's right liver, rounded. Measured from the outline: about 15 mm across on this slice (area 390 mm\u00b2), mean attenuation 134 HU (SD 35), 8 separate parts.",
+    "severity": "significant",
+    "confidence": 1.0,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "right liver",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     355,
+     188,
+     703,
+     438
+    ],
+    "measurements": {
+     "side": "right",
+     "parts": 8,
+     "diameter_mm": 15.4,
+     "area_mm2": 389.6,
+     "mean_hu": 134,
+     "hu_sd": 35,
+     "source": "outline",
+     "removed_model_numbers": 3,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 9.1
+ },
+ {
+  "modality": "ct",
+  "slice": 70,
+  "reference_pixels": 136,
+  "reported_abnormal": true,
+  "box_iou": 0.0021,
+  "outline_dice": 0.0089,
+  "outline_covers_reference": 0.3162,
+  "outline_pixels_outside_reference": 9437,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9924227595329285,
+   "decision": null
+  },
+  "impression": "Liver tumour, right liver.",
+  "image_quality": "adequate",
+  "findings": [
+   {
+    "title": "Liver tumour, right liver",
+    "description": "Focal hypoattenuating mass within the liver, next to the hepatic vessels in the patient's right liver, rounded. Measured from the outline: about 109 mm across on this slice (area 4687 mm\u00b2), mean attenuation 91 HU (SD 61).",
+    "severity": "significant",
+    "confidence": 0.955,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "right liver",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     332,
+     172,
+     609,
+     445
+    ],
+    "measurements": {
+     "side": "right",
+     "parts": 1,
+     "diameter_mm": 108.9,
+     "area_mm2": 4686.8,
+     "mean_hu": 91,
+     "hu_sd": 61,
+     "source": "outline",
+     "removed_model_numbers": 3,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 9.4
+ },
+ {
+  "modality": "ct",
+  "slice": 56,
+  "reference_pixels": 0,
+  "reported_abnormal": false,
+  "box_iou": null,
+  "outline_dice": null,
+  "outline_covers_reference": null,
+  "outline_pixels_outside_reference": 0,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.30404165387153625,
+   "decision": null
+  },
+  "impression": "No focal abnormality on this slice.",
+  "image_quality": "adequate",
+  "findings": [],
+  "seconds": 2.9
+ },
+ {
+  "modality": "mri",
+  "slice": 61,
+  "reference_pixels": 1414,
+  "reported_abnormal": true,
+  "box_iou": 0.18,
+  "outline_dice": 0.9074,
+  "outline_covers_reference": 0.942,
+  "outline_pixels_outside_reference": 190,
+  "lm_studio_box_iou": 0.07390795631825273,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9998977184295654,
+   "decision": null
+  },
+  "impression": "Peritumoral oedema, left cerebral hemisphere; Non-enhancing tumour, left cerebral hemisphere; Enhancing tumour, left cerebral hemisphere.",
+  "image_quality": "Single MRI sequence (T1 post-contrast): Skanda was trained on FLAIR, T1 post-contrast and T2 together; single-sequence reads are outside its training data.",
+  "findings": [
+   {
+    "title": "Peritumoral oedema, left cerebral hemisphere",
+    "description": "High FLAIR signal surrounding the tumour in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 57 mm across on this slice (area 1509 mm\u00b2), 2 separate parts.",
+    "severity": "significant",
+    "confidence": 1.0,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     250,
+     516,
+     613,
+     719
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 2,
+     "diameter_mm": 57.3,
+     "area_mm2": 1509.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Non-enhancing tumour, left cerebral hemisphere",
+    "description": "Solid tumour component without contrast enhancement in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 50 mm across on this slice (area 1065 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 1.0,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     262,
+     523,
+     449,
+     660
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 49.7,
+     "area_mm2": 1065.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Enhancing tumour, left cerebral hemisphere",
+    "description": "Contrast-enhancing tumour rim on T1 post-contrast in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 55 mm across on this slice (area 1097 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.998,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     250,
+     328,
+     559,
+     664
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 54.6,
+     "area_mm2": 1097.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 21.3
+ },
+ {
+  "modality": "mri",
+  "slice": 75,
+  "reference_pixels": 1978,
+  "reported_abnormal": true,
+  "box_iou": 0.3929,
+  "outline_dice": 0.8405,
+  "outline_covers_reference": 0.7487,
+  "outline_pixels_outside_reference": 65,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9999452829360962,
+   "decision": null
+  },
+  "impression": "Peritumoral oedema, left cerebral hemisphere; Non-enhancing tumour, left cerebral hemisphere; Enhancing tumour, left cerebral hemisphere.",
+  "image_quality": "Single MRI sequence (T1 post-contrast): Skanda was trained on FLAIR, T1 post-contrast and T2 together; single-sequence reads are outside its training data.",
+  "findings": [
+   {
+    "title": "Peritumoral oedema, left cerebral hemisphere",
+    "description": "High FLAIR signal surrounding the tumour in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 59 mm across on this slice (area 1002 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.998,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     234,
+     504,
+     629,
+     668
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 58.9,
+     "area_mm2": 1002.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Non-enhancing tumour, left cerebral hemisphere",
+    "description": "Solid tumour component without contrast enhancement in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 41 mm across on this slice (area 740 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.999,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     250,
+     523,
+     438,
+     656
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 41.0,
+     "area_mm2": 740.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Enhancing tumour, left cerebral hemisphere",
+    "description": "Contrast-enhancing tumour rim on T1 post-contrast in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 59 mm across on this slice (area 1167 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.999,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     234,
+     484,
+     652,
+     668
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 58.9,
+     "area_mm2": 1167.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 21.2
+ },
+ {
+  "modality": "mri",
+  "slice": 85,
+  "reference_pixels": 1298,
+  "reported_abnormal": true,
+  "box_iou": 0.2594,
+  "outline_dice": 0.6726,
+  "outline_covers_reference": 0.5778,
+  "outline_pixels_outside_reference": 182,
+  "lm_studio_box_iou": 0.0,
+  "lm_studio_reported_abnormal": true,
+  "gate": {
+   "p_abnormal": 0.9999573230743408,
+   "decision": null
+  },
+  "impression": "Peritumoral oedema, left cerebral hemisphere; Non-enhancing tumour, left cerebral hemisphere; Enhancing tumour, left cerebral hemisphere.",
+  "image_quality": "Single MRI sequence (T1 post-contrast): Skanda was trained on FLAIR, T1 post-contrast and T2 together; single-sequence reads are outside its training data.",
+  "findings": [
+   {
+    "title": "Peritumoral oedema, left cerebral hemisphere",
+    "description": "High FLAIR signal surrounding the tumour in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 45 mm across on this slice (area 773 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.999,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     285,
+     512,
+     613,
+     699
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 44.6,
+     "area_mm2": 773.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Non-enhancing tumour, left cerebral hemisphere",
+    "description": "Solid tumour component without contrast enhancement in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 37 mm across on this slice (area 651 mm\u00b2), 2 separate parts.",
+    "severity": "significant",
+    "confidence": 0.998,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     281,
+     516,
+     453,
+     715
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 2,
+     "diameter_mm": 37.3,
+     "area_mm2": 651.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   },
+   {
+    "title": "Enhancing tumour, left cerebral hemisphere",
+    "description": "Contrast-enhancing tumour rim on T1 post-contrast in the patient's left cerebral hemisphere, irregular. Measured from the outline: about 41 mm across on this slice (area 623 mm\u00b2).",
+    "severity": "significant",
+    "confidence": 0.998,
+    "confidenceSource": "SAM 2 outline object score (not a calibrated probability of disease)",
+    "location": "left cerebral hemisphere",
+    "category": "",
+    "recommendation": "",
+    "box_2d": [
+     309,
+     512,
+     617,
+     645
+    ],
+    "measurements": {
+     "side": "left",
+     "parts": 1,
+     "diameter_mm": 41.1,
+     "area_mm2": 623.0,
+     "source": "outline",
+     "removed_model_numbers": 2,
+     "side_from_outline": false
+    }
+   }
+  ],
+  "seconds": 21.2
+ },
+ {
+  "modality": "mri",
+  "slice": 97,
+  "reference_pixels": 0,
+  "reported_abnormal": false,
+  "box_iou": null,
+  "outline_dice": null,
+  "outline_covers_reference": null,
+  "outline_pixels_outside_reference": 0,
+  "lm_studio_box_iou": null,
+  "lm_studio_reported_abnormal": false,
+  "gate": {
+   "p_abnormal": 0.003172682598233223,
+   "decision": null
+  },
+  "impression": "No focal abnormality on this slice.",
+  "image_quality": "Single MRI sequence (T1 post-contrast): Skanda was trained on FLAIR, T1 post-contrast and T2 together; single-sequence reads are outside its training data.",
+  "findings": [],
+  "seconds": 2.6
+ }
+]

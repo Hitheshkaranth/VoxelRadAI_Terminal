@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useShell } from './shellState'
+import { uid } from '../../store'
 import { VOLUME_SAMPLES } from '../../lib/volumeSources'
 
 export function SampleStudies({ onOpen }: { onOpen: () => void }) {
@@ -13,7 +14,7 @@ export function SampleStudies({ onOpen }: { onOpen: () => void }) {
     <button className="volume-file-link" onClick={() => fileInput.current?.click()}>Open NRRD volume…</button>
     <input ref={fileInput} type="file" accept=".nrrd" hidden onChange={(event) => {
       const file = event.target.files?.[0]
-      if (file) { onOpen(); useShell.getState().openVolume({ id: crypto.randomUUID(), title: file.name, modality: 'Volume', file }) }
+      if (file) { onOpen(); useShell.getState().openVolume({ id: uid(), title: file.name, modality: 'Volume', file }) }
       event.target.value = ''
     }} />
   </section>

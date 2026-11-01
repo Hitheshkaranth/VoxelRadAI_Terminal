@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FileImage, FileText, Plus, ShieldCheck, Target } from 'lucide-react'
-import { hydrate, useActiveStudy, useApp } from './store'
+import { hydrate, uid, useActiveStudy, useApp } from './store'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
 import { extractImagesFromClipboard } from './lib/imageIntake'
@@ -114,7 +114,7 @@ function useGlobalUpload() {
       e.preventDefault()
       const files = Array.from(e.dataTransfer!.files)
       const volumeFile = files.find((file) => file.name.toLowerCase().endsWith('.nrrd'))
-      if (volumeFile) useShell.getState().openVolume({ id: crypto.randomUUID(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
+      if (volumeFile) useShell.getState().openVolume({ id: uid(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
       else { useShell.getState().closeVolume(); void addFilesToActiveStudy(files) }
     }
     // Capture phase so nested drop targets can't swallow the event and leave the overlay stuck.

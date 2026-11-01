@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { renderSlice, type Volume } from '../src/lib/volume.ts'
+import { findingIssues } from '../src/lib/volumeValidation.ts'
+import type { Finding } from '../src/types.ts'
 import { positivePercentiles, skandaSliceInput, sliceValues, SKANDA_CT_WINDOWS } from '../src/lib/skandaSlice.ts'
 
 let checks = 0
@@ -28,5 +30,17 @@ equal(SKANDA_CT_WINDOWS, [[-1350, 150], [-160, 240], [-500, 1300]], 'CT windows 
 equal(skandaSliceInput(volume, 'coronal', 0, { modality: 'CT', title: 'x' }).input, null, 'non-axial planes are refused (Skanda trained on axial)')
 equal(/axial/.test(skandaSliceInput(volume, 'coronal', 0, { modality: 'CT', title: 'x' }).reason ?? ''), true, 'with the reason')
 equal(skandaSliceInput(volume, 'axial', 0, { modality: 'Volume', title: 'x' }).input, null, 'unknown modality is refused')
+
+// claim checks: outline-measured sizes and supplied sequences pass; model-written ones are still flagged
+const grey = new Uint8ClampedArray(64 * 64 * 4).fill(128)
+const f = (description: string, measured = true): Finding => ({ id: 'f', title: 'Enhancing tumour, left cerebral hemisphere', description, severity: 'significant', confidence: 0.8,
+  location: 'left cerebral hemisphere', ...(measured ? { measurements: { source: 'outline' as const, diameter_mm: 41 } } : {}) })
+const has = (issues: string[], word: string) => issues.some((i) => i.includes(word))
+equal(has(findingIssues(f('Irregular. Measured from the outline: about 41 mm across on this slice (area 766 mm²).'), grey, 64, 64), 'physical measurement'), false, 'size measured from the outline passes')
+equal(has(findingIssues(f('Irregular, about 84 mm across. Measured from the outline: about 41 mm across on this slice.'), grey, 64, 64), 'physical measurement'), true, 'a model-written size is still flagged')
+equal(has(findingIssues(f('Irregular, about 41 mm across.', false), grey, 64, 64), 'physical measurement'), true, 'no outline measurements: sizes flagged as before')
+equal(has(findingIssues(f('Contrast-enhancing tumour rim on T1 post-contrast.'), grey, 64, 64, { sequence: 'T1 post-contrast' }), 'sequence'), false, 'T1c claim on a T1c volume passes')
+equal(has(findingIssues(f('High FLAIR signal around the tumour.'), grey, 64, 64, { sequence: 'T1 post-contrast' }), 'sequence'), true, 'FLAIR claim on a T1c volume is flagged')
+equal(has(findingIssues(f('Contrast-enhancing tumour rim.'), grey, 64, 64), 'sequence'), true, 'contrast claim without metadata is flagged as before')
 
 console.log(`skanda slice: ${checks} checks passed`)

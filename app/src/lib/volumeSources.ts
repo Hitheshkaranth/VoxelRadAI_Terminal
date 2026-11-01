@@ -3,6 +3,8 @@ export interface VolumeSource {
   title: string
   modality: string
   initialWindow?: { center: number; width: number }
+  /** MRI sequence when known (e.g. "T1 post-contrast"): acquisition context for the reader and the claim checks. */
+  sequence?: string
   url?: string
   file?: File
 }

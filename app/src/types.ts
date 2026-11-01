@@ -43,6 +43,9 @@ export interface Finding {
   bbox?: BBox
   /** Outline mask over the whole image (PNG data URL, white = finding), from readers that segment (Skanda). */
   mask?: string
+  /** Numbers measured from the outline by the reader's server with the image's pixel spacing / raw HU (Skanda), not
+   * written by the model; its text carries them in a "Measured from the outline: …" sentence. */
+  measurements?: { source: 'outline'; diameter_mm?: number; area_mm2?: number; mean_hu?: number; surround_hu?: number; parts?: number; side?: string }
   /** e.g. "Lungs", "Pleura", "Cardiomediastinal", "Bones", "Devices", "Soft tissue". */
   category?: string
   /** Optional finding-specific follow-up. */

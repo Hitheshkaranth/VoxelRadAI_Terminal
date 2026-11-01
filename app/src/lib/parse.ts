@@ -410,6 +410,7 @@ function normalizeFinding(raw: unknown, index: number): Finding {
     location: asString(raw.location),
     bbox: toBBox(raw.box_2d ?? raw.bbox),
     mask: typeof raw.mask_png === 'string' && raw.mask_png.startsWith('data:image/png;base64,') ? raw.mask_png : undefined,
+    measurements: raw.measurements && typeof raw.measurements === 'object' && (raw.measurements as { source?: unknown }).source === 'outline' ? raw.measurements as Finding['measurements'] : undefined,
     // reader-side checks (the Skanda server withholds an outline that contradicts its own finding text)
     validationIssues: Array.isArray(raw.validationIssues) && raw.validationIssues.length ? raw.validationIssues.map((x: unknown) => asString(x)).filter(Boolean) : undefined,
     category: category || (isDevice(title, '') ? 'Devices' : ''),
