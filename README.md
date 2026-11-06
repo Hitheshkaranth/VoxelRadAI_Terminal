@@ -109,11 +109,13 @@ name starts with `skanda-` as Skanda. For X-ray it then sends Skanda's own promp
 way Skanda was trained to see it: axial, native pixel grid, CT as lung / soft-tissue / bone windows plus raw HU and the
 pixel spacing.
 
-<a href="docs/skanda-demo.mp4"><img src="docs/skanda-demo.gif" alt="71-second recording of the app with the Skanda server (run 3): an X-ray read, then two liver CT slices and two brain MRI slices from the labeled-case report, analysed one slice at a time" width="100%"></a>
+<a href="docs/skanda-demo.mp4"><img src="docs/skanda-demo.gif" alt="3-minute recording of the app with the Skanda V1 server: three held-out chest X-rays (bilateral diffuse nodules and consolidation, cardiomegaly, a normal film), then one axial slice each from a liver CT, a chest CT and a diffusion-weighted brain MRI read in the volume viewer" width="100%"></a>
 
-<sub>Recorded from this app on 2 Nov 2026 with the Skanda server, run 3 checkpoint, bf16 (GIF at 1.5× speed;
-<a href="docs/skanda-demo.mp4">MP4</a>). It shows the X-ray film from the failure report, then CT and MRI slices from
-the same report (MSD liver_0 and BraTS-GLI-00000-000).</sub>
+<sub>Recorded from this app on 6 Nov 2026 with the Skanda server, Skanda V1, bf16, model name `skanda-v1` (GIF at 1.5×
+speed; <a href="docs/skanda-demo.mp4">MP4</a>, 3 min 18 s). Every case is from Skanda's held-out test split: ChestX-Det
+films cxd_67598, cxd_41481 and cxd_40388, MSD hepatic vessel 025 (slice 25), LUNA16 c13665c0fe (slice 34) and SOOP
+sub-47 DWI (slice 16). The TorchXRayVision cross-check was running. On the first film Skanda also reports effusions the
+radiologists did not label.</sub>
 
 ### Which build to run
 
