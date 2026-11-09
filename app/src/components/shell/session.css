@@ -1,0 +1,103 @@
+@font-face { font-family: 'Skanda Figtree'; src: url('/fonts/Figtree.ttf') format('truetype'); font-style: normal; font-weight: 300 900; font-display: swap; }
+.session-page {
+  --session-paper: #f3f5f6; --session-ink: #172a32; --session-muted: #53656c;
+  --session-line: #b3c0c5; --session-focus: #087786; --session-dark: #101d23;
+  --session-light: #f3f7f8; --session-dim: #b4c3c9; --session-glass: rgb(34 51 60 / .84);
+  --session-field: #ffffffa8; --session-hover: #e4ecef; --session-field-focus: #fff;
+  --session-placeholder: #64757b; --session-button: #172a32; --session-button-text: #fff; --session-button-hover: #2c4651;
+  --session-error-text: #8b2525; --session-error-bg: #fce9e7;
+  min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  padding: 16px; background: var(--session-paper); color: var(--session-ink);
+  font-family: 'Skanda Figtree', sans-serif; color-scheme: light;
+}
+:root[data-theme='dark'] .session-page {
+  --session-paper: #141c21; --session-ink: #ecf2f5; --session-muted: #aabcc5;
+  --session-line: #52636d; --session-focus: #89d5df; --session-dark: #0a1319;
+  --session-field: #202e36; --session-hover: #344853; --session-field-focus: #263640;
+  --session-placeholder: #a2b4be; --session-button: #c6e2e9; --session-button-text: #142830; --session-button-hover: #e0f1f5;
+  --session-error-text: #ffc3bc; --session-error-bg: #442c2d;
+  color-scheme: dark;
+}
+.session-page button, .session-page input { font: inherit; }
+.session-page button, .session-page summary { cursor: pointer; touch-action: manipulation; }
+.session-page button:disabled { cursor: wait; opacity: .55; }
+.session-page :is(button, input, summary, a):focus-visible { outline: 3px solid var(--session-focus); outline-offset: 4px; }
+.session-page ::selection { background: #c2e6ec; color: #172a32; }
+.session-skip { position: absolute; top: 24px; left: 24px; z-index: 4; padding: 14px 20px; background: var(--session-paper); color: var(--session-ink); transform: translateY(-200%); }
+.session-skip:focus { transform: translateY(0); }
+.session-visual { position: relative; isolation: isolate; min-height: 740px; display: flex; flex-direction: column; padding: 32px 36px 24px; overflow: hidden; border-radius: 20px; background: var(--session-dark); color: var(--session-light); }
+.session-brand { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+.session-brand img { width: 40px; height: 40px; object-fit: contain; }
+.session-brand > span { display: flex; align-items: baseline; gap: 14px; font-size: 31px; font-weight: 600; letter-spacing: -.035em; }
+.session-brand-descriptor { font-size: 14px; color: var(--session-dim); letter-spacing: 0; font-weight: 400; }
+.session-scan { position: relative; margin: 12px 0 8px; flex: 1; min-height: 340px; display: grid; place-items: center; }
+.session-scan > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; }
+.session-scan figcaption { position: absolute; inset: auto auto 12px 0; display: flex; align-items: center; gap: 9px; padding: 10px 14px; background: var(--session-glass); border-radius: 8px; backdrop-filter: blur(16px); font-size: 12px; color: var(--session-light); }
+.session-scan-detail { color: var(--session-dim); }
+.session-visual-copy { position: relative; display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 12px 0 26px; }
+.session-visual-copy h2 { font-size: clamp(38px, 3.6vw, 58px); font-weight: 450; line-height: 1.03; letter-spacing: -.04em; }
+.session-visual-copy p { color: var(--session-dim); font-size: 14px; line-height: 1.6; padding-bottom: 3px; }
+.session-explorer { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.session-plane-controls { display: flex; gap: 8px; padding: 5px; border-radius: 12px; background: var(--session-glass); backdrop-filter: blur(18px); }
+.session-plane-controls button { border: 0; min-height: 44px; padding: 10px 18px; border-radius: 8px; background: transparent; color: var(--session-dim); font-size: 13px; transition: background 160ms, color 160ms; }
+.session-plane-controls button:hover { color: var(--session-light); background: #344b57; }
+.session-plane-controls button[aria-pressed='true'] { color: #172a32; background: #e3eef1; }
+.session-visual :is(button, a):focus-visible { outline-color: #a4e1ea; }
+.session-sample-note { font-size: 11px; color: var(--session-dim); }
+.session-access { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; padding: 30px clamp(30px, 5vw, 84px) 20px; }
+.session-access-top, .session-access-footer { display: flex; justify-content: space-between; align-items: center; gap: 24px; color: var(--session-muted); font-size: 12px; line-height: 1.5; }
+.session-access-top > span:last-child { display: none; }
+.session-access-footer { font-size: 11px; padding-top: 38px; }
+.session-access-footer i { font-style: normal; margin: 0 7px; color: var(--session-line); }
+.session-card { width: min(100%, 390px); align-self: center; padding: 56px 0 24px; }
+.session-form-context { display: flex; align-items: center; gap: 8px; color: var(--session-muted); font-size: 13px; margin-bottom: 22px; }
+.session-card h1 { white-space: pre-line; font-size: clamp(32px, 3.1vw, 46px); line-height: 1.08; font-weight: 500; letter-spacing: -.035em; margin: 0 0 18px; }
+.session-intro { font-size: 15px; line-height: 1.65; color: var(--session-muted); margin: 0 0 32px; max-width: 33ch; }
+.session-form { display: flex; flex-direction: column; gap: 10px; }
+.session-form label { font-size: 13px; font-weight: 600; margin-top: 10px; }
+.session-form input { width: 100%; min-width: 0; height: 54px; background: var(--session-field); color: var(--session-ink); border: 1px solid var(--session-line); border-radius: 8px; padding: 14px 16px; font-size: 16px; transition: border-color 160ms, background 160ms; caret-color: var(--session-focus); }
+.session-form input::placeholder { color: var(--session-placeholder); opacity: 1; }
+.session-form input:hover { border-color: var(--session-muted); }
+.session-form input:focus { border-color: var(--session-focus); background: var(--session-field-focus); }
+.session-password { position: relative; }
+.session-password input { padding-right: 56px; }
+.session-password button { position: absolute; right: 5px; top: 5px; width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--session-muted); display: grid; place-items: center; }
+.session-password button:hover { background: var(--session-hover); color: var(--session-ink); }
+.session-password svg { width: 19px; height: 19px; }
+.session-page .session-submit { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 54px; margin-top: 22px; border: 0; border-radius: 8px; padding: 14px 20px; background: var(--session-button); color: var(--session-button-text); font-size: 15px; font-weight: 500; box-shadow: none; transition: background 160ms; }
+.session-page .session-submit:hover:not(:disabled) { background: var(--session-button-hover); }
+.session-submit svg { width: 19px; height: 19px; }
+.session-error { margin: 8px 0; font-size: 13px; line-height: 1.6; color: var(--session-error-text); background: var(--session-error-bg); border-radius: 8px; padding: 12px 16px; }
+.session-status { color: var(--session-muted); font-size: 14px; padding: 16px 0; }
+.session-help { margin-top: 24px; font-size: 13px; color: var(--session-muted); }
+.session-help summary { min-height: 44px; padding: 12px 0; text-underline-offset: 4px; }
+.session-help summary:hover { color: var(--session-ink); }
+.session-help p { line-height: 1.7; padding: 4px 0 8px; }
+@media (min-width: 1600px) { .session-page { padding: 24px; } .session-visual { padding: 40px 48px 28px; } .session-scan { max-height: 570px; width: 100%; margin-block: auto; } .session-access { padding-inline: 100px; } }
+@media (max-width: 1100px) and (min-width: 761px) { .session-page { grid-template-columns: 1fr 1fr; padding: 12px; } .session-visual { padding: 28px 24px 22px; min-height: 720px; } .session-access { padding-inline: 30px; } .session-visual-copy { display: block; } .session-visual-copy p { margin-top: 16px; } .session-visual-copy p br { display: none; } .session-plane-controls button { padding-inline: 12px; } .session-access-footer { display: block; } .session-access-footer > span { display: block; margin-top: 8px; } }
+@media (max-width: 760px) {
+  .session-page { display: flex; flex-direction: column; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .session-visual { min-height: 166px; padding: 22px 24px; border-radius: 14px; flex-direction: row; align-items: flex-start; }
+  .session-brand > span { flex-direction: column; gap: 0; font-size: 27px; }
+  .session-brand-descriptor { font-size: 12px; }
+  .session-brand img { width: 34px; height: 34px; }
+  .session-scan { position: absolute; inset: -22px -15px -40px auto; width: 220px; min-height: 0; margin: 0; }
+  .session-scan > img { opacity: .65; }
+  .session-scan figcaption, .session-explorer { display: none; }
+  .session-visual-copy { padding: 0; position: absolute; bottom: 24px; left: 24px; }
+  .session-visual-copy h2 { font-size: 20px; letter-spacing: -.02em; line-height: 1.2; }
+  .session-visual-copy h2 br { display: none; }
+  .session-visual-copy p { display: none; }
+  .session-access { padding: 32px 20px 16px; }
+  .session-access-top { display: none; }
+  .session-card { width: min(100%, 420px); padding: 0; }
+  .session-form-context { margin-bottom: 16px; font-size: 12px; }
+  .session-card h1 { font-size: 36px; }
+  .session-intro { margin-bottom: 20px; }
+  .session-help { margin-top: 16px; }
+  .session-access-footer { padding-top: 30px; flex-wrap: wrap; gap: 10px; width: min(100%, 420px); align-self: center; }
+}
+@media (max-width: 380px) { .session-access { padding-inline: 14px; } .session-visual { padding-inline: 18px; } .session-visual-copy { left: 18px; } .session-scan { right: -55px; } .session-card h1 { font-size: 32px; } }
+@media (prefers-reduced-motion: reduce) { .session-page * { transition: none !important; } }
+@media (prefers-reduced-transparency: reduce) { .session-page { --session-glass: #22333c; } .session-scan figcaption, .session-plane-controls { backdrop-filter: none; } .session-form input { background: var(--session-field-focus); } }
+@supports not (backdrop-filter: blur(1px)) { .session-page { --session-glass: #22333c; } }

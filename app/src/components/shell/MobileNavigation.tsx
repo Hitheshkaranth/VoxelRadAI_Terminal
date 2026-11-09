@@ -1,4 +1,6 @@
 import { FileText, Images, ListFilter, ScanLine, Settings, UserRound } from 'lucide-react'
+import { useEffect } from 'react'
+import { ThemeSwitch } from './ThemeSwitch'
 import { useActiveStudy, useApp } from '../../store'
 import { volumeSourceKind } from '../../lib/volumeIdentity'
 import { useShell, type MobileView } from './shellState'
@@ -32,6 +34,16 @@ export function MobileNavigation() {
 }
 
 export function MobileHeader() {
+  useEffect(() => {
+    const compact = window.matchMedia('(min-width: 1024px) and (max-width: 1279px)')
+    const reserveImageSpace = () => {
+      const layout = useShell.getState()
+      if (compact.matches && !layout.sidebarCollapsed && !layout.inspectorCollapsed) layout.setInspectorCollapsed(true)
+    }
+    reserveImageSpace()
+    compact.addEventListener('change', reserveImageSpace)
+    return () => compact.removeEventListener('change', reserveImageSpace)
+  }, [])
   const study = useActiveStudy()
   const volume = useShell((s) => s.volumeSource)
   const view = useShell((s) => s.mobileView)
@@ -48,6 +60,7 @@ export function MobileHeader() {
           : 'Skanda · Local studies'}</span>
       </div>
       {reading && <button className="icon-btn" aria-label="Patient details" onClick={() => openSheet('patient')}><UserRound /></button>}
+      <ThemeSwitch compact />
       <button className="icon-btn mobile-settings" aria-label={`Settings — ${connection === 'online' ? 'model connected' : connection.replace('-', ' ')}`} onClick={() => openSheet('settings')}>
         <Settings /><span className="mobile-connection" data-online={connection === 'online'} />
       </button>

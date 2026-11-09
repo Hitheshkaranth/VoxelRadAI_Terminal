@@ -11,6 +11,7 @@ export interface VolumeMultiplanarProps {
   anchor: Vec3
   center: number
   width: number
+  zoom?: number
   onAnchorChange: (anchor: Vec3) => void
   onMaximize: (plane: VolumePlane) => void
   regions?: VolumeRegion[]
@@ -30,7 +31,7 @@ export function VolumeMultiplanar(props: VolumeMultiplanarProps) {
   </div>
 }
 
-function PlaneView({ plane, volume, anchor, center, width, onAnchorChange, onMaximize, regions = [], selectedRegion, onRegionSelect, showOverlays = true, overlayOpacity = 1, onInteraction }: VolumeMultiplanarProps & { plane: VolumePlane }) {
+function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorChange, onMaximize, regions = [], selectedRegion, onRegionSelect, showOverlays = true, overlayOpacity = 1, onInteraction }: VolumeMultiplanarProps & { plane: VolumePlane }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const drag = useRef<number | null>(null)
@@ -40,7 +41,7 @@ function PlaneView({ plane, volume, anchor, center, width, onAnchorChange, onMax
   const slice = useMemo(() => renderSlice(volume, plane, index, { center, width }), [volume, plane, index, center, width])
   const point = slicePointFromVoxel(volume, plane, anchor)
   const physicalWidth = geometry.width * geometry.pixelSpacing[0], physicalHeight = geometry.height * geometry.pixelSpacing[1]
-  const scale = Math.min(Math.max(1, size.width - 36) / physicalWidth, Math.max(1, size.height - 36) / physicalHeight)
+  const scale = Math.min(Math.max(1, size.width - 36) / physicalWidth, Math.max(1, size.height - 36) / physicalHeight) * zoom
   const imageWidth = physicalWidth * scale, imageHeight = physicalHeight * scale
   const opacity = Number.isFinite(overlayOpacity) ? Math.max(0, Math.min(1, overlayOpacity)) : 1
   const current = useRef({ anchor, index, onAnchorChange, onInteraction })

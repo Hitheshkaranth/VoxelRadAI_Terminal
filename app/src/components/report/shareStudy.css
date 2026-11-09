@@ -1,0 +1,26 @@
+.share-study { display: grid; gap: 18px; font-size: 14px; line-height: 1.55; }
+.share-study p { margin: 0; }
+.share-study-notice { padding: 14px; background: var(--bg-subtle, rgba(127,127,127,.09)); border-radius: 10px; }
+.share-study-notice strong { display: block; margin-bottom: 4px; }
+.share-study fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 16px; }
+.share-study legend { font-weight: 650; margin-bottom: 12px; }
+.share-study label { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; cursor: pointer; }
+.share-study input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; }
+.share-study small { display: block; margin-top: 3px; font-size: 12px; }
+.share-study summary { cursor: pointer; padding-block: 10px; font-weight: 600; }
+.share-study pre { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 12px; padding: 12px; background: rgba(127,127,127,.08); }
+.share-study-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.share-study-actions .btn { min-height: 44px; }
+.share-study-meta { font-size: 12px; }
+.share-study .share-expiry { align-items: center; justify-content: space-between; }
+.share-expiry select { width: auto; min-width: 140px; min-height: 44px; }
+.share-created, .share-history { border-top: 1px solid var(--separator); padding-top: 18px; display: grid; gap: 12px; min-width: 0; }
+.share-created label { min-height: auto; font-size: 13px; }
+.share-created input { width: 100%; min-width: 0; height: 44px; }
+.share-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.share-history h3 { font-size: 16px; }
+.share-history ul { list-style: none; padding: 0; }
+.share-history li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--separator); }
+.share-history li > span { min-width: 0; overflow-wrap: anywhere; }
+.share-history .btn { min-height: 44px; flex: none; }
+@media (max-width: 540px) { .share-study { font-size: 16px; } .share-study-actions .btn { flex: 1 1 150px; } }

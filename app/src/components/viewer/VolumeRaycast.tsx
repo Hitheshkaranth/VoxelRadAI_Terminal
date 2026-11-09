@@ -283,6 +283,11 @@ export function VolumeRaycast({ hideOverlays = false, overlayOpacity = .8, regio
         {status !== 'ready'  && <div className="vr-status" role="status">{status === 'loading' ? 'Building 3D view from the full scan…' : error}</div>}
         {status === 'ready' && <span className="vr-hint">Tap anatomy to select slice · Drag to rotate</span>}
       </div>
+      {onIndexChange && <div className="vr-slice-navigation" role="group" aria-label="Navigate slices in 3D">
+        <button type="button" className="btn btn-sm" aria-label="Previous slice in 3D" disabled={index <= 0} onClick={() => onIndexChange(Math.max(0, index - 1))}>Previous</button>
+        <label>Slice {index + 1} / {volume.dimensions[axis]}<input type="range" aria-label="3D slice position" min={0} max={volume.dimensions[axis] - 1} value={index} onChange={(event) => onIndexChange(Number(event.target.value))} /></label>
+        <button type="button" className="btn btn-sm" aria-label="Next slice in 3D" disabled={index >= volume.dimensions[axis] - 1} onClick={() => onIndexChange(Math.min(volume.dimensions[axis] - 1, index + 1))}>Next</button>
+      </div>}
       <details className="vr-controls" open={toolsOpen} onToggle={(event) => setToolsOpen(event.currentTarget.open)}><summary>3D display controls</summary>{regions.length > 0 && <p className="vr-resolution">Finding boxes are visible through the volume. Depth shows the analyzed slice, not lesion thickness.</p>}
         <div className="vr-presets" role="group" aria-label="3D display presets">
           {bone && <button type="button" onClick={() => { setThreshold(250); setOpacity(0.3) }}>CT bone</button>}

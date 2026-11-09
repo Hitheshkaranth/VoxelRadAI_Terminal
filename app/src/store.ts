@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { get as idbGet, set as idbSet } from 'idb-keyval'
+import { readThemePreference, saveThemePreference } from './lib/theme'
+import { workspaceGet as idbGet, workspaceSet as idbSet } from './lib/workspaceStorage'
 import { toast } from './components/shell/toastStore'
 import type {
   AnalysisResult,
@@ -34,7 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxTokens: 3072,
   institution: 'Skanda Radiology',
   radiologist: '',
-  theme: 'dark',
+  theme: readThemePreference() ?? 'dark',
   material: 'glass',
   maira: { enabled: false, kinds: ['effusion', 'nodule / mass', 'atelectasis'] },
 }
@@ -284,7 +285,10 @@ export const useApp = create<AppState>()((set, get) => ({
   setInspectorTab: (tab) => set({ inspectorTab: tab }),
   setViewer: (patch) => set((st) => ({ viewer: { ...st.viewer, ...patch } })),
   resetViewer: () => set((st) => ({ viewer: keepDisplay(st.viewer) })),
-  updateSettings: (patch) => set((st) => ({ settings: { ...st.settings, ...patch } })),
+  updateSettings: (patch) => {
+    if (patch.theme) saveThemePreference(patch.theme)
+    set((st) => ({ settings: { ...st.settings, ...patch } }))
+  },
   setConnection: (connection) => set({ connection }),
   openSheet: (sheet) => set({ sheet }),
 }))
@@ -362,6 +366,7 @@ export async function hydrate() {
         settings: {
           ...DEFAULT_SETTINGS,
           ...saved.settings,
+          theme: readThemePreference() ?? saved.settings?.theme ?? DEFAULT_SETTINGS.theme,
           maira: { ...DEFAULT_SETTINGS.maira, ...saved.settings?.maira },
         },
         activeStudyId,

@@ -1,0 +1,15 @@
+.theme-switch { display: inline-flex; flex: none; gap: 4px; padding: 4px; border: 1px solid var(--separator-strong); border-radius: 12px; background: var(--bg-grouped); }
+.theme-switch button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--label-2); font-size: 13px; font-weight: 500; cursor: pointer; }
+.theme-switch button[aria-pressed='true'] { background: var(--bg-elevated); color: var(--label); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+.theme-switch svg, .theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle { flex-shrink: 0; }
+.volume-header > .theme-toggle { margin-left: auto; margin-right: 8px; }
+@media (min-width: 1024px) { .volume-reading-mode .volume-header > .theme-toggle { right: 54px; margin-right: 0; } }
+.sh-sidebar-head > .theme-toggle { margin-left: auto; }
+.theme-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.session-page .theme-switch { background: var(--session-field); border-color: var(--session-line); }
+.session-page .theme-switch button { color: var(--session-muted); }
+.session-page .theme-switch button[aria-pressed='true'] { color: var(--session-ink); background: var(--session-hover); }
+.session-access-top { flex-wrap: wrap; }
+@media (max-width: 1023px) { .sh-sidebar-head > .theme-toggle, .volume-header > .theme-toggle { display: none; } }
+@media (max-width: 760px) { .session-page .session-access-top { display: flex; justify-content: flex-end; margin-bottom: 24px; } .session-access-top > span { display: none; } }

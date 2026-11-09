@@ -1,0 +1,57 @@
+name: skanda
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skanda
+      POSTGRES_USER: skanda
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U skanda -d skanda']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [data]
+  api:
+    build: ./server
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://skanda:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/skanda
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8088}
+      ALLOW_INSECURE_LOCALHOST: ${ALLOW_INSECURE_LOCALHOST:-true}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [data, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  web:
+    build:
+      context: ./app
+      args:
+        VITE_SERVER_MODE: 'true'
+    restart: unless-stopped
+    ports: ['127.0.0.1:${WEB_PORT:-8088}:8080']
+    extra_hosts: ['host.docker.internal:host-gateway']
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [edge]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+volumes:
+  postgres-data:
+networks:
+  data: { internal: true }
+  edge:

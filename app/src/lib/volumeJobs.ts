@@ -1,5 +1,5 @@
 import { validateVolumeAnalysis } from './volumeValidation'
-import { get, set } from 'idb-keyval'
+import { workspaceGet as get, workspaceSet as set } from './workspaceStorage'
 import { analyzeImage, isSkandaModel } from './medgemma'
 import { skandaSliceInput, type SkandaSliceInput } from './skandaSlice'
 import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './volume'

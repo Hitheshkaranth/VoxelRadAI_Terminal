@@ -1,21 +1,28 @@
 {
   "name": "app",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint --react-plugin -D react/rules-of-hooks src",
     "preview": "vite preview",
-    "test": "for f in scripts/test-*.ts; do node --experimental-strip-types $f || exit 1; done"
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dicom-parser": "^1.8.21",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.48.0",
+    "radix-ui": "^1.8.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.5",
+    "thinking-orbs": "^0.3.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

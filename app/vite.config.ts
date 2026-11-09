@@ -1,9 +1,11 @@
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 // LM Studio runs on :1234. Proxying avoids CORS and lets the UI use a relative base URL.
 export default defineConfig({
-  plugins: [react()],
+  resolve: { alias: { '@': new URL('./src', import.meta.url).pathname.replace(/^\/(\w:)/, '$1') } },
+  plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {

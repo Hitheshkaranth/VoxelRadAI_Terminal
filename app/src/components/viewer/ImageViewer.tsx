@@ -1,19 +1,21 @@
+import { ScanButton } from './ScanButton'
+import { ThinkingOrb } from 'thinking-orbs'
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Finding, Heatmap, OverlayStyle, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
 import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
+import { clampZoom } from './displayAdjustments'
 import { pinchTransform, touchGeometry, type PinchAnchor, type TouchPoint } from './gestures'
 import { maskAlphaUrl } from '../../lib/maskOverlay'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import './viewer.css'
 
-const MIN_ZOOM = 0.5
-const MAX_ZOOM = 8
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const area = (f: Finding) => (f.bbox ? f.bbox.w * f.bbox.h : 0)
 /** Share of the stage a focused finding's box fills, and the most a focus may zoom. */
@@ -37,7 +39,7 @@ const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
 const UI = '.vw-toolbox, .vw-finding, .vw-compare, .vw-layers-panel'
 
 const isTyping = (t: EventTarget | null) =>
-  t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
+  t instanceof HTMLElement && (t.isContentEditable || !!t.closest('[role="dialog"], input, textarea, select, [contenteditable="true"]'))
 
 export function ImageViewer() {
   const study = useActiveStudy()
@@ -94,7 +96,7 @@ export function ImageViewer() {
     }
   }, [cancelGesture])
 
-  const fit = image && stage.w ? Math.min(stage.w / image.width, stage.h / image.height) * 0.98 : 1
+  const fit = image && stage.w ? Math.min(Math.max(1, stage.w - 32) / image.width, Math.max(1, stage.h - 128) / image.height) : 1
   const scale = fit * viewer.zoom
   const dispW = image ? image.width * scale : 0
   const dispH = image ? image.height * scale : 0
@@ -102,7 +104,7 @@ export function ImageViewer() {
   const zoomAt = useCallback(
     (next: number, px = 0, py = 0) => {
       const v = useApp.getState().viewer
-      const z = clamp(next, MIN_ZOOM, MAX_ZOOM)
+      const z = clampZoom(next)
       const k = z / v.zoom
       // Keep the image point under (px,py) — relative to stage center — fixed.
       setViewer({ zoom: z, panX: px - (px - v.panX) * k, panY: py - (py - v.panY) * k })
@@ -455,7 +457,7 @@ export function ImageViewer() {
 
       {image.status === 'analyzing' && (
         <div className="vw-capsule" role="status">
-          <span className="vw-spin" />
+          <ThinkingOrb state="working" size={20} theme="dark" aria-hidden="true" />
           {image.progressText || 'Analyzing…'}
         </div>
       )}
@@ -489,17 +491,29 @@ export function ImageViewer() {
         </div>
       )}
 
+      <div className="vw-reading-controls" aria-label="Image navigation and display">
+        {study && <div className="vw-image-navigation" role="group" aria-label="Study image navigation">
+          <ScanButton type="button" className="btn btn-sm" aria-label="Previous image" disabled={study.images.findIndex((item) => item.id === image.id) <= 0} onClick={() => { const index = study.images.findIndex((item) => item.id === image.id); if (index > 0) selectImage(study.images[index - 1].id) }}><ChevronLeft aria-hidden="true" /></ScanButton>
+          <span>Image {study.images.findIndex((item) => item.id === image.id) + 1} / {study.images.length}</span>
+          <ScanButton type="button" className="btn btn-sm" aria-label="Next image" disabled={study.images.findIndex((item) => item.id === image.id) >= study.images.length - 1} onClick={() => { const index = study.images.findIndex((item) => item.id === image.id); if (index < study.images.length - 1) selectImage(study.images[index + 1].id) }}><ChevronRight aria-hidden="true" /></ScanButton>
+        </div>}
+        <Popover><PopoverTrigger asChild><ScanButton className="scan-display-trigger">Display</ScanButton></PopoverTrigger><PopoverContent side="top" align="end" className="scan-display-popover"><div className="vw-adjustment-fields">
+          <label>Brightness <input type="range" min={20} max={300} value={viewer.brightness} onChange={(event) => setViewer({ brightness: Number(event.target.value) })} /><output>{viewer.brightness}%</output></label>
+          <label>Contrast <input type="range" min={20} max={400} value={viewer.contrast} onChange={(event) => setViewer({ contrast: Number(event.target.value) })} /><output>{viewer.contrast}%</output></label>
+          <ScanButton className="btn btn-sm" onClick={() => setViewer({ brightness: 100, contrast: 100, invert: false })}>Reset display</ScanButton><small>Display adjustment only. Source pixels are unchanged.</small>
+        </div></PopoverContent></Popover>
+      </div>
       <div className="vw-toolbox" role="toolbar" aria-label="Viewer tools" onPointerDown={(e) => e.stopPropagation()}>
-        <button className="vw-tool" aria-label="Zoom out (−)" title="Zoom out (−)" onClick={() => zoomAt(viewer.zoom / 1.25)}>
+        <ScanButton className="vw-tool" aria-label="Zoom out (−)" title="Zoom out (−)" onClick={() => zoomAt(viewer.zoom / 1.25)}>
           <ZoomOut strokeWidth={1.75} />
-        </button>
+        </ScanButton>
         <span className="vw-zoom">{Math.round(scale * 100)}%</span>
-        <button className="vw-tool" aria-label="Zoom in (+)" title="Zoom in (+)" onClick={() => zoomAt(viewer.zoom * 1.25)}>
+        <ScanButton className="vw-tool" aria-label="Zoom in (+)" title="Zoom in (+)" onClick={() => zoomAt(viewer.zoom * 1.25)}>
           <ZoomIn strokeWidth={1.75} />
-        </button>
-        <button className="vw-tool" aria-label="Fit to view (0)" title="Fit to view (0)" onClick={() => setViewer({ zoom: 1, panX: 0, panY: 0 })}>
+        </ScanButton>
+        <ScanButton className="vw-tool" aria-label="Fit to view (0)" title="Fit to view (0)" onClick={() => setViewer({ zoom: 1, panX: 0, panY: 0 })}>
           <Maximize strokeWidth={1.75} />
-        </button>
+        </ScanButton>
         <span className="vw-sep" />
         <select
           className="vw-sel"
@@ -516,7 +530,7 @@ export function ImageViewer() {
           ))}
           {presetId === 'custom' && <option value="custom">Custom</option>}
         </select>
-        <button
+        <ScanButton
           className="vw-tool"
           aria-label="Invert (I)"
           title="Invert (I)"
@@ -524,8 +538,8 @@ export function ImageViewer() {
           onClick={() => setViewer({ invert: !viewer.invert })}
         >
           <Contrast strokeWidth={1.75} />
-        </button>
-        <button
+        </ScanButton>
+        <ScanButton
           className="vw-tool"
           aria-label="Toggle findings overlay (O)"
           title="Findings overlay (O)"
@@ -534,8 +548,8 @@ export function ImageViewer() {
           onClick={() => setViewer({ showOverlay: !viewer.showOverlay })}
         >
           {viewer.showOverlay ? <Eye strokeWidth={1.75} /> : <EyeOff strokeWidth={1.75} />}
-        </button>
-        <button
+        </ScanButton>
+        <ScanButton
           className="vw-tool"
           aria-label="Toggle classifier heatmap (H)"
           title={hasHeatmaps ? 'Classifier heatmap for the selected finding (H)' : 'No classifier heatmap for this image — re-analyze with the classifier running'}
@@ -544,8 +558,8 @@ export function ImageViewer() {
           onClick={() => setViewer({ showHeatmap: !viewer.showHeatmap })}
         >
           <Flame strokeWidth={1.75} />
-        </button>
-        <button
+        </ScanButton>
+        <ScanButton
           className="vw-tool"
           aria-label="Before / after divider (C)"
           title="Before / after divider (C): plain film on the left, overlays on the right"
@@ -554,8 +568,8 @@ export function ImageViewer() {
           onClick={() => setViewer({ compare: !viewer.compare })}
         >
           <Columns2 strokeWidth={1.75} />
-        </button>
-        <button
+        </ScanButton>
+        <ScanButton
           className="vw-tool"
           aria-label="Overlay display"
           title="Overlay display: outline / fill (M), opacity, which findings to show"
@@ -565,11 +579,11 @@ export function ImageViewer() {
           onClick={() => setLayersOpen(!layersOpen)}
         >
           <Layers strokeWidth={1.75} />
-        </button>
+        </ScanButton>
         <span className="vw-sep" />
-        <button className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
+        <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
           <RotateCcw strokeWidth={1.75} />
-        </button>
+        </ScanButton>
       </div>
 
       {layersOpen && findings.length > 0 && (
@@ -578,7 +592,7 @@ export function ImageViewer() {
             <span className="vw-lp-k">Style</span>
             <div className="vw-seg" role="radiogroup" aria-label="Overlay style">
               {STYLES.map((st) => (
-                <button
+                <ScanButton
                   key={st.id}
                   role="radio"
                   aria-checked={viewer.overlayStyle === st.id}
@@ -586,7 +600,7 @@ export function ImageViewer() {
                   onClick={() => setViewer({ overlayStyle: st.id })}
                 >
                   {st.label}
-                </button>
+                </ScanButton>
               ))}
             </div>
           </div>

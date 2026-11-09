@@ -180,6 +180,14 @@ Scores: [`docs/validation/skanda-rerun/results.json`](docs/validation/skanda-rer
 
 ## Quick start
 
+### Server deployment, accounts and sharing
+
+For authenticated accounts, administrator analytics, saved image studies and expiring/revocable report links, use the new [container deployment guide](docs/deployment.md). It includes PostgreSQL persistence, replica configuration and backup/restore instructions. The ordinary Vite command below remains local-only; it does not enable login or cloud storage.
+
+The updated viewer provides direct X-ray image stepping, brightness/contrast sliders, CT/MRI zoom and window-brightness controls, and linked slice navigation in the 2D and 3D views. Settings exposes account actions, saved studies and analytics in server mode. Reports offer file sharing in both modes and hosted links after explicit upload in server mode.
+
+Read the [product and architecture review](docs/ux/2026-11-09-radiology-product-review.md) and [implementation QC record](docs/validation/2026-11-10-platform-qc.md) for evidence and remaining limits. Containerization is a scaling foundation, not a validated large-scale clinical deployment.
+
 The app connects to a separately hosted vision-language model. Model weights are not bundled with this repository. The current default model identifier is **`skanda-grounding-q3-mixed`**, a 3-bit GGUF build used for the labeled CT/MRI tests. It cannot draw outlines, so for outlines, measured sizes and CT/MRI reads use the bf16 Skanda server ([Reading with Skanda](#reading-with-skanda-x-ray-ct-mri)). A model alias does not identify an exact weight revision or guarantee modality performance.
 
 ### 1. Start the model server

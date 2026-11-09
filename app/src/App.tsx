@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { FileImage, FileText, Plus, ShieldCheck, Target } from 'lucide-react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { FileImage, FileText, Plus, HardDrive, Target } from 'lucide-react'
 import { hydrate, uid, useActiveStudy, useApp } from './store'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
@@ -17,23 +17,15 @@ import { analyzeImageAction, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
 import { VOLUME_SAMPLES } from './lib/volumeSources'
 import { VolumeJobIndicator } from './components/shell/VolumeJobIndicator'
-import { VolumeViewer } from './components/viewer/VolumeViewer'
 import { ImageContext } from './components/viewer/ImageContext'
 import { ImageViewer } from './components/viewer/ImageViewer'
 import { Filmstrip } from './components/viewer/Filmstrip'
 
+const VolumeViewer = lazy(() => import('./components/viewer/VolumeViewer').then((module) => ({ default: module.VolumeViewer })))
+
 function useTheme() {
-  const theme = useApp((s) => s.settings.theme)
   const material = useApp((s) => s.settings.material ?? 'glass')
   useEffect(() => { document.documentElement.dataset.material = material }, [material])
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const apply = () =>
-      (document.documentElement.dataset.theme = theme === 'system' ? (mq.matches ? 'dark' : 'light') : theme)
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [theme])
 }
 
 function useConnectionPolling() {
@@ -65,6 +57,7 @@ function useDocumentTitle() {
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (document.querySelector('[role="dialog"]')) return
       if (!e.metaKey && !e.ctrlKey) return
       const st = useApp.getState()
       const shell = useShell.getState()
@@ -190,16 +183,16 @@ export default function App() {
         </div>
       </div>
 
-      <main className="sh-content">
+      <main className={`sh-content${volumeSource || study ? ' scan-content' : ''}`}>
         <VolumeJobIndicator />
-        {volumeSource ? <VolumeViewer key={volumeSource.id} source={volumeSource} /> : study ? (
+        {volumeSource ? <Suspense fallback={<p role="status">Loading volume viewer…</p>}><VolumeViewer key={volumeSource.id} source={volumeSource} /></Suspense> : study ? (
           <>
             <Toolbar />
-            <ClinicalContext />
+            <details className="scan-patient-context"><summary>Patient &amp; clinical context</summary><ClinicalContext /></details>
             <div className="sh-reading">
               <section className="sh-viewer-col" aria-label="Image viewer">
-                <ImageContext />
-                <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div className="scan-image-surface" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                  <ImageContext />
                   <ErrorBoundary label="Viewer" resetKey={activeImageId}>
                     <ImageViewer />
                   </ErrorBoundary>
@@ -239,7 +232,6 @@ export default function App() {
 
 function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const createStudy = useApp((s) => s.createStudy)
-  const model = useApp((s) => s.settings.model)
   return (
     <div className="sh-empty">
       <img className="sh-empty-logo" src="/skanda-mark.png" alt="Skanda" />
@@ -247,15 +239,15 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
       <p className="sh-empty-desc">
         {hasStudies
           ? 'Select a study from the sidebar, or start a new one.'
-          : `AI-assisted X-ray reading with ${model}. Add images, review localized findings, and sign a structured report.`}
+          : 'Review X-ray, CT and MRI images in one workspace. Add a study or open a sample, review the evidence, and prepare a report.'}
       </p>
       <button className="btn btn-primary btn-lg" onClick={() => createStudy()}>
         <Plus strokeWidth={2} /> New Study
         <span className="kbd" style={{ color: 'inherit', borderColor: 'currentColor', opacity: 0.7 }}>⌘N</span>
       </button>
       <div className="sh-empty-features">
-        <div className="sh-empty-feature"><ShieldCheck strokeWidth={1.75} /> Reading with {model}</div>
-        <div className="sh-empty-feature"><Target strokeWidth={1.75} /> Findings localized on the image</div>
+        <div className="sh-empty-feature"><HardDrive strokeWidth={1.75} /> Studies saved in this browser</div>
+        <div className="sh-empty-feature"><Target strokeWidth={1.75} /> Review findings against the scan</div>
         <div className="sh-empty-feature"><FileText strokeWidth={1.75} /> Structured, signable reports</div>
       </div>
     </div>

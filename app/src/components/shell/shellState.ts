@@ -22,6 +22,7 @@ interface ShellState {
 }
 
 const initialVolume = VOLUME_SAMPLES.find((source) => source.id === new URLSearchParams(window.location.hash.slice(1)).get('volume')) ?? null
+const compactDesktop = () => window.matchMedia('(min-width: 1024px) and (max-width: 1279px)').matches
 function volumeAddress(source: VolumeSource | null) {
   const url = new URL(window.location.href)
   url.hash = source && !source.file ? `volume=${source.id}` : ''
@@ -38,11 +39,11 @@ export const useShell = create<ShellState>()((set, get) => ({
     set({ mobileView })
   },
   sidebarCollapsed: false,
-  inspectorCollapsed: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  toggleInspector: () => set((s) => ({ inspectorCollapsed: !s.inspectorCollapsed })),
-  setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
-  setInspectorCollapsed: (v) => set({ inspectorCollapsed: v }),
+  inspectorCollapsed: true,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed, ...(compactDesktop() && s.sidebarCollapsed ? { inspectorCollapsed: true } : {}) })),
+  toggleInspector: () => set((s) => ({ inspectorCollapsed: !s.inspectorCollapsed, ...(compactDesktop() && s.inspectorCollapsed ? { sidebarCollapsed: true } : {}) })),
+  setSidebarCollapsed: (v) => set({ sidebarCollapsed: v, ...(compactDesktop() && !v ? { inspectorCollapsed: true } : {}) }),
+  setInspectorCollapsed: (v) => set({ inspectorCollapsed: v, ...(compactDesktop() && !v ? { sidebarCollapsed: true } : {}) }),
 }))
 /**
  * The one "analyse this image" path used by the inspector buttons and ⌘↩. A finished image is re-run with

@@ -38,6 +38,7 @@ import {
 import { Sheet } from '../shell/Sheet'
 import { toast } from '../shell/toastStore'
 import { PrintReport } from './PrintReport'
+import { ShareStudySheet } from './ShareStudySheet'
 import './report.css'
 
 type ReportFieldKey = 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'
@@ -226,6 +227,7 @@ export function ReportPanel() {
   const [checklist, setChecklist] = useState<string[] | null>(null)
   const [copied, setCopied] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [anonymise, setAnonymise] = useState(false)
 
   const report = study?.report ?? null
@@ -636,7 +638,8 @@ export function ReportPanel() {
       ) : null}
 
       <section className="rp-card rp-export">
-        <h2 className="rp-export-title">Export report</h2>
+        <h2 className="rp-export-title">Export & share</h2>
+        <button type="button" className="btn rp-btn-full" onClick={() => setShareOpen(true)}>Share report &amp; scans</button>
         <button type="button" className="btn btn-primary btn-lg rp-btn-full" onClick={() => setPreviewOpen(true)}>
           <Printer size={16} /> Preview &amp; Print / PDF
         </button>
@@ -689,6 +692,7 @@ export function ReportPanel() {
       {previewOpen ? (
         <PrintReport study={study} settings={settings} onClose={() => setPreviewOpen(false)} />
       ) : null}
+      {shareOpen ? <ShareStudySheet key={study.id} study={study} institution={settings.institution} onClose={() => setShareOpen(false)} /> : null}
     </div>
   )
 }

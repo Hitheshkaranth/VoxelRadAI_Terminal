@@ -1,5 +1,6 @@
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useState } from 'react'
+import { ThemeSwitch } from './ThemeSwitch'
 import { CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
@@ -49,6 +50,7 @@ export function Sidebar() {
           <img className="sh-brand-logo" src="/skanda-mark.png" alt="" aria-hidden />
           Skanda
         </div>
+        <ThemeSwitch compact />
       </div>
 
       {volume && <section className="wl-volume-context" aria-label="Open volume">

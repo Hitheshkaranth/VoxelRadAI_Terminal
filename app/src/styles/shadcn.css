@@ -1,0 +1,22 @@
+/* shadcn utilities only: preserve the existing medical viewer's reset and geometry. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@theme inline {
+  --color-background: var(--bg-content);
+  --color-foreground: var(--label);
+  --color-popover: var(--bg-elevated);
+  --color-popover-foreground: var(--label);
+  --color-primary: var(--label);
+  --color-primary-foreground: var(--bg-content);
+  --color-secondary: var(--bg-control);
+  --color-secondary-foreground: var(--label);
+  --color-muted: var(--bg-control);
+  --color-muted-foreground: var(--label-2);
+  --color-accent: var(--bg-selected);
+  --color-accent-foreground: var(--label);
+  --color-border: var(--separator-strong);
+  --color-input: var(--separator-strong);
+  --color-ring: var(--accent);
+  --color-destructive: var(--red);
+}

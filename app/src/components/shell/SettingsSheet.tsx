@@ -1,13 +1,16 @@
 // OWNER: Agent 5. SettingsSheet — Model / Connection / Report / Appearance / Data / About.
 import { Children, cloneElement, isValidElement, useId, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, RotateCcw, Trash2 } from 'lucide-react'
-import { clear } from 'idb-keyval'
+import { clearWorkspace } from '../../lib/workspaceStorage'
 import { useApp, DEFAULT_VIEWER, storageInfo } from '../../store'
 import { checkConnection } from '../../lib/medgemma'
 import { mairaHealth, mairaLoad, mairaUnload } from '../../lib/maira'
 import { toast } from './toastStore'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
+import { AdminPanel } from './AdminPanel'
+import { CloudStudiesSheet } from './CloudStudiesSheet'
+import { logout, SERVER_MODE, useSession } from '../../lib/session'
 import type { ConnectionState, Settings } from '../../types'
 import './shell.css'
 
@@ -29,11 +32,28 @@ export function SettingsSheet() {
   const openSheet = useApp((s) => s.openSheet)
   const { setSidebarCollapsed, setInspectorCollapsed } = useShell()
   const [open] = useState(true)
+  const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [cloudOpen, setCloudOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const user = useSession((state) => state.user)
 
   const change = (patch: Partial<Settings>) => updateSettings(patch)
 
+  if (analyticsOpen) return <AdminPanel open onClose={() => setAnalyticsOpen(false)} />
+  if (cloudOpen) return <CloudStudiesSheet open onClose={() => setCloudOpen(false)} />
+
   return (
     <Sheet open={open} onClose={() => openSheet(null)} title="Settings" subtitle="Model, connection, and appearance.">
+      <Section title={SERVER_MODE ? 'Account & workspace' : 'Local workspace'} desc={SERVER_MODE ? `Signed in as ${user?.email ?? ''}. Image studies remain in this browser until explicitly uploaded.` : 'No sign-in is required in local mode. Studies are stored in this browser, without account access protection or cloud backup.'}>
+        <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
+          <button className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</button>
+          {SERVER_MODE && <button className="btn" onClick={() => setCloudOpen(true)}>Saved studies</button>}
+          {SERVER_MODE && <button className="btn" disabled={signingOut} onClick={async () => {
+            setSigningOut(true)
+            try { await logout() } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
+          }}>{signingOut ? 'Signing out…' : 'Sign out'}</button>}
+        </div>
+      </Section>
       <Section title="Model" desc={`${settings.model} served through LM Studio.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
           <Field label="LM Studio base URL" fullWidth>
@@ -376,7 +396,7 @@ function DataControls() {
   const deleteAll = async () => {
     setDeleting(true)
     try {
-      await clear()
+      await clearWorkspace()
       useApp.setState({
         studies: [],
         activeStudyId: null,

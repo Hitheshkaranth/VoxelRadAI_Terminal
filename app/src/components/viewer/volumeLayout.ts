@@ -13,7 +13,7 @@ interface VolumeLayout {
   threeDToolsOpen: boolean
 }
 const DEFAULT_LAYOUT: VolumeLayout = {
-  readingMode: true, multiPlane: false, showLocator: true, showReviewPanel: true,
+  readingMode: true, multiPlane: false, showLocator: false, showReviewPanel: false,
   panelWidth: 300, spatialHeight: 340, toolsOpen: false, threeDToolsOpen: false,
 }
 const useVolumeLayout = create<VolumeLayout>(() => ({...DEFAULT_LAYOUT}))

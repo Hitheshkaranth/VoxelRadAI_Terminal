@@ -1,6 +1,6 @@
 import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 5. Toolbar — sidebar toggle, editable title, patient chip, Analyze All, connection pill, inspector toggle.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, PanelRight, Settings, Zap } from 'lucide-react'
 import { useApp, useActiveStudy } from '../../store'
 import { toast } from './toastStore'
@@ -9,6 +9,7 @@ import { checkNow } from '../../lib/connection'
 import { useShell } from './shellState'
 import type { ConnectionState, StudyImage } from '../../types'
 import './shell.css'
+import { ThemeSwitch } from './ThemeSwitch'
 
 export function Toolbar() {
   const study = useActiveStudy()
@@ -16,14 +17,18 @@ export function Toolbar() {
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
+  const renameCancelled = useRef(false)
 
   const titleText = study?.title || 'Skanda Radiology'
 
   const startRename = () => {
+    if (!study) return
+    renameCancelled.current = false
     setTitle(titleText)
     setEditing(true)
   }
   const commitRename = () => {
+    if (renameCancelled.current) { setEditing(false); return }
     if (study) {
       const next = title.trim() || 'Untitled Study'
       useApp.getState().renameStudy(study.id, next)
@@ -45,10 +50,13 @@ export function Toolbar() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={commitRename}
-            onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(false) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+              if (e.key === 'Escape') { renameCancelled.current = true; setEditing(false) }
+            }}
           />
         ) : (
-          <button type="button" className="sh-title-static" onClick={startRename}>
+          <button type="button" className="sh-title-static" disabled={!study} title={study ? 'Rename study' : undefined} onClick={startRename}>
             {titleText}
           </button>
         )}
@@ -59,6 +67,7 @@ export function Toolbar() {
         <AnalyzeAll studyId={study?.id ?? null} images={study?.images ?? []} connection={connection} />
         <ConnectionPill connection={connection} />
         <InspectorToggle />
+        <ThemeSwitch compact />
         <button type="button" className="icon-btn" aria-label="Settings" onClick={() => useApp.getState().openSheet('settings')}>
           <Settings />
         </button>
@@ -70,7 +79,7 @@ export function Toolbar() {
 function SidebarToggle() {
   const { sidebarCollapsed, toggleSidebar } = useShell()
   return (
-    <button type="button" className="icon-btn" aria-label="Toggle sidebar" onClick={toggleSidebar}>
+    <button type="button" className="icon-btn" aria-label={sidebarCollapsed ? 'Show studies' : 'Hide studies'} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? 'Show studies' : 'Hide studies'} onClick={toggleSidebar}>
       {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
     </button>
   )
@@ -79,7 +88,7 @@ function SidebarToggle() {
 function InspectorToggle() {
   const { inspectorCollapsed, toggleInspector } = useShell()
   return (
-    <button type="button" className="icon-btn" aria-label="Toggle inspector" onClick={toggleInspector}>
+    <button type="button" className="icon-btn" aria-label={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} aria-expanded={!inspectorCollapsed} title={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} onClick={toggleInspector}>
       {inspectorCollapsed ? <ChevronLeft /> : <PanelRight />}
     </button>
   )
@@ -117,10 +126,10 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
 function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; images: StudyImage[]; connection: ConnectionState }) {
   const analyzingCount = images.filter((i) => i.status === 'analyzing').length
   const idleCount = images.filter((i) => i.status === 'idle' && analysisEligibility(i).supported).length
-  const off = connection === 'offline' || connection === 'model-missing'
+  const off = connection !== 'online'
 
   const analyze = () => {
-    if (!studyId || idleCount === 0) return
+    if (!studyId || idleCount === 0 || off || analyzingCount > 0) return
     runAnalysisForStudy(studyId)
     toast('Analysis started', 'info')
   }
@@ -145,8 +154,8 @@ function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; i
       type="button"
       className="btn btn-primary btn-sm sh-analyze-btn"
       onClick={analyze}
-      disabled={off && analyzingCount === 0}
-      title={off ? 'LM Studio is offline or the model is not loaded' : undefined}
+      disabled={off || analyzingCount > 0}
+      title={off ? 'Connect to a loaded model in Settings before analyzing' : undefined}
     >
       <Zap />
       {label}

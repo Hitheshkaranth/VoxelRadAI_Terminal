@@ -14,7 +14,7 @@ interface SheetProps {
 }
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
 
 export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: SheetProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -45,7 +45,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
       const dialog = backdropRef.current?.querySelector<HTMLElement>('.sh-sheet')
       if (!dialog) return
       const focusables = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement,
+        (el) => !el.matches(':disabled') && (el.offsetParent !== null || el === document.activeElement),
       )
       if (focusables.length === 0) {
         e.preventDefault()
@@ -60,7 +60,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
           e.preventDefault()
           last.focus()
         }
-      } else if (active === last || active === backdropRef.current) {
+      } else if (active === last || active === dialog || !dialog.contains(active)) {
         e.preventDefault()
         first.focus()
       }
