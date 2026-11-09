@@ -24,7 +24,7 @@ function endpoint(settings: Settings, suffix = ''): string {
 
 // ---- SSE streaming ---------------------------------------------------------
 
-/** No streamed bytes for this long → the request is aborted as stalled. */
+/** No streamed bytes for this long â†’ the request is aborted as stalled. */
 const IDLE_TIMEOUT_MS = 120_000
 
 export interface ChatResult {
@@ -208,4 +208,3 @@ export async function checkConnection(settings: Settings): Promise<ConnectionSta
     clearTimeout(timer)
   }
 }
-
