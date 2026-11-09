@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 5. Toolbar — sidebar toggle, editable title, patient chip, Analyze All, connection pill, inspector toggle.
 import { useRef, useState } from 'react'
@@ -56,9 +57,9 @@ export function Toolbar() {
             }}
           />
         ) : (
-          <button type="button" className="sh-title-static" disabled={!study} title={study ? 'Rename study' : undefined} onClick={startRename}>
+          <ShellButton type="button" className="sh-title-static" disabled={!study} title={study ? 'Rename study' : undefined} onClick={startRename}>
             {titleText}
-          </button>
+          </ShellButton>
         )}
         </div>
       </div>
@@ -68,9 +69,9 @@ export function Toolbar() {
         <ConnectionPill connection={connection} />
         <InspectorToggle />
         <ThemeSwitch compact />
-        <button type="button" className="icon-btn" aria-label="Settings" onClick={() => useApp.getState().openSheet('settings')}>
+        <ShellButton type="button" className="icon-btn" aria-label="Settings" onClick={() => useApp.getState().openSheet('settings')}>
           <Settings />
-        </button>
+        </ShellButton>
       </div>
     </header>
   )
@@ -79,18 +80,18 @@ export function Toolbar() {
 function SidebarToggle() {
   const { sidebarCollapsed, toggleSidebar } = useShell()
   return (
-    <button type="button" className="icon-btn" aria-label={sidebarCollapsed ? 'Show studies' : 'Hide studies'} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? 'Show studies' : 'Hide studies'} onClick={toggleSidebar}>
+    <ShellButton type="button" className="icon-btn" aria-label={sidebarCollapsed ? 'Show studies' : 'Hide studies'} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? 'Show studies' : 'Hide studies'} onClick={toggleSidebar}>
       {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
-    </button>
+    </ShellButton>
   )
 }
 
 function InspectorToggle() {
   const { inspectorCollapsed, toggleInspector } = useShell()
   return (
-    <button type="button" className="icon-btn" aria-label={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} aria-expanded={!inspectorCollapsed} title={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} onClick={toggleInspector}>
+    <ShellButton type="button" className="icon-btn" aria-label={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} aria-expanded={!inspectorCollapsed} title={inspectorCollapsed ? 'Show findings and report' : 'Hide findings and report'} onClick={toggleInspector}>
       {inspectorCollapsed ? <ChevronLeft /> : <PanelRight />}
-    </button>
+    </ShellButton>
   )
 }
 
@@ -105,7 +106,7 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
       connection === 'model-missing' ? 'sh-connection-pill--missing' :
         connection === 'checking' ? 'sh-connection-pill--checking' : 'sh-connection-pill--offline'
   return (
-    <button
+    <ShellButton
       type="button"
       className={`sh-connection-pill ${cls}`}
       title="Check the LM Studio connection now"
@@ -119,7 +120,7 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
     >
       <span className="sh-conn-dot" aria-hidden="true" />
       {label}
-    </button>
+    </ShellButton>
   )
 }
 
@@ -143,14 +144,14 @@ function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; i
 
   if (!label) {
     return (
-      <button type="button" className="icon-btn" disabled aria-label="Analyze All">
+      <ShellButton type="button" className="icon-btn" disabled aria-label="Analyze All">
         <Zap />
-      </button>
+      </ShellButton>
     )
   }
 
   return (
-    <button
+    <ShellButton
       type="button"
       className="btn btn-primary btn-sm sh-analyze-btn"
       onClick={analyze}
@@ -159,6 +160,6 @@ function AnalyzeAll({ studyId, images, connection }: { studyId: string | null; i
     >
       <Zap />
       {label}
-    </button>
+    </ShellButton>
   )
 }

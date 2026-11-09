@@ -1,9 +1,9 @@
 // OWNER: Agent 2 (Viewer & intake). Standard + DICOM image intake.
 import { uid } from '../store'
 import type { StudyImage } from '../types'
-import { decodeDicomFrame } from './dicomIntake'
+import { createDicomFrameDecoder } from './dicomIntake'
 
-export const ACCEPTED_TYPES = 'image/png,image/jpeg,image/webp,image/bmp,image/gif,.dcm,application/dicom'
+export const ACCEPTED_TYPES = 'image/png,image/jpeg,image/webp,image/bmp,image/gif,.dcm,.dicom,application/dicom'
 
 const MAX_EDGE = 1536
 
@@ -45,7 +45,7 @@ async function decodeStandardImage(file: File): Promise<StudyImage> {
 
 async function isDicomFile(file: File): Promise<boolean> {
   const name = file.name.toLowerCase()
-  if (name.endsWith('.dcm')) return true
+  if (name.endsWith('.dcm') || name.endsWith('.dicom')) return true
   if (file.type === 'application/dicom') return true
   try {
     const bytes = new Uint8Array(await file.slice(128, 132).arrayBuffer())
@@ -86,13 +86,19 @@ function grayToDataUrl(gray: Uint8ClampedArray, cols: number, rows: number): { d
   return { dataUrl: small.toDataURL('image/jpeg', 0.92), width, height }
 }
 
-async function decodeDicom(file: File): Promise<StudyImage> {
-  const { gray, cols, rows, ...source } = decodeDicomFrame(new Uint8Array(await file.arrayBuffer()))
-  const { dataUrl, width, height } = grayToDataUrl(gray, cols, rows)
-  const img = { ...toStudyImage(file, width, height), ...source }
-  if (source.sourceFrameCount > 1) img.name = `${file.name} (frame 1 of ${source.sourceFrameCount})`
-  img.dataUrl = dataUrl
-  return img
+async function decodeDicom(file: File): Promise<StudyImage[]> {
+  const decoder = createDicomFrameDecoder(new Uint8Array(await file.arrayBuffer()))
+  const images: StudyImage[] = []
+  for (let frame = 0; frame < decoder.frameCount; frame++) {
+    const { gray, cols, rows, ...source } = decoder.decode(frame)
+    const { dataUrl, width, height } = grayToDataUrl(gray, cols, rows)
+    const img = { ...toStudyImage(file, width, height), ...source, dataUrl }
+    if (decoder.frameCount > 1) img.name = `${file.name} (frame ${frame + 1} of ${decoder.frameCount})`
+    images.push(img)
+    // Yield between frames so a large supported stack does not freeze the shell.
+    if (frame % 8 === 7) await new Promise<void>(resolve => setTimeout(resolve, 0))
+  }
+  return images
 }
 
 /** Files larger than this are refused before decoding (a chest film is rarely above 30 MB). */
@@ -113,7 +119,8 @@ export async function filesToStudyImages(files: File[]): Promise<IntakeResult> {
       if (file.size > MAX_BYTES) {
         throw new Error(`File is ${Math.round(file.size / 1024 / 1024)} MB; the limit is ${MAX_BYTES / 1024 / 1024} MB.`)
       }
-      out.push(await ((await isDicomFile(file)) ? decodeDicom(file) : decodeStandardImage(file)))
+      if (await isDicomFile(file)) out.push(...await decodeDicom(file))
+      else out.push(await decodeStandardImage(file))
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       errors.push(`${file.name}: ${msg}`)

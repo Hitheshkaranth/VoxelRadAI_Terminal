@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { useEffect, useRef, useState } from 'react'
 import { uid, useApp } from '../../store'
 import { analyzeImage, isSkandaModel } from '../../lib/medgemma'
@@ -39,10 +40,10 @@ export function VolumeAnalysis({ image, modality, label, width, height, onResult
     }
   }
   return <section className="volume-analysis" aria-label="Slice abnormality detection">
-    <div className="volume-analysis-heading"><h3>Single-slice analysis</h3><button className="btn btn-primary btn-sm" disabled={!!progress || connection !== 'online'} onClick={() => void run()}>Analyze slice</button></div>
+    <div className="volume-analysis-heading"><h3>Single-slice analysis</h3><ScanButton className="btn btn-primary btn-sm" disabled={!!progress || connection !== 'online'} onClick={() => void run()}>Analyze slice</ScanButton></div>
     <p>{label} · Selected slice only</p>
-    {progress && <div><p role="status">{progress}</p><button className="btn btn-sm" onClick={() => { controller.current?.abort(); controller.current = null; setProgress('') }}>Cancel analysis</button></div>}
-    {connection !== 'online' && <button className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</button>}
+    {progress && <div><p role="status">{progress}</p><ScanButton className="btn btn-sm" onClick={() => { controller.current?.abort(); controller.current = null; setProgress('') }}>Cancel analysis</ScanButton></div>}
+    {connection !== 'online' && <ScanButton className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</ScanButton>}
     {error && <p role="alert">{error}</p>}
     {result && <div className="volume-analysis-result" aria-live="polite">
       <strong>Results: {result.label}</strong>

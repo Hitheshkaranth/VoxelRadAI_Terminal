@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. Renders active toasts as a small macOS-style pill stack.
 import { useEffect, useState } from 'react'
 import { CheckCircle2, Info, X } from 'lucide-react'
@@ -17,7 +18,7 @@ export function Toasts() {
           <Mark kind={t.kind} />
           {t.text}
           {t.action && (
-            <button
+            <ShellButton
               type="button"
               className="sh-toast-action"
               onClick={() => {
@@ -26,7 +27,7 @@ export function Toasts() {
               }}
             >
               {t.action.label}
-            </button>
+            </ShellButton>
           )}
         </div>
       ))}

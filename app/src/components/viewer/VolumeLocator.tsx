@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { useId, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw } from 'lucide-react'
 import './volumeLocator.css'
@@ -145,16 +146,16 @@ export function VolumeLocator({ dimensions, directions, origin, spacing = [1, 1,
           )}
         </svg>
         <div className="vl-rotate" role="group" aria-label="Rotate slice locator">
-          <button type="button" title="Rotate left" aria-label="Rotate locator left" onClick={() => rotate(-0.25, 0)}><ArrowLeft /></button>
-          <button type="button" title="Rotate right" aria-label="Rotate locator right" onClick={() => rotate(0.25, 0)}><ArrowRight /></button>
-          <button type="button" title="Rotate up" aria-label="Rotate locator up" onClick={() => rotate(0, -0.2)}><ArrowUp /></button>
-          <button type="button" title="Rotate down" aria-label="Rotate locator down" onClick={() => rotate(0, 0.2)}><ArrowDown /></button>
-          <button type="button" title="Reset orientation" aria-label="Reset locator orientation" onClick={() => setRotation({ yaw: DEFAULT_YAW, pitch: DEFAULT_PITCH })}><RotateCcw /></button>
+          <ScanButton type="button" title="Rotate left" aria-label="Rotate locator left" onClick={() => rotate(-0.25, 0)}><ArrowLeft /></ScanButton>
+          <ScanButton type="button" title="Rotate right" aria-label="Rotate locator right" onClick={() => rotate(0.25, 0)}><ArrowRight /></ScanButton>
+          <ScanButton type="button" title="Rotate up" aria-label="Rotate locator up" onClick={() => rotate(0, -0.2)}><ArrowUp /></ScanButton>
+          <ScanButton type="button" title="Rotate down" aria-label="Rotate locator down" onClick={() => rotate(0, 0.2)}><ArrowDown /></ScanButton>
+          <ScanButton type="button" title="Reset orientation" aria-label="Reset locator orientation" onClick={() => setRotation({ yaw: DEFAULT_YAW, pitch: DEFAULT_PITCH })}><RotateCcw /></ScanButton>
         </div>
       </div>
       <div className="vl-controls">
         <div className="vl-axis-buttons" role="group" aria-label="Slice plane">
-          {AXES.map((a) => <button type="button" key={a} aria-pressed={axis === a} disabled={!onAxisChange} onClick={() => onAxisChange?.(a)}>{planeName(directions, a, anatomical)}</button>)}
+          {AXES.map((a) => <ScanButton type="button" key={a} aria-pressed={axis === a} disabled={!onAxisChange} onClick={() => onAxisChange?.(a)}>{planeName(directions, a, anatomical)}</ScanButton>)}
         </div>
         <div className="vl-index-label"><label htmlFor={sliderId}>Slice <strong>{selectedIndex + 1}</strong> / {dimensions[axis]}</label><span>{Math.round(position * 100)}% through stack</span></div>
         <input id={sliderId} className="vl-slice-range" type="range" min="0" max={Math.max(0, dimensions[axis] - 1)} step="1" value={selectedIndex}

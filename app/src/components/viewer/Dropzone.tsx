@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 // OWNER: Agent 2 (Viewer & intake). Empty-state drop target shown when a study has no images.
 import { useCallback, useState } from 'react'
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
@@ -103,7 +104,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
             <FileImage size={44} opacity={0.6} />
             <div className="vw-title">Could not add that file</div>
             <div className="vw-msg">{error}</div>
-            <button
+            <ScanButton
               type="button"
               className="btn btn-plain"
               onClick={(e) => {
@@ -112,7 +113,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
               }}
             >
               Dismiss
-            </button>
+            </ScanButton>
           </div>
         ) : (
           <>
@@ -123,7 +124,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
             <div className="vw-sub">
               Drag and drop PNG, JPEG or DICOM files here, paste from the clipboard, or
             </div>
-            <button
+            <ScanButton
               type="button"
               className="btn btn-primary btn-lg"
               aria-label="Choose files from disk"
@@ -135,7 +136,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
               }}
             >
               Choose Files…
-            </button>
+            </ScanButton>
             {added > 0 && (
               <div className="vw-drop-hint">
                 <Paperclip size={13} />

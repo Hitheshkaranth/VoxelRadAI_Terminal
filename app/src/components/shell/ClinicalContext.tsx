@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { useState } from 'react'
 import { Columns2, History, UserRound } from 'lucide-react'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
@@ -17,12 +18,12 @@ export function ClinicalContext() {
   const priorImage = prior?.images.find((i) => i.id === imageId) ?? prior?.images[0]
   return <>
     <section className="clinical-context" aria-label="Clinical context">
-      <button className="clinical-patient" onClick={() => useApp.getState().openSheet('patient')}>
+      <ShellButton className="clinical-patient" onClick={() => useApp.getState().openSheet('patient')}>
         <UserRound aria-hidden="true" />
         <span><strong>{study.patient.name || 'Add patient details'}</strong><small>{[study.patient.patientId || 'No patient ID', study.patient.age && `${study.patient.age}y`, study.patient.sex, study.patient.studyDate].filter(Boolean).join(' · ')}</small></span>
-      </button>
+      </ShellButton>
       <div className="clinical-indication"><span>Clinical indication</span><p>{study.patient.indication || 'No indication provided'}</p></div>
-      <button className="btn btn-sm clinical-priors" onClick={() => setComparing(true)}><History /> Priors <span>{priors.length}</span></button>
+      <ShellButton className="btn btn-sm clinical-priors" onClick={() => setComparing(true)}><History /> Priors <span>{priors.length}</span></ShellButton>
     </section>
     {comparing && <Sheet open onClose={() => setComparing(false)} title="Prior study comparison" subtitle={`${study.patient.name || study.title} · ${study.patient.patientId || 'No patient ID'}`} wide>
       {prior && priorImage && image ? <>

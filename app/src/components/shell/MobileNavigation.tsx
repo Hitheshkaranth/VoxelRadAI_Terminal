@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { FileText, Images, ListFilter, ScanLine, Settings, UserRound } from 'lucide-react'
 import { useEffect } from 'react'
 import { ThemeSwitch } from './ThemeSwitch'
@@ -23,11 +24,11 @@ export function MobileNavigation() {
   return (
     <nav className="mobile-nav" aria-label="Mobile workspace">
       {destinations.map(({ view: target, label, icon: Icon }) => (
-        <button key={target} type="button" disabled={!volume && !study && target !== 'studies'}
+        <ShellButton key={target} type="button" disabled={!volume && !study && target !== 'studies'}
           aria-current={selected === target ? 'page' : undefined}
           onClick={() => setView(target)}>
           <Icon aria-hidden="true" /><span>{label}</span>
-        </button>
+        </ShellButton>
       ))}
     </nav>
   )
@@ -59,11 +60,11 @@ export function MobileHeader() {
           ? [study.patient.patientId || 'No patient ID', study.patient.studyDate || 'No study date'].join(' · ')
           : 'Skanda · Local studies'}</span>
       </div>
-      {reading && <button className="icon-btn" aria-label="Patient details" onClick={() => openSheet('patient')}><UserRound /></button>}
+      {reading && <ShellButton className="icon-btn" aria-label="Patient details" onClick={() => openSheet('patient')}><UserRound /></ShellButton>}
       <ThemeSwitch compact />
-      <button className="icon-btn mobile-settings" aria-label={`Settings — ${connection === 'online' ? 'model connected' : connection.replace('-', ' ')}`} onClick={() => openSheet('settings')}>
+      <ShellButton className="icon-btn mobile-settings" aria-label={`Settings — ${connection === 'online' ? 'model connected' : connection.replace('-', ' ')}`} onClick={() => openSheet('settings')}>
         <Settings /><span className="mobile-connection" data-online={connection === 'online'} />
-      </button>
+      </ShellButton>
     </header>
   )
 }

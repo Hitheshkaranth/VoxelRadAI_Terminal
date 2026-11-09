@@ -6,6 +6,7 @@ import { sharedDocument } from './share.mjs'
 import { migrate } from './migrate.mjs'
 import { validStudy } from './studyValidation.mjs'
 import { pagination } from './pagination.mjs'
+import { createOperations } from './operations.mjs'
 
 const { Pool } = pg
 const port = Number(process.env.PORT || 8080)
@@ -29,6 +30,7 @@ if (process.env.BOOTSTRAP_ADMIN_EMAIL || process.env.BOOTSTRAP_ADMIN_PASSWORD) {
   catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
 }
 const dummyHash = await hashPassword(newToken())
+const operations = createOperations()
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function send(res, status, body, extra = {}) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', ...extra }); res.end(JSON.stringify(body)) }
 async function body(req, limit = 8192) {
@@ -48,10 +50,38 @@ async function rateLimit(key) {
   return result.rows[0].attempts > 15
 }
 const server = http.createServer(async (req, res) => {
+  const requestId = operations.begin(res)
   try {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
     if (['POST','PUT','PATCH','DELETE'].includes(req.method) && !allowedOrigin(req.headers.origin, publicOrigin)) return send(res, 403, { error: 'Request origin is not allowed' })
+    if (path === '/api/password-recovery' && req.method === 'POST') {
+      const data = await body(req)
+      if (typeof data.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(data.token) || !validPassword(data.password)) return send(res, 400, { error: 'Supply a recovery token and a password of 12–256 characters.' })
+      // Unknown random codes must not create unbounded persistent limiter buckets.
+      // This indexed check is outside the transaction; validity is rechecked under lock below.
+      const knownRecovery = await pool.query('SELECT user_id FROM password_recovery_tokens WHERE token_hash=$1', [hashToken(data.token)])
+      if (!knownRecovery.rowCount) return send(res, 400, { error: 'Recovery token is invalid or expired.' })
+      // Do not key this to socket.remoteAddress: every user behind our proxy shares it.
+      if (await rateLimit(`recovery-token:${data.token}`)) return send(res, 429, { error: 'Too many attempts with this recovery code. Try again in 15 minutes.' }, { 'Retry-After': '900' })
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const lookup = await client.query('SELECT user_id FROM password_recovery_tokens WHERE token_hash=$1', [hashToken(data.token)])
+        const target = lookup.rows[0]?.user_id
+        if (!target) { await client.query('ROLLBACK'); return send(res, 400, { error: 'Recovery token is invalid or expired.' }) }
+        // Same lock order as login/password reset: user first, then token.
+        const account = await client.query('SELECT id,disabled FROM users WHERE id=$1 FOR UPDATE', [target])
+        const token = await client.query('SELECT token_hash FROM password_recovery_tokens WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>now() FOR UPDATE', [hashToken(data.token)])
+        if (!token.rowCount || !account.rows[0] || account.rows[0].disabled) { await client.query('ROLLBACK'); return send(res, 400, { error: 'Recovery token is invalid or expired.' }) }
+        await client.query('UPDATE users SET password_hash=$2 WHERE id=$1', [target, await hashPassword(data.password)])
+        await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL', [target])
+        await client.query('DELETE FROM sessions WHERE user_id=$1', [target])
+        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [target, 'account.recovered'])
+        await client.query('COMMIT')
+        return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
+      } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
     if (path === '/api/login' && req.method === 'POST') {
       const data = await body(req); const email = normalizeEmail(data.email)
       if (!validEmail(email) || typeof data.password !== 'string' || data.password.length > 256) return send(res, 401, { error: 'Email or password is incorrect.' })
@@ -89,7 +119,49 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
     }
     if (!user) return send(res, 401, { error: 'Sign in to continue.' })
+    if (path === '/api/account/password' && req.method === 'POST') {
+      const data = await body(req)
+      if (!validPassword(data.password) || typeof data.currentPassword !== 'string' || data.currentPassword.length > 256) return send(res, 400, { error: 'Supply your current password and a new password of 12–256 characters.' })
+      if (await rateLimit(`password-change:${user.id}`)) return send(res, 429, { error: 'Too many attempts. Try again in 15 minutes.' }, { 'Retry-After': '900' })
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const result = await client.query('SELECT password_hash,disabled FROM users WHERE id=$1 FOR UPDATE', [user.id])
+        if (result.rows[0]?.disabled !== false || !await verifyPassword(data.currentPassword, result.rows[0]?.password_hash)) { await client.query('ROLLBACK'); return send(res, 403, { error: 'Current password is incorrect.' }) }
+        if (data.currentPassword === data.password) { await client.query('ROLLBACK'); return send(res, 400, { error: 'Choose a different password.' }) }
+        await client.query('UPDATE users SET password_hash=$2 WHERE id=$1', [user.id, await hashPassword(data.password)])
+        await client.query('DELETE FROM sessions WHERE user_id=$1', [user.id])
+        await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL', [user.id])
+        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [user.id, 'account.password_changed'])
+        await client.query('COMMIT')
+        return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
+      } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
     if (path.startsWith('/api/admin/') && user.role !== 'admin') return send(res, 403, { error: 'Administrator access is required.' })
+    if (path === '/api/admin/operations' && req.method === 'GET') {
+      await pool.query('SELECT 1')
+      return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: false, multiTenant: false, volumeStorage: false, durableInferenceJobs: false } })
+    }
+    const recoveryMatch = path.match(/^\/api\/admin\/users\/([a-f0-9-]+)\/recovery$/i)
+    if (recoveryMatch && UUID.test(recoveryMatch[1]) && req.method === 'POST') {
+      const data = await body(req), target = recoveryMatch[1]
+      if (typeof data.currentPassword !== 'string' || data.currentPassword.length > 256) return send(res, 400, { error: 'Confirm your administrator password.' })
+      if (await rateLimit(`recovery-issue:${user.id}`)) return send(res, 429, { error: 'Too many attempts. Try again in 15 minutes.' }, { 'Retry-After': '900' })
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const accounts = await client.query('SELECT id,role,disabled,password_hash FROM users WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE', [[user.id, target]])
+        const actor = accounts.rows.find(row => row.id === user.id), account = accounts.rows.find(row => row.id === target)
+        if (!actor || actor.disabled || actor.role !== 'admin' || !await verifyPassword(data.currentPassword, actor.password_hash)) { await client.query('ROLLBACK'); return send(res, 403, { error: 'Administrator password is incorrect.' }) }
+        if (!account || account.disabled) { await client.query('ROLLBACK'); return send(res, 404, { error: 'Active user not found.' }) }
+        const token = newToken(), expiresAt = new Date(Date.now() + 15 * 60000)
+        await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL', [target])
+        await client.query('INSERT INTO password_recovery_tokens(token_hash,user_id,created_by,expires_at) VALUES ($1,$2,$3,$4)', [hashToken(token), target, user.id, expiresAt])
+        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [user.id, 'account.recovery_issued'])
+        await client.query('COMMIT')
+        return send(res, 201, { token, expiresAt: expiresAt.toISOString() })
+      } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
     if (path === '/api/admin/users' && req.method === 'GET') {
       const params = new URL(req.url, 'http://internal').searchParams
       let limit,offset
@@ -119,6 +191,7 @@ const server = http.createServer(async (req, res) => {
         const result = await client.query('UPDATE users SET disabled=COALESCE($2,disabled),password_hash=COALESCE($3,password_hash) WHERE id=$1 RETURNING id,email,role,disabled',[target,typeof data.disabled === 'boolean' ? data.disabled : null,passwordHash])
         if (!result.rowCount) { await client.query('ROLLBACK'); return send(res,404,{error:'User not found.'}) }
         if (data.disabled === true || passwordHash) await client.query('DELETE FROM sessions WHERE user_id=$1',[target])
+        if (data.disabled === true || passwordHash) await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',[target])
         await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)',[user.id,passwordHash ? 'user.password_reset' : data.disabled ? 'user.disabled' : 'user.enabled'])
         await client.query('COMMIT'); return send(res,200,{user:result.rows[0]})
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
@@ -185,12 +258,12 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     if (error.code === '23505') return send(res, 409, { error: 'This record already exists.' })
     if (error.status) return send(res, error.status, { error: error.message })
-    console.error('Request failed', error.code || error.name)
+    console.error(JSON.stringify({ event: 'http.error', requestId, code: error.code || error.name }))
     if (!res.headersSent) send(res, 503, { error: 'Service unavailable. Please retry.' })
   }
 })
 server.requestTimeout = 30000
 server.headersTimeout = 15000
 server.listen(port, '0.0.0.0', () => console.log(`Skanda API listening on ${port}`))
-const cleanup = setInterval(() => { pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}) }, 3600000).unref()
+const cleanup = setInterval(() => { pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}); pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()').catch(() => {}) }, 3600000).unref()
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanup); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })

@@ -1,3 +1,4 @@
+import { ShellButton } from '../shell/ShellButton'
 import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 4 (Report). The inspector report editor, sign-off, and print/copy/export bar.
 import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -174,13 +175,13 @@ function ExcludedBanner({ study, locked }: { study: Study; locked: boolean }) {
 
   return (
     <section className="rp-card rp-excl" aria-label="AI findings excluded from the draft">
-      <button type="button" className="rp-excl-head" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <ShellButton type="button" className="rp-excl-head" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <EyeOff size={14} />
         <span className="rp-excl-title">
           Excluded from draft: {plural(excluded.length, 'AI finding')}
         </span>
         <span className="rp-excl-toggle">{open ? 'hide' : 'view'}</span>
-      </button>
+      </ShellButton>
       {open ? (
         <ul className="rp-excl-list">
           {excluded.map(({ imageId, imageName, finding }) => (
@@ -195,13 +196,13 @@ function ExcludedBanner({ study, locked }: { study: Study; locked: boolean }) {
                 </div>
               </div>
               {!locked ? (
-                <button
+                <ShellButton
                   type="button"
                   className="btn btn-sm"
                   onClick={() => setFindingReview(study.id, imageId, finding.id, 'accepted')}
                 >
                   Re-include
-                </button>
+                </ShellButton>
               ) : null}
             </li>
           ))}
@@ -389,7 +390,7 @@ export function ReportPanel() {
           )}
           {reportJob.error ? <div className="rp-progress-error">{reportJob.error}</div> : null}
           <div className="rp-actions" style={{ marginTop: 'var(--sp-4)' }}>
-            <button
+            <ShellButton
               type="button"
               className="btn btn-primary btn-lg"
               disabled={reportJob.running}
@@ -397,11 +398,11 @@ export function ReportPanel() {
             >
               {reportJob.running ? <div className="spinner" /> : <FileText size={16} />}{' '}
               {reportJob.running ? 'Drafting…' : 'Draft Report'}
-            </button>
+            </ShellButton>
             {reportJob.running ? (
-              <button type="button" className="btn btn-destructive" onClick={cancelReport}>
+              <ShellButton type="button" className="btn btn-destructive" onClick={cancelReport}>
                 Cancel
-              </button>
+              </ShellButton>
             ) : null}
           </div>
         </div>
@@ -443,9 +444,9 @@ export function ReportPanel() {
               </div>
             </div>
           </div>
-          <button type="button" className="btn btn-plain btn-sm" onClick={() => openSheet('patient')}>
+          <ShellButton type="button" className="btn btn-plain btn-sm" onClick={() => openSheet('patient')}>
             <Edit3 size={14} /> Edit
-          </button>
+          </ShellButton>
         </div>
         <div className="rp-meta-row">
           <StatusChip edited={!!report.edited} signed={signed} />
@@ -466,9 +467,9 @@ export function ReportPanel() {
           <div className="rp-banner-text">
             Report is out of date: images, reviews or patient details changed since drafting.
           </div>
-          <button type="button" className="btn btn-sm" disabled={reportJob.running} onClick={onRegenerate}>
+          <ShellButton type="button" className="btn btn-sm" disabled={reportJob.running} onClick={onRegenerate}>
             <RefreshCw size={13} /> Regenerate
-          </button>
+          </ShellButton>
         </section>
       ) : null}
 
@@ -476,9 +477,9 @@ export function ReportPanel() {
         <section className="rp-card rp-banner" role="status">
           <div className="spinner" />
           <div className="rp-banner-text">{reportJob.progressText ?? 'Drafting report…'}</div>
-          <button type="button" className="btn btn-sm btn-destructive" onClick={cancelReport}>
+          <ShellButton type="button" className="btn btn-sm btn-destructive" onClick={cancelReport}>
             Cancel
-          </button>
+          </ShellButton>
         </section>
       ) : reportJob.error ? (
         <div className="rp-progress-error">{reportJob.error}</div>
@@ -488,9 +489,9 @@ export function ReportPanel() {
         <section className="rp-card rp-banner">
           <RefreshCw size={14} className="rp-banner-ico rp-banner-ico-muted" />
           <div className="rp-banner-text">Draft regenerated. The previous version is kept until you undo or sign.</div>
-          <button type="button" className="btn btn-sm" onClick={onUndoRegenerate}>
+          <ShellButton type="button" className="btn btn-sm" onClick={onUndoRegenerate}>
             <Undo2 size={13} /> Undo regenerate
-          </button>
+          </ShellButton>
         </section>
       ) : null}
 
@@ -508,9 +509,9 @@ export function ReportPanel() {
               ) : null}
             </div>
             {!confirmUnlock ? (
-              <button type="button" className="btn btn-plain btn-sm" onClick={() => setConfirmUnlock(true)}>
+              <ShellButton type="button" className="btn btn-plain btn-sm" onClick={() => setConfirmUnlock(true)}>
                 <Unlock size={14} /> Unlock
-              </button>
+              </ShellButton>
             ) : null}
           </div>
           {confirmUnlock ? (
@@ -520,12 +521,12 @@ export function ReportPanel() {
                 the amendment history.
               </span>
               <div className="rp-confirm-actions">
-                <button type="button" className="btn btn-sm" onClick={() => setConfirmUnlock(false)}>
+                <ShellButton type="button" className="btn btn-sm" onClick={() => setConfirmUnlock(false)}>
                   Cancel
-                </button>
-                <button type="button" className="btn btn-destructive btn-sm" onClick={onUnlock}>
+                </ShellButton>
+                <ShellButton type="button" className="btn btn-destructive btn-sm" onClick={onUnlock}>
                   Unlock
-                </button>
+                </ShellButton>
               </div>
             </div>
           ) : null}
@@ -538,11 +539,11 @@ export function ReportPanel() {
         <span>{analyzedCount}/{totalCount} images analyzed</span>
       </section>
       <nav className="rp-section-nav" aria-label="Report sections">
-        {REPORT_FIELDS.map((field) => <button key={field.key} type="button" onClick={() => {
+        {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)
           section?.scrollIntoView({ block: 'start', behavior: 'instant' })
           section?.querySelector('textarea')?.focus({ preventScroll: true })
-        }}>{field.label}</button>)}
+        }}>{field.label}</ShellButton>)}
       </nav>
 
       <AutoGrowField
@@ -586,14 +587,14 @@ export function ReportPanel() {
               placeholder="Radiologist name"
               onChange={(e) => setReport(study.id, { radiologist: e.target.value } as Partial<ReportDraft>)}
             />
-            <button
+            <ShellButton
               type="button"
               className="btn btn-primary"
               disabled={!report.radiologist.trim() || reportJob.running}
               onClick={onSign}
             >
               Sign report
-            </button>
+            </ShellButton>
           </div>
           {confirmRegen ? (
             <div className="rp-confirm">
@@ -602,23 +603,23 @@ export function ReportPanel() {
                 is kept so you can undo.
               </span>
               <div className="rp-confirm-actions">
-                <button type="button" className="btn btn-sm" onClick={() => setConfirmRegen(false)}>
+                <ShellButton type="button" className="btn btn-sm" onClick={() => setConfirmRegen(false)}>
                   Cancel
-                </button>
-                <button type="button" className="btn btn-destructive btn-sm" onClick={onRegenerate}>
+                </ShellButton>
+                <ShellButton type="button" className="btn btn-destructive btn-sm" onClick={onRegenerate}>
                   Regenerate
-                </button>
+                </ShellButton>
               </div>
             </div>
           ) : (
-            <button
+            <ShellButton
               type="button"
               className="btn btn-plain btn-sm rp-regen"
               disabled={reportJob.running || analyzedCount === 0}
               onClick={() => setConfirmRegen(true)}
             >
               <RefreshCw size={14} /> Regenerate draft
-            </button>
+            </ShellButton>
           )}
         </section>
       ) : null}
@@ -639,21 +640,21 @@ export function ReportPanel() {
 
       <section className="rp-card rp-export">
         <h2 className="rp-export-title">Export & share</h2>
-        <button type="button" className="btn rp-btn-full" onClick={() => setShareOpen(true)}>Share report &amp; scans</button>
-        <button type="button" className="btn btn-primary btn-lg rp-btn-full" onClick={() => setPreviewOpen(true)}>
+        <ShellButton type="button" className="btn rp-btn-full" onClick={() => setShareOpen(true)}>Share report &amp; scans</ShellButton>
+        <ShellButton type="button" className="btn btn-primary btn-lg rp-btn-full" onClick={() => setPreviewOpen(true)}>
           <Printer size={16} /> Preview &amp; Print / PDF
-        </button>
+        </ShellButton>
         <div className="rp-export-row">
-          <button type="button" className="btn" onClick={onCopy}>
+          <ShellButton type="button" className="btn" onClick={onCopy}>
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? 'Copied' : 'Copy'}
-          </button>
-          <button type="button" className="btn" onClick={onDownloadTxt}>
+          </ShellButton>
+          <ShellButton type="button" className="btn" onClick={onDownloadTxt}>
             <Download size={14} /> Text
-          </button>
-          <button type="button" className="btn" onClick={onDownloadJson}>
+          </ShellButton>
+          <ShellButton type="button" className="btn" onClick={onDownloadJson}>
             <FileJson size={14} /> JSON
-          </button>
+          </ShellButton>
         </div>
         <label className="rp-anon">
           <input type="checkbox" checked={anonymise} onChange={(e) => setAnonymise(e.target.checked)} />
@@ -670,12 +671,12 @@ export function ReportPanel() {
         subtitle="These items are unresolved. You can go back and fix them, or sign anyway."
         footer={
           <>
-            <button type="button" className="btn" onClick={() => setChecklist(null)}>
+            <ShellButton type="button" className="btn" onClick={() => setChecklist(null)}>
               Go back
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => sign(checklist ?? [])}>
+            </ShellButton>
+            <ShellButton type="button" className="btn btn-primary" onClick={() => sign(checklist ?? [])}>
               Sign anyway
-            </button>
+            </ShellButton>
           </>
         }
       >

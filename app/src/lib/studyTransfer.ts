@@ -13,6 +13,9 @@ export function validateTransferredStudy(value: unknown): Study {
   if (!Array.isArray(value.images) || value.images.length > 500) return fail()
   for (const image of value.images) {
     if (!object(image) || !hasStrings(image, ['id', 'name', 'mime', 'dataUrl', 'status']) || !optionalStrings(image, ['sourceModality', 'sourceBodyPart', 'error', 'progressText']) || !finite(image.width) || !finite(image.height) || !finite(image.addedAt) || !['idle', 'done', 'error', 'analyzing'].includes(image.status as string) || !/^data:image\/(png|jpeg|webp|gif|bmp);base64,[A-Za-z0-9+/\r\n]*={0,2}$/.test(image.dataUrl as string)) return fail()
+    if (image.sourceFrameCount !== undefined && (!Number.isSafeInteger(image.sourceFrameCount) || (image.sourceFrameCount as number) < 1 || (image.sourceFrameCount as number) > 500)) return fail()
+    if (image.sourceFrameIndex !== undefined && (!Number.isSafeInteger(image.sourceFrameIndex) || (image.sourceFrameIndex as number) < 0 || image.sourceFrameCount === undefined || (image.sourceFrameIndex as number) >= (image.sourceFrameCount as number))) return fail()
+    if (!['sourceSeriesUid', 'sourceSopInstanceUid'].every(key => image[key] === undefined || typeof image[key] === 'string' && (image[key] as string).length <= 64 && /^\d+(?:\.\d+)*$/.test(image[key] as string))) return fail()
     if (image.analysis !== undefined) {
       const analysis = image.analysis
       if (!object(analysis) || !hasStrings(analysis, ['modality', 'bodyPart', 'view', 'imageQuality', 'impression', 'rawText', 'model']) || !finite(analysis.durationMs) || !finite(analysis.createdAt) || !['routine', 'priority', 'urgent'].includes(analysis.urgency as string) || !strings(analysis.pertinentNegatives) || !strings(analysis.recommendations) || !strings(analysis.differential) || !Array.isArray(analysis.findings)) return fail()

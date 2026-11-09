@@ -1,0 +1,37 @@
+/* Operable focus and touch behavior shared by shell and modal controls. */
+.sh-control { font-family: inherit; }
+.sh-control:focus-visible,
+.sh-sheet :is(input, select, textarea, summary, a):focus-visible {
+  outline: 2px solid var(--label);
+  outline-offset: 3px;
+}
+.sh-sheet { min-height: 0; outline: none; }
+.sh-sheet-body { overscroll-behavior: contain; min-height: 0; }
+.sh-sheet-backdrop { overflow-y: auto; overscroll-behavior: contain; padding-bottom: var(--sp-5); }
+.sh-control:disabled { cursor: not-allowed; }
+.sh-row--confirm { flex-wrap: wrap; }
+.sh-row--confirm .sh-row-q { flex-basis: 100%; }
+.sh-account-security { margin-top: var(--sp-3); }
+.sh-account-security summary { cursor: pointer; padding-block: var(--sp-2); font-weight: 600; }
+.sh-account-security form { display: grid; gap: var(--sp-3); margin-top: var(--sp-3); }
+.sh-account-security label { display: grid; gap: var(--sp-2); font-size: var(--text-body); }
+.sh-account-security p, .sh-account-security small { color: var(--label-2); line-height: 1.5; }
+.sh-account-security .input { width: 100%; }
+@media (pointer: coarse), (max-width: 1023px) {
+  .sh-sidebar .sh-control,
+  .sh-toolbar .sh-control,
+  .mobile-header .sh-control,
+  .mobile-nav .sh-control,
+  .sh-sheet .sh-control,
+  .theme-switch .sh-control { min-height: 44px; }
+  .sh-row-actions .sh-control,
+  .mobile-header .icon-btn,
+  .sh-sheet .icon-btn { min-width: 44px; min-height: 44px; }
+  .sh-row-actions { opacity: 1; }
+  .sh-sheet :is(input:not([type='checkbox']):not([type='radio']), select, textarea) { font-size: 16px; }
+  .sh-sheet-backdrop { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); align-items: center; }
+  .sh-sheet { max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sh-control, .sh-sheet, .sh-sheet-backdrop { animation: none; transition: none; }
+}

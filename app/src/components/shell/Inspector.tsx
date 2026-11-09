@@ -1,3 +1,5 @@
+import { ShellButton } from './ShellButton'
+import { Tabs } from 'radix-ui'
 // OWNER: Agent 5. Inspector — Findings | Report segmented control + scrollable panel body.
 import { useApp, useActiveStudy } from '../../store'
 import { FindingsPanel } from '../findings/FindingsPanel'
@@ -16,15 +18,13 @@ export function Inspector() {
   const counts = countFindings(activeStudy)
 
   return (
-    <aside className="sh-inspector">
+    <Tabs.Root asChild value={tab} onValueChange={(value) => setTab(value as 'findings' | 'report')}>
+    <aside className="sh-inspector" aria-label="Findings and report">
       <div className="sh-inspector-head">
-        <div className="segmented" role="tablist" aria-label="Inspector panels">
-          <button
+        <Tabs.List className="segmented" aria-label="Inspector panels">
+          <Tabs.Trigger asChild value="findings">
+          <ShellButton
             type="button"
-            role="tab"
-            aria-selected={tab === 'findings'}
-            aria-controls="findings-panel"
-            onClick={() => setTab('findings')}
           >
             Findings
             {counts.active + counts.flagged > 0 && (
@@ -37,23 +37,24 @@ export function Inspector() {
                 {counts.flagged > 0 && <span className="sh-count-flag"> +{counts.flagged}?</span>}
               </span>
             )}
-          </button>
-          <button
+          </ShellButton>
+          </Tabs.Trigger>
+          <Tabs.Trigger asChild value="report">
+          <ShellButton
             type="button"
-            role="tab"
-            aria-selected={tab === 'report'}
-            aria-controls="report-panel"
-            onClick={() => setTab('report')}
           >
             Report
-          </button>
-        </div>
+          </ShellButton>
+          </Tabs.Trigger>
+        </Tabs.List>
       </div>
 
       <div className="sh-inspector-body">
-        {tab === 'findings' ? <FindingsPanel /> : <ReportPanel />}
+        <Tabs.Content value="findings"><FindingsPanel /></Tabs.Content>
+        <Tabs.Content value="report"><ReportPanel /></Tabs.Content>
       </div>
     </aside>
+    </Tabs.Root>
   )
 }
 

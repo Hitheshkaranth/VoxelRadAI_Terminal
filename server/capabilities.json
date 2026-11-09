@@ -1,0 +1,35 @@
+{
+  "deploymentScope": "single-organization-private-installation",
+  "clinicalValidation": false,
+  "authentication": {
+    "passwordSessions": true,
+    "currentPasswordChange": true,
+    "administratorIssuedRecoveryToken": true,
+    "selfServiceEmailRecovery": false,
+    "mfa": false,
+    "sso": false
+  },
+  "data": {
+    "ownerScopedImageStudies": true,
+    "databaseBackedSessionsAndRateLimits": true,
+    "expiringRevocableReportLinks": true,
+    "fullVolumeObjectStorage": false,
+    "multiTenantIsolation": false,
+    "pacs": false
+  },
+  "operations": {
+    "checksummedMigrations": true,
+    "databaseReadiness": true,
+    "processScopedMetrics": true,
+    "requestIdLogsWithoutRequestContent": true,
+    "durableInferenceQueue": false,
+    "centralizedTelemetry": false
+  },
+  "externalRequirements": [
+    "TLS termination, encryption at rest and managed secret provisioning",
+    "Backup retention and tested restoration in the intended environment",
+    "Independent security and accessibility review",
+    "Representative load testing, monitoring and operational ownership",
+    "Model service availability and independent clinical validation"
+  ]
+}

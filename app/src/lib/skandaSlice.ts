@@ -84,12 +84,11 @@ export function skandaSliceInput(volume: Volume, plane: VolumePlane, index: numb
   const modality = source.modality.toUpperCase().startsWith('CT') ? 'ct' : /^(MR|MRI)$/.test(source.modality.toUpperCase()) ? 'mri' : null
   if (!modality) return { input: null, reason: `Skanda reads CT and MRI volumes; this volume is ${source.modality}.` }
   if (plane !== 'axial') return { input: null, reason: 'Skanda was trained on axial slices only. Switch to the axial plane to analyze with Skanda.' }
+  if (modality === 'ct' && source.intensityIsHU !== true) return { input: null, reason: 'Confirm that the source CT voxels are calibrated Hounsfield units in Acquisition details before using Skanda. Display window settings cannot establish HU calibration.' }
   const { values, width, height, pixelSpacing } = sliceValues(volume, plane, index)
   const limitations: string[] = []
   const body = source.bodyPart || source.title
   if (modality === 'ct') {
-    // NRRD/DICOM-derived CT here carries HU when the source stores rescaled values; say so when that is unknown
-    if (source.intensityIsHU === false) limitations.push('CT intensities are not in HU: windows and attenuation are unreliable.')
     const hu = new Int16Array(width * height)
     for (let i = 0; i < hu.length; i++) hu[i] = Math.max(-32768, Math.min(32767, Math.round(values[i])))
     const dataUrl = pngDataUrl((i) => SKANDA_CT_WINDOWS.map(([lo, hi]) => unit(values[i], lo, hi)) as [number, number, number], width, height)

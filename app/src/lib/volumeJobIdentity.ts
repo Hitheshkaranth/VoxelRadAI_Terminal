@@ -9,7 +9,7 @@ export function volumeFingerprint(volume: Volume): Promise<string> {
       const bytes = new Uint8Array(volume.data.byteLength)
       bytes.set(new Uint8Array(volume.data.buffer, volume.data.byteOffset, volume.data.byteLength))
       const voxelHash = await crypto.subtle.digest('SHA-256', bytes)
-      const geometry = JSON.stringify({ dimensions: volume.dimensions, spacing: volume.spacing, directions: volume.directions, origin: volume.origin, space: volume.space, type: volume.data.constructor.name })
+      const geometry = JSON.stringify({ dimensions: volume.dimensions, spacing: volume.spacing, directions: volume.directions, origin: volume.origin, space: volume.space, type: volume.data.constructor.name, acquisition: volume.acquisition })
       const encoded = new TextEncoder().encode(geometry)
       const content = new Uint8Array(voxelHash.byteLength + encoded.length)
       content.set(new Uint8Array(voxelHash)); content.set(encoded, voxelHash.byteLength)

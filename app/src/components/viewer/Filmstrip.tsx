@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 // OWNER: Agent 2 (Viewer & intake). Horizontal thumbnail strip beneath the viewer.
 import { useCallback, useState } from 'react'
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
@@ -120,7 +121,7 @@ export function Filmstrip() {
             }}
           >
             <img src={img.dataUrl} alt="" draggable={false} />
-            <button
+            <ScanButton
               type="button"
               className="vw-remove"
               aria-label={`Remove ${img.name}`}
@@ -130,7 +131,7 @@ export function Filmstrip() {
               }}
             >
               <X />
-            </button>
+            </ScanButton>
             <div
               className={['vw-dot', dot.className].filter(Boolean).join(' ')}
               style={dot.color ? { background: dot.color } : undefined}

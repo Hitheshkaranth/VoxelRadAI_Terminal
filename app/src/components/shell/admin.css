@@ -8,6 +8,8 @@
 .admin-rows { margin: 0; }
 .admin-rows > div { display: flex; justify-content: space-between; gap: 24px; padding: 12px 0; border-bottom: 1px solid var(--separator); }
 .admin-rows dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--label); }
+.admin-rows dt { min-width: 0; }
+.admin-rows dd { text-align: right; overflow-wrap: anywhere; }
 .admin-refresh { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .admin-refresh .btn { flex-shrink: 0; }
 .admin-refresh svg { width: 16px; height: 16px; }

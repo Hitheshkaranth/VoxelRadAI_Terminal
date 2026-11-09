@@ -25,8 +25,8 @@ function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
   }
 }
 
-/** Decode the first uncompressed DICOM frame and preserve source metadata. */
-export function decodeDicomFrame(bytes: Uint8Array) {
+/** Parse once, then decode any frame of a supported monochrome image stack. */
+export function createDicomFrameDecoder(bytes: Uint8Array) {
   const ds = parseDicomBytes(bytes)
   const transferSyntax = (ds.string('x00020010') ?? '').trim()
   const pixelEl = ds.elements['x7fe00010']
@@ -45,13 +45,22 @@ export function decodeDicomFrame(bytes: Uint8Array) {
     throw new Error(`${bitsAllocated}-bit DICOM pixel data is not supported (8 or 16 bits only); export as PNG.`)
   }
   const bitsStored = ds.uint16('x00280101') ?? bitsAllocated
-  const frames = Math.max(1, Math.round(readNum(ds, 'x00280008') ?? 1))
+  const frameText = ds.string('x00280008')?.trim()
+  if (frameText !== undefined && !/^\d+$/.test(frameText)) throw new Error('The DICOM frame count is invalid.')
+  const frames = frameText === undefined ? 1 : Number(frameText)
+  if (!Number.isSafeInteger(frames) || frames < 1) throw new Error('The DICOM frame count is invalid.')
+  if (frames > 500 || rows * cols * frames > 64 * 1024 * 1024) throw new Error('This DICOM stack is too large for image intake (500 frames or 64 million pixels maximum). Export a smaller stack or use a scalar NRRD volume.')
+  if (ds.elements.x52009229 || ds.elements.x52009230) throw new Error('Enhanced DICOM functional groups are not supported. Export a conventional image stack or scalar NRRD volume to preserve acquisition geometry.')
 
   const start = pixelEl.dataOffset
   const len = pixelEl.length !== 0xffffffff ? pixelEl.length : ds.byteArray.length - start
   const frameBytes = rows * cols * (bitsAllocated / 8)
-  if (len < frameBytes || start + frameBytes > ds.byteArray.length) throw new Error('The DICOM pixel data is truncated.')
-  const raw = new Uint8Array(ds.byteArray.buffer, ds.byteArray.byteOffset + start, frameBytes)
+  if (len < frameBytes * frames || start + frameBytes * frames > ds.byteArray.length) throw new Error('The DICOM pixel data is truncated.')
+  const photo = (ds.string('x00280004') ?? 'MONOCHROME2').trim()
+  if (!['MONOCHROME1', 'MONOCHROME2'].includes(photo)) throw new Error('Only MONOCHROME1 and MONOCHROME2 DICOM images are supported.')
+  return { frameCount: frames, decode(frameIndex = 0) {
+  if (!Number.isSafeInteger(frameIndex) || frameIndex < 0 || frameIndex >= frames) throw new Error('DICOM frame index is outside the source stack.')
+  const raw = new Uint8Array(ds.byteArray.buffer, ds.byteArray.byteOffset + start + frameIndex * frameBytes, frameBytes)
 
   const gray = dicomPixelsToGray(raw, {
     rows,
@@ -64,7 +73,14 @@ export function decodeDicomFrame(bytes: Uint8Array) {
     intercept: readNum(ds, 'x00281052') ?? 0,
     windowCenter: readNum(ds, 'x00281050'),
     windowWidth: readNum(ds, 'x00281051'),
-    mono1: (ds.string('x00280004') ?? '').trim() === 'MONOCHROME1',
+    mono1: photo === 'MONOCHROME1',
   })
-  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames }
+  const uid = (tag: string) => { const value = ds.string(tag)?.trim(); return value && value.length <= 64 && /^\d+(?:\.\d+)*$/.test(value) ? value : undefined }
+  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018') }
+  } }
+}
+
+/** Decode a selected uncompressed DICOM frame and preserve source metadata. */
+export function decodeDicomFrame(bytes: Uint8Array, frameIndex = 0) {
+  return createDicomFrameDecoder(bytes).decode(frameIndex)
 }

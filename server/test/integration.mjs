@@ -1,6 +1,6 @@
 // Run explicitly against a disposable test deployment; creates test users/studies.
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, randomBytes, createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 const baseUrl = process.env.BASE_URL || process.env.TEST_ORIGIN || 'http://localhost:5173'
 const origin = process.env.TEST_ORIGIN || baseUrl
@@ -22,6 +22,36 @@ const id = randomUUID(), email = `test-${id}@example.invalid`, password = `Test-
 assert.equal((await call('/api/admin/users',{method:'POST',cookie:admin.cookie,data:{email,password,role:'clinician'}})).status,201)
 const clinician = await call('/api/login',{method:'POST',data:{email,password}})
 assert.equal(clinician.status,200)
+const operational = await call('/api/admin/operations',{cookie:admin.cookie})
+assert.equal(operational.status,200); assert.equal(operational.body.scope,'process'); assert.equal(operational.body.database.status,'ready')
+assert.equal((await call('/api/admin/operations',{cookie:clinician.cookie})).status,403)
+assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:'bad',password}})).status,400)
+assert.equal((await call(`/api/admin/users/${clinician.body.user.id}/recovery`,{method:'POST',cookie:clinician.cookie,data:{currentPassword:password}})).status,403)
+assert.equal((await call(`/api/admin/users/${clinician.body.user.id}/recovery`,{method:'POST',cookie:admin.cookie,data:{currentPassword:'wrong'}})).status,403)
+const recovery = await call(`/api/admin/users/${clinician.body.user.id}/recovery`,{method:'POST',cookie:admin.cookie,data:{currentPassword:process.env.TEST_ADMIN_PASSWORD}})
+assert.equal(recovery.status,201); assert.match(recovery.body.token,/^[A-Za-z0-9_-]{43}$/)
+const supersedingRecovery = await call(`/api/admin/users/${clinician.body.user.id}/recovery`,{method:'POST',cookie:admin.cookie,data:{currentPassword:process.env.TEST_ADMIN_PASSWORD}})
+assert.equal(supersedingRecovery.status,201)
+assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:recovery.body.token,password}})).status,400)
+// Exhausting one code must not block another user/code behind the same proxy.
+for (let attempt=0;attempt<16;attempt++) {
+  const response=await call('/api/password-recovery',{method:'POST',data:{token:recovery.body.token,password}})
+  assert.ok([400,429].includes(response.status))
+  if(attempt===15) assert.equal(response.status,429)
+}
+const recoveredPassword=`Recovered-${randomUUID()}`
+const recoveries=await Promise.all([1,2].map(()=>call('/api/password-recovery',{method:'POST',data:{token:supersedingRecovery.body.token,password:recoveredPassword}})))
+assert.deepEqual(recoveries.map(row=>row.status).sort(),[200,400])
+assert.equal((await call('/api/auth/check',{cookie:clinician.cookie})).status,401)
+assert.equal((await call('/api/login',{method:'POST',data:{email,password}})).status,401)
+const recovered=await call('/api/login',{method:'POST',data:{email,password:recoveredPassword}})
+assert.equal(recovered.status,200)
+assert.equal((await call('/api/account/password',{method:'POST',cookie:recovered.cookie,data:{currentPassword:'wrong',password}})).status,403)
+assert.equal((await call('/api/account/password',{method:'POST',cookie:recovered.cookie,data:{currentPassword:recoveredPassword,password:recoveredPassword}})).status,400)
+assert.equal((await call('/api/account/password',{method:'POST',cookie:recovered.cookie,data:{currentPassword:recoveredPassword,password}})).status,200)
+assert.equal((await call('/api/auth/check',{cookie:recovered.cookie})).status,401)
+const restored=await call('/api/login',{method:'POST',data:{email,password}})
+assert.equal(restored.status,200); clinician.cookie=restored.cookie
 assert.equal((await call('/api/admin/metrics',{cookie:clinician.cookie})).status,403)
 const metrics = await call('/api/admin/metrics',{cookie:admin.cookie})
 assert.equal(metrics.status,200); assert.ok(metrics.body.users.total>=2); assert.equal(metrics.body.jobs.available,false)
@@ -46,6 +76,14 @@ assert.equal((await call(`/api/shares/${share.body.share.id}`,{method:'DELETE',c
 assert.equal((await call(sharedPath)).status,404)
 if (process.env.DATABASE_URL) {
   const pg = createRequire(`${process.cwd()}/package.json`)('pg'); const db = new pg.Pool({connectionString:process.env.DATABASE_URL})
+  const unknownCode = randomBytes(32).toString('base64url')
+  assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:unknownCode,password}})).status,400)
+  const unknownBucket = createHash('sha256').update(`recovery-token:${unknownCode}`).digest('hex')
+  assert.equal((await db.query('SELECT count(*)::int AS total FROM login_attempts WHERE key_hash=$1',[unknownBucket])).rows[0].total,0)
+  const expiringRecovery = await call(`/api/admin/users/${clinician.body.user.id}/recovery`,{method:'POST',cookie:admin.cookie,data:{currentPassword:process.env.TEST_ADMIN_PASSWORD}})
+  assert.equal(expiringRecovery.status,201)
+  await db.query("UPDATE password_recovery_tokens SET expires_at=now()-interval '1 second' WHERE user_id=$1 AND consumed_at IS NULL",[clinician.body.user.id])
+  assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:expiringRecovery.body.token,password}})).status,400)
   const expiring = await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie:clinician.cookie,data:{expiresInHours:1,includeIdentity:false,includeImages:false}})
   assert.equal(expiring.status,201)
   await db.query("UPDATE share_grants SET expires_at=now()-interval '1 second' WHERE id=$1",[expiring.body.share.id])
@@ -57,7 +95,10 @@ assert.equal((await call('/api/logout',{method:'POST',cookie:clinician.cookie}))
 assert.equal((await call('/api/auth/check',{cookie:clinician.cookie})).status,401)
 const signedAgain = await call('/api/login',{method:'POST',data:{email,password}})
 const userId = signedAgain.body.user.id
+const disabledRecovery = await call(`/api/admin/users/${userId}/recovery`,{method:'POST',cookie:admin.cookie,data:{currentPassword:process.env.TEST_ADMIN_PASSWORD}})
+assert.equal(disabledRecovery.status,201)
 assert.equal((await call(`/api/admin/users/${userId}`,{method:'PATCH',cookie:admin.cookie,data:{disabled:true}})).status,200)
+assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:disabledRecovery.body.token,password}})).status,400)
 assert.equal((await call('/api/auth/check',{cookie:signedAgain.cookie})).status,401)
 assert.equal((await call('/api/login',{method:'POST',data:{email,password}})).status,401)
 const nextPassword = `Reset-${randomUUID()}`
@@ -75,4 +116,4 @@ for(let attempt=0;attempt<16;attempt++) {
   const blocked=await call('/api/login',{method:'POST',data:{email:limitedEmail,password:'Invalid test password'}})
   assert.equal(blocked.status,attempt<15?401:429)
 }
-console.log('Integration passed: login, RBAC, owner isolation, inert sharing, revocation, deletion and logout.')
+console.log('Integration passed: login, RBAC, recovery single-use/concurrency, password-change revocation, operations, owner isolation, inert sharing, revocation, deletion and logout.')

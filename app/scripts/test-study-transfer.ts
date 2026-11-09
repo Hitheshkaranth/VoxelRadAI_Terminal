@@ -15,4 +15,10 @@ const analysis = { modality: 'X-ray', bodyPart: 'Chest', view: 'AP', imageQualit
 assert.equal(validateTransferredStudy({ ...study, images: [{ ...study.images[0], status: 'done', analysis }] }).images[0].analysis?.findings.length, 1)
 assert.throws(() => validateTransferredStudy({ ...study, images: [{ ...study.images[0], analysis: { ...analysis, findings: [{ ...analysis.findings[0], category: {} }] } }] }))
 assert.throws(() => validateTransferredStudy({ ...study, images: [{ ...study.images[0], analysis: { ...analysis, heatmaps: { chest: {} } } }] }))
-console.log('Study transfer: safe restore, malformed input rejection and transient reset passed')
+const dicomImage = { ...study.images[0], sourceFrameCount: 2, sourceFrameIndex: 1, sourceSeriesUid: '1.2.3', sourceSopInstanceUid: '1.2.3.4' }
+assert.equal(validateTransferredStudy({ ...study, images: [dicomImage] }).images[0].sourceFrameIndex, 1)
+assert.equal(validateTransferredStudy({ ...study, images: [dicomImage] }).images[0].sourceSeriesUid, '1.2.3')
+for (const patch of [{ sourceFrameIndex: -1 }, { sourceFrameIndex: 2 }, { sourceFrameIndex: 0.5 }, { sourceFrameCount: 0 }, { sourceSeriesUid: 'patient-name' }, { sourceSopInstanceUid: '1.'.repeat(40) }]) {
+  assert.throws(() => validateTransferredStudy({ ...study, images: [{ ...dicomImage, ...patch }] }))
+}
+console.log('Study transfer: safe restore, DICOM source/frame validation, malformed input rejection and transient reset passed')

@@ -1,5 +1,6 @@
+import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ThemeSwitch } from './ThemeSwitch'
 import { CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
@@ -55,29 +56,29 @@ export function Sidebar() {
 
       {volume && <section className="wl-volume-context" aria-label="Open volume">
         <div className="wl-volume-context-label">Open volume</div>
-        <button className="wl-volume-current" aria-current="page" onClick={() => useShell.getState().setMobileView('viewer')}>
+        <ShellButton className="wl-volume-current" aria-current="page" onClick={() => useShell.getState().setMobileView('viewer')}>
           <Scan aria-hidden="true" />
           <span><strong>{volume.title}</strong><small>{volumeSourceKind(volume)} · {volume.modality === 'Volume' ? 'Modality not specified' : volume.modality}</small><small>Patient not linked</small></span>
-        </button>
+        </ShellButton>
       </section>}
       <div className="wl-heading">
         <div><h2>Studies <span>{studies.length}</span></h2></div>
-        <button type="button" className="wl-new" aria-label="New study" onClick={newStudy}><Plus /><span>New</span></button>
+        <ShellButton type="button" className="wl-new" aria-label="New study" onClick={newStudy}><Plus /><span>New</span></ShellButton>
       </div>
       <div className="sh-search">
         <div className="sh-search-field">
           <Search aria-hidden="true" />
           <input type="search" aria-label="Search studies" placeholder="Patient, ID or study" value={query} onChange={(e) => setQuery(e.target.value)} />
-          {query && <button className="wl-clear" aria-label="Clear study search" onClick={() => setQuery('')}><X /></button>}
+          {query && <ShellButton className="wl-clear" aria-label="Clear study search" onClick={() => setQuery('')}><X /></ShellButton>}
         </div>
       </div>
       <div className="wl-filters" role="group" aria-label="Filter studies">
         {([
           ['all', 'All', studies.length], ['review', 'Review', reviewCount], ['signed', 'Signed', signedCount],
         ] as const).map(([key, label, count]) => (
-          <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} title={key === 'review' ? 'Analyzed studies awaiting a signed report' : undefined}>
+          <ShellButton key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} title={key === 'review' ? 'Analyzed studies awaiting a signed report' : undefined}>
             {label}<span>{count}</span>
-          </button>
+          </ShellButton>
         ))}
       </div>
       <div className="wl-list-heading">
@@ -92,7 +93,7 @@ export function Sidebar() {
             {filter === 'signed' ? <CheckCheck /> : <ClipboardList />}
             <strong>{!studies.length ? (volume ? 'No image studies' : 'No studies') : query ? 'No matching studies' : filter === 'signed' ? 'No signed reports yet' : 'No studies awaiting review'}</strong>
             <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : filter === 'signed' ? 'Signed reports will appear here after review.' : 'Analyzed, unsigned studies appear in this queue.'}</p>
-            {!studies.length ? <button className="btn btn-primary" onClick={newStudy}><Plus /> Create study</button> : (query || filter !== 'all') && <button className="btn" onClick={() => { setQuery(''); setFilter('all') }}>Show all studies</button>}
+            {!studies.length ? <ShellButton className="btn btn-primary" onClick={newStudy}><Plus /> Create study</ShellButton> : (query || filter !== 'all') && <ShellButton className="btn" onClick={() => { setQuery(''); setFilter('all') }}>Show all studies</ShellButton>}
           </div>
         ) : (
           <GroupBlock label={sort === 'priority' ? 'Ordered by model urgency' : 'Most recently updated'} items={sorted} activeId={volume ? null : activeStudyId}
@@ -165,8 +166,18 @@ function StudyRow({
   const workflow = workflowLabel(study)
   const editing = editingId === study.id
   const confirming = confirmId === study.id
+  const renameCancelled = useRef(false)
+  const renameButton = useRef<HTMLButtonElement>(null)
+  const deleteButton = useRef<HTMLButtonElement>(null)
+  const previousMode = useRef({ editing, confirming })
+  useEffect(() => {
+    if (previousMode.current.editing && !editing) renameButton.current?.focus()
+    if (previousMode.current.confirming && !confirming) deleteButton.current?.focus()
+    previousMode.current = { editing, confirming }
+  }, [editing, confirming])
 
   const commitRename = () => {
+    if (renameCancelled.current) { setEditingId(null); return }
     const next = editTitle.trim() || study.title
     useApp.getState().renameStudy(study.id, next)
     setEditingId(null)
@@ -186,21 +197,21 @@ function StudyRow({
       <div className="sh-row sh-row--active">
         <input className="input sh-row-edit" aria-label="Study title" autoFocus value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null) }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.preventDefault(); renameCancelled.current = true; setEditingId(null) } }}
           onBlur={commitRename} />
       </div>
     )
   if (confirming)
     return (
-      <div className="sh-row sh-row--confirm" role="alertdialog" aria-label="Confirm delete">
+      <div className="sh-row sh-row--confirm" role="group" aria-label={`Confirm deletion of ${name}`} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setConfirmId(null) } }}>
         <span className="sh-row-q">Delete “{name}”?</span>
-        <button type="button" className="btn btn-sm btn-destructive" autoFocus onClick={deleteStudy}>Delete</button>
-        <button type="button" className="btn btn-sm" onClick={() => setConfirmId(null)}>Cancel</button>
+        <ShellButton type="button" className="btn btn-sm btn-destructive" onClick={deleteStudy}>Delete</ShellButton>
+        <ShellButton type="button" className="btn btn-sm" autoFocus onClick={() => setConfirmId(null)}>Cancel</ShellButton>
       </div>
     )
   return (
     <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}`}>
-      <button type="button" className="wl-open-study"
+      <ShellButton type="button" className="wl-open-study"
         aria-current={active ? 'true' : undefined}
         onClick={() => { useShell.getState().closeVolume(); useApp.getState().selectStudy(study.id); useShell.getState().setMobileView('viewer') }}>
       <StatusDot sev={status.sev} analyzing={status.analyzing} read={status.read} />
@@ -213,16 +224,16 @@ function StudyRow({
           {priority > 0 && <span className="wl-priority" data-priority={priority}>AI {priority === 2 ? 'urgent' : 'priority'}</span>}
         </span>
       </span>
-      </button>
+      </ShellButton>
       <div className="sh-row-actions">
-        <button type="button" className="icon-btn" aria-label="Rename study"
-          onClick={(e) => { e.stopPropagation(); setEditTitle(study.title); setEditingId(study.id) }}>
+        <ShellButton ref={renameButton} type="button" className="icon-btn" aria-label={`Rename ${name}`}
+          onClick={(e) => { e.stopPropagation(); renameCancelled.current = false; setEditTitle(study.title); setEditingId(study.id) }}>
           <Pencil />
-        </button>
-        <button type="button" className="icon-btn" aria-label="Delete study"
+        </ShellButton>
+        <ShellButton ref={deleteButton} type="button" className="icon-btn" aria-label={`Delete ${name}`}
           onClick={(e) => { e.stopPropagation(); setConfirmId(study.id) }}>
           <Trash2 />
-        </button>
+        </ShellButton>
       </div>
     </div>
   )
@@ -271,16 +282,16 @@ function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionS
 
   return (
     <div className="sh-sidebar-foot">
-      <button type="button" className="sh-status" onClick={onOpenSettings}>
+      <ShellButton type="button" className="sh-status" onClick={onOpenSettings}>
         <span className={`sh-status-dot ${dot}`} />
         <span className="sh-status-text">
           <span className="sh-status-a" title={model}>{model}</span>
           <span className="sh-status-b">{label}</span>
         </span>
-      </button>
-      <button type="button" className="icon-btn" aria-label="Settings" onClick={onOpenSettings}>
+      </ShellButton>
+      <ShellButton type="button" className="icon-btn" aria-label="Settings" onClick={onOpenSettings}>
         <Settings />
-      </button>
+      </ShellButton>
     </div>
   )
 }

@@ -1,25 +1,15 @@
 // OWNER: Agent 1 (AI engine). MedGemma OpenAI-compatible client with streaming, re-encoding,
 // retry, and a serial queue so only one inference hits LM Studio at a time.
-import type { AnalysisResult, ConnectionState, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
+import type { AnalysisResult, PatientInfo, ReportDraft, Settings, Study, StudyImage } from '../types'
 import { isCrossSectional } from './modality'
 import type { SkandaSliceInput } from './skandaSlice'
 import { buildSlicePrompt, buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT, SKANDA_SYSTEM_PROMPT, SKANDA_ANALYSIS_PROMPT } from './prompts'
 import { extractJson, extractJsonWithInfo, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
-import { parseSseLines, type SseParse } from './sse'
+import { chatStream, type ChatResult, type ChatMessage } from './modelTransport'
+export { chatStream, checkConnection } from './modelTransport'
 import { createSerialQueue } from './queue'
 
 export type GeneratedReport = Pick<ReportDraft, 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'>
-
-type ChatRole = 'system' | 'user' | 'assistant'
-interface ChatMessage {
-  role: ChatRole
-  content: string | ChatPart[]
-}
-interface ChatPart {
-  type: 'text' | 'image_url'
-  text?: string
-  image_url?: { url: string }
-}
 
 // ---- Serial queue ----------------------------------------------------------
 
@@ -27,16 +17,6 @@ interface ChatPart {
 const queue = createSerialQueue()
 
 // ---- URL helpers -----------------------------------------------------------
-
-function endpoint(settings: Settings, suffix = ''): string {
-  const base =
-    settings.baseUrl.startsWith('http') || settings.baseUrl.startsWith('//')
-      ? settings.baseUrl
-      : typeof location !== 'undefined'
-        ? location.origin + settings.baseUrl
-        : settings.baseUrl
-  return `${base}${suffix}`
-}
 
 // ---- Re-encoding (JPEG, small) ---------------------------------------------
 
@@ -70,179 +50,8 @@ export async function reencodeForClassifier(dataUrl: string): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.9)
 }
 
-// ---- SSE streaming ---------------------------------------------------------
-
-/** No streamed bytes for this long → the request is aborted as stalled. */
-const IDLE_TIMEOUT_MS = 120_000
-
-export interface ChatResult {
-  text: string
-  /** choices[0].finish_reason of the last chunk ("stop", "length", ...), when the server sent one. */
-  finish?: string
-}
-
-export async function chatStream({
-  settings,
-  messages,
-  signal,
-  onDelta,
-  maxTokens,
-  temperature,
-  extra,
-}: {
-  settings: Settings
-  messages: ChatMessage[]
-  signal?: AbortSignal
-  onDelta?: (text: string) => void
-  maxTokens?: number
-  temperature?: number
-  /** Extra request fields (Skanda's server reads "skanda"; other servers ignore unknown fields). */
-  extra?: Record<string, unknown>
-}): Promise<ChatResult> {
-  if (signal?.aborted) throw abortError()
-  // Own controller so a stalled stream can be aborted without touching the caller's signal.
-  const ac = new AbortController()
-  const forward = () => ac.abort()
-  signal?.addEventListener('abort', forward, { once: true })
-  let timedOut = false
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const arm = () => {
-    clearTimeout(timer)
-    timer = setTimeout(() => {
-      timedOut = true
-      ac.abort()
-    }, IDLE_TIMEOUT_MS)
-  }
-  const stalled = () => new Error(`Model stopped responding (no output for ${IDLE_TIMEOUT_MS / 1000} s).`)
-
-  try {
-    arm()
-    let res: Response
-    try {
-      res = await fetch(endpoint(settings, '/chat/completions'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: settings.model,
-          messages,
-          stream: true,
-          temperature: temperature ?? settings.temperature,
-          max_tokens: maxTokens ?? settings.maxTokens,
-          ...extra,
-        }),
-        signal: ac.signal,
-      })
-    } catch (err) {
-      if (timedOut) throw stalled()
-      if (isAbort(err) || signal?.aborted) throw abortError()
-      throw new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
-    }
-    if (!res.ok) throw new Error(await readErrorBody(res))
-    if (!res.body) throw new Error('LM Studio returned an empty response.')
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let text = ''
-    let finish: string | undefined
-    const bad: string[] = []
-    const absorb = (p: SseParse) => {
-      if (p.error) throw new Error(`LM Studio error: ${p.error}`)
-      bad.push(...p.bad)
-      if (p.finish) finish = p.finish
-      if (p.text) {
-        text += p.text
-        onDelta?.(p.text)
-      }
-    }
-
-    try {
-      let sawDone = false
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        arm()
-        const p = parseSseLines(buffer + decoder.decode(value, { stream: true }))
-        buffer = p.rest
-        absorb(p)
-        if (p.done) {
-          sawDone = true
-          break
-        }
-      }
-      // Flush a final line the server did not newline-terminate.
-      if (!sawDone) absorb(parseSseLines(buffer + decoder.decode() + '\n'))
-    } catch (err) {
-      if (timedOut) throw stalled()
-      if (isAbort(err) || signal?.aborted) throw abortError()
-      throw err
-    } finally {
-      reader.cancel().catch(() => undefined)
-    }
-
-    if (bad.length) {
-      if (!text) throw new Error(`LM Studio sent an unreadable stream (${bad[0].slice(0, 80)}).`)
-      console.warn(`[medgemma] ${bad.length} unreadable stream line(s) skipped`, bad)
-    }
-    return { text, finish }
-  } finally {
-    clearTimeout(timer)
-    signal?.removeEventListener('abort', forward)
-  }
-}
-
-async function readErrorBody(res: Response): Promise<string> {
-  let detail = ''
-  try {
-    const txt = await res.clone().text()
-    if (txt) {
-      try {
-        const json = JSON.parse(txt)
-        detail = typeof json.error === 'string' ? json.error : json.error?.message
-      } catch {
-        detail = txt.slice(0, 200)
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return `LM Studio request failed (HTTP ${res.status}). ${detail || 'See the server log for details.'}`.trim()
-}
-
-// ---- Small helpers ---------------------------------------------------------
-
-function isAbort(err: unknown): boolean {
-  return err instanceof Error && err.name === 'AbortError'
-}
-function abortError(): Error {
-  const e = new Error('Analysis cancelled.')
-  return e
-}
-
-// ---- checkConnection -------------------------------------------------------
-
-export async function checkConnection(settings: Settings): Promise<ConnectionState> {
-  const ac = new AbortController()
-  const timer = setTimeout(() => ac.abort(), 4000)
-  try {
-    // The local LM Studio inventory distinguishes loaded models from downloaded files.
-    const localStudio = settings.baseUrl.replace(/\/$/, '') === '/lmstudio/v1'
-    const url = localStudio ? '/lmstudio/api/v0/models' : endpoint(settings, '/models')
-    const res = await fetch(url, { signal: ac.signal })
-    if (!res.ok) return 'offline'
-    const data = await res.json().catch(() => null)
-    const models: { id?: unknown; state?: string }[] = Array.isArray(data?.data) ? data.data : []
-    const wanted = (settings.model || '').trim().toLowerCase()
-    if (!wanted) return 'model-missing'
-    // Exact id match: a substring match would report "online" for a different model or quantisation.
-    const exists = models.some((m) => m && typeof m.id === 'string' && m.id.toLowerCase() === wanted && (!localStudio || m.state === 'loaded'))
-    return exists ? 'online' : 'model-missing'
-  } catch {
-    return 'offline'
-  } finally {
-    clearTimeout(timer)
-  }
-}
+function isAbort(err: unknown): boolean { return err instanceof Error && err.name === 'AbortError' }
+function abortError(): Error { const error = new Error('Analysis cancelled.'); error.name = 'AbortError'; return error }
 
 // ---- analyzeImage ----------------------------------------------------------
 
@@ -368,7 +177,7 @@ export async function analyzeImage(opts: {
 /** Skanda's training prompt for one axial slice (skanda-grounding skanda/ctmri.prompt; its server uses its own copy). */
 function skandaSlicePrompt(input: SkandaSliceInput): string {
   const m = input.extension.modality
-  const body = m === 'mri' ? 'brain' : /liver|abdom|pancrea|kidney|colon|pelvi|hepat/i.test(input.extension.body) ? 'abdomen' : /chest|lung|thora|pulmon|mediast/i.test(input.extension.body) ? 'chest' : 'body'
+  const body = /brain|head|cranial/i.test(input.extension.body) ? 'head' : /liver|abdom|pancrea|kidney|colon|pelvi|hepat/i.test(input.extension.body) ? 'abdomen' : /chest|lung|thora|pulmon|mediast/i.test(input.extension.body) ? 'chest' : 'body'
   return `Read this axial slice of a ${body} ${m === 'ct' ? 'CT' : 'MRI'}. Reply as JSON: normal, findings (title, evidence, location, severity, mask), impression.`
 }
 

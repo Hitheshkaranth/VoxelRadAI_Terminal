@@ -1,3 +1,4 @@
+import { ShellButton } from '../shell/ShellButton'
 // OWNER: Agent 4 (Report). The formal, print-perfect A4 report overlay (portal to document.body).
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -207,20 +208,20 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
         <div className="rp-print-toolbar glass">
           <span className="rp-print-toolbar-label">Preview &amp; Print</span>
           <div className="rp-print-toolbar-actions">
-            <button
+            <ShellButton
               type="button"
               className="btn btn-primary"
               onClick={() => window.print()}
             >
               <Printer size={15} />
               Print / Save as PDF
-            </button>
-            <button type="button" className="btn btn-plain" onClick={onClose}>
+            </ShellButton>
+            <ShellButton type="button" className="btn btn-plain" onClick={onClose}>
               Close
-            </button>
-            <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
+            </ShellButton>
+            <ShellButton type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
               <X size={18} />
-            </button>
+            </ShellButton>
           </div>
         </div>
 

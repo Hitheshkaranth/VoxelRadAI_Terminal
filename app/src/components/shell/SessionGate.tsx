@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react'
+import { ShellButton } from './ShellButton'
+import { RecoveryForm } from './AccountSecurity'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type FormEvent } from 'react'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ScanLine } from 'lucide-react'
 import { login, readSession, SERVER_MODE, useSession, type SessionUser } from '../../lib/session'
 import './session.css'
@@ -9,13 +11,13 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
   const [state, setState] = useState<'checking' | 'login' | 'ready' | 'error'>(SERVER_MODE ? 'checking' : 'ready')
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
+  const [recovering, setRecovering] = useState(false)
   const currentUser = useSession((session) => session.user)
   const configure = useRef(onAuthenticated)
-  configure.current = onAuthenticated
+  useLayoutEffect(() => { configure.current = onAuthenticated }, [onAuthenticated])
   useEffect(() => {
     if (!SERVER_MODE) return
     const controller = new AbortController()
-    setState('checking'); setError('')
     void readSession(controller.signal).then(async (user) => {
       if (controller.signal.aborted) return
       if (!user) { setState('login'); return }
@@ -54,14 +56,14 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
     return () => { window.clearInterval(interval); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus) }
   }, [state])
   // Hide patient data immediately, even if an active-job beforeunload prompt delays reload.
-  if (SERVER_MODE && state === 'ready' && !currentUser) return <SessionLayout><section className="session-card"><h1>Session ended</h1><p className="session-intro">Reload to sign in and open your workspace.</p><button className="btn btn-primary session-submit" onClick={() => window.location.reload()}>Reload workspace <ArrowRight aria-hidden="true" /></button></section></SessionLayout>
+  if (SERVER_MODE && state === 'ready' && !currentUser) return <SessionLayout><section className="session-card"><h1>Session ended</h1><p className="session-intro">Reload to sign in and open your workspace.</p><ShellButton className="btn btn-primary session-submit" onClick={() => window.location.reload()}>Reload workspace <ArrowRight aria-hidden="true" /></ShellButton></section></SessionLayout>
   if (state === 'ready') return children
   return <SessionLayout><section className="session-card" aria-labelledby="session-title">
     <div className="session-form-context"><LockKeyhole size={16} aria-hidden="true" /> Organization workspace</div>
-    <h1 id="session-title">{state === 'checking' ? 'Opening your workspace.' : 'Back to the\nreading room.'}</h1>
-    <p className="session-intro">Sign in to review your studies and continue your work.</p>
-    {state === 'checking' ? <p role="status" className="session-status">Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><button className="btn btn-primary" onClick={() => setAttempt((value) => value + 1)}>Try again</button></> : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
-    <details className="session-help"><summary>Need access or help signing in?</summary><p>Contact your organization administrator to request an account or reset your password. Use the email address they registered for you.</p></details>
+    <h1 id="session-title">{state === 'checking' ? 'Opening your workspace.' : recovering ? 'Recover your account.' : 'Back to the\nreading room.'}</h1>
+    <p className="session-intro">{recovering ? 'Set a new password with an administrator-issued code.' : 'Sign in to review your studies and continue your work.'}</p>
+    {state === 'checking' ? <p role="status" className="session-status">Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><ShellButton className="btn btn-primary" onClick={() => { setState('checking'); setError(''); setAttempt((value) => value + 1) }}>Try again</ShellButton></> : recovering ? <RecoveryForm onBack={() => setRecovering(false)} /> : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
+    {state === 'login' && !recovering && <details className="session-help"><summary>Need access or help signing in?</summary><p>Contact your organization administrator to request an account or a recovery code. Use the email address they registered for you.</p><ShellButton className="btn" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></details>}
   </section></SessionLayout>
 }
 
@@ -76,7 +78,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
         <figcaption><ScanLine size={16} aria-hidden="true" /><span>MR head <span className="session-scan-detail">/ {plane[0].toUpperCase() + plane.slice(1)} view</span></span></figcaption>
       </figure>
       <div className="session-visual-copy"><h2>The image<br /> comes first.</h2><p>A focused workspace for<br />X-ray, CT and MRI review.</p></div>
-      <div className="session-explorer"><div className="session-plane-controls" role="group" aria-label="Explore sample MRI planes">{(['axial', 'coronal', 'sagittal'] as const).map((view) => <button key={view} type="button" aria-pressed={plane === view} onClick={() => setPlane(view)}>{view[0].toUpperCase() + view.slice(1)}</button>)}</div><span className="session-sample-note">Public teaching sample · Slicer MRHead</span></div>
+      <div className="session-explorer"><div className="session-plane-controls" role="group" aria-label="Explore sample MRI planes">{(['axial', 'coronal', 'sagittal'] as const).map((view) => <ShellButton key={view} type="button" aria-pressed={plane === view} onClick={() => setPlane(view)}>{view[0].toUpperCase() + view.slice(1)}</ShellButton>)}</div><span className="session-sample-note">Public teaching sample · Slicer MRHead</span></div>
     </section>
     <div className="session-access" id="session-access" tabIndex={-1}>
       <div className="session-access-top"><span>Imaging. Evidence. Review.</span><ThemeSwitch /></div>
@@ -102,8 +104,8 @@ function LoginForm({ onSuccess }: { onSuccess: (user: SessionUser) => Promise<vo
   }
   return <form className="session-form" aria-busy={busy} onSubmit={(event) => { void submit(event) }}>
     <label htmlFor="session-email">Work email</label><input id="session-email" name="email" type="email" autoComplete="username" inputMode="email" placeholder="you@hospital.org" required value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} />
-    <label htmlFor="session-password">Password</label><div className="session-password"><input id="session-password" name="password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /><button type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} onClick={() => setVisible((value) => !value)}>{visible ? <EyeOff /> : <Eye />}</button></div>
+    <label htmlFor="session-password">Password</label><div className="session-password"><input id="session-password" name="password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /><ShellButton type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} onClick={() => setVisible((value) => !value)}>{visible ? <EyeOff /> : <Eye />}</ShellButton></div>
     {error && <p role="alert" className="session-error">{error}</p>}
-    <button className="btn btn-primary session-submit" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Open workspace'}<ArrowRight aria-hidden="true" /></button>
+    <ShellButton className="btn btn-primary session-submit" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Open workspace'}<ArrowRight aria-hidden="true" /></ShellButton>
   </form>
 }

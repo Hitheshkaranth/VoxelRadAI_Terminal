@@ -1,3 +1,5 @@
+import type { VolumeAcquisition } from './volumeAcquisition'
+
 export interface VolumeSource {
   id: string
   title: string
@@ -5,6 +7,7 @@ export interface VolumeSource {
   initialWindow?: { center: number; width: number }
   /** MRI sequence when known (e.g. "T1 post-contrast"): acquisition context for the reader and the claim checks. */
   sequence?: string
+  acquisition?: VolumeAcquisition
   url?: string
   file?: File
 }

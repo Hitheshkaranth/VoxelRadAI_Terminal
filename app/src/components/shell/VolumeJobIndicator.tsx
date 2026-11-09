@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { useSyncExternalStore } from 'react'
 import { getAllVolumeJobs, subscribeAllVolumeJobs, pauseVolumeJob, startVolumeJob } from '../../lib/volumeJobs'
 import { volumeCoverage } from '../../lib/volumeAnalysis'
@@ -15,8 +16,8 @@ export function VolumeJobIndicator() {
       const coverage = volumeCoverage(job.reads, job.count), registered = registeredVolumeSource(job.identity)
       const source = registered?.source ?? VOLUME_SAMPLES.find((source) => source.title === job.title)
       return <article key={job.identity}><strong>{job.title}</strong><p>{job.status} · {coverage.completed}/{job.count} slices reviewed</p><div>
-        {source && <button className="btn btn-sm" onClick={() => useShell.getState().openVolume(source)}>Return to scan</button>}
-        {job.status === 'running' ? <button className="btn btn-sm" onClick={() => pauseVolumeJob(job.identity)}>Pause</button> : !coverage.complete && registered && <button className="btn btn-sm" onClick={() => void startVolumeJob({ identity: job.identity, volume: registered.volume, title: job.title, modality: job.modality, settings: job.snapshot.settings, center: job.snapshot.center, width: job.snapshot.width })}>Resume</button>}
+        {source && <ShellButton className="btn btn-sm" onClick={() => useShell.getState().openVolume(source)}>Return to scan</ShellButton>}
+        {job.status === 'running' ? <ShellButton className="btn btn-sm" onClick={() => pauseVolumeJob(job.identity)}>Pause</ShellButton> : !coverage.complete && registered && <ShellButton className="btn btn-sm" onClick={() => void startVolumeJob({ identity: job.identity, volume: registered.volume, title: job.title, modality: job.modality, settings: job.snapshot.settings, center: job.snapshot.center, width: job.snapshot.width })}>Resume</ShellButton>}
       </div></article>
     })}
   </div></details>

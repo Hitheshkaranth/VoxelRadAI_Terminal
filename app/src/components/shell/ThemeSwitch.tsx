@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { useLayoutEffect, useSyncExternalStore } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useApp } from '../../store'
@@ -28,10 +29,10 @@ export function ThemeSwitch({ compact = false }: { compact?: boolean }) {
   const change = (next: 'light' | 'dark') => useApp.getState().updateSettings({ theme: next })
   if (compact) {
     const next = theme === 'dark' ? 'light' : 'dark'
-    return <button type="button" className="icon-btn theme-toggle" aria-label={`Switch to ${next} theme`} title={`Switch to ${next} theme`} onClick={() => change(next)}>{next === 'light' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</button>
+    return <ShellButton type="button" className="icon-btn theme-toggle" aria-label={`Switch to ${next} theme`} title={`Switch to ${next} theme`} onClick={() => change(next)}>{next === 'light' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</ShellButton>
   }
   return <div className="theme-switch" role="group" aria-label="Appearance">
-    <button type="button" aria-pressed={theme === 'light'} onClick={() => change('light')}><Sun aria-hidden="true" /><span>Light</span></button>
-    <button type="button" aria-pressed={theme === 'dark'} onClick={() => change('dark')}><Moon aria-hidden="true" /><span>Dark</span></button>
+    <ShellButton type="button" aria-pressed={theme === 'light'} onClick={() => change('light')}><Sun aria-hidden="true" /><span>Light</span></ShellButton>
+    <ShellButton type="button" aria-pressed={theme === 'dark'} onClick={() => change('dark')}><Moon aria-hidden="true" /><span>Dark</span></ShellButton>
   </div>
 }

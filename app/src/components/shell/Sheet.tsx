@@ -1,7 +1,9 @@
-// OWNER: Agent 5. Shared macOS-style sheet: spring pop, dim backdrop, Esc/backdrop close, focus trap.
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useRef, useId, type ReactNode } from 'react'
+import { Dialog } from 'radix-ui'
 import { X } from 'lucide-react'
+import { ShellButton } from './ShellButton'
 import './shell.css'
+import './shellAccessibility.css'
 
 interface SheetProps {
   wide?: boolean
@@ -13,97 +15,36 @@ interface SheetProps {
   footer?: ReactNode
 }
 
-const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
-
+/** Radix supplies modal isolation, stacked-dialog Escape handling and focus trapping. */
 export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: SheetProps) {
-  const backdropRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
-  const lastFocused = useRef<HTMLElement | null>(null)
-  const closeRef = useRef(onClose)
-  useLayoutEffect(() => { closeRef.current = onClose }, [onClose])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    lastFocused.current = document.activeElement as HTMLElement | null
-    cardRef.current?.focus({ preventScroll: true })
-    return () => { lastFocused.current?.focus?.(); lastFocused.current = null }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const node = backdropRef.current
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        e.preventDefault()
-        closeRef.current()
-        return
-      }
-      if (e.key !== 'Tab') return
-      const dialog = backdropRef.current?.querySelector<HTMLElement>('.sh-sheet')
-      if (!dialog) return
-      const focusables = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => !el.matches(':disabled') && (el.offsetParent !== null || el === document.activeElement),
-      )
-      if (focusables.length === 0) {
-        e.preventDefault()
-        cardRef.current?.focus()
-        return
-      }
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
-      const active = document.activeElement
-      if (e.shiftKey) {
-        if (active === first || active === dialog || active?.contains(dialog)) {
-          e.preventDefault()
-          last.focus()
-        }
-      } else if (active === last || active === dialog || !dialog.contains(active)) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-
-    node?.addEventListener('keydown', onKey)
-    return () => {
-      node?.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  if (!open) return null
-
-  return (
-    <div
-      ref={backdropRef}
-      className="sh-sheet-backdrop"
-      onMouseDown={(e) => {
-        if (e.target === backdropRef.current) onClose()
-      }}
-    >
-      <div
-        ref={cardRef}
-        className={`sh-sheet${wide ? ' sh-sheet--wide' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-      >
-        <header className="sh-sheet-head">
-          <div>
-            <h2 className="sh-sheet-title">{title}</h2>
-            {subtitle && <p className="sh-sheet-subtitle">{subtitle}</p>}
-          </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X />
-          </button>
-        </header>
-
-        <div className="sh-sheet-body">{children}</div>
-
-        {footer && <footer className="sh-sheet-foot">{footer}</footer>}
-      </div>
-    </div>
-  )
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const descriptionId = useId()
+  return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
+    <Dialog.Portal>
+      <Dialog.Overlay className="sh-sheet-backdrop">
+        <Dialog.Content ref={cardRef} className={`sh-sheet${wide ? ' sh-sheet--wide' : ''}`}
+          aria-describedby={subtitle ? descriptionId : undefined}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            if (!returnFocus.current?.isConnected) returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+            cardRef.current?.focus({ preventScroll: true })
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            if (returnFocus.current?.isConnected) returnFocus.current.focus({ preventScroll: true })
+          }}>
+          <header className="sh-sheet-head">
+            <div>
+              <Dialog.Title asChild><h2 className="sh-sheet-title">{title}</h2></Dialog.Title>
+              {subtitle && <Dialog.Description asChild><p id={descriptionId} className="sh-sheet-subtitle">{subtitle}</p></Dialog.Description>}
+            </div>
+            <Dialog.Close asChild><ShellButton className="icon-btn" aria-label={`Close ${title}`}><X aria-hidden="true" /></ShellButton></Dialog.Close>
+          </header>
+          <div className="sh-sheet-body">{children}</div>
+          {footer && <footer className="sh-sheet-foot">{footer}</footer>}
+        </Dialog.Content>
+      </Dialog.Overlay>
+    </Dialog.Portal>
+  </Dialog.Root>
 }

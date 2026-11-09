@@ -74,4 +74,3 @@ Scores: [`docs/validation/skanda-rerun/results.json`](../docs/validation/skanda-
 - **CT tumour outlines:** run 4 adds real liver-tumour outlines from CRLM and HCC-TACE-Seg.
 - **Single MRI sequences:** Skanda was trained on FLAIR, T1 post-contrast and T2 together. The server rewrites claims about sequences that weren't sent, and the result says the read is outside its training data.
 - **Uploaded NRRD volumes:** they open as modality "Volume", and Skanda needs CT or MRI (report fault F06).
-

@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 import { Component, type ReactNode } from 'react'
 
 /** Contains a render crash to one pane instead of blanking the whole app. */
@@ -29,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
       <div role="alert" style={{ padding: 'var(--sp-5)', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
         <div style={{ fontWeight: 600 }}>{this.props.label} hit an error</div>
         <div style={{ color: 'var(--label-2)', fontSize: 'var(--text-footnote)' }}>{this.state.error.message}</div>
-        <button className="btn" onClick={() => this.setState({ error: null })}>Try again</button>
+        <ShellButton className="btn" onClick={() => this.setState({ error: null })}>Try again</ShellButton>
       </div>
     )
   }

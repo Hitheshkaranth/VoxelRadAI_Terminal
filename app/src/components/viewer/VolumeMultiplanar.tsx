@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Maximize } from 'lucide-react'
 import { getSliceGeometry, renderSlice, type Vec3, type Volume, type VolumePlane } from '../../lib/volume'
@@ -81,7 +82,7 @@ function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorCha
     onAnchorChange(voxelFromSlicePoint(volume, plane, index, { x, y }))
   }
   return <section className="volume-plane-view" data-plane={plane} aria-label={`${title(plane)} plane`}>
-    <header><div><strong>{title(plane)}</strong><span>{index + 1}/{geometry.count}{geometry.oblique ? ' · acquired oblique' : ''}</span></div><button type="button" className="icon-btn" aria-label={`Maximize ${plane} view`} title={`Maximize ${plane}`} onClick={() => { onInteraction?.(); onMaximize(plane) }}><Maximize /></button></header>
+    <header><div><strong>{title(plane)}</strong><span>{index + 1}/{geometry.count}{geometry.oblique ? ' · acquired oblique' : ''}</span></div><ScanButton type="button" className="icon-btn" aria-label={`Maximize ${plane} view`} title={`Maximize ${plane}`} onClick={() => { onInteraction?.(); onMaximize(plane) }}><Maximize /></ScanButton></header>
     <div ref={stage} className="volume-plane-stage" tabIndex={0} aria-label={`${title(plane)} slice ${index + 1} of ${geometry.count}. Click to position crosshairs; scroll or use arrow keys to change slices.`}
       onKeyDown={(event) => {
         const change = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0

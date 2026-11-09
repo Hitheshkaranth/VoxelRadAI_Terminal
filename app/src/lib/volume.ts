@@ -1,9 +1,12 @@
+import type { VolumeAcquisition } from './volumeAcquisition.ts'
 /** Scalar NRRD volumes. Geometry is patient LPS in millimetres; axis 0 is stored fastest. */
 export type Vec3 = [number, number, number]
 export type VolumePlane = 'axial' | 'coronal' | 'sagittal'
 export type Plane = VolumePlane
 export type VoxelData = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array
 export interface Volume {
+  /** Immutable acquisition context: changing this must create a new Volume object. */
+  acquisition?: VolumeAcquisition
   data: VoxelData
   dimensions: Vec3
   spacing: Vec3

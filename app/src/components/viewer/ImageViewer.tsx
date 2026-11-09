@@ -36,7 +36,7 @@ const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
   { id: 'fill', label: 'Fill', hint: 'Filled outline (opacity below)' },
 ]
 /** Clicks on these never start a pan or window-level drag. */
-const UI = '.vw-toolbox, .vw-finding, .vw-compare, .vw-layers-panel'
+const UI = '.vw-toolbox, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || !!t.closest('[role="dialog"], input, textarea, select, [contenteditable="true"]'))
@@ -96,7 +96,8 @@ export function ImageViewer() {
     }
   }, [cancelGesture])
 
-  const fit = image && stage.w ? Math.min(Math.max(1, stage.w - 32) / image.width, Math.max(1, stage.h - 128) / image.height) : 1
+  // Reserve the top context/tool docks and bottom navigation at fit, so controls do not cover source pixels.
+  const fit = image && stage.w ? Math.min(Math.max(1, stage.w - 32) / image.width, Math.max(1, stage.h - 224) / image.height) : 1
   const scale = fit * viewer.zoom
   const dispW = image ? image.width * scale : 0
   const dispH = image ? image.height * scale : 0
@@ -503,7 +504,7 @@ export function ImageViewer() {
           <ScanButton className="btn btn-sm" onClick={() => setViewer({ brightness: 100, contrast: 100, invert: false })}>Reset display</ScanButton><small>Display adjustment only. Source pixels are unchanged.</small>
         </div></PopoverContent></Popover>
       </div>
-      <div className="vw-toolbox" role="toolbar" aria-label="Viewer tools" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="vw-toolbox" role="toolbar" aria-label="Viewer tools; scroll horizontally for more controls on narrow screens" onPointerDown={(e) => e.stopPropagation()}>
         <ScanButton className="vw-tool" aria-label="Zoom out (−)" title="Zoom out (−)" onClick={() => zoomAt(viewer.zoom / 1.25)}>
           <ZoomOut strokeWidth={1.75} />
         </ScanButton>

@@ -185,7 +185,7 @@ export default function App() {
 
       <main className={`sh-content${volumeSource || study ? ' scan-content' : ''}`}>
         <VolumeJobIndicator />
-        {volumeSource ? <Suspense fallback={<p role="status">Loading volume viewer…</p>}><VolumeViewer key={volumeSource.id} source={volumeSource} /></Suspense> : study ? (
+        {volumeSource ? <Suspense fallback={<p role="status">Loading volume viewer…</p>}><VolumeViewer key={`${volumeSource.id}:${JSON.stringify(volumeSource.acquisition ?? null)}`} source={volumeSource} /></Suspense> : study ? (
           <>
             <Toolbar />
             <details className="scan-patient-context"><summary>Patient &amp; clinical context</summary><ClinicalContext /></details>

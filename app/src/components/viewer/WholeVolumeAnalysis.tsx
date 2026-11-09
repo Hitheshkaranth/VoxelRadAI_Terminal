@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '../../store'
 import { getSliceGeometry, type Volume, type VolumePlane } from '../../lib/volume'
@@ -60,30 +61,30 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
   const estimatedRemaining = durations.length >= 2 ? durations.slice(-5).reduce((sum, ms) => sum + ms, 0) / Math.min(5, durations.length) * (count - coverage.completed) : null
   const run = (restart = false) => {
     if (!identity || running) return
-    void startVolumeJob({ identity, volume, title, modality, settings, center, width, restart })
+    void startVolumeJob({ identity, volume, title, modality, settings, center, width, restart }).catch(reason => setLoadError(reason instanceof Error ? reason.message : 'Could not start this review.'))
   }
   const status = loading ? 'Restoring saved review…' : !job ? 'Not analyzed' : running ? 'Analysis running' : coverage.complete ? 'Analysis complete' : job.status === 'error' ? 'Analysis stopped' : 'Analysis paused'
   return <section className="volume-analysis" aria-label="Whole volume analysis">
-    <div className="volume-analysis-heading"><h3>Volume analysis</h3><button className="btn btn-primary btn-sm" disabled={loading || !!loadError || running || connection !== 'online' || coverage.complete} onClick={() => run()}>{loading ? 'Restoring…' : coverage.complete ? 'Analysis complete' : running ? 'Analyzing…' : job ? 'Resume analysis' : 'Analyze volume'}</button></div>
+    <div className="volume-analysis-heading"><h3>Volume analysis</h3><ScanButton className="btn btn-primary btn-sm" disabled={loading || !!loadError || running || connection !== 'online' || coverage.complete} onClick={() => run()}>{loading ? 'Restoring…' : coverage.complete ? 'Analysis complete' : running ? 'Analyzing…' : job ? 'Resume analysis' : 'Analyze volume'}</ScanButton></div>
     <p role="status"><strong>{status}</strong>{job ? ` · ${coverage.completed}/${count} slices analyzed` : ''}</p>
     {!!reads.flatMap(read=>read.analysis?.findings??[]).filter(f=>f.validationIssues?.length).length && <p className="volume-review-note">Some model claims failed source-consistency checks and are withheld from overlays and reports. Review the flagged findings below.</p>}
     {job && <progress aria-label="Volume analysis coverage" max={count} value={coverage.completed} style={{ width: '100%', accentColor: 'var(--accent)' }} />}
     {job && !coverage.complete && <p className="volume-review-note">Incomplete coverage: {count - coverage.completed} slices still need a complete response.</p>}
-    {running && <><p role="status">{job?.progress}</p><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><button className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</button></>}
+    {running && <><p role="status">{job?.progress}</p><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><ScanButton className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</ScanButton></>}
     {!running && job && <p>Elapsed {duration(elapsed)} · {coverage.complete ? 'Review findings before clinical use.' : 'Resume retries failed or incomplete slices.'}</p>}
     <details className="volume-analysis-method"><summary>Analysis scope &amp; storage</summary>
       <p>{count} acquired {plane} slices, analyzed independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>
       <p>{snapshot?.model || settings.model} · Results are saved in this browser. Analysis continues during in-app navigation; closing or refreshing pauses it at the last saved slice.</p>
     </details>
-    {connection !== 'online' && !running && <button className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</button>}
+    {connection !== 'online' && !running && <ScanButton className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</ScanButton>}
     {loadError && <p role="alert">{loadError}</p>}
     {job?.error && <p role="alert">{job.error}</p>}
     {job?.storageError && <p role="alert">{job.storageError}</p>}
     {changed && <p>View or model changed. Resume keeps the original model, endpoint and window. Restart uses current settings.</p>}
-    {!running && job && <button className="btn btn-sm" onClick={() => { if (window.confirm('Start a new review of every slice with the current settings? The previous saved review will be retained in browser storage.')) run(true) }} disabled={connection !== 'online'}>Restart volume analysis</button>}
+    {!running && job && <ScanButton className="btn btn-sm" onClick={() => { if (window.confirm('Start a new review of every slice with the current settings? The previous saved review will be retained in browser storage.')) run(true) }} disabled={connection !== 'online'}>Restart volume analysis</ScanButton>}
     {reads.length > 0 && <div className="volume-analysis-result">
       <details><summary>Raw slice results ({reads.length})</summary>{reads.map((r) => <article key={r.index}>
-        <button className="btn btn-sm" onClick={() => onNavigate(plane, r.index, snapshot!)}>View {plane} slice {r.index + 1}</button>
+        <ScanButton className="btn btn-sm" onClick={() => onNavigate(plane, r.index, snapshot!)}>View {plane} slice {r.index + 1}</ScanButton>
         {r.error ? <p role="alert">{r.error}</p> : <p>{r.analysis?.impression || 'No impression returned'}</p>}
         {r.analysis?.truncated && <p>Incomplete response. Resume analysis to retry this slice.</p>}
       </article>)}</details>

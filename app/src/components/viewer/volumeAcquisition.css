@@ -1,0 +1,7 @@
+.volume-acquisition form { display: grid; gap: var(--sp-3); }
+.volume-acquisition h3 { font-size: var(--text-headline); margin: 0; }
+.volume-acquisition p { margin: 0; line-height: 1.5; color: var(--label-2); }
+.volume-acquisition label { display: grid; gap: var(--sp-1); font-size: var(--text-body); }
+.volume-acquisition input, .volume-acquisition select { width: 100%; padding: var(--sp-2); }
+.volume-acquisition .volume-acquisition-check { display: flex; align-items: flex-start; gap: var(--sp-2); }
+.volume-acquisition .volume-acquisition-check input { width: 18px; height: 18px; min-height: 18px; flex-shrink: 0; margin-top: 2px; }

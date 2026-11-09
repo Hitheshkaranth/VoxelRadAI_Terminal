@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { Hand, Maximize, Minus, Plus, SlidersHorizontal } from 'lucide-react'
 
 type DisplayWindow = { center: number; width: number }
@@ -40,14 +41,14 @@ export function VolumeDisplayControls({ center, width, range, initialWindow, mod
   return <div className="volume-display-controls">
     <div className="volume-display-row">
       <div className="volume-interaction-tools" role="group" aria-label="Image drag tool">
-        <button type="button" className="btn btn-sm" aria-pressed={activeTool === 'pan'} onClick={() => onToolChange('pan')} title="Drag to pan the image"><Hand /> Pan</button>
-        <button type="button" className="btn btn-sm" aria-pressed={activeTool === 'window'} onClick={() => onToolChange('window')} title="Drag horizontally for width and vertically for level"><SlidersHorizontal /> Window</button>
+        <ScanButton type="button" className="btn btn-sm" aria-pressed={activeTool === 'pan'} onClick={() => onToolChange('pan')} title="Drag to pan the image"><Hand /> Pan</ScanButton>
+        <ScanButton type="button" className="btn btn-sm" aria-pressed={activeTool === 'window'} onClick={() => onToolChange('window')} title="Drag horizontally for width and vertically for level"><SlidersHorizontal /> Window</ScanButton>
       </div>
       <div className="volume-zoom-tools" role="group" aria-label="Image scale">
-        <button type="button" className="icon-btn" aria-label="Zoom out" onClick={onZoomOut}><Minus /></button>
-        <button type="button" className="icon-btn" aria-label="Zoom in" onClick={onZoomIn}><Plus /></button>
-        <button type="button" className="btn btn-sm" onClick={onFit}><Maximize /> Fit full image</button>
-        {onFitContent && <button type="button" className="btn btn-sm" onClick={onFitContent} title="Zoom to visible pixels at the current window; source image remains unchanged">Fit visible content</button>}
+        <ScanButton type="button" className="icon-btn" aria-label="Zoom out" onClick={onZoomOut}><Minus /></ScanButton>
+        <ScanButton type="button" className="icon-btn" aria-label="Zoom in" onClick={onZoomIn}><Plus /></ScanButton>
+        <ScanButton type="button" className="btn btn-sm" onClick={onFit}><Maximize /> Fit full image</ScanButton>
+        {onFitContent && <ScanButton type="button" className="btn btn-sm" onClick={onFitContent} title="Zoom to visible pixels at the current window; source image remains unchanged">Fit visible content</ScanButton>}
       </div>
     </div>
     <div className="volume-display-row volume-window-row">
@@ -62,7 +63,7 @@ export function VolumeDisplayControls({ center, width, range, initialWindow, mod
       </label>
       <label>Width <input type="number" aria-label="Display window" min={1} step="any" value={width} onChange={(event) => changeNumber('width', event.target.value)} /></label>
       <label>Level <input type="number" aria-label="Display level" step="any" value={center} onChange={(event) => changeNumber('center', event.target.value)} /></label>
-      <button type="button" className="btn btn-sm" onClick={() => onWindowChange(initialWindow ?? fullRange)}>Reset window</button>
+      <ScanButton type="button" className="btn btn-sm" onClick={() => onWindowChange(initialWindow ?? fullRange)}>Reset window</ScanButton>
     </div>
     <span className="volume-calibration-note">{modality.toUpperCase() === 'CT' ? 'Calibration unknown · Values are not verified HU' : 'Uncalibrated display values'}</span>
     <span className="volume-display-note">Display values{activeTool === 'window' ? ' · Drag left/right for width, up/down for level' : ' · Shift-drag or right-drag to window'}</span>

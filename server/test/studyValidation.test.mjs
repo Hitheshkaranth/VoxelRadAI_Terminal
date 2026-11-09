@@ -11,4 +11,7 @@ test('study upload rejects malformed nested payloads', () => {
   assert.equal(validStudy({...valid,images:[image]}),true)
   assert.equal(validStudy({...valid,images:[{...image,dataUrl:'https://tracker.invalid'}]}),false)
   assert.equal(validStudy({...valid,images:[{...image,analysis:{findings:null}}]}),false)
+  assert.equal(validStudy({...valid,images:[{...image,sourceFrameCount:2}]}),true)
+  assert.equal(validStudy({...valid,images:[{...image,sourceFrameCount:2,sourceFrameIndex:1,sourceSeriesUid:'1.2.3',sourceSopInstanceUid:'1.2.4'}]}),true)
+  for (const fields of [{sourceFrameIndex:0},{sourceFrameCount:0},{sourceFrameCount:501},{sourceFrameCount:2,sourceFrameIndex:2},{sourceFrameCount:2,sourceFrameIndex:-1},{sourceSeriesUid:'patient-text'},{sourceSopInstanceUid:'1.'.repeat(33)}]) assert.equal(validStudy({...valid,images:[{...image,...fields}]}),false)
 })

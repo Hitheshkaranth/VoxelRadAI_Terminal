@@ -1,3 +1,4 @@
+import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. PatientSheet — modal form for patient demographic + clinical details, live-saved.
 import { Children, cloneElement, isValidElement, useId, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
@@ -22,7 +23,7 @@ export function PatientSheet() {
           Create or open a study first, then add patient details.
         </p>
         <div className="sh-sheet-foot">
-          <button type="button" className="btn btn-primary" onClick={() => {
+          <ShellButton type="button" className="btn btn-primary" onClick={() => {
             const id = useApp.getState().createStudy()
             useApp.getState().selectStudy(id)
             openSheet(null)
@@ -30,7 +31,7 @@ export function PatientSheet() {
             setInspectorCollapsed(false)
           }}>
             New study
-          </button>
+          </ShellButton>
         </div>
       </Sheet>
     )
@@ -88,7 +89,7 @@ export function PatientSheet() {
           <Field label="Sex">
             <div className="segmented" role="tablist" aria-label="Sex">
               {(['Male', 'Female', 'Other'] as const).map((s) => (
-                <button
+                <ShellButton
                   key={s}
                   type="button"
                   role="tab"
@@ -96,7 +97,7 @@ export function PatientSheet() {
                   onClick={() => change({ sex: s })}
                 >
                   {s}
-                </button>
+                </ShellButton>
               ))}
             </div>
           </Field>
@@ -143,9 +144,9 @@ export function PatientSheet() {
       </div>
 
       <div className="sh-sheet-foot">
-        <button type="button" className="btn btn-primary" onClick={() => openSheet(null)}>
+        <ShellButton type="button" className="btn btn-primary" onClick={() => openSheet(null)}>
           Done
-        </button>
+        </ShellButton>
       </div>
     </Sheet>
   )

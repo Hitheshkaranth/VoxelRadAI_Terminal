@@ -7,7 +7,7 @@ export function ImageContext() {
   const dicom = image.sourceFrameCount !== undefined
   return <div className="image-context">
     <span className="image-context-name" title={image.name}>{image.name}</span>
-    {dicom ? <span className="image-context-type">{image.sourceModality || 'DICOM'} · {image.sourceFrameCount! > 1 ? `Frame 1/${image.sourceFrameCount}` : 'Single-frame preview'}</span> :
+    {dicom ? <span className="image-context-type">{image.sourceModality || 'DICOM'} · {image.sourceFrameCount! > 1 ? `Frame ${(image.sourceFrameIndex ?? 0) + 1}/${image.sourceFrameCount}` : 'Single-frame preview'}</span> :
       <label className="image-type-label">Image type
         <select aria-label="Image type" value={image.sourceModality || ''}
           disabled={!!image.analysis || image.status === 'analyzing' || !!study.report}

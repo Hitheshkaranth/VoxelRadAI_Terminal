@@ -1,0 +1,13 @@
+# Imaging swarm follow-up
+
+Implemented explicit volume acquisition editing (modality, body region, MRI sequence, contrast and CT HU confirmation), without inferring metadata from filenames. Saved context is attached immutably to the decoded volume and included in the content/geometry fingerprint. Metadata edits pause the old volume job; the parent integration remounts VolumeViewer using the acquisition signature. New jobs snapshot metadata, include it in request labels, and pass MRI sequence to source-consistency checks. Skanda CT input now refuses unconfirmed HU instead of treating arbitrary stored intensities as HU.
+
+Conventional monochrome uncompressed multiframe DICOM intake now imports every frame, retaining frame numbering. Truncated stacks, invalid/out-of-range frame indices, oversized stacks, unsupported photometric interpretations and enhanced functional groups are explicitly rejected. This is image-stack intake, not geometric DICOM-series reconstruction, PACS connectivity, or enhanced/compressed DICOM support.
+
+Viewer buttons now share ScanButton/shadcn primitives. Volume review tabs support Arrow/Home/End navigation and tabpanel relationships. Expanded 3D restores focus. X-ray fit reserves space for the on-image control docks so source pixels do not lie underneath the top toolbar at fit.
+
+Validation: TypeScript no-emit check passed. New DICOM-frame and acquisition-identity tests passed, along with existing modality, Skanda-slice and volume-job-identity tests. Parent owns browser verification and live-service testing. Acquisition context exists on the open source and saved job snapshot; generic source metadata sidecar import/export and complete DICOM-series/PACS workflows remain outside this change. Clinical model correctness cannot be established by these unit checks.
+
+Follow-up browser finding: mobile X-ray toolbar now remains one horizontally scrollable row with visible scrollbar and 44px targets. Duplicate source/patient HUD is hidden on mobile because the context controls above the canvas already expose it. Acquisition popover has an accessible dialog name.
+
+DICOM source frame index, Series Instance UID and SOP Instance UID are now retained and validated on restore; frame display uses the real index. UIDs are not rendered or logged. Imports are bounded to 500 frames and 64 million decoded pixels; hosted study byte limits still apply independently. Resume checks verify the requested volume fingerprint/modality and compare saved acquisition context, with an acceptance-matrix regression test. Saving metadata also verifies that the same source remains open after asynchronous fingerprinting.

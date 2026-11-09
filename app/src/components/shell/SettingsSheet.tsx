@@ -1,3 +1,6 @@
+import { ShellButton } from './ShellButton'
+import { ChangePasswordForm } from './AccountSecurity'
+import packageInfo from '../../../package.json'
 // OWNER: Agent 5. SettingsSheet — Model / Connection / Report / Appearance / Data / About.
 import { Children, cloneElement, isValidElement, useId, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, RotateCcw, Trash2 } from 'lucide-react'
@@ -14,7 +17,7 @@ import { logout, SERVER_MODE, useSession } from '../../lib/session'
 import type { ConnectionState, Settings } from '../../types'
 import './shell.css'
 
-const VERSION = 'v1.0.0'
+const VERSION = `v${packageInfo.version}`
 
 const CONNECTION_LABEL: Record<ConnectionState, string> = {
   unknown: 'Not connected',
@@ -39,20 +42,19 @@ export function SettingsSheet() {
 
   const change = (patch: Partial<Settings>) => updateSettings(patch)
 
-  if (analyticsOpen) return <AdminPanel open onClose={() => setAnalyticsOpen(false)} />
-  if (cloudOpen) return <CloudStudiesSheet open onClose={() => setCloudOpen(false)} />
-
   return (
+    <>
     <Sheet open={open} onClose={() => openSheet(null)} title="Settings" subtitle="Model, connection, and appearance.">
       <Section title={SERVER_MODE ? 'Account & workspace' : 'Local workspace'} desc={SERVER_MODE ? `Signed in as ${user?.email ?? ''}. Image studies remain in this browser until explicitly uploaded.` : 'No sign-in is required in local mode. Studies are stored in this browser, without account access protection or cloud backup.'}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
-          <button className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</button>
-          {SERVER_MODE && <button className="btn" onClick={() => setCloudOpen(true)}>Saved studies</button>}
-          {SERVER_MODE && <button className="btn" disabled={signingOut} onClick={async () => {
+          <ShellButton className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</ShellButton>
+          {SERVER_MODE && <ShellButton className="btn" onClick={() => setCloudOpen(true)}>Saved studies</ShellButton>}
+          {SERVER_MODE && <ShellButton className="btn" disabled={signingOut} onClick={async () => {
             setSigningOut(true)
             try { await logout() } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
-          }}>{signingOut ? 'Signing out…' : 'Sign out'}</button>}
+          }}>{signingOut ? 'Signing out…' : 'Sign out'}</ShellButton>}
         </div>
+        {SERVER_MODE && <ChangePasswordForm />}
       </Section>
       <Section title="Model" desc={`${settings.model} served through LM Studio.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
@@ -119,13 +121,13 @@ export function SettingsSheet() {
         <div className="sh-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
           <Field label="Panel appearance">
             <div className="segmented" role="group" aria-label="Panel appearance">
-              {(['glass', 'solid'] as const).map((material) => <button key={material} type="button" aria-pressed={(settings.material ?? 'glass') === material} onClick={() => change({ material })}>{material === 'glass' ? 'Glass' : 'Solid'}</button>)}
+              {(['glass', 'solid'] as const).map((material) => <ShellButton key={material} type="button" aria-pressed={(settings.material ?? 'glass') === material} onClick={() => change({ material })}>{material === 'glass' ? 'Glass' : 'Solid'}</ShellButton>)}
             </div>
           </Field>
           <Field label="Theme">
             <div className="segmented" role="tablist" aria-label="Theme">
               {(['system', 'light', 'dark'] as const).map((t) => (
-                <button
+                <ShellButton
                   key={t}
                   type="button"
                   role="tab"
@@ -133,7 +135,7 @@ export function SettingsSheet() {
                   onClick={() => change({ theme: t })}
                 >
                   {t === 'system' ? 'System' : t[0].toUpperCase() + t.slice(1)}
-                </button>
+                </ShellButton>
               ))}
             </div>
           </Field>
@@ -145,15 +147,18 @@ export function SettingsSheet() {
       <AboutSection />
 
       <div className="sh-sheet-foot">
-        <button type="button" className="btn btn-primary" onClick={() => {
+        <ShellButton type="button" className="btn btn-primary" onClick={() => {
           openSheet(null)
           setSidebarCollapsed(false)
           setInspectorCollapsed(false)
         }}>
           Done
-        </button>
+        </ShellButton>
       </div>
     </Sheet>
+    <AdminPanel open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
+    <CloudStudiesSheet open={cloudOpen} onClose={() => setCloudOpen(false)} />
+    </>
   )
 }
 
@@ -197,9 +202,9 @@ function ModelControls({ settings, change }: { settings: Settings; change: (p: P
             placeholder="medgemma-27b-it"
           />
         </Field>
-        <button type="button" className="btn btn-primary" disabled={detecting} onClick={detect} style={{ alignSelf: 'flex-end', height: '28px' }}>
+        <ShellButton type="button" className="btn btn-primary" disabled={detecting} onClick={detect} style={{ alignSelf: 'flex-end', height: '28px' }}>
           {detecting ? <Spinner /> : <RotateCcw />} Detect
-        </button>
+        </ShellButton>
       </div>
 
       {modelIds.length > 0 && (
@@ -254,9 +259,9 @@ function ConnectionControls() {
             <div className="sh-about-sub">Not tested yet.</div>
           )}
         </div>
-        <button type="button" className="btn btn-primary" disabled={testing} onClick={test} style={{ height: '28px' }}>
+        <ShellButton type="button" className="btn btn-primary" disabled={testing} onClick={test} style={{ height: '28px' }}>
           {testing ? <Spinner /> : <AlertCircle />} Test
-        </button>
+        </ShellButton>
       </div>
     </Section>
   )
@@ -344,18 +349,18 @@ function SecondReaderControls({ settings, change }: { settings: Settings; change
           <div className="sh-about-sub">Status: {mairaLabel(health)}</div>
           {message && <div className="sh-about-sub">{message}</div>}
         </div>
-        <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void refresh()}>
+        <ShellButton type="button" className="btn btn-sm" disabled={busy} onClick={() => void refresh()}>
           <RotateCcw /> Refresh
-        </button>
+        </ShellButton>
         {health?.running && !health.loaded && (
-          <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void act(mairaLoad, 'MAIRA-2 loaded.')}>
+          <ShellButton type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void act(mairaLoad, 'MAIRA-2 loaded.')}>
             {busy ? <Spinner /> : null} Load
-          </button>
+          </ShellButton>
         )}
         {health?.loaded && (
-          <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void act(mairaUnload, 'MAIRA-2 unloaded.')}>
+          <ShellButton type="button" className="btn btn-sm" disabled={busy} onClick={() => void act(mairaUnload, 'MAIRA-2 unloaded.')}>
             {busy ? <Spinner /> : null} Unload
-          </button>
+          </ShellButton>
         )}
       </div>
       <div className="sh-settings-row">
@@ -435,9 +440,9 @@ function DataControls() {
           <div className="sh-delete-note">
             Permanently delete all {studies.length} study{studies.length === 1 ? '' : 's'} and clear IndexedDB?
           </div>
-          <button type="button" className="btn btn-sm btn-destructive" disabled={deleting} onClick={deleteAll}>
+          <ShellButton type="button" className="btn btn-sm btn-destructive" disabled={deleting} onClick={deleteAll}>
             {deleting ? <Spinner /> : null} Delete all
-          </button>
+          </ShellButton>
         </div>
       )}
     </Section>

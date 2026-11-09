@@ -8,7 +8,7 @@
 
 Open a scan. Explore the anatomy. Review model candidates against their source. Prepare a report.
 
-[Download beta](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.1) · [Quick start](#quick-start) · [Workspace](#workspace) · [Deployment](docs/deployment.md) · [Model evidence](docs/reading-with-skanda.md)
+[Download beta](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.2) · [Quick start](#quick-start) · [Workspace](#workspace) · [Deployment](docs/deployment.md) · [Model evidence](docs/reading-with-skanda.md)
 
 </div>
 
@@ -18,7 +18,7 @@ Open a scan. Explore the anatomy. Review model candidates against their source. 
 
 ## What's in this release
 
-**v0.2.0-beta.1** gives scans more of the browser: a full-width canvas, floating control docks, optional study/review panels, and equal-width MRI/CT plane views. Buttons, popovers and tooltips use editable shadcn components backed by Radix. Loading feedback uses Thinking Orbs from the Libraries.dev collection.
+**v0.2.0-beta.2** gives scans more of the browser: a full-width canvas, floating control docks, optional study/review panels, and equal-width MRI/CT plane views. Buttons, popovers and tooltips use editable shadcn components backed by Radix. Loading feedback uses Thinking Orbs from the Libraries.dev collection.
 
 | Capability | Available now |
 | --- | --- |
@@ -70,7 +70,7 @@ Open **http://localhost:8088**. Compose builds authenticated server mode. Follow
 
 ### Release packages
 
-Get [v0.2.0-beta.1](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.1):
+Get [v0.2.0-beta.2](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.2):
 
 - **Source ZIP:** application, API, Dockerfiles and Compose configuration.
 - **Web ZIP:** prebuilt local-only frontend. Serve it over HTTP; opening `index.html` directly is unsupported. API/model proxy services must be configured separately.
@@ -79,6 +79,14 @@ Get [v0.2.0-beta.1](https://github.com/Hitheshkaranth/skanda-radiology/releases/
 The beta packages contain the tagged application. The main branch may include newer documentation and packaging-helper fixes.
 
 ## Workspace
+
+### X-ray on desktop and mobile
+
+![Public chest radiograph in the updated image workspace](docs/screenshots/v0.2.0/xray-workspace.png)
+
+<img src="docs/screenshots/v0.2.0/xray-mobile.png" alt="X-ray viewer at a 400-pixel mobile viewport, with scrollable tools and dedicated navigation" width="320">
+
+Public ChestX-Det test image 36199, imported through the file picker. Image-type selection, brightness, zoom, fit, reset and mobile navigation were checked; no inference was run. [Follow-up verification](docs/validation/2026-11-10-swarm-followup.md).
 
 ### A larger scan canvas
 
@@ -104,7 +112,7 @@ Open **Studies** to search and filter the worklist, create an image study, or lo
 
 **CT/MRI:** Open a sample or scalar NRRD volume, choose the plane and display window, then open Review. Analyze an acquired-slice job or explicitly choose current-slice analysis. Inspect coverage and failures, return to each candidate's source, then draft from accepted findings. A reviewed volume draft remains unsigned and is distinct from image-study signing.
 
-Volume analysis sends acquired slices as individual requests. It is not native whole-volume inference. Imported NRRD acquisition metadata remains limited; confirm modality and sequence assumptions before interpreting model output.
+Volume analysis sends acquired slices as individual requests. It is not native whole-volume inference. Use **Acquisition** to explicitly enter modality, region, sequence and contrast for an imported NRRD. CT HU confirmation requires a calibrated source; checking the option does not calibrate voxel values. Changing context invalidates incompatible analysis/resume identities.
 
 | Volume shortcut | Action |
 | --- | --- |
@@ -146,9 +154,11 @@ Inference sends images to the configured model host. Optional TorchXRayVision an
 
 ## Evaluation and limitations
 
-The release build and application tests pass; all nine server tests pass. Browser inspection covered CT/MRI views, display popovers and responsive CT controls. [Workspace verification](docs/validation/2026-11-10-scan-workspace.md) and [platform QC](docs/validation/2026-11-10-platform-qc.md) separate completed checks from gaps.
+The release build and application tests pass; all ten server tests pass. Browser inspection covered CT/MRI views, display popovers and responsive CT controls. [Workspace verification](docs/validation/2026-11-10-scan-workspace.md) and [platform QC](docs/validation/2026-11-10-platform-qc.md) separate completed checks from gaps.
 
-**Still outstanding for this beta:** completed X-ray visual import verification, comprehensive keyboard/accessibility and physical-device testing, and live inference verification with the current interface. The model endpoint was offline during the screenshot session.
+**Swarm follow-up:** X-ray visual import/display verification is complete. Acquisition metadata editing, multi-frame DICOM intake, keyboard/modal improvements, account recovery, process metrics and transport failure checks are implemented. See the [swarm verification record](docs/validation/2026-11-10-swarm-followup.md).
+
+**Still outstanding:** comprehensive accessibility/physical-device testing, live inference, geometric DICOM-series/PACS integration, SSO/MFA, full-volume hosted storage, multi-tenant isolation and durable server inference jobs. The user confirmed no inference engine is currently set up. The [deployment capability manifest](server/capabilities.json) distinguishes available functionality from these integrations.
 
 Historical labeled tests exposed substantial localization errors: five of six positive-slice GGUF boxes had zero reference overlap. The bf16 Skanda rerun improved selected MRI outlines, while CT tumour outlines remained poor. These small, selected-slice evaluations are not full-volume or clinical validation.
 

@@ -195,8 +195,12 @@
   .scan-content .volume-plane-view > footer { display: none; }
   .sh-app[data-mobile-view='findings'] .scan-content .volume-locator-column, .sh-app[data-mobile-view='report'] .scan-content .volume-locator-column { display: flex; overflow: auto; }
   .sh-app[data-mobile-view='viewer'] .scan-content .volume-locator-column:has(.volume-spatial-panel) { position: absolute; inset: 60px 8px 108px; z-index: 8; display: flex; background: var(--bg-content); border-radius: 10px; overflow: auto; }
-  .scan-content .vw-workspace > .vw-toolbox { justify-content: flex-start; top: 44px; overflow-x: auto; }
-  .scan-content .vw-workspace .vw-info { top: 104px !important; font-size: 10px; }
+  .scan-content .vw-workspace > .vw-toolbox { justify-content: flex-start; flex-wrap: nowrap; top: 44px; width: calc(100% - 24px); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--scan-muted) var(--scan-surface); }
+  .scan-content .vw-workspace > .vw-toolbox > * { flex-shrink: 0; }
+  .scan-content .vw-workspace > .vw-toolbox::-webkit-scrollbar { display: block; height: 4px; }
+  .scan-content .vw-workspace > .vw-toolbox::-webkit-scrollbar-thumb { background: var(--scan-muted); border-radius: 2px; }
+  /* Patient context and the source filename already precede the canvas on mobile. */
+  .scan-content .vw-workspace .vw-info { display: none; }
   .scan-content .image-series-tray { bottom: 68px; }
   .scan-content .vw-workspace > .vw-evidence { top: auto; bottom: 118px; max-height: 25%; width: min(280px,60%); }
   .scan-image-surface .image-context-name { max-width: 100px; }

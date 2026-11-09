@@ -122,8 +122,13 @@ export interface StudyImage {
   /** Source metadata from DICOM, or an explicit user selection for raster imports. */
   sourceModality?: string
   sourceBodyPart?: string
-  /** DICOM frame count; intake currently displays only the first frame. */
+  /** Number of frames in the original DICOM object. */
   sourceFrameCount?: number
+  /** Zero-based frame in the original DICOM object. Absent for legacy first-frame imports. */
+  sourceFrameIndex?: number
+  /** Actual DICOM source identities for grouping/traceability, never inferred from filenames. */
+  sourceSeriesUid?: string
+  sourceSopInstanceUid?: string
   id: string
   name: string
   mime: string

@@ -1,3 +1,4 @@
+import { ScanButton } from './ScanButton'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { projectRegion, type VolumeRegion } from '../../lib/volumeAnnotations'
@@ -253,7 +254,7 @@ export function VolumeRaycast({ hideOverlays = false, overlayOpacity = .8, regio
   const stopDrag = () => { pointer.current = null }
   return (
     <section className="vr-volume" aria-label="3D volume reconstruction">
-      <header className="vr-header"><h3>3D volume</h3><button type="button" aria-label="Reset 3D orientation" title="Reset orientation" onClick={() => setRotation({ yaw: 0.55, pitch: 0.3 })}><RotateCcw /></button></header>
+      <header className="vr-header"><h3>3D volume</h3><ScanButton type="button" aria-label="Reset 3D orientation" title="Reset orientation" onClick={() => setRotation({ yaw: 0.55, pitch: 0.3 })}><RotateCcw /></ScanButton></header>
       <div className="vr-stage">
         <canvas ref={canvas} role="img" aria-label={`3D reconstruction from all ${volume.dimensions[2]} source slices. Selected acquired axis ${axis + 1}, slice ${index + 1}. Tap anatomy to navigate; drag to rotate.`}
           onPointerDown={(event) => { if (event.button !== 0) return; event.currentTarget.setPointerCapture(event.pointerId); pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false, ...rotation } }}
@@ -284,24 +285,24 @@ export function VolumeRaycast({ hideOverlays = false, overlayOpacity = .8, regio
         {status === 'ready' && <span className="vr-hint">Tap anatomy to select slice · Drag to rotate</span>}
       </div>
       {onIndexChange && <div className="vr-slice-navigation" role="group" aria-label="Navigate slices in 3D">
-        <button type="button" className="btn btn-sm" aria-label="Previous slice in 3D" disabled={index <= 0} onClick={() => onIndexChange(Math.max(0, index - 1))}>Previous</button>
+        <ScanButton type="button" className="btn btn-sm" aria-label="Previous slice in 3D" disabled={index <= 0} onClick={() => onIndexChange(Math.max(0, index - 1))}>Previous</ScanButton>
         <label>Slice {index + 1} / {volume.dimensions[axis]}<input type="range" aria-label="3D slice position" min={0} max={volume.dimensions[axis] - 1} value={index} onChange={(event) => onIndexChange(Number(event.target.value))} /></label>
-        <button type="button" className="btn btn-sm" aria-label="Next slice in 3D" disabled={index >= volume.dimensions[axis] - 1} onClick={() => onIndexChange(Math.min(volume.dimensions[axis] - 1, index + 1))}>Next</button>
+        <ScanButton type="button" className="btn btn-sm" aria-label="Next slice in 3D" disabled={index >= volume.dimensions[axis] - 1} onClick={() => onIndexChange(Math.min(volume.dimensions[axis] - 1, index + 1))}>Next</ScanButton>
       </div>}
       <details className="vr-controls" open={toolsOpen} onToggle={(event) => setToolsOpen(event.currentTarget.open)}><summary>3D display controls</summary>{regions.length > 0 && <p className="vr-resolution">Finding boxes are visible through the volume. Depth shows the analyzed slice, not lesion thickness.</p>}
         <div className="vr-presets" role="group" aria-label="3D display presets">
-          {bone && <button type="button" onClick={() => { setThreshold(250); setOpacity(0.3) }}>CT bone</button>}
-          <button type="button" onClick={() => { setThreshold(bone ? -200 : volume.range[0] + span * 0.12); setOpacity(0.12) }}>Tissue</button>
-          <button type="button" onClick={() => { setThreshold(initialThreshold); setOpacity(0.08) }}>Transparent</button>
+          {bone && <ScanButton type="button" onClick={() => { setThreshold(250); setOpacity(0.3) }}>CT bone</ScanButton>}
+          <ScanButton type="button" onClick={() => { setThreshold(bone ? -200 : volume.range[0] + span * 0.12); setOpacity(0.12) }}>Tissue</ScanButton>
+          <ScanButton type="button" onClick={() => { setThreshold(initialThreshold); setOpacity(0.08) }}>Transparent</ScanButton>
         </div>
         <label className="vr-field"><span>Intensity threshold <output>{Math.round(threshold)}</output></span><input type="range" min={volume.range[0]} max={volume.range[1]} step={Math.max(1, span / 1000)} value={threshold} onChange={(event) => setThreshold(Number(event.target.value))} /></label>
         <label className="vr-field"><span>Opacity <output>{Math.round(opacity * 100)}%</output></span><input type="range" min="0.02" max="1" step="0.01" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} /></label>
         <label className="vr-check"><input type="checkbox" checked={showPlane} onChange={(event) => setShowPlane(event.target.checked)} /> Show current slice inside volume</label>
         <div className="vr-rotation" role="group" aria-label="Rotate 3D volume">
-          <button type="button" onClick={() => setRotation((r) => ({ ...r, yaw: r.yaw - 0.3 }))}>Left</button>
-          <button type="button" onClick={() => setRotation((r) => ({ ...r, yaw: r.yaw + 0.3 }))}>Right</button>
-          <button type="button" onClick={() => setRotation((r) => ({ ...r, pitch: Math.max(-1.3, r.pitch - 0.2) }))}>Up</button>
-          <button type="button" onClick={() => setRotation((r) => ({ ...r, pitch: Math.min(1.3, r.pitch + 0.2) }))}>Down</button>
+          <ScanButton type="button" onClick={() => setRotation((r) => ({ ...r, yaw: r.yaw - 0.3 }))}>Left</ScanButton>
+          <ScanButton type="button" onClick={() => setRotation((r) => ({ ...r, yaw: r.yaw + 0.3 }))}>Right</ScanButton>
+          <ScanButton type="button" onClick={() => setRotation((r) => ({ ...r, pitch: Math.max(-1.3, r.pitch - 0.2) }))}>Up</ScanButton>
+          <ScanButton type="button" onClick={() => setRotation((r) => ({ ...r, pitch: Math.min(1.3, r.pitch + 0.2) }))}>Down</ScanButton>
         </div>
         {displaySize && <p className="vr-resolution">All source slices · {displaySize.join(' × ')} display voxels · 8-bit intensity</p>}
       </details>

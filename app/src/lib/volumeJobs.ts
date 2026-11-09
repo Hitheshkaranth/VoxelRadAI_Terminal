@@ -1,3 +1,6 @@
+import { acquisitionLabel, type VolumeAcquisition } from './volumeAcquisition'
+import { assertVolumeResumeContext } from './volumeResume'
+import { volumeFingerprint } from './volumeJobIdentity'
 import { validateVolumeAnalysis } from './volumeValidation'
 import { workspaceGet as get, workspaceSet as set } from './workspaceStorage'
 import { analyzeImage, isSkandaModel } from './medgemma'
@@ -8,7 +11,7 @@ import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type Vol
 import type { PatientInfo, Settings } from '../types'
 import { uid } from '../store'
 
-export interface VolumeJobSnapshot { center: number; width: number; model: string; settings: Settings }
+export interface VolumeJobSnapshot { center: number; width: number; model: string; settings: Settings; acquisition?: VolumeAcquisition }
 export interface VolumeJob {
   version: 1; id: string; identity: string; title: string; modality: string; plane: VolumePlane; count: number
   snapshot: VolumeJobSnapshot; reads: SliceRead[]; status: 'running' | 'paused' | 'complete' | 'error'
@@ -80,13 +83,18 @@ export function pauseVolumeJob(identity: string) {
 }
 export async function startVolumeJob(opts: { identity: string; volume: Volume; title: string; modality: string; settings: Settings; center: number; width: number; restart?: boolean }): Promise<void> {
   if (controllers.has(opts.identity)) return
+  const expectedIdentity = `${await volumeFingerprint(opts.volume)}:${opts.modality.toUpperCase()}`
+  if (opts.identity !== expectedIdentity) throw new Error('The review identity does not match the loaded volume and acquisition details. Reopen the source before analysis.')
+  // Fingerprinting is asynchronous; recheck the single-job guard after it resolves.
+  if (controllers.has(opts.identity)) return
   const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
   const plane = planes.find((p) => getSliceGeometry(opts.volume, p).axis === 2)!
   const previous = records.get(opts.identity)
+  if (previous && !opts.restart) assertVolumeResumeContext(previous, { identity: opts.identity, modality: opts.modality, acquisition: opts.volume.acquisition })
   const now = Date.now()
   const job: VolumeJob = previous && !opts.restart ? { ...previous, status: 'running', runStartedAt: now, progress: '', error: undefined, storageError: undefined } : {
     version: 1, id: uid(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count: opts.volume.dimensions[2],
-    snapshot: { center: opts.center, width: opts.width, model: opts.settings.model, settings: structuredClone(opts.settings) },
+    snapshot: { center: opts.center, width: opts.width, model: opts.settings.model, settings: structuredClone(opts.settings), acquisition: opts.volume.acquisition ? structuredClone(opts.volume.acquisition) : undefined },
     reads: [], status: 'running', progress: '', elapsedMs: 0, runStartedAt: now, updatedAt: now,
   }
   const controller = new AbortController()
@@ -119,11 +127,11 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         canvas.width = Math.max(1, Math.round(aspect >= 1 ? longEdge : longEdge * aspect))
         canvas.height = Math.max(1, Math.round(aspect >= 1 ? longEdge / aspect : longEdge))
         canvas.getContext('2d')!.drawImage(raw, 0, 0, canvas.width, canvas.height)
-        const label = `${job.title} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
+        const label = `${job.title}${job.snapshot.acquisition ? ` · ${acquisitionLabel(job.snapshot.acquisition)}` : ''} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
         let lastProgress = 0
         let skanda: SkandaSliceInput | undefined
         if (isSkandaModel(job.snapshot.settings.model)) {
-          const built = skandaSliceInput(opts.volume, job.plane, index, { modality: job.modality, title: job.title }, skandaCache)
+          const built = skandaSliceInput(opts.volume, job.plane, index, { ...job.snapshot.acquisition, modality: job.modality, title: job.title }, skandaCache)
           if (!built.input) throw new Error(built.reason ?? 'Skanda cannot read this slice.')
           skanda = built.input
         }
@@ -131,7 +139,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
           image: { id: uid(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
           onProgress: (text) => { if (current() && Date.now() - lastProgress >= 200) { lastProgress = Date.now(); patch({ progress: `Slice ${index + 1}/${job.count} · ${text}` }) } },
         })
-        return validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis)
+        return validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis, { sequence: job.snapshot.acquisition?.sequence })
       },
     })
     if (current()) {
@@ -187,7 +195,7 @@ export async function removeVolumeFindingGroup(identity: string, jobId: string, 
 export async function auditVolumeJob(identity: string, volume: Volume): Promise<VolumeJob | null> {
   const job = await loadVolumeJob(identity)
   if (!job) return null
-  const reads = job.reads.map(read => ({...read, analysis: read.analysis ? validateVolumeAnalysis(volume,job.plane,read.index,job.snapshot,read.analysis) : undefined}))
+  const reads = job.reads.map(read => ({...read, analysis: read.analysis ? validateVolumeAnalysis(volume,job.plane,read.index,job.snapshot,read.analysis,{ sequence: job.snapshot.acquisition?.sequence }) : undefined}))
   if (JSON.stringify(reads) === JSON.stringify(job.reads)) return job
   const next = publish({...job,reads,updatedAt:Date.now()})
   await save(next)
