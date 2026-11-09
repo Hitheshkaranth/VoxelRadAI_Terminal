@@ -7,6 +7,9 @@ import { migrate } from './migrate.mjs'
 import { validStudy } from './studyValidation.mjs'
 import { pagination } from './pagination.mjs'
 import { createOperations } from './operations.mjs'
+import { createOidcRoutes } from './oidc.mjs'
+import { createObjectStorageRouter } from './objectStorage.mjs'
+import { createDicomweb } from './dicomweb.mjs'
 
 const { Pool } = pg
 const port = Number(process.env.PORT || 8080)
@@ -49,12 +52,22 @@ async function rateLimit(key) {
   const result = await pool.query("INSERT INTO login_attempts(key_hash,attempts,resets_at) VALUES ($1,1,now()+interval '15 minutes') ON CONFLICT(key_hash) DO UPDATE SET attempts=CASE WHEN login_attempts.resets_at<now() THEN 1 ELSE login_attempts.attempts+1 END,resets_at=CASE WHEN login_attempts.resets_at<now() THEN now()+interval '15 minutes' ELSE login_attempts.resets_at END RETURNING attempts", [hashToken(key)])
   return result.rows[0].attempts > 15
 }
+const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit,
+  issueSession: async (client, user) => {
+    const token = newToken()
+    await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), user.id])
+    return sessionCookie(token, secureCookies)
+  },
+})
+const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
+const pacs = createDicomweb({ env: process.env })
 const server = http.createServer(async (req, res) => {
   const requestId = operations.begin(res)
   try {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
     if (['POST','PUT','PATCH','DELETE'].includes(req.method) && !allowedOrigin(req.headers.origin, publicOrigin)) return send(res, 403, { error: 'Request origin is not allowed' })
+    if (await oidc.route(req, res)) return
     if (path === '/api/password-recovery' && req.method === 'POST') {
       const data = await body(req)
       if (typeof data.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(data.token) || !validPassword(data.password)) return send(res, 400, { error: 'Supply a recovery token and a password of 12–256 characters.' })
@@ -119,6 +132,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
     }
     if (!user) return send(res, 401, { error: 'Sign in to continue.' })
+    if (await objectStorage.handle({ req, res, path, user })) return
+    if (await pacs.handle(req, res, user, { audit })) return
     if (path === '/api/account/password' && req.method === 'POST') {
       const data = await body(req)
       if (!validPassword(data.password) || typeof data.currentPassword !== 'string' || data.currentPassword.length > 256) return send(res, 400, { error: 'Supply your current password and a new password of 12–256 characters.' })
@@ -140,7 +155,7 @@ const server = http.createServer(async (req, res) => {
     if (path.startsWith('/api/admin/') && user.role !== 'admin') return send(res, 403, { error: 'Administrator access is required.' })
     if (path === '/api/admin/operations' && req.method === 'GET') {
       await pool.query('SELECT 1')
-      return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: false, multiTenant: false, volumeStorage: false, durableInferenceJobs: false } })
+      return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: oidc.enabled, multiTenant: false, volumeStorage: objectStorage.enabled, durableInferenceJobs: false } })
     }
     const recoveryMatch = path.match(/^\/api\/admin\/users\/([a-f0-9-]+)\/recovery$/i)
     if (recoveryMatch && UUID.test(recoveryMatch[1]) && req.method === 'POST') {
@@ -265,5 +280,5 @@ const server = http.createServer(async (req, res) => {
 server.requestTimeout = 30000
 server.headersTimeout = 15000
 server.listen(port, '0.0.0.0', () => console.log(`Skanda API listening on ${port}`))
-const cleanup = setInterval(() => { pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}); pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()').catch(() => {}) }, 3600000).unref()
+const cleanup = setInterval(() => { objectStorage.cleanupExpiredUploads().catch(() => {}); pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}); pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()').catch(() => {}) }, 3600000).unref()
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanup); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })

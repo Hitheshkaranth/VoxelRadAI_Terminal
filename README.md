@@ -4,6 +4,8 @@
 
 # Skanda Radiology
 
+On `main`: the login now includes a looping CT teaching scan with pause and reduced-motion support. Optional [Keycloak sign-in](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md), and [Orthanc imports](docs/orthanc.md) are available through `compose.integrations.yaml`. They are disabled until configured. Real-provider deployment acceptance and the latest login visual verification remain pending; the existing beta.2 downloads do not include these newer changes.
+
 **A browser workspace for X-ray, CT and MRI review.**
 
 Open a scan. Explore the anatomy. Review model candidates against their source. Prepare a report.

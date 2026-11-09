@@ -1,10 +1,12 @@
 import { ShellButton } from './ShellButton'
 import { RecoveryForm } from './AccountSecurity'
+import { OrganizationSignIn } from './OrganizationSignIn'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type FormEvent } from 'react'
-import { ArrowRight, Eye, EyeOff, LockKeyhole, ScanLine } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { login, readSession, SERVER_MODE, useSession, type SessionUser } from '../../lib/session'
 import './session.css'
 import { ThemeSwitch } from './ThemeSwitch'
+import { LoginCine } from './LoginCine'
 
 /** Children mount only after authenticated storage is configured in server mode. */
 export function SessionGate({ children, onAuthenticated }: { children: ReactNode; onAuthenticated: (user: SessionUser) => void | Promise<void> }) {
@@ -59,31 +61,25 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
   if (SERVER_MODE && state === 'ready' && !currentUser) return <SessionLayout><section className="session-card"><h1>Session ended</h1><p className="session-intro">Reload to sign in and open your workspace.</p><ShellButton className="btn btn-primary session-submit" onClick={() => window.location.reload()}>Reload workspace <ArrowRight aria-hidden="true" /></ShellButton></section></SessionLayout>
   if (state === 'ready') return children
   return <SessionLayout><section className="session-card" aria-labelledby="session-title">
-    <div className="session-form-context"><LockKeyhole size={16} aria-hidden="true" /> Organization workspace</div>
     <h1 id="session-title">{state === 'checking' ? 'Opening your workspace.' : recovering ? 'Recover your account.' : 'Back to the\nreading room.'}</h1>
     <p className="session-intro">{recovering ? 'Set a new password with an administrator-issued code.' : 'Sign in to review your studies and continue your work.'}</p>
     {state === 'checking' ? <p role="status" className="session-status">Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><ShellButton className="btn btn-primary" onClick={() => { setState('checking'); setError(''); setAttempt((value) => value + 1) }}>Try again</ShellButton></> : recovering ? <RecoveryForm onBack={() => setRecovering(false)} /> : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
-    {state === 'login' && !recovering && <details className="session-help"><summary>Need access or help signing in?</summary><p>Contact your organization administrator to request an account or a recovery code. Use the email address they registered for you.</p><ShellButton className="btn" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></details>}
+    {state === 'login' && !recovering && <><OrganizationSignIn /><details className="session-help"><summary>Need access or help signing in?</summary><p>Contact your organization administrator to request an account or a recovery code. Use the email address they registered for you.</p><ShellButton className="btn" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></details></>}
   </section></SessionLayout>
 }
 
 function SessionLayout({ children }: { children: ReactNode }) {
-  const [plane, setPlane] = useState<'axial' | 'coronal' | 'sagittal'>('sagittal')
   return <main className="session-page">
     <a className="session-skip" href="#session-access">Skip to sign in</a>
     <section className="session-visual" aria-label="Skanda imaging workspace introduction">
       <div className="session-brand"><img src="/skanda-mark.png" alt="" width="40" height="40" /><span>skanda<span className="session-brand-descriptor">Radiology</span></span></div>
-      <figure className="session-scan">
-        <img src={`/login/mr-${plane}.webp`} alt={`Public MRI head sample, ${plane} view`} width="720" height="720" fetchPriority="high" />
-        <figcaption><ScanLine size={16} aria-hidden="true" /><span>MR head <span className="session-scan-detail">/ {plane[0].toUpperCase() + plane.slice(1)} view</span></span></figcaption>
-      </figure>
-      <div className="session-visual-copy"><h2>The image<br /> comes first.</h2><p>A focused workspace for<br />X-ray, CT and MRI review.</p></div>
-      <div className="session-explorer"><div className="session-plane-controls" role="group" aria-label="Explore sample MRI planes">{(['axial', 'coronal', 'sagittal'] as const).map((view) => <ShellButton key={view} type="button" aria-pressed={plane === view} onClick={() => setPlane(view)}>{view[0].toUpperCase() + view.slice(1)}</ShellButton>)}</div><span className="session-sample-note">Public teaching sample · Slicer MRHead</span></div>
+      <LoginCine />
+      <div className="session-visual-copy"><h2>A clearer view.<br />A focused read.</h2><p>One workspace for<br />X-ray, CT and MRI.</p></div>
     </section>
     <div className="session-access" id="session-access" tabIndex={-1}>
-      <div className="session-access-top"><span>Imaging. Evidence. Review.</span><ThemeSwitch /></div>
+      <div className="session-access-top"><span>Your reading workspace</span><ThemeSwitch /></div>
       {children}
-      <footer className="session-access-footer"><span>Built around the way you read.</span><span>X-ray <i aria-hidden="true">/</i> CT <i aria-hidden="true">/</i> MRI</span></footer>
+      <footer className="session-access-footer"><span>Skanda Radiology</span><span>Imaging. Evidence. Review.</span></footer>
     </div>
   </main>
 }

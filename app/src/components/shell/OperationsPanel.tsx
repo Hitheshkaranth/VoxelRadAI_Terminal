@@ -48,4 +48,4 @@ export function OperationsPanel() {
   </section>
 }
 function Value({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div> }
-function Capability({ label, supported }: { label: string; supported: boolean }) { return <Value label={label} value={supported ? 'Supported by this server' : 'Not implemented'} /> }
+function Capability({ label, supported }: { label: string; supported: boolean }) { return <Value label={label} value={supported ? 'Enabled on this server' : 'Not enabled'} /> }

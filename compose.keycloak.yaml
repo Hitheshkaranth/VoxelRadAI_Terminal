@@ -1,0 +1,30 @@
+# Optional, loopback-only development identity provider. Not a production IdP deployment.
+# docker compose -f compose.yaml -f compose.keycloak.yaml --profile keycloak up -d keycloak
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    profiles: [keycloak]
+    command: [start-dev]
+    ports: ['127.0.0.1:8180:8080']
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-skanda-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set a unique KEYCLOAK_ADMIN_PASSWORD for the local provider}
+      KC_HOSTNAME: http://keycloak.localhost:8180
+      KC_HTTP_ENABLED: 'true'
+      KC_HEALTH_ENABLED: 'true'
+    volumes: [keycloak-dev-data:/opt/keycloak/data]
+    networks: [edge]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  api:
+    extra_hosts: ['keycloak.localhost:host-gateway']
+    environment:
+      OIDC_ENABLED: ${OIDC_ENABLED:-false}
+      OIDC_ISSUER: ${OIDC_ISSUER:-http://keycloak.localhost:8180/realms/skanda}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-skanda-web}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Keycloak}
+      OIDC_REQUIRED_ACR: ${OIDC_REQUIRED_ACR:-}
+      OIDC_ALLOW_INSECURE_LOCALHOST: ${OIDC_ALLOW_INSECURE_LOCALHOST:-false}
+volumes:
+  keycloak-dev-data:

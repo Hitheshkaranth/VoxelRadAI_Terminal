@@ -1,0 +1,28 @@
+# Optional private archive. Combine with compose.yaml. No host PACS ports are published.
+services:
+  api:
+    environment:
+      DICOMWEB_BASE_URL: http://orthanc:8042/dicom-web/
+      DICOMWEB_ALLOW_HTTP: 'true'
+      DICOMWEB_USERNAME: orthanc
+      DICOMWEB_PASSWORD: ${ORTHANC_PASSWORD:?Set a unique ORTHANC_PASSWORD}
+    networks: [pacs]
+  orthanc:
+    image: orthancteam/orthanc:26.7.0
+    restart: unless-stopped
+    environment:
+      ORTHANC_PASSWORD: ${ORTHANC_PASSWORD:?Set a unique ORTHANC_PASSWORD}
+      VERBOSE_STARTUP: 'false'
+      DICOM_WEB_PLUGIN_ENABLED: 'true'
+      ORTHANC__DICOM_WEB__ROOT: /dicom-web/
+      ORTHANC__DICOM_WEB__HOST: orthanc:8042
+      ORTHANC__AUTHENTICATION_ENABLED: 'true'
+      ORTHANC__REMOTE_ACCESS_ALLOWED: 'true'
+      ORTHANC__DICOM_SERVER_ENABLED: 'false'
+    volumes: [orthanc-data:/var/lib/orthanc/db]
+    networks: [pacs]
+    security_opt: [no-new-privileges:true]
+volumes:
+  orthanc-data:
+networks:
+  pacs: { internal: true }

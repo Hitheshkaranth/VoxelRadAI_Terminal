@@ -1,0 +1,11 @@
+# Optional private volume storage
+
+Disabled by default. Use `compose.yaml` with `compose.integrations.yaml`. Set `S3_STORAGE_ENABLED=true`, `S3_BUCKET` and `AWS_REGION` after configuring your private bucket. Credentials use the AWS SDK default credential chain; prefer a deployment role. Never commit credentials. For environment credentials, the overlay forwards AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and optional AWS_SESSION_TOKEN.
+
+Block public access, require TLS and configure encryption. The overlay defaults to AES256; for KMS set S3_SERVER_SIDE_ENCRYPTION=aws:kms and S3_KMS_KEY_ID and grant the deployment role the necessary key permissions. Grant object read/write/delete only for this application's `pending/` and `volumes/` prefixes. Configure bucket CORS for the exact application origin with POST and GET, signed request headers, and exposed ETag. Set a one-day expiration lifecycle for `pending/` objects, including noncurrent versions if versioning is enabled. Establish retention and deletion rules for finalized versions separately.
+
+In Settings, Saved volumes uploads an imported NRRD and its acquisition context. Findings and jobs are not uploaded. Upload policies bind the exact byte count and generated staging key. Finalization checks size, metadata and NRRD magic, then conditionally copies to an immutable ready key. This is not full NRRD validation. Downloads require ownership and expire after 60 seconds; already issued links remain usable until expiry. Deletion removes the current object; bucket version retention may retain previous versions.
+
+Defaults: 512 MiB per volume, 5 GiB per owner and 10 active pending reservations. Override S3_MAX_VOLUME_BYTES and S3_OWNER_QUOTA_BYTES as appropriate. Optional S3_ENDPOINT/S3_PUBLIC_ENDPOINT and S3_FORCE_PATH_STYLE support compatible services; HTTP requires explicit ALLOW_INSECURE_S3=true and is unsuitable for production traffic. Exact configured storage origins are checked by the browser.
+
+Unit tests use controlled storage and genuine SDK policy generation. Actual AWS upload/download, CORS, IAM, encryption and restore acceptance remain pending deployment configuration. Configure the pending-object lifecycle even when application cleanup runs: a previously signed upload can recreate its staging object until its policy expires.

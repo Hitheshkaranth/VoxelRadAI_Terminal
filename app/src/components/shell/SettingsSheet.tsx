@@ -1,5 +1,8 @@
 import { ShellButton } from './ShellButton'
 import { ChangePasswordForm } from './AccountSecurity'
+import { OrganizationSignIn } from './OrganizationSignIn'
+import { SavedVolumesSheet } from './SavedVolumesSheet'
+import { PacsImportSheet } from './PacsImportSheet'
 import packageInfo from '../../../package.json'
 // OWNER: Agent 5. SettingsSheet — Model / Connection / Report / Appearance / Data / About.
 import { Children, cloneElement, isValidElement, useId, useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -37,6 +40,8 @@ export function SettingsSheet() {
   const [open] = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [cloudOpen, setCloudOpen] = useState(false)
+  const [volumesOpen, setVolumesOpen] = useState(false)
+  const [pacsOpen, setPacsOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const user = useSession((state) => state.user)
 
@@ -49,12 +54,15 @@ export function SettingsSheet() {
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
           <ShellButton className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</ShellButton>
           {SERVER_MODE && <ShellButton className="btn" onClick={() => setCloudOpen(true)}>Saved studies</ShellButton>}
+          {SERVER_MODE && <ShellButton className="btn" onClick={() => setVolumesOpen(true)}>Saved volumes</ShellButton>}
+          {SERVER_MODE && user?.role === 'admin' && <ShellButton className="btn" onClick={() => setPacsOpen(true)}>Import from PACS</ShellButton>}
           {SERVER_MODE && <ShellButton className="btn" disabled={signingOut} onClick={async () => {
             setSigningOut(true)
             try { await logout() } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
           }}>{signingOut ? 'Signing out…' : 'Sign out'}</ShellButton>}
         </div>
         {SERVER_MODE && <ChangePasswordForm />}
+        {SERVER_MODE && <OrganizationSignIn account />}
       </Section>
       <Section title="Model" desc={`${settings.model} served through LM Studio.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
@@ -158,6 +166,8 @@ export function SettingsSheet() {
     </Sheet>
     <AdminPanel open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
     <CloudStudiesSheet open={cloudOpen} onClose={() => setCloudOpen(false)} />
+    <SavedVolumesSheet open={volumesOpen} onClose={() => setVolumesOpen(false)} />
+    {SERVER_MODE && user?.role === 'admin' && <PacsImportSheet open={pacsOpen} onClose={() => setPacsOpen(false)} onImported={() => { useShell.getState().closeVolume(); useShell.getState().setMobileView('viewer'); openSheet(null) }} />}
     </>
   )
 }

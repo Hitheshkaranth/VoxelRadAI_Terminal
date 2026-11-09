@@ -1,6 +1,13 @@
 {
   "deploymentScope": "single-organization-private-installation",
   "clinicalValidation": false,
+  "optionalAdapters": {
+    "keycloakOidc": "implemented-disabled-until-configured",
+    "s3VolumeStorage": "implemented-disabled-until-configured",
+    "orthancDicomweb": "administrator-instance-import-disabled-until-configured",
+    "liveProviderAcceptance": false,
+    "note": "Boolean capabilities below describe the default deployment; OIDC does not enforce MFA on local password login."
+  },
   "authentication": {
     "passwordSessions": true,
     "currentPasswordChange": true,
