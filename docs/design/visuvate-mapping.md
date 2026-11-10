@@ -68,18 +68,20 @@ The generic style inspector also flags the intentional blue gradient, framed pre
 
 ## “Our Works” becomes “Your workspace”
 
-The reference's sticky, full-viewport 3D portfolio was inspected separately at three scroll positions. VoxelRad now has a corresponding section at `#workspace-showcase`: five real screenshots of CT, MRI, AI attention, clinician review and report-draft states surround the large title over blue light bands. Scroll position changes their depth-oriented transforms; there is no continuously running animation loop.
+The reference's sticky, full-viewport 3D portfolio was inspected separately at three scroll positions. VoxelRad has a corresponding section at `#workspace-showcase`: repository CT/MRI teaching images, an explicitly illustrative attention overlay and a captured report draft surround the large title over moving blue light bands. The cards follow a shared cylindrical helix: scroll changes their angular position and vertical pitch, with depth and orientation changing together. Scroll updates are scheduled with requestAnimationFrame; the background uses a CSS transform animation.
 
-Each preview links to its corresponding interactive reading-room state. Selecting the report preview does not grant approval. Keyboard focus brings the chosen preview into the center of the screen. At mobile widths and under reduced-motion preferences the same links become a static, ordered image gallery. Screenshots use public teaching studies and explicitly illustrative AI overlays.
+Each preview links to its corresponding interactive reading-room state. Selecting the report preview does not grant approval. Keyboard focus brings the chosen preview into the center of the screen. At mobile widths and under reduced-motion preferences the same links become a static, ordered image gallery. Background motion has a pause/resume control and pauses offscreen or in a hidden tab; reduced-motion preferences disable it. Source imagery comes from `app/public/login/ct-poster.webp`, `mr-axial.webp` and `mr-coronal.webp`. The report preview remains a real screenshot of the demonstration draft.
 
 | Before | After | Why |
 | --- | --- | --- |
 | Portfolio section absent | Full-viewport “Your workspace” showcase | Adapt the reference's signature section to the actual application. |
-| Agency websites as reference imagery | Five screenshots captured from VoxelRad | Show what the user can actually explore. |
+| Agency websites as reference imagery | Repository teaching scans and a captured VoxelRad report draft | Show imaging directly, with source assets already maintained by the application. |
 | Reference uses WebGL canvases | CSS perspective with scroll-driven transforms | Keep images, links and keyboard access native and avoid an extra rendering dependency. |
 | No stage-specific showcase links | Each preview opens the correct CT/MRI/demo stage | Turn the presentation into a useful product entry point. |
 
 Verified: all five image assets load; scroll changes the transforms; all five destinations open the expected stage; report access leaves approval unset; no horizontal overflow at 1440/768/390/375; reduced motion uses a static layout; build and lint pass.
+
+The background was additionally checked at two times without scrolling: its transform changes while running, remains unchanged after Pause, resumes on request, and pauses after leaving the section. The reduced-motion version has no background animation.
 
 ## Build boundaries
 
