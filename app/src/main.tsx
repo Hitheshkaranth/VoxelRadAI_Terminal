@@ -23,6 +23,7 @@ import './components/report/report.css'
 import './components/report/shareStudy.css'
 import './components/report/print.css'
 import { WorkspaceRoot } from './WorkspaceRoot'
+import { LandingPage } from './LandingPage'
 import './styles/workspace.css'
 import './styles/mobile.css'
 import './styles/clinical.css'
@@ -31,6 +32,6 @@ import './styles/scanWorkspace.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <WorkspaceRoot />
+    {window.location.pathname === '/' && !new URLSearchParams(window.location.search).has('oidc') ? <LandingPage /> : <WorkspaceRoot />}
   </StrictMode>,
 )

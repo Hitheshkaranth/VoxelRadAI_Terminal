@@ -77,7 +77,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
       <div className="session-visual-copy"><h2>A clearer view.<br />A focused read.</h2><p>One workspace for<br />X-ray, CT and MRI.</p></div>
     </section>
     <div className="session-access" id="session-access" tabIndex={-1}>
-      <div className="session-access-top"><span>Your reading workspace</span><ThemeSwitch /></div>
+      <div className="session-access-top"><a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>← VoxelRad AI home</a><ThemeSwitch /></div>
       {children}
       <footer className="session-access-footer"><span>VoxelRad AI</span><span>voxelradai.com</span></footer>
     </div>

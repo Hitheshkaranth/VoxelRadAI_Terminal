@@ -17,3 +17,6 @@ output/
 .vercel/
 *.backup
 .vercel
+
+# Generated design inspection captures
+.taste-skill/
