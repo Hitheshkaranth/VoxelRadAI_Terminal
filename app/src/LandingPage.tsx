@@ -66,28 +66,50 @@ function ScanPreview() {
   </div>
 }
 
-function VolumeIntroduction() {
-  const [moving, setMoving] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [angle, setAngle] = useState(-28)
-  const [plane, setPlane] = useState('All planes')
+const flowSteps = [
+  { title: 'Add a scan', text: 'Open an X-ray, CT or MRI study. The original image stays available throughout the review.', action: 'Run illustrative AI review' },
+  { title: 'See the AI first pass', text: 'Heatmaps draw attention to candidate regions. Boxes locate areas to inspect. These are suggestions, not a diagnosis.', action: 'Review the suggestion' },
+  { title: 'Review and approve', text: 'The radiologist checks each suggestion against the scan, then approves, edits or rejects it. The clinical decision stays with you.', action: 'Approve example finding' },
+  { title: 'Build the report', text: 'Reviewed findings help form a report draft. Refine the impression and complete a final review before exporting.', action: 'Start again' },
+]
+
+function ReviewFlow() {
+  const [step, setStep] = useState(0)
+  const [approved, setApproved] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [modality, setModality] = useState('CT')
+  const [overlay, setOverlay] = useState(true)
+  const current = flowSteps[step]
   useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const pause = () => setMoving(false)
-    media.addEventListener('change', pause)
+    if (!playing || step >= 2) return
+    const timer = window.setTimeout(() => { setStep(step + 1); if (step === 1) setPlaying(false) }, 2600)
+    return () => window.clearTimeout(timer)
+  }, [playing, step])
+  useEffect(() => {
+    const pause = () => { if (document.hidden) setPlaying(false) }
     document.addEventListener('visibilitychange', pause)
-    return () => { media.removeEventListener('change', pause); document.removeEventListener('visibilitychange', pause) }
+    return () => document.removeEventListener('visibilitychange', pause)
   }, [])
-  return <div className="lp2-volume" onFocusCapture={() => setMoving(false)}>
-    <div className="lp2-volume-heading"><span><Layers3 size={16} aria-hidden="true" /> A study, in three dimensions</span><button onClick={() => setMoving(!moving)} aria-label={moving ? 'Pause 3D motion' : 'Play 3D motion'}>{moving ? <Pause size={15} /> : <Play size={15} />}</button></div>
-    <div className="lp2-volume-stage" role="img" aria-label="Illustration of axial, coronal and sagittal MRI planes intersecting in three-dimensional space">
-      <div className="lp2-volume-camera" style={{ transform: `rotateX(-17deg) rotateY(${angle}deg)` }}><div className={`lp2-volume-orbit ${moving ? 'is-moving' : ''}`}>
-        <div className="lp2-cube-front" /><div className="lp2-cube-back" /><div className="lp2-cube-side" />
-        {['Axial', 'Coronal', 'Sagittal'].map((name, index) => <div className={`lp2-image-plane lp2-plane-${index}`} key={name} style={{ opacity: plane === 'All planes' || plane === name ? .96 : .13 }}><img src={views[index + 1].image} alt="" /><span>{name}</span></div>)}
-      </div></div>
+  const advance = () => {
+    setPlaying(false)
+    if (step === 2) setApproved(true)
+    if (step === 3) { setStep(0); setApproved(false) } else setStep(step + 1)
+  }
+  return <div className="lp3-flow">
+    <ol className="lp3-flow-nav" aria-label="Scan to report workflow">{flowSteps.map((item,index) => <li key={item.title}><button aria-current={step === index ? 'step' : undefined} onClick={() => { setPlaying(false); setStep(index) }}><span>{index + 1}</span>{item.title}</button></li>)}</ol>
+    <div className="lp3-flow-body">
+      <div className="lp3-flow-visual" data-step={step}>
+        <div className="lp3-flow-scene">
+          <div className="lp3-flow-scan"><div className="lp3-scan-header"><ScanLine size={15} /><span>{modality} teaching scan</span><span>Source image</span></div><img src={modality === 'CT' ? '/login/ct-poster.webp' : '/login/mr-axial.webp'} alt={`${modality} teaching scan with illustrative review overlays`} />
+          {step > 0 && overlay && <div className="lp3-evidence" aria-label="Illustrative heatmap and candidate box, not a model result"><div className="lp3-heatmap" /><div className="lp3-detection-box"><span>Candidate region</span></div></div>}
+          <div className="lp3-scan-footer"><span>{step === 0 ? 'Ready for review' : 'Illustrative overlay'}</span><span>{step > 1 && approved ? 'Reviewed in demo' : 'Not reviewed'}</span></div></div>
+          <div className={`lp3-finding-card ${step > 0 ? 'is-visible' : ''}`}><span className="lp3-card-label">{step > 1 ? 'Radiologist review' : 'AI first pass'}</span><strong>{approved ? 'Example approved' : 'Candidate finding'}</strong><p>{approved ? 'Added to this demonstration draft.' : 'Compare the highlighted region with the original scan.'}</p><span className="lp3-review-status">{approved ? <Check size={16} /> : <Layers3 size={16} />}{approved ? 'Reviewed' : 'Needs your review'}</span></div>
+          <div className={`lp3-flow-report ${step === 3 ? 'is-visible' : ''}`}><FileText size={23} /><span>REPORT DRAFT</span><h3>Your review.<br />In your report.</h3><div><strong>Findings</strong><p>{approved ? 'Example finding approved in this demo.' : 'No finding approved. Return to step 3 to review.'}</p></div><div><strong>Impression</strong><p>To be written and verified by the radiologist.</p></div><span className="lp3-report-status">Draft · Final review required</span></div>
+        </div>
+        <div className="lp3-flow-tools"><div aria-label="Teaching scan modality">{['CT','MRI'].map(value => <button key={value} aria-pressed={modality === value} onClick={() => setModality(value)}>{value}</button>)}</div>{step > 0 && <button aria-pressed={overlay} onClick={() => setOverlay(!overlay)}>{overlay ? 'Hide overlays' : 'Show overlays'}</button>}<button onClick={() => { setStep(0); setApproved(false); setPlaying(!playing) }}>{playing && step < 2 ? <Pause size={15} /> : <Play size={15} />}{playing && step < 2 ? 'Pause' : 'Play walkthrough'}</button></div>
+      </div>
+      <div className="lp3-flow-copy" aria-live="polite"><p className="lp2-label">{String(step + 1).padStart(2,'0')} / 04</p><h3>{current.title}</h3><p>{current.text}</p>{step === 2 && <p className="lp3-review-hint">Your turn: approve this illustrative finding to see it carried into the report.</p>}<button className="lp2-primary" onClick={advance}>{step === 2 ? <Check size={17} /> : step === 3 ? <RotateCcw size={17} /> : null}{current.action}{step < 2 && <ArrowRight size={17} />}</button><p className="lp3-disclosure">Illustrative workflow, not live inference. No diagnostic finding is made. Hosted AI requires a configured model server.</p></div>
     </div>
-    <div className="lp2-plane-picker" aria-label="Highlight an imaging plane">{['All planes', 'Axial', 'Coronal', 'Sagittal'].map((name) => <button key={name} aria-pressed={name === plane} onClick={() => setPlane(name)}>{name}</button>)}</div>
-    <div className="lp2-rotation"><label htmlFor="volume-rotation">Rotate view</label><input id="volume-rotation" type="range" min="-65" max="35" value={angle} onChange={(e) => { setMoving(false); setAngle(Number(e.target.value)) }} /><button aria-label="Reset 3D view" onClick={() => { setAngle(-28); setPlane('All planes'); setMoving(false) }}><RotateCcw size={15} /></button></div>
-    <p className="lp2-volume-caption">Public MRI sample · Illustrative plane arrangement</p>
   </div>
 }
 
@@ -120,21 +142,17 @@ export function LandingPage() {
     <a className="lp-skip" href="#main">Skip to content</a>
     <header className="lp2-header lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#for-you">Who it’s for</a><a href="#demo">Try the demo</a></nav><a className="lp2-nav-login" href="/workspace">Sign in <ArrowUpRight size={16} /></a></header>
     <main id="main">
-      <section className="lp2-hero lp2-wrap" aria-labelledby="hero-title"><div className="lp2-hero-copy"><p className="lp2-label">The image is just the beginning.</p><h1 id="hero-title">A new view<br />of radiology.</h1><p className="lp2-lead">Go from a scan to a considered report. A browser workspace that brings X-ray, CT, MRI and your clinical thinking into one place.</p><div className="lp2-hero-actions"><a className="lp2-primary" href="#demo"><Play size={16} aria-hidden="true" /> Try the interactive demo</a><a className="lp2-secondary" href="/workspace">Open workspace <ArrowUpRight size={17} /></a></div><div className="lp2-hero-facts"><span><Check size={15} /> Browser-based viewing</span><span><Check size={15} /> Clinician-led review</span></div></div><VolumeIntroduction /></section>
+      <section className="lp3-hero" aria-labelledby="hero-title"><div className="lp2-wrap"><p className="lp3-product-name">VoxelRad AI</p><h1 id="hero-title">Less distraction.<br /><span>More perspective.</span></h1><p className="lp3-intro">AI-assisted image review. Radiologist-led decisions.</p><div className="lp3-actions"><a className="lp2-primary" href="/workspace">Open workspace</a><a className="lp3-demo-link" href="#demo">Explore the demo <ArrowRight size={18} /></a></div><div className="lp3-imaging"><figure><img src="/login/mr-sagittal.webp" alt="Sagittal MRI teaching image" /><figcaption>Sagittal</figcaption></figure><figure><img src="/login/mr-coronal.webp" alt="Coronal MRI teaching image" /><figcaption>Coronal</figcaption></figure><figure><img src="/login/mr-axial.webp" alt="Axial MRI teaching image" /><figcaption>Axial</figcaption></figure></div><p className="lp3-hero-note">Real teaching images. A new space to explore them.</p></div></section>
       <section className="lp2-capabilities lp2-wrap" aria-label="Workspace capabilities"><div><strong>X-ray</strong><span>Image review & annotation</span></div><div><strong>CT & MRI</strong><span>Slice navigation & multiplanar views</span></div><div><strong>Findings</strong><span>Evidence beside the image</span></div><div><strong>Reports</strong><span>Draft, review & export</span></div></section>
-      <section className="lp2-how lp2-wrap" id="how-it-works" aria-labelledby="how-title"><div className="lp2-section-title"><div><p className="lp2-label">How it works</p><h2 id="how-title">From first look<br />to final review.</h2></div><p>One connected workflow. Open a study, explore the anatomy, and turn your observations into a report you can stand behind.</p></div><div className="lp2-how-grid">
-        <article><span className="lp2-step-number">01 / Open</span><h3>Bring in your study.</h3><p>Open supported X-ray images, DICOM frames, or CT and MRI volumes in NRRD format. Start with a teaching sample if you’re just exploring.</p><div className="lp2-file-list"><span><FileText size={18} /> Chest radiograph <small>X-ray</small></span><span><Layers3 size={18} /> Brain volume <small>CT / MRI</small></span></div></article>
-        <article><span className="lp2-step-number">02 / Explore</span><h3>Find your perspective.</h3><p>Adjust the window, zoom into detail, and move through slices. Switch between axial, coronal and sagittal views to understand the volume.</p><div className="lp2-mini-planes">{views.slice(1).map(view => <img key={view.image} src={view.image} alt={`${view.label} teaching sample`} loading="lazy" />)}</div></article>
-        <article><span className="lp2-step-number">03 / Review</span><h3>Put it into words.</h3><p>Keep findings with the study, refine your impression, and export a reviewed report. When a model is connected, assess its suggestions before using them.</p><div className="lp2-report-line"><span>Findings</span><ArrowRight size={16} /><span>Impression</span><ArrowRight size={16} /><span>Review</span></div></article>
-      </div></section>
-      <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">A little less reading. A little more doing.</p><h2 id="demo-title">Take a closer look.</h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
-      <section className="lp2-audience lp2-wrap" id="for-you" aria-labelledby="audience-title"><div className="lp2-section-title"><div><p className="lp2-label">Who it’s for</p><h2 id="audience-title">Built for people<br />who look closer.</h2></div><p>For evaluating imaging workflows, learning from anatomy, and exploring model-assisted review.</p></div><div className="lp2-audience-grid">
+      <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">AI takes the first pass.<br />You make the call.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><ReviewFlow /><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
+      <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">A little less reading. A little more doing.</p><h2 id="demo-title">Meet your workspace.</h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
+      <section className="lp2-audience lp2-wrap" id="for-you" aria-labelledby="audience-title"><div className="lp2-section-title"><div><p className="lp2-label">Who it’s for</p><h2 id="audience-title">For people<br />who look closer.</h2></div><p>For evaluating imaging workflows, learning from anatomy, and exploring model-assisted review.</p></div><div className="lp2-audience-grid">
         <article><span>Clinical evaluation</span><h3>Radiologists & clinicians</h3><p>Explore a focused image-to-report workflow. Keep the source scan visible as you review findings and develop your interpretation.</p><ul><li>Multiplanar CT and MRI review</li><li>Image, findings and report together</li><li>Professional judgment at every step</li></ul></article>
         <article><span>Teaching & learning</span><h3>Residents & educators</h3><p>Make the relationship between planes tangible. Use public samples to practise navigation and discuss observations.</p><ul><li>Included public teaching volumes</li><li>Controls directly on the scan</li><li>A repeatable review workflow</li></ul></article>
         <article><span>Research & development</span><h3>Imaging researchers</h3><p>Connect a supported model server to investigate draft findings and regions alongside their source images.</p><ul><li>Configurable model connection</li><li>Model outputs subject to review</li><li>Hosted inference not yet enabled</li></ul></article>
       </div><p className="lp2-use-note">VoxelRad AI is for research and evaluation. It is not a clinically validated diagnostic system.</p></section>
       <section className="lp2-questions lp2-wrap" aria-labelledby="questions-title"><div><p className="lp2-label">Good to know</p><h2 id="questions-title">A few answers.</h2><p>What’s available, what you need,<br />and where to begin.</p></div><Accordion.Root className="lp-questions" type="single" collapsible>{questions.map(([question, answer], index) => <Accordion.Item className="lp-question" value={String(index)} key={question}><Accordion.Header><Accordion.Trigger>{question}<Plus size={20} aria-hidden="true" /></Accordion.Trigger></Accordion.Header><Accordion.Content className="lp-answer"><p>{answer}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root></section>
-      <section className="lp2-close lp2-wrap"><div><img src="/skanda-mark.png" alt="" /><h2>Look closer.<br />Start here.</h2><p>Open the workspace. Give the image your full attention.</p></div><a className="lp2-primary" href="/workspace">Open VoxelRad AI <ArrowRight size={18} /></a></section>
+      <section className="lp2-close lp2-wrap"><div><img src="/skanda-mark.png" alt="" /><h2>Make room<br />for a closer look.</h2><p>Open the workspace. Give the image your full attention.</p></div><a className="lp2-primary" href="/workspace">Open VoxelRad AI <ArrowRight size={18} /></a></section>
     </main><footer className="lp2-footer lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><p>A clearer space for imaging.</p><a href="/workspace">Sign in <ArrowUpRight size={15} /></a><small>voxelradai.com · Public teaching imagery: Slicer CTBrain and MRHead. No patient data is used in this demo.</small></footer>
   </div>
 }
