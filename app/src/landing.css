@@ -393,44 +393,5 @@
 @media(max-width:760px) { .lp4-hero { padding-block:40px; } .lp4-hero-layout { grid-template-columns:1fr; gap:32px; } .lp2-page .lp4-hero h1 { font-size:64px; letter-spacing:-2.8px; } .lp4-kicker { font-size:12px; margin-bottom:22px; } .lp4-description { font-size:18px; } .lp4-formats { margin-top:28px; } .lp4-caption { font-size:13px; } .lp4-hero-flow .lp3-flow-nav { grid-template-columns:repeat(4,1fr); gap:1px; padding:8px; } .lp4-hero-flow .lp3-flow-nav button { font-size:11px; padding:6px 2px; } .lp4-hero-flow .lp3-flow-visual { padding-inline:8px; } .lp4-hero-flow .lp3-flow-copy { padding:20px; min-height:285px; } .lp4-hero-flow .lp3-finding-card { width:155px; bottom:5px; padding:12px; } .lp4-hero-flow .lp3-finding-card>strong { font-size:15px; } .lp4-hero-flow .lp3-flow-scan { width:210px; } .lp4-hero-flow .lp3-flow-scan>img { height:205px; } .lp4-process { grid-template-columns:1fr; gap:28px; } .lp4-process article { display:grid; grid-template-columns:45px 1fr; gap:0 15px; } .lp4-process article>span { grid-row:1/3; font-size:27px; } .lp4-process h3 { margin-top:0; } .lp4-process p { grid-column:2; } }
 
 @media(min-width:761px) and (max-width:1050px) { .lp4-hero-layout { grid-template-columns:.95fr 1.05fr; gap:24px; } .lp2-page .lp4-hero h1 { font-size:56px; letter-spacing:-2.5px; } }
-/* Imaging hero: the scan itself is the interface. */
-.lp5-hero{background:#f5f6f8;color:#172d3c}
-.lp5-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:70px;padding-block:58px 50px}
-.lp2-page .lp5-intro h1{font-size:clamp(48px,5.9vw,86px);line-height:1.04;letter-spacing:-.055em;font-weight:500;margin:0;flex:1}
-.lp5-intro h1 span{color:#677783}
-.lp5-summary{max-width:310px;padding-bottom:5px}
-.lp5-summary p{font-size:18px;line-height:1.6;margin-bottom:24px;color:#50606d}
-.lp5-summary .lp2-primary{background:#172d3c;border-radius:100px;padding-inline:23px}
-.lp5-stage{background:#101c24;color:#eff5f9;overflow:hidden}
-.lp5-stage-inner{height:445px;position:relative;display:flex;align-items:center;justify-content:center;perspective:1400px}
-.lp5-volume{position:relative;width:370px;height:330px;transform-style:preserve-3d;transform:translateX(-25px) rotateX(8deg) rotateY(-24deg) rotateZ(-9deg);transition:transform 1s cubic-bezier(.22,1,.36,1)}
-.lp5-plane{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#030608;border:1px solid #70818d;border-radius:3px;transition:transform 1s cubic-bezier(.22,1,.36,1),opacity 1s}
-.lp5-plane-back{transform:translate3d(-68px,-20px,-85px);opacity:.35}
-.lp5-plane-middle{transform:translate3d(-34px,-10px,-42px);opacity:.6}
-.lp5-plane-front{transform:translateZ(0);overflow:hidden}
-.lp5-plane-front>img{width:100%;height:100%;object-fit:contain}
-.lp5-stage[data-attention=true] .lp5-volume{transform:translateX(-25px) rotateX(0) rotateY(-8deg) rotateZ(0)}
-.lp5-stage[data-attention=true] .lp5-plane-back{transform:translate3d(-110px,-28px,-85px)}
-.lp5-stage[data-attention=true] .lp5-plane-middle{transform:translate3d(-55px,-14px,-42px)}
-.lp5-attention{position:absolute;inset:0;opacity:0;transition:opacity .6s .25s}
-.lp5-stage[data-attention=true] .lp5-attention{opacity:1}
-.lp5-heat{position:absolute;left:59%;top:33%;width:23%;height:41%;background:radial-gradient(ellipse,#ee9d4caa 0%,#5fbed266 45%,transparent 73%)}
-.lp5-box{position:absolute;left:60%;top:34%;width:21%;height:37%;border:1px solid #e3b66d}
-.lp5-stage-note{position:absolute;left:0;top:44px;max-width:220px}
-.lp5-stage-note>span{font-size:21px;letter-spacing:-.5px}
-.lp5-stage-note p{font-size:14px;line-height:1.7;color:#a6b7c3;margin-top:13px}
-.lp5-annotation{position:absolute;right:0;top:156px;width:210px}
-.lp5-annotation>span{font-size:13px;color:#9ec6dd}
-.lp5-annotation p{font-size:20px;line-height:1.45;white-space:pre-line;margin-top:13px}
-.lp5-stage-bottom{position:absolute;bottom:22px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:13px;color:#a6b7c3}
-.lp5-stage-bottom button{display:flex;gap:26px;align-items:center;border:1px solid #748b9a;border-radius:100px;background:transparent;color:#fff;padding:11px 20px;min-height:46px;font-size:14px}
-.lp5-stage-bottom button:hover{background:#29404f}
-.lp5-footnote{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-block:24px;font-size:15px}
-.lp5-footnote a{display:flex;align-items:center;gap:12px}
+
 .lp5-workflow{margin-top:50px}
-@media(max-width:1050px){.lp5-intro{gap:30px}.lp5-summary{max-width:260px}.lp5-volume{width:300px;height:280px}.lp5-stage-note{max-width:170px}.lp5-annotation{width:160px}.lp5-annotation p{font-size:17px}.lp5-stage-note>span{font-size:17px}}
-@media(max-width:760px){.lp5-intro{display:block;padding-block:28px 30px}.lp2-page .lp5-intro h1{font-size:clamp(37px,9.8vw,60px);letter-spacing:-.045em}.lp5-summary{max-width:420px;margin-top:22px}.lp5-summary p{font-size:16px;margin-bottom:18px}.lp5-stage-inner{height:405px}.lp5-stage-note{top:22px;max-width:none}.lp5-stage-note>span{font-size:17px}.lp5-stage-note p{display:none}.lp5-volume{width:245px;height:245px;transform:translate(20px,-4px) rotateY(-22deg) rotateZ(-8deg)}.lp5-stage[data-attention=true] .lp5-volume{transform:translate(20px,-4px) rotateY(-6deg)}.lp5-annotation{right:0;top:22px;width:auto}.lp5-annotation>span{font-size:11px}.lp5-annotation p{display:none}.lp5-stage-bottom{bottom:18px;justify-content:center;flex-wrap:wrap;gap:10px}.lp5-stage-bottom>span:first-child{display:none}.lp5-stage-bottom>span:last-child{width:100%;text-align:center;font-size:11px}.lp5-footnote{display:block;font-size:14px;padding-block:20px}.lp5-footnote a{margin-top:8px}.lp5-workflow{margin-top:30px}}
-@media(prefers-reduced-motion:reduce){.lp5-volume,.lp5-plane,.lp5-attention{transition:none!important}}
-@media(min-width:761px){.lp5-volume{top:-20px;width:350px;height:310px}}
-@media(max-width:760px){.lp5-volume{top:-13px;width:230px;height:230px}}
-@media(min-width:761px) and (max-width:1050px){.lp5-intro{align-items:center}.lp5-volume{width:280px;height:275px;top:0}.lp5-stage-note p{display:none}.lp5-stage-note{top:28px}}
