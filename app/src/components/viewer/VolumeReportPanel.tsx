@@ -30,7 +30,7 @@ export function VolumeReportPanel({volume,modality,onNavigateEvidence}:{volume:V
   }
   const download=()=>{
     const blob=new Blob([text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a')
-    a.href=url;a.download='skanda-volume-draft.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+    a.href=url;a.download='voxelrad-volume-draft.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
   return <section className="volume-review-panel" aria-label="Volume draft report">
     <h2>Draft report</h2><p>{reviewed?'Reviewed draft · Not signed':'Draft · Not signed'} · {coverage.completed}/{job.count} slices analyzed</p>

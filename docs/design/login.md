@@ -1,6 +1,6 @@
 # Login surface
 
-Mode: Operate. Existing Figtree, Skanda mark and light/dark themes are preserved.
+Mode: Operate. Existing Figtree, VoxelRad AI mark and light/dark themes are preserved.
 
 The public CT teaching volume is the visual anchor: a large black cine panel sits beside a solid, quiet sign-in surface. The form is the primary action. The scan traverses the native slices forward and backward; no synthetic anatomy or model findings are shown.
 

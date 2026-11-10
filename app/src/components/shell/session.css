@@ -1,4 +1,4 @@
-@font-face { font-family: 'Skanda Figtree'; src: url('/fonts/Figtree.ttf') format('truetype'); font-style: normal; font-weight: 300 900; font-display: swap; }
+@font-face { font-family: 'VoxelRad Figtree'; src: url('/fonts/Figtree.ttf') format('truetype'); font-style: normal; font-weight: 300 900; font-display: swap; }
 .session-page {
   --session-paper: #f3f5f6; --session-ink: #172a32; --session-muted: #53656c;
   --session-line: #b3c0c5; --session-focus: #087786; --session-dark: #101d23;
@@ -8,7 +8,7 @@
   --session-error-text: #8b2525; --session-error-bg: #fce9e7;
   min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   padding: 16px; background: var(--session-paper); color: var(--session-ink);
-  font-family: 'Skanda Figtree', sans-serif; color-scheme: light;
+  font-family: 'VoxelRad Figtree', sans-serif; color-scheme: light;
 }
 :root[data-theme='dark'] .session-page {
   --session-paper: #141c21; --session-ink: #ecf2f5; --session-muted: #aabcc5;

@@ -20,7 +20,7 @@ export function Toolbar() {
   const [title, setTitle] = useState('')
   const renameCancelled = useRef(false)
 
-  const titleText = study?.title || 'Skanda Radiology'
+  const titleText = study?.title || 'VoxelRad AI'
 
   const startRename = () => {
     if (!study) return

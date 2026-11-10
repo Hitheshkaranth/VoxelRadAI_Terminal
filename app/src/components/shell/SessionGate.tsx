@@ -71,15 +71,15 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
 function SessionLayout({ children }: { children: ReactNode }) {
   return <main className="session-page">
     <a className="session-skip" href="#session-access">Skip to sign in</a>
-    <section className="session-visual" aria-label="Skanda imaging workspace introduction">
-      <div className="session-brand"><img src="/skanda-mark.png" alt="" width="40" height="40" /><span>skanda<span className="session-brand-descriptor">Radiology</span></span></div>
+    <section className="session-visual" aria-label="VoxelRad AI imaging workspace introduction">
+      <div className="session-brand"><img src="/voxelrad-mark.svg" alt="" width="40" height="40" /><span>voxelrad<span className="session-brand-descriptor">AI</span></span></div>
       <LoginCine />
       <div className="session-visual-copy"><h2>A clearer view.<br />A focused read.</h2><p>One workspace for<br />X-ray, CT and MRI.</p></div>
     </section>
     <div className="session-access" id="session-access" tabIndex={-1}>
       <div className="session-access-top"><span>Your reading workspace</span><ThemeSwitch /></div>
       {children}
-      <footer className="session-access-footer"><span>Skanda Radiology</span><span>Imaging. Evidence. Review.</span></footer>
+      <footer className="session-access-footer"><span>VoxelRad AI</span><span>voxelradai.com</span></footer>
     </div>
   </main>
 }

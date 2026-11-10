@@ -48,8 +48,8 @@ export function Sidebar() {
     <nav className="sh-sidebar wl-sidebar" aria-label="Studies">
       <div className="sh-sidebar-head">
         <div className="sh-brand">
-          <img className="sh-brand-logo" src="/skanda-mark.png" alt="" aria-hidden />
-          Skanda
+          <img className="sh-brand-logo" src="/voxelrad-mark.svg" alt="" aria-hidden />
+          VoxelRad AI
         </div>
         <ThemeSwitch compact />
       </div>

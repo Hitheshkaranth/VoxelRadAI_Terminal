@@ -46,11 +46,11 @@ function useConnectionPolling() {
   }, [baseUrl, model, hydrated])
 }
 
-/** "(2 analysing) Skanda Radiology" while reads run, so progress is visible from another tab. */
+/** "(2 analysing) VoxelRad AI" while reads run, so progress is visible from another tab. */
 function useDocumentTitle() {
   const analysing = useApp((s) => s.studies.reduce((n, st) => n + st.images.filter((i) => i.status === 'analyzing').length, 0))
   useEffect(() => {
-    document.title = analysing ? `(${analysing} analysing) Skanda Radiology` : 'Skanda Radiology'
+    document.title = analysing ? `(${analysing} analysing) VoxelRad AI` : 'VoxelRad AI'
   }, [analysing])
 }
 
@@ -234,8 +234,8 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const createStudy = useApp((s) => s.createStudy)
   return (
     <div className="sh-empty">
-      <img className="sh-empty-logo" src="/skanda-mark.png" alt="Skanda" />
-      <h1 className="sh-empty-title">Skanda Radiology</h1>
+      <img className="sh-empty-logo" src="/voxelrad-mark.svg" alt="VoxelRad AI" />
+      <h1 className="sh-empty-title">VoxelRad AI</h1>
       <p className="sh-empty-desc">
         {hasStudies
           ? 'Select a study from the sidebar, or start a new one.'

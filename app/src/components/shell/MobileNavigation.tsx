@@ -58,7 +58,7 @@ export function MobileHeader() {
         <strong>{volume && view !== 'studies' ? volume.title : reading ? study.patient.name || study.title : 'Study worklist'}</strong>
         <span className="mobile-context">{volume && view !== 'studies' ? `${volumeSourceKind(volume)} · Patient not linked` : reading
           ? [study.patient.patientId || 'No patient ID', study.patient.studyDate || 'No study date'].join(' · ')
-          : 'Skanda · Local studies'}</span>
+          : 'VoxelRad AI · Local studies'}</span>
       </div>
       {reading && <ShellButton className="icon-btn" aria-label="Patient details" onClick={() => openSheet('patient')}><UserRound /></ShellButton>}
       <ThemeSwitch compact />

@@ -73,7 +73,7 @@ export function ShareStudySheet({ study, institution, onClose }: { study: Study;
     catch { linkInput.current?.focus(); linkInput.current?.select(); setMessage('Copy is unavailable here. The link is selected; copy it manually.') }
   }
   const options = { includeIdentity, includeImages }
-  const file = useMemo(() => new File([studyShareHtml(study, institution, { includeIdentity, includeImages })], 'skanda-report.html', { type: 'text/html' }), [study, institution, includeIdentity, includeImages])
+  const file = useMemo(() => new File([studyShareHtml(study, institution, { includeIdentity, includeImages })], 'voxelrad-report.html', { type: 'text/html' }), [study, institution, includeIdentity, includeImages])
   let canShare = false
   try {
     canShare = typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
@@ -86,7 +86,7 @@ export function ShareStudySheet({ study, institution, onClose }: { study: Study;
       await navigator.share({ files: [file], title: 'Radiology report' })
       setMessage('Report handed to your selected app.')
     } catch (error) {
-      setMessage(error instanceof DOMException && error.name === 'AbortError' ? 'Sharing cancelled. No file was sent by Skanda.' : 'Sharing was unavailable. Download the file and attach it in your approved messaging service.')
+      setMessage(error instanceof DOMException && error.name === 'AbortError' ? 'Sharing cancelled. No file was sent by VoxelRad AI.' : 'Sharing was unavailable. Download the file and attach it in your approved messaging service.')
     } finally { inFlight.current = false; setBusy(false) }
   }
   return <Sheet open onClose={onClose} title="Share report & scans" subtitle="Choose exactly what leaves this workspace.">

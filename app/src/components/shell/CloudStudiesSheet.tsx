@@ -71,7 +71,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
     {!SERVER_MODE ? <p className="admin-note">Server storage requires a configured server and a signed-in account. Your current studies stay in this browser.</p> : <>
       <h3 className="admin-heading">Save current study</h3>
       {active && <p className="admin-note cloud-current-title">{active.title || 'Untitled study'}</p>}
-      <p className="admin-note">Saving sends this study's patient details, scans, findings and report to your configured Skanda server. It updates an existing server copy of the same study. Other studies and open volumes are not uploaded.</p>
+      <p className="admin-note">Saving sends this study's patient details, scans, findings and report to your configured VoxelRad AI server. It updates an existing server copy of the same study. Other studies and open volumes are not uploaded.</p>
       <ShellButton className="btn btn-primary" disabled={!active || busy || active.images.some((image) => image.status === 'analyzing')} onClick={() => { void save() }}>{busy ? 'Saving...' : 'Save current study'}</ShellButton>
       {!active && <p className="admin-note">Select an image study to save.</p>}
       <h3 className="admin-heading">Your server copies</h3>

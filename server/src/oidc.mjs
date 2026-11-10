@@ -116,10 +116,10 @@ export function createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, b
         }
         const accounts = await tx.query('SELECT u.id,u.email,u.role,u.disabled FROM oidc_identities i JOIN users u ON u.id=i.user_id WHERE i.issuer=$1 AND i.subject=$2 FOR UPDATE OF u',[identity.issuer,identity.subject])
         const account = accounts.rows[0]
-        if (!account || account.disabled) throw failure(403,'This identity is not linked to an active Skanda account. Sign in with your existing account to link it.')
+        if (!account || account.disabled) throw failure(403,'This identity is not linked to an active VoxelRad AI account. Sign in with your existing account to link it.')
         // Recheck after acquiring the user lock: unlink may have completed while this query waited.
         const stillLinked = await tx.query('SELECT 1 FROM oidc_identities WHERE issuer=$1 AND subject=$2 AND user_id=$3',[identity.issuer,identity.subject,account.id])
-        if (!stillLinked.rowCount) throw failure(403,'This identity is no longer linked to an active Skanda account.')
+        if (!stillLinked.rowCount) throw failure(403,'This identity is no longer linked to an active VoxelRad AI account.')
         const cookie = await issueSession(tx,{id:account.id,email:account.email,role:account.role},req)
         await tx.query('UPDATE users SET last_login_at=now() WHERE id=$1',[account.id])
         await tx.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)',[account.id,'login.oidc'])
