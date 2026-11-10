@@ -21,3 +21,9 @@ The detailed workflow below the hero retains CT/MRI switching, overlay visibilit
 Design-taste, Awwwards web design, UI UX Pro Max and Emil Design Engineering informed composition, motion and interaction. The reference research used the Awwwards skill casebook and Lusion's public description of its 3D storytelling practice. Live Awwwards pages timed out and Lusion's automated screenshot remained in its loader; neither was claimed as a successfully inspected live hero.
 
 Build and lint pass. Chrome checks cover all four chapters, unapproved direct report navigation, explicit approval, replay, reduced-motion playback, console errors, overflow and report/copy collisions at 375, 390, 768 and 1440 pixels. Screenshots are saved in `docs/screenshots/landing/`.
+
+## Interface refinement
+
+The cinematic direction now extends through the complete landing page. Shared dark surfaces, cyan actions, readable secondary text and consistent corner radii unify the workflow, viewer demonstration, audience section, FAQ and footer. The redundant four-step prose grid was removed; the interactive workflow remains. Hero chapter controls have a filled selected state, and review chapters support comparing the original image with the illustrative overlay. Mobile navigation provides an Explore menu with close-on-navigation and Escape handling.
+
+Additional Chrome checks cover the mobile menu, source comparison, FAQ expansion and supporting-section appearance. Audience and viewer-demo screenshots are included alongside the three responsive hero captures.
