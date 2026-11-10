@@ -4,7 +4,7 @@ The root is a public product introduction. `/workspace` retains backend sign-in 
 
 ## Product story
 
-The central narrative is scan intake ? AI first-pass heatmap and candidate boxes ? radiologist review and approval ? report draft. Intended benefits are earlier attention to candidate regions and less time assembling reports; no measured speed or accuracy claim is made.
+The central narrative is scan intake -> AI first-pass heatmap and candidate boxes -> radiologist review and approval -> report draft. Intended benefits are earlier attention to candidate regions and less time assembling reports; no measured speed or accuracy claim is made.
 
 `ReviewFlow` illustrates this as a four-step 3D transition. The walkthrough stops before approval. The visitor approves the example finding to include it in the demonstration report. Jumping directly to the report shows that no finding has been approved. Restart clears approval. CT/MRI switching and overlay visibility controls allow comparison with the original public teaching image.
 
@@ -14,7 +14,7 @@ Heatmaps and boxes in this explanatory animation are illustrative, not actual mo
 
 UI UX Pro Max guided the work. Apple's iPad Pro product presentation (https://www.apple.com/ipad-pro/) informed the large imaging hero, concise chapter headings, image-led explanations and neutral section contrast. No Apple assets or branding are used. Arc Library remains a reference for the existing tab/accordion interactions. Fonts remain self-hosted Figtree.
 
-The cinematic hero is followed by capabilities, the animated decision workflow, a hands-on viewer demo, audience information, FAQ and final workspace action. Isolated `lp2-`/`lp3-` classes avoid clinical-viewer collisions. Motion has reduced-motion fallbacks; the walkthrough is user-started and pauses when the tab is hidden.
+The split hero pairs “AI assists. You decide.” with the interactive scan-to-report workflow. The first pass advances automatically, then stops for radiologist approval. Scan sweeps, overlay reveals and a finding-to-report transition explain each action. Motion pauses offscreen or when the tab is hidden, respects reduced motion and stays immediate for keyboard input. UI UX Pro Max and Emil Design Engineering informed the timing. Capabilities, four workflow chapters, a hands-on viewer demo, audience information, FAQ and workspace action follow. Isolated lp2/lp3/lp4 classes avoid clinical-viewer collisions.
 
 ## Validation
 

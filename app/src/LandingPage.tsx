@@ -73,10 +73,11 @@ const flowSteps = [
   { title: 'Build the report', text: 'Reviewed findings help form a report draft. Refine the impression and complete a final review before exporting.', action: 'Start again' },
 ]
 
-function ReviewFlow() {
+function ReviewFlow({ hero = false }: { hero?: boolean }) {
+  const flowRef = useRef<HTMLDivElement>(null)
   const [step, setStep] = useState(0)
   const [approved, setApproved] = useState(false)
-  const [playing, setPlaying] = useState(false)
+  const [playing, setPlaying] = useState(() => hero && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [modality, setModality] = useState('CT')
   const [overlay, setOverlay] = useState(true)
   const current = flowSteps[step]
@@ -87,28 +88,35 @@ function ReviewFlow() {
   }, [playing, step])
   useEffect(() => {
     const pause = () => { if (document.hidden) setPlaying(false) }
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const reduce = () => { if (preference.matches) setPlaying(false) }
+    const observer = new IntersectionObserver(entries => { if (entries.some(entry => !entry.isIntersecting)) setPlaying(false) })
+    if (flowRef.current) observer.observe(flowRef.current)
+    preference.addEventListener('change', reduce)
     document.addEventListener('visibilitychange', pause)
-    return () => document.removeEventListener('visibilitychange', pause)
+    return () => { observer.disconnect(); preference.removeEventListener('change', reduce); document.removeEventListener('visibilitychange', pause) }
   }, [])
   const advance = () => {
     setPlaying(false)
     if (step === 2) setApproved(true)
     if (step === 3) { setStep(0); setApproved(false) } else setStep(step + 1)
   }
-  return <div className="lp3-flow">
+  return <div ref={flowRef} id={hero ? "hero-review" : undefined} className={`lp3-flow ${hero ? "lp4-hero-flow" : ""}`} data-current-step={step} data-approved={approved}>
     <ol className="lp3-flow-nav" aria-label="Scan to report workflow">{flowSteps.map((item,index) => <li key={item.title}><button aria-current={step === index ? 'step' : undefined} onClick={() => { setPlaying(false); setStep(index) }}><span>{index + 1}</span>{item.title}</button></li>)}</ol>
+    <div className="lp3-flow-progress" aria-hidden="true"><span style={{ transform: `scaleX(${(step + 1) / 4})` }} /></div>
     <div className="lp3-flow-body">
       <div className="lp3-flow-visual" data-step={step}>
         <div className="lp3-flow-scene">
+          {step === 1 && <div className="lp3-analysis-caption" aria-hidden="true">Illustrating AI attention</div>}
           <div className="lp3-flow-scan"><div className="lp3-scan-header"><ScanLine size={15} /><span>{modality} teaching scan</span><span>Source image</span></div><img src={modality === 'CT' ? '/login/ct-poster.webp' : '/login/mr-axial.webp'} alt={`${modality} teaching scan with illustrative review overlays`} />
-          {step > 0 && overlay && <div className="lp3-evidence" aria-label="Illustrative heatmap and candidate box, not a model result"><div className="lp3-heatmap" /><div className="lp3-detection-box"><span>Candidate region</span></div></div>}
+          {step > 0 && overlay && <div key={`${step}-${modality}`} className="lp3-evidence" aria-label="Illustrative heatmap and candidate box, not a model result">{step === 1 && <div className="lp3-scan-sweep" />}<div className="lp3-heatmap" /><div className="lp3-detection-box"><span>Candidate region</span></div></div>}
           <div className="lp3-scan-footer"><span>{step === 0 ? 'Ready for review' : 'Illustrative overlay'}</span><span>{step > 1 && approved ? 'Reviewed in demo' : 'Not reviewed'}</span></div></div>
           <div className={`lp3-finding-card ${step > 0 ? 'is-visible' : ''}`}><span className="lp3-card-label">{step > 1 ? 'Radiologist review' : 'AI first pass'}</span><strong>{approved ? 'Example approved' : 'Candidate finding'}</strong><p>{approved ? 'Added to this demonstration draft.' : 'Compare the highlighted region with the original scan.'}</p><span className="lp3-review-status">{approved ? <Check size={16} /> : <Layers3 size={16} />}{approved ? 'Reviewed' : 'Needs your review'}</span></div>
           <div className={`lp3-flow-report ${step === 3 ? 'is-visible' : ''}`}><FileText size={23} /><span>REPORT DRAFT</span><h3>Your review.<br />In your report.</h3><div><strong>Findings</strong><p>{approved ? 'Example finding approved in this demo.' : 'No finding approved. Return to step 3 to review.'}</p></div><div><strong>Impression</strong><p>To be written and verified by the radiologist.</p></div><span className="lp3-report-status">Draft · Final review required</span></div>
         </div>
         <div className="lp3-flow-tools"><div aria-label="Teaching scan modality">{['CT','MRI'].map(value => <button key={value} aria-pressed={modality === value} onClick={() => setModality(value)}>{value}</button>)}</div>{step > 0 && <button aria-pressed={overlay} onClick={() => setOverlay(!overlay)}>{overlay ? 'Hide overlays' : 'Show overlays'}</button>}<button onClick={() => { setStep(0); setApproved(false); setPlaying(!playing) }}>{playing && step < 2 ? <Pause size={15} /> : <Play size={15} />}{playing && step < 2 ? 'Pause' : 'Play walkthrough'}</button></div>
       </div>
-      <div className="lp3-flow-copy" aria-live="polite"><p className="lp2-label">{String(step + 1).padStart(2,'0')} / 04</p><h3>{current.title}</h3><p>{current.text}</p>{step === 2 && <p className="lp3-review-hint">Your turn: approve this illustrative finding to see it carried into the report.</p>}<button className="lp2-primary" onClick={advance}>{step === 2 ? <Check size={17} /> : step === 3 ? <RotateCcw size={17} /> : null}{current.action}{step < 2 && <ArrowRight size={17} />}</button><p className="lp3-disclosure">Illustrative workflow, not live inference. No diagnostic finding is made. Hosted AI requires a configured model server.</p></div>
+      <div className="lp3-flow-copy" aria-live="polite"><div key={step} className="lp3-step-copy"><p className="lp2-label">{String(step + 1).padStart(2,'0')} / 04</p><h3>{current.title}</h3><p>{current.text}</p>{step === 2 && <p className="lp3-review-hint">Your turn: approve this illustrative finding to see it carried into the report.</p>}<button className="lp2-primary" onClick={advance}>{step === 2 ? <Check size={17} /> : step === 3 ? <RotateCcw size={17} /> : null}{current.action}{step < 2 && <ArrowRight size={17} />}</button><p className="lp3-disclosure">Illustrative workflow, not live inference. No diagnostic finding is made. Hosted AI requires a configured model server.</p></div></div>
     </div>
   </div>
 }
@@ -138,13 +146,13 @@ function GuidedDemo() {
 
 export function LandingPage() {
   useEffect(() => { document.title = 'VoxelRad AI — Your imaging workspace, reimagined' }, [])
-  return <div className="landing-page lp2-page">
+  return <div className="landing-page lp2-page" onKeyDownCapture={(event) => { event.currentTarget.dataset.motionInput = "keyboard" }} onPointerDownCapture={(event) => { event.currentTarget.dataset.motionInput = "pointer" }}>
     <a className="lp-skip" href="#main">Skip to content</a>
     <header className="lp2-header lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#for-you">Who it’s for</a><a href="#demo">Try the demo</a></nav><a className="lp2-nav-login" href="/workspace">Sign in <ArrowUpRight size={16} /></a></header>
     <main id="main">
-      <section className="lp3-hero" aria-labelledby="hero-title"><div className="lp2-wrap"><p className="lp3-product-name">VoxelRad AI</p><h1 id="hero-title">Less distraction.<br /><span>More perspective.</span></h1><p className="lp3-intro">AI-assisted image review. Radiologist-led decisions.</p><div className="lp3-actions"><a className="lp2-primary" href="/workspace">Open workspace</a><a className="lp3-demo-link" href="#demo">Explore the demo <ArrowRight size={18} /></a></div><div className="lp3-imaging"><figure><img src="/login/mr-sagittal.webp" alt="Sagittal MRI teaching image" /><figcaption>Sagittal</figcaption></figure><figure><img src="/login/mr-coronal.webp" alt="Coronal MRI teaching image" /><figcaption>Coronal</figcaption></figure><figure><img src="/login/mr-axial.webp" alt="Axial MRI teaching image" /><figcaption>Axial</figcaption></figure></div><p className="lp3-hero-note">Real teaching images. A new space to explore them.</p></div></section>
+      <section className="lp4-hero" aria-labelledby="hero-title"><div className="lp2-wrap lp4-hero-layout"><div className="lp4-hero-copy"><p className="lp4-kicker">VoxelRad AI / Imaging intelligence</p><h1 id="hero-title">AI assists.<br /><span>You decide.</span></h1><p className="lp4-description">A first pass that brings areas of interest into focus. A radiologist who makes the final call. A clearer path from scan to report.</p><div className="lp4-actions"><a className="lp2-primary" href="/workspace">Open workspace <ArrowUpRight size={16} /></a><a href="#how-it-works">See how it works <ArrowRight size={17} /></a></div><p className="lp4-formats">X-ray <span>CT</span> MRI</p><p className="lp4-caption">Explore the illustrated workflow. Approve the example to see it enter the report.</p></div><ReviewFlow hero /></div></section>
       <section className="lp2-capabilities lp2-wrap" aria-label="Workspace capabilities"><div><strong>X-ray</strong><span>Image review & annotation</span></div><div><strong>CT & MRI</strong><span>Slice navigation & multiplanar views</span></div><div><strong>Findings</strong><span>Evidence beside the image</span></div><div><strong>Reports</strong><span>Draft, review & export</span></div></section>
-      <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">AI takes the first pass.<br />You make the call.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><ReviewFlow /><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
+      <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">AI takes the first pass.<br />You make the call.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><div className="lp4-process">{flowSteps.map((item,index) => <article key={item.title}><span>{String(index+1).padStart(2,'0')}</span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div><a className="lp4-replay" href="#hero-review">Try the illustrated workflow <ArrowRight size={17} /></a><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
       <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">A little less reading. A little more doing.</p><h2 id="demo-title">Meet your workspace.</h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
       <section className="lp2-audience lp2-wrap" id="for-you" aria-labelledby="audience-title"><div className="lp2-section-title"><div><p className="lp2-label">Who it’s for</p><h2 id="audience-title">For people<br />who look closer.</h2></div><p>For evaluating imaging workflows, learning from anatomy, and exploring model-assisted review.</p></div><div className="lp2-audience-grid">
         <article><span>Clinical evaluation</span><h3>Radiologists & clinicians</h3><p>Explore a focused image-to-report workflow. Keep the source scan visible as you review findings and develop your interpretation.</p><ul><li>Multiplanar CT and MRI review</li><li>Image, findings and report together</li><li>Professional judgment at every step</li></ul></article>
