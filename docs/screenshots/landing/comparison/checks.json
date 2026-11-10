@@ -1,0 +1,25 @@
+{
+  "captures": [
+    "hero",
+    "collection",
+    "tools",
+    "workflow",
+    "audience",
+    "questions",
+    "closing"
+  ],
+  "checks": [
+    "10 tool tiles",
+    "4 workflow cards",
+    "explicit approval only",
+    "source comparison",
+    "study resets chapter",
+    "FAQ expands",
+    "no overflow 1440",
+    "no overflow 768",
+    "no overflow 390",
+    "no overflow 375",
+    "mobile dialog Escape and focus restoration",
+    "no console errors"
+  ]
+}
