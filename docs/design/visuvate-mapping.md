@@ -66,6 +66,21 @@ The user approved Instrument Sans as the open-source alternative to Perplexity's
 
 The generic style inspector also flags the intentional blue gradient, framed preview, large headings and spacious service tiles. These are explicit reference-matching decisions. Its actual skip-link contrast and tablet overflow findings were corrected. This is a component-level adaptation, not a pixel-identical copy: the content, logo, fonts, medical controls and image assets differ intentionally.
 
+## “Our Works” becomes “Your workspace”
+
+The reference's sticky, full-viewport 3D portfolio was inspected separately at three scroll positions. VoxelRad now has a corresponding section at `#workspace-showcase`: five real screenshots of CT, MRI, AI attention, clinician review and report-draft states surround the large title over blue light bands. Scroll position changes their depth-oriented transforms; there is no continuously running animation loop.
+
+Each preview links to its corresponding interactive reading-room state. Selecting the report preview does not grant approval. Keyboard focus brings the chosen preview into the center of the screen. At mobile widths and under reduced-motion preferences the same links become a static, ordered image gallery. Screenshots use public teaching studies and explicitly illustrative AI overlays.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Portfolio section absent | Full-viewport “Your workspace” showcase | Adapt the reference's signature section to the actual application. |
+| Agency websites as reference imagery | Five screenshots captured from VoxelRad | Show what the user can actually explore. |
+| Reference uses WebGL canvases | CSS perspective with scroll-driven transforms | Keep images, links and keyboard access native and avoid an extra rendering dependency. |
+| No stage-specific showcase links | Each preview opens the correct CT/MRI/demo stage | Turn the presentation into a useful product entry point. |
+
+Verified: all five image assets load; scroll changes the transforms; all five destinations open the expected stage; report access leaves approval unset; no horizontal overflow at 1440/768/390/375; reduced motion uses a static layout; build and lint pass.
+
 ## Build boundaries
 
 Keep the original app and backend sign-in. The hero is an illustrative workflow, never a live inference result. Keep public teaching scans and the local-only observation demo. No fabricated billing, patient information, integrations or clinical outcomes. No autoplaying decorative marquee, cookie banner or customer logos without a corresponding product need.

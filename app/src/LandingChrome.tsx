@@ -7,6 +7,7 @@ export function RollLabel({ children }: { children: string }) {
 }
 
 const links = [
+  { href: '#workspace-showcase', label: 'Workspace' },
   { href: '#how-it-works', label: 'How it works' },
   { href: '#demo', label: 'Try the demo' },
   { href: '#for-you', label: 'Who it is for' },

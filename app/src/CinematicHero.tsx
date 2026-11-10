@@ -10,13 +10,13 @@ const chapters = [
   { name: 'The report', title: 'From evidence to words.', text: 'Reviewed findings feed the draft. The radiologist writes the impression and verifies the final report.', action: 'Replay the story' },
 ]
 
-export function CinematicHero() {
-  const [chapter, setChapter] = useState(0)
+export function CinematicHero({ initialChapter = 0, initialModality = 'CT' }: { initialChapter?: number; initialModality?: 'CT' | 'MRI' }) {
+  const [chapter, setChapter] = useState(initialChapter)
   const [expanded, setExpanded] = useState(false)
   const [approved, setApproved] = useState(false)
   const [overlay, setOverlay] = useState(true)
   const [playing, setPlaying] = useState(false)
-  const [modality, setModality] = useState<'CT' | 'MRI'>('CT')
+  const [modality, setModality] = useState<'CT' | 'MRI'>(initialModality)
   const scene = useRef<HTMLDivElement>(null)
   const cine = useRef<HTMLVideoElement>(null)
   useEffect(() => {

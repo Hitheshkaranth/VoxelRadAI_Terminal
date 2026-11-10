@@ -8,6 +8,7 @@ import { LandingHeader, RollLabel } from './LandingChrome'
 import './landing-details.css'
 import './landing-reference.css'
 import { ScanCollection, ImagingTools } from './LandingShowcase'
+import { WorkspaceShowcase } from './WorkspaceShowcase'
 
 const views = [
   { label: 'CT · Axial', image: '/login/ct-poster.webp', title: 'CT brain', detail: 'Move through the volume.', description: 'Play the axial cine or pause to take a closer look.' },
@@ -103,14 +104,16 @@ function GuidedDemo() {
 }
 
 export function LandingPage() {
+  const [preview, setPreview] = useState({ chapter: 0, modality: 'CT' as 'CT' | 'MRI', revision: 0 })
   useEffect(() => { document.title = 'VoxelRad AI — Your imaging workspace, reimagined' }, [])
   return <div className="landing-page lp2-page vr-cinematic-page" onKeyDownCapture={(event) => { event.currentTarget.dataset.motionInput = "keyboard" }} onPointerMoveCapture={(event) => { event.currentTarget.dataset.motionInput = "pointer" }} onPointerDownCapture={(event) => { event.currentTarget.dataset.motionInput = "pointer" }}>
     <a className="lp-skip" href="#main">Skip to content</a>
     <LandingHeader />
     <main id="main">
-      <CinematicHero />
+      <CinematicHero key={preview.revision} initialChapter={preview.chapter} initialModality={preview.modality} />
       <section className="lp2-capabilities lp2-wrap" aria-label="Workspace capabilities"><div><strong>X-ray</strong><span>Image review & annotation</span></div><div><strong>CT & MRI</strong><span>Slice navigation & multiplanar views</span></div><div><strong>Findings</strong><span>Evidence beside the image</span></div><div><strong>Reports</strong><span>Draft, review & export</span></div></section>
       <ScanCollection />
+      <WorkspaceShowcase onExplore={(chapter, modality) => setPreview(previous => ({ chapter, modality, revision: previous.revision + 1 }))} />
       <ImagingTools />
       <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">The reading workflow.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><div className="vr-reading-path">{flowSteps.map((item,index) => <article key={item.title}><span>{String(index + 1).padStart(2,'0')}</span><h3>{item.title}</h3><p>{item.text}</p><div className="vr-process-art" aria-hidden="true">{index < 2 ? <><img src={index === 0 ? '/login/mr-coronal.webp' : '/login/ct-poster.webp'} alt="" />{index === 1 && <span className="vr-art-box" />}</> : index === 2 ? <div className="vr-approval-art"><img src="/login/ct-poster.webp" alt="" /><span className="vr-art-approval"><Check size={20} /> Finding reviewed</span></div> : <div className="vr-art-report"><FileText size={22} /><strong>Report draft</strong><small>FINDINGS</small><p>Reviewed observations stay connected to the source study.</p><small>IMPRESSION</small><p>Completed by the radiologist.</p><footer>Final review required</footer></div>}</div></article>)}</div><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
       <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">Try it yourself</p><h2 id="demo-title">The image.<br /><em>The whole context.</em></h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
