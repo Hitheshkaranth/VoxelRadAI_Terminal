@@ -144,15 +144,47 @@ function GuidedDemo() {
   </div>
 }
 
+function ImagingHero() {
+  const [attention, setAttention] = useState(false)
+  const volume = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const preference = matchMedia('(prefers-reduced-motion: reduce)')
+    if (preference.matches) return
+    const intro = volume.current?.animate([{ opacity: .5, translate: '0 18px' }, { opacity: 1, translate: '0 0' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' })
+    const finish = () => intro?.finish()
+    preference.addEventListener('change', finish)
+    return () => { intro?.cancel(); preference.removeEventListener('change', finish) }
+  }, [])
+  return <section className="lp5-hero" aria-labelledby="hero-title">
+    <div className="lp5-intro lp2-wrap">
+      <h1 id="hero-title">A clearer view.<br /><span>A human decision.</span></h1>
+      <div className="lp5-summary"><p>AI-assisted imaging for radiologists. From the first highlighted region to the final reviewed report.</p><a className="lp2-primary" href="/workspace">Explore the workspace <ArrowUpRight size={17} /></a></div>
+    </div>
+    <div className="lp5-stage" data-attention={attention}>
+      <div className="lp5-stage-inner lp2-wrap">
+        <div className="lp5-stage-note"><span>See beyond the slice.</span><p>One scan. More context.<br />Your expertise at the centre.</p></div>
+        <div ref={volume} className="lp5-volume" aria-label="Layered CT teaching image with optional illustrative AI attention">
+          <img className="lp5-plane lp5-plane-back" src="/login/ct-poster.webp" alt="" />
+          <img className="lp5-plane lp5-plane-middle" src="/login/ct-poster.webp" alt="" />
+          <div className="lp5-plane lp5-plane-front"><img src="/login/ct-poster.webp" alt="Axial CT brain teaching scan" /><div className="lp5-attention"><span className="lp5-heat" /><span className="lp5-box" /></div></div>
+        </div>
+        <div className="lp5-annotation" aria-live="polite"><span>{attention ? 'AI attention / illustrative' : 'Original scan / CT'}</span><p>{attention ? 'A region to review. Not a final diagnosis.' : 'Every finding starts with the source image.'}</p></div>
+        <div className="lp5-stage-bottom"><span>CT / MRI / X-ray</span><button onClick={() => setAttention(!attention)} aria-pressed={attention}>{attention ? 'View original scan' : 'Reveal AI attention'} <ArrowRight size={17} /></button><span>Teaching image. Illustrative overlay.</span></div>
+      </div>
+    </div>
+    <div className="lp5-footnote lp2-wrap"><p>AI highlights. You review. The report follows.</p><a href="#how-it-works">Follow the workflow <ArrowRight size={17} /></a></div>
+  </section>
+}
+
 export function LandingPage() {
   useEffect(() => { document.title = 'VoxelRad AI — Your imaging workspace, reimagined' }, [])
   return <div className="landing-page lp2-page" onKeyDownCapture={(event) => { event.currentTarget.dataset.motionInput = "keyboard" }} onPointerDownCapture={(event) => { event.currentTarget.dataset.motionInput = "pointer" }}>
     <a className="lp-skip" href="#main">Skip to content</a>
     <header className="lp2-header lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#for-you">Who it’s for</a><a href="#demo">Try the demo</a></nav><a className="lp2-nav-login" href="/workspace">Sign in <ArrowUpRight size={16} /></a></header>
     <main id="main">
-      <section className="lp4-hero" aria-labelledby="hero-title"><div className="lp2-wrap lp4-hero-layout"><div className="lp4-hero-copy"><p className="lp4-kicker">VoxelRad AI / Imaging intelligence</p><h1 id="hero-title">AI assists.<br /><span>You decide.</span></h1><p className="lp4-description">A first pass that brings areas of interest into focus. A radiologist who makes the final call. A clearer path from scan to report.</p><div className="lp4-actions"><a className="lp2-primary" href="/workspace">Open workspace <ArrowUpRight size={16} /></a><a href="#how-it-works">See how it works <ArrowRight size={17} /></a></div><p className="lp4-formats">X-ray <span>CT</span> MRI</p><p className="lp4-caption">Explore the illustrated workflow. Approve the example to see it enter the report.</p></div><ReviewFlow hero /></div></section>
+      <ImagingHero />
       <section className="lp2-capabilities lp2-wrap" aria-label="Workspace capabilities"><div><strong>X-ray</strong><span>Image review & annotation</span></div><div><strong>CT & MRI</strong><span>Slice navigation & multiplanar views</span></div><div><strong>Findings</strong><span>Evidence beside the image</span></div><div><strong>Reports</strong><span>Draft, review & export</span></div></section>
-      <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">AI takes the first pass.<br />You make the call.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><div className="lp4-process">{flowSteps.map((item,index) => <article key={item.title}><span>{String(index+1).padStart(2,'0')}</span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div><a className="lp4-replay" href="#hero-review">Try the illustrated workflow <ArrowRight size={17} /></a><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
+      <section className="lp3-flow-section" id="how-it-works" aria-labelledby="flow-title"><div className="lp2-wrap"><div className="lp3-flow-heading"><p className="lp2-label">From scan to report</p><h2 id="flow-title">AI takes the first pass.<br />You make the call.</h2><p>Upload a scan. Let AI highlight areas for attention with heatmaps and boxes. Review the evidence, approve or revise the findings, then bring them into a report.</p></div><div className="lp4-process">{flowSteps.map((item,index) => <article key={item.title}><span>{String(index+1).padStart(2,'0')}</span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div><div className="lp5-workflow" id="hero-review"><ReviewFlow /></div><p className="lp3-flow-benefit">Designed to help radiologists find areas of interest sooner and spend less time assembling reports.</p></div></section>
       <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">A little less reading. A little more doing.</p><h2 id="demo-title">Meet your workspace.</h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
       <section className="lp2-audience lp2-wrap" id="for-you" aria-labelledby="audience-title"><div className="lp2-section-title"><div><p className="lp2-label">Who it’s for</p><h2 id="audience-title">For people<br />who look closer.</h2></div><p>For evaluating imaging workflows, learning from anatomy, and exploring model-assisted review.</p></div><div className="lp2-audience-grid">
         <article><span>Clinical evaluation</span><h3>Radiologists & clinicians</h3><p>Explore a focused image-to-report workflow. Keep the source scan visible as you review findings and develop your interpretation.</p><ul><li>Multiplanar CT and MRI review</li><li>Image, findings and report together</li><li>Professional judgment at every step</li></ul></article>

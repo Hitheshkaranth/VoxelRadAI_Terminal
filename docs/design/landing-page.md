@@ -19,3 +19,11 @@ The split hero pairs “AI assists. You decide.” with the interactive scan-to-
 ## Validation
 
 Build and lint pass. Browser checks cover source-only intake, overlay reveal, approval, inclusion in report, restart, responsive overflow at 375/768/1440 pixels and console errors. Updated screenshots are stored in `docs/screenshots/landing/`. Public teaching-image provenance remains in `app/public/samples/provenance.json`.
+
+## Hero reset after visual review
+
+The crowded split hero was replaced with an editorial heading and a wide imaging stage. A layered CT teaching image is the principal object; Reveal AI attention changes its pose, separates the layers and reveals a clearly illustrative attention map. The detailed approval/report interaction sits below the hero. The scan remains visible without motion; reduced-motion disables the entrance and transitions. No new animation dependency or external runtime was added.
+
+References: Awwwards web design skill casebook (Opal Tadpole object presentation), Awwwards Hot Right Now 2023 discussion of True Staging, and Lusion's approach to 3D storytelling (https://lusion.co/). Live Awwwards listing requests timed out; Lusion's automated screenshot remained in its loader, so it was not treated as a verified hero composition. Existing public teaching imagery supplies the actual visual, with no borrowed artwork.
+
+Design decision: the scan becomes a lightbox object visitors can inspect. Fog #f5f6f8, ink #172d3c, stage #101c24, existing Figtree typography; a single 1100ms entrance and state-driven 600-1000ms transitions. The hero contains no diagnostic claim or invented performance metric.
