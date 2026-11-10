@@ -1,29 +1,32 @@
 # VoxelRad AI public landing page
 
-The root introduces the product; `/workspace` retains backend sign-in and OIDC handling. The original Skanda logo and VoxelRad AI brand remain.
+The root introduces VoxelRad AI. `/workspace` retains backend sign-in and OIDC handling. The original Skanda logo, domain and existing viewer remain.
 
-## Current direction
+## Reference and typography
 
-The user selected cinematic medical imaging: dark, immersive and scan-led. The hero is a continuous reading-room scene, with a dark header, large typography and distinct coronal MRI, sagittal MRI and axial CT teaching images. CSS perspective separates the anatomical views; no external 3D runtime or new dependency is required.
+The user requested an element-by-element adaptation of https://visuvate.com/ after approving an open-source alternative to Perplexity's font. See [visuvate-mapping.md](visuvate-mapping.md) for the observed reference elements, evidence and project equivalents.
 
-Four interactive chapters tell the actual product story: the scan, AI attention, the radiologist's decision, and the report. The first chapter briefly plays the CT cine. The next chapters reveal an illustrative heatmap and candidate box, then ask the visitor to approve the example. Approval carries it into the demonstration draft. Direct navigation to the report never approves the finding. Replay clears approval.
+The landing page self-hosts Instrument Sans (400-700) and Instrument Serif (regular and italic), with their SIL OFL licenses in `app/public/fonts/`. These are not FK Grotesk, Walsheim or Fraunces. No proprietary reference assets are bundled. Fonts do not require a third-party request at runtime.
 
-The scene uses existing self-hosted Figtree, near-black #060b0e, pale text #edf3f5 and cyan #87d3e7. State transitions use cubic-bezier(.22,1,.36,1) over 700-1000ms. The opening cine stops after 4.5 seconds and has a visible play/pause control. It pauses offscreen and when the document is hidden; reduced motion starts with a still image and removes CSS movement. All chapter controls are native buttons.
+## Page architecture
 
-## Product and content boundaries
+1. Compact sticky navigation with a mobile Explore menu.
+2. Centered mixed-type headline and workspace/walkthrough actions.
+3. Interactive reading room: teaching-study rail, scan canvas, review panel, report and four chapters.
+4. Capability strip with actual imaging and reporting features.
+5. Four illustrated workflow panels; no duplicated interactive workflow.
+6. Hands-on viewer demo, including image controls and a local observation-to-draft exercise.
+7. Audience cards for radiologists, educators and researchers.
+8. Product-readiness/access FAQ, workspace action and provenance footer.
 
-Heatmaps and boxes are illustrative, not model results. Hosted inference remains unconfigured. No speed, accuracy or clinical validation claim is made. Public teaching-image provenance is in `app/public/samples/provenance.json`. The MRI and CT images show separate teaching studies, not matched patient views.
+## Interaction and truthfulness
 
-The detailed workflow below the hero retains CT/MRI switching, overlay visibility and report approval. The viewer demo supports CT cine, MRI planes, zoom and carrying a locally typed observation into a sample draft. Demo inputs are not uploaded or persisted.
+CT/MRI study selection clears previous approval and returns to the source. Overlays are explicitly illustrative. Visitors can compare the original image, review and approve the example, then see it included in a draft. Direct navigation to the report does not approve a finding. Replay clears approval. Hosted inference is not configured; no real model result, clinical validation or measured performance is claimed.
 
-## References and validation
+The CT hero plays a short opening cine and provides replay/pause. It stops after 4.5 seconds, offscreen or when the document is hidden. Reduced motion starts with a still scan and disables the transitions. The report uses a short entrance; the source-to-attention transition uses restrained CSS perspective. Text and controls remain DOM elements; no WebGL is required.
 
-Design-taste, Awwwards web design, UI UX Pro Max and Emil Design Engineering informed composition, motion and interaction. The reference research used the Awwwards skill casebook and Lusion's public description of its 3D storytelling practice. Live Awwwards pages timed out and Lusion's automated screenshot remained in its loader; neither was claimed as a successfully inspected live hero.
+The existing viewer demo provides CT cine, MRI planes, zoom and a local-only note. No demo input is uploaded or persisted. Teaching-image provenance remains in `app/public/samples/provenance.json`.
 
-Build and lint pass. Chrome checks cover all four chapters, unapproved direct report navigation, explicit approval, replay, reduced-motion playback, console errors, overflow and report/copy collisions at 375, 390, 768 and 1440 pixels. Screenshots are saved in `docs/screenshots/landing/`.
+## Verification
 
-## Interface refinement
-
-The cinematic direction now extends through the complete landing page. Shared dark surfaces, cyan actions, readable secondary text and consistent corner radii unify the workflow, viewer demonstration, audience section, FAQ and footer. The redundant four-step prose grid was removed; the interactive workflow remains. Hero chapter controls have a filled selected state, and review chapters support comparing the original image with the illustrative overlay. Mobile navigation provides an Explore menu with close-on-navigation and Escape handling.
-
-Additional Chrome checks cover the mobile menu, source comparison, FAQ expansion and supporting-section appearance. Audience and viewer-demo screenshots are included alongside the three responsive hero captures.
+Build and lint pass. Chrome checks cover font loading, overlay/source comparison, study changes and approval reset, direct report navigation, explicit approval, replay, reduced motion, mobile menu, FAQ, overflow and report/copy collisions at 375/390/768/1440px. Updated screenshots live in `docs/screenshots/landing/`.
