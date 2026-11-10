@@ -1,23 +1,21 @@
 # VoxelRad AI on Vercel
 
-Production identity: **VoxelRad AI**, intended domain **voxelradai.com**. The existing repository name and persisted storage keys remain compatible; Skanda still names a supported inference model, not this application.
+Production: https://voxelradai.com. The private GitHub repository remains named `Hitheshkaranth/skanda-radiology`.
 
-## Required architecture
+## Architecture
 
-Vercel serves the authenticated React frontend. A separately hosted HTTPS backend serves the existing API/PostgreSQL deployment and authenticated model proxies. Do not deploy the default local-only frontend as the production site: sign-in is required for launch. No authentication is simulated in the browser.
+Vercel serves the React app and the same-origin Node API in `api/index.mjs`. Neon PostgreSQL stores accounts, sessions and saved studies. The root build forces authenticated server mode; production does not bypass sign-in. Database migrations are bundled with the function and checked on initialization.
 
-Set the backend's PUBLIC_ORIGIN to `https://voxelradai.com`, configure production TLS and credentials, and verify `/healthz`. The backend edge must serve `/api/*` and enforce session authentication for `/lmstudio/*`, `/txrv/*` and `/maira/*`, as the bundled Nginx configuration does. Vercel forwards these routes through external rewrites so browser sessions stay same-origin. Do not rewrite directly to an unauthenticated model engine. Keep callback query strings out of access/error logs on every proxy.
+Production environment variables are managed in Vercel: `DATABASE_URL`, `PUBLIC_ORIGIN=https://voxelradai.com`, and `DB_POOL_SIZE=3`. Never commit credentials or local environment files. The frontend and API use the Singapore region. Cookie and origin validation require the canonical production domain; preview authentication needs a separately configured origin and database.
 
-## Build and deploy
+## Deployment
 
-1. Authenticate the official Vercel CLI to your account: `npx vercel login`.
-2. Set `VOXELRAD_BACKEND_ORIGIN` in your terminal to the backend's HTTPS origin. This is configuration, not a secret.
-3. From the repository root run `node scripts/prepare-vercel.mjs`. It checks backend health and anonymous session behavior, forces `VITE_SERVER_MODE=true`, and creates a fresh isolated deployment directory containing only built assets and routing configuration.
-4. In the printed directory run `npx vercel --prod --yes --name voxelradai`. Select the intended Vercel account/team if prompted.
-5. Add `voxelradai.com` to that Vercel project and apply the exact DNS records Vercel supplies at your registrar. Do not replace unrelated MX/TXT records. Verify the domain and TLS before directing users there.
+Install the Vercel GitHub app for the private repository, connect it to the `voxelradai` Vercel project, and select `main` as the production branch. This grants repository access without making the repository public. Once connected, pushes to main build with the root `vercel.json` and deploy to the custom domain. Until the connection is authorized, deploy from the repository root with `npx vercel deploy --prod`.
 
-Set the Keycloak callback to `https://voxelradai.com/api/oidc/callback` when enabling SSO. Configure S3 CORS for the same origin. Preview-domain login will deliberately fail origin validation unless a separate preview backend is configured for that exact preview origin. Do not weaken the production origin check for previews.
+The root build installs app dependencies, compiles TypeScript and builds the authenticated frontend. Hosted study uploads are limited to 4 MB to fit the serverless request limit; the Docker API supports 25 MB. GPU inference, SSO, private object storage and PACS remain disabled until separately configured. Serverless instances do not run the Docker process's periodic cleanup timer; scheduled cleanup still needs configuring. Vercel visitor analytics are not enabled.
 
-## Acceptance before launch
+## Verification
 
-Verify anonymous users cannot open account data, sign-in/logout/revocation, recovery, model-proxy authentication, and enabled storage/PACS flows on the actual domain. Confirm cookie attributes, real-provider callbacks, upload limits and long inference timeout behavior through Vercel. Independent clinical validation is still outstanding. Existing source release archives retain their historical product name; they are not replaced by rebranding main.
+Check `/healthz`, anonymous session state, rejection of anonymous study access, sign-in/logout, recovery and role restrictions on the production domain after deployment. The server and app test suites run with `npm test`. Provider-specific flows need verification when enabled.
+
+`scripts/prepare-vercel.mjs` remains an alternative packaging helper for a separately hosted HTTPS backend; it is not used by the current same-project deployment.

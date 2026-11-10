@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/public/voxelrad-mark.svg" alt="VoxelRad AI" width="64">
+<img src="app/public/skanda-mark.png" alt="VoxelRad AI" width="64">
 
 # VoxelRad AI
 
@@ -8,7 +8,7 @@ On `main`: the login now includes a looping CT teaching scan with pause and redu
 
 **voxelradai.com** — a browser workspace for X-ray, CT and MRI review.
 
-Vercel launch requires backend sign-in. See [Vercel deployment](docs/vercel.md). The domain is the intended production address; DNS and backend availability must be verified before launch.
+Live at [voxelradai.com](https://voxelradai.com), with backend sign-in required. Vercel hosts the frontend and API; Neon provides PostgreSQL. See [Vercel deployment](docs/vercel.md).
 
 Open a scan. Explore the anatomy. Review model candidates against their source. Prepare a report.
 

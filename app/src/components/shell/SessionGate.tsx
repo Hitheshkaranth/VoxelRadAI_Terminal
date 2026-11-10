@@ -72,7 +72,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
   return <main className="session-page">
     <a className="session-skip" href="#session-access">Skip to sign in</a>
     <section className="session-visual" aria-label="VoxelRad AI imaging workspace introduction">
-      <div className="session-brand"><img src="/voxelrad-mark.svg" alt="" width="40" height="40" /><span>voxelrad<span className="session-brand-descriptor">AI</span></span></div>
+      <div className="session-brand"><img src="/skanda-mark.png" alt="" width="40" height="40" /><span>voxelrad<span className="session-brand-descriptor">AI</span></span></div>
       <LoginCine />
       <div className="session-visual-copy"><h2>A clearer view.<br />A focused read.</h2><p>One workspace for<br />X-ray, CT and MRI.</p></div>
     </section>

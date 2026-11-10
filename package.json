@@ -1,0 +1,21 @@
+{
+  "name": "voxelradai",
+  "version": "0.2.0-beta.2",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "node scripts/build-hosted.mjs",
+    "test": "npm test --prefix server && npm test --prefix app"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1165.0",
+    "@aws-sdk/s3-presigned-post": "^3.1165.0",
+    "@aws-sdk/s3-request-presigner": "^3.1165.0",
+    "@vercel/functions": "^3.11.1",
+    "openid-client": "^6.8.9",
+    "pg": "^8.16.3"
+  }
+}

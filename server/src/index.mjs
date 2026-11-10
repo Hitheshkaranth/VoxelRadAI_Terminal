@@ -19,6 +19,10 @@ const localOverride = process.env.ALLOW_INSECURE_LOCALHOST === 'true' && ['local
 if (process.env.NODE_ENV === 'production' && !secureCookies && !localOverride) throw new Error('Production requires HTTPS PUBLIC_ORIGIN (or explicit loopback-only ALLOW_INSECURE_LOCALHOST=true).')
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DB_POOL_SIZE || 10), connectionTimeoutMillis: 5000, statement_timeout: 10000 })
+if (process.env.VERCEL) {
+  const { attachDatabasePool } = await import('@vercel/functions')
+  attachDatabasePool(pool)
+}
 pool.on('error', () => console.error('Database connection interrupted'))
 await migrate(pool)
 
@@ -37,6 +41,17 @@ const operations = createOperations()
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function send(res, status, body, extra = {}) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', ...extra }); res.end(JSON.stringify(body)) }
 async function body(req, limit = 8192) {
+  // Vercel's Node runtime may parse JSON before invoking the exported handler.
+  if (req.body !== undefined) {
+    let data = req.body
+    const raw = typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : JSON.stringify(data)
+    if (Buffer.byteLength(raw || '') > limit) throw Object.assign(new Error('Request exceeds the allowed size'), { status: 413 })
+    if (typeof data === 'string' || Buffer.isBuffer(data)) {
+      try { data = JSON.parse(raw) } catch { throw Object.assign(new Error('Request must contain a JSON object'), { status: 400 }) }
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw Object.assign(new Error('Request must contain a JSON object'), { status: 400 })
+    return data
+  }
   const chunks = []; let bytes = 0
   for await (const chunk of req.iterator({ destroyOnReturn: false })) { bytes += chunk.length; if (bytes > limit) { req.resume(); const error = new Error('Request exceeds the allowed size'); error.status = 413; throw error } chunks.push(chunk) }
   try { const data = JSON.parse(Buffer.concat(chunks).toString('utf8')); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data } catch { const error = new Error('Request must contain a JSON object'); error.status = 400; throw error }
@@ -61,7 +76,7 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 })
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
-const server = http.createServer(async (req, res) => {
+export async function handler(req, res) {
   const requestId = operations.begin(res)
   try {
     const path = new URL(req.url, 'http://internal').pathname
@@ -228,7 +243,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { studies: result.rows, total:count.rows[0].total })
     }
     if (path === '/api/studies' && req.method === 'POST') {
-      const data = await body(req, 25 * 1024 * 1024)
+      const data = await body(req, (process.env.VERCEL ? 4 : 25) * 1024 * 1024)
       if (!validStudy(data)) return send(res, 400, { error: 'The study has invalid patient, image, analysis or report fields. Export a valid Skanda study and retry.' })
       const result = await pool.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,image_count=EXCLUDED.image_count,has_report=EXCLUDED.has_report,report_signed=EXCLUDED.report_signed,updated_at=now() WHERE studies.owner_id=$2 RETURNING id', [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed])
       if (!result.rowCount) return send(res, 404, { error: 'Study not found.' })
@@ -276,9 +291,12 @@ const server = http.createServer(async (req, res) => {
     console.error(JSON.stringify({ event: 'http.error', requestId, code: error.code || error.name }))
     if (!res.headersSent) send(res, 503, { error: 'Service unavailable. Please retry.' })
   }
-})
+}
+if (!process.env.VERCEL) {
+const server = http.createServer(handler)
 server.requestTimeout = 30000
 server.headersTimeout = 15000
-server.listen(port, '0.0.0.0', () => console.log(`Skanda API listening on ${port}`))
+server.listen(port, '0.0.0.0', () => console.log(`VoxelRad AI API listening on ${port}`))
 const cleanup = setInterval(() => { objectStorage.cleanupExpiredUploads().catch(() => {}); pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}); pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()').catch(() => {}) }, 3600000).unref()
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanup); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })
+}

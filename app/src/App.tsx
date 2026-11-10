@@ -234,7 +234,7 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const createStudy = useApp((s) => s.createStudy)
   return (
     <div className="sh-empty">
-      <img className="sh-empty-logo" src="/voxelrad-mark.svg" alt="VoxelRad AI" />
+      <img className="sh-empty-logo" src="/skanda-mark.png" alt="VoxelRad AI" />
       <h1 className="sh-empty-title">VoxelRad AI</h1>
       <p className="sh-empty-desc">
         {hasStudies

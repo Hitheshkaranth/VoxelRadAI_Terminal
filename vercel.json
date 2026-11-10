@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci && npm ci --prefix app",
+  "buildCommand": "npm run build",
+  "outputDirectory": "app/dist",
+  "regions": ["sin1"],
+  "functions": { "api/index.mjs": { "maxDuration": 60, "includeFiles": "server/migrations/**" } },
+  "headers": [{ "source": "/(.*)", "headers": [
+    { "key": "X-Content-Type-Options", "value": "nosniff" },
+    { "key": "Referrer-Policy", "value": "no-referrer" },
+    { "key": "X-Frame-Options", "value": "DENY" },
+    { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+  ] }],
+  "rewrites": [
+    { "source": "/healthz", "destination": "/api/index?__route=healthz" },
+    { "source": "/api/:path*", "destination": "/api/index?__route=:path*" },
+    { "source": "/lmstudio/:path*", "destination": "/api/index?__route=unconfigured-model" },
+    { "source": "/txrv/:path*", "destination": "/api/index?__route=unconfigured-model" },
+    { "source": "/maira/:path*", "destination": "/api/index?__route=unconfigured-model" }
+  ]
+}

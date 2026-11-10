@@ -7,6 +7,7 @@ import { Sheet } from './Sheet'
 import { useShell } from './shellState'
 import './admin.css'
 interface SavedStudy { id: string; title: string; imageCount: number; hasReport: boolean; reportSigned: boolean; updatedAt: string }
+const studyLimitMb = Number(import.meta.env.VITE_STUDY_LIMIT_MB) || 25
 
 export function CloudStudiesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return open ? <CloudStudiesContent onClose={onClose} /> : null
@@ -42,7 +43,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
     setBusy(true); setMessage('')
     try {
       const payload = JSON.stringify(persistedStudies([active])[0])
-      if (new Blob([payload]).size > 25 * 1024 * 1024) throw new Error('This study exceeds the 25 MB server limit. Keep it local or use your approved imaging archive.')
+      if (new Blob([payload]).size > studyLimitMb * 1024 * 1024) throw new Error(`This study exceeds the ${studyLimitMb} MB server limit. Keep it local or use your approved imaging archive.`)
       const response = await fetch('/api/studies', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: payload })
       if (!response.ok) throw new Error(response.status === 401 ? 'Your session expired. Sign in again.' : 'The study could not be saved. Check the server and try again.')
       refreshSaved()

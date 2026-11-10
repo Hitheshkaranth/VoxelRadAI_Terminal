@@ -1,0 +1,14 @@
+.git
+.env*
+.tmp
+output
+benchmark
+docs/screenshots
+app/node_modules
+server/node_modules
+node_modules
+app/dist
+app/server
+app/scripts
+server/test
+.taste-skill

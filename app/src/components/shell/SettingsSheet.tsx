@@ -463,7 +463,7 @@ function AboutSection() {
   return (
     <Section title="About" desc="VoxelRad AI decision support.">
       <div className="sh-about">
-        <img className="sh-about-logo" src="/voxelrad-mark.svg" alt="" aria-hidden />
+        <img className="sh-about-logo" src="/skanda-mark.png" alt="" aria-hidden />
         <div className="sh-about-title">VoxelRad AI</div>
         <div className="sh-about-sub">Version {VERSION}</div>
         <div className="sh-disclaimer">
