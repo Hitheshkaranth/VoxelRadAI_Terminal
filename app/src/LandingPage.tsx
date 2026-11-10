@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Accordion, Tabs } from 'radix-ui'
-import { ArrowRight, ArrowUpRight, Pause, Play, Plus, Minus } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Pause, Play, Plus, Minus, Layers3, ScanLine, FileText, Check, RotateCcw, ArrowLeft } from 'lucide-react'
 import './landing.css'
 
 const views = [
@@ -66,36 +66,75 @@ function ScanPreview() {
   </div>
 }
 
-export function LandingPage() {
+function VolumeIntroduction() {
+  const [moving, setMoving] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [angle, setAngle] = useState(-28)
+  const [plane, setPlane] = useState('All planes')
   useEffect(() => {
-    document.title = 'VoxelRad AI — A clearer view of every study'
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('lp-in-view'); observer.unobserve(entry.target) } }), { threshold: .12 })
-    document.querySelectorAll('.lp-reveal').forEach((element) => observer.observe(element))
-    return () => observer.disconnect()
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const pause = () => setMoving(false)
+    media.addEventListener('change', pause)
+    document.addEventListener('visibilitychange', pause)
+    return () => { media.removeEventListener('change', pause); document.removeEventListener('visibilitychange', pause) }
   }, [])
-  return <div className="landing-page">
+  return <div className="lp2-volume" onFocusCapture={() => setMoving(false)}>
+    <div className="lp2-volume-heading"><span><Layers3 size={16} aria-hidden="true" /> A study, in three dimensions</span><button onClick={() => setMoving(!moving)} aria-label={moving ? 'Pause 3D motion' : 'Play 3D motion'}>{moving ? <Pause size={15} /> : <Play size={15} />}</button></div>
+    <div className="lp2-volume-stage" role="img" aria-label="Illustration of axial, coronal and sagittal MRI planes intersecting in three-dimensional space">
+      <div className="lp2-volume-camera" style={{ transform: `rotateX(-17deg) rotateY(${angle}deg)` }}><div className={`lp2-volume-orbit ${moving ? 'is-moving' : ''}`}>
+        <div className="lp2-cube-front" /><div className="lp2-cube-back" /><div className="lp2-cube-side" />
+        {['Axial', 'Coronal', 'Sagittal'].map((name, index) => <div className={`lp2-image-plane lp2-plane-${index}`} key={name} style={{ opacity: plane === 'All planes' || plane === name ? .96 : .13 }}><img src={views[index + 1].image} alt="" /><span>{name}</span></div>)}
+      </div></div>
+    </div>
+    <div className="lp2-plane-picker" aria-label="Highlight an imaging plane">{['All planes', 'Axial', 'Coronal', 'Sagittal'].map((name) => <button key={name} aria-pressed={name === plane} onClick={() => setPlane(name)}>{name}</button>)}</div>
+    <div className="lp2-rotation"><label htmlFor="volume-rotation">Rotate view</label><input id="volume-rotation" type="range" min="-65" max="35" value={angle} onChange={(e) => { setMoving(false); setAngle(Number(e.target.value)) }} /><button aria-label="Reset 3D view" onClick={() => { setAngle(-28); setPlane('All planes'); setMoving(false) }}><RotateCcw size={15} /></button></div>
+    <p className="lp2-volume-caption">Public MRI sample · Illustrative plane arrangement</p>
+  </div>
+}
+
+const demoSteps = [
+  { name: 'Explore the image', icon: ScanLine, title: 'Start with the scan.', text: 'Switch between CT and MRI. Play the CT sequence, pause on a slice, and zoom in to see more detail.', hint: 'Try selecting MRI · Coronal in the viewer.' },
+  { name: 'Record an observation', icon: Layers3, title: 'Keep your thoughts close.', text: 'In the full workspace, findings stay beside the image they refer to. Try writing a note here to carry into the next step.', hint: 'This demo note stays in this page and is never uploaded.' },
+  { name: 'Review the draft', icon: FileText, title: 'Review before you report.', text: 'Bring the evidence and your interpretation together. In the workspace, you can edit and export your report after review.', hint: 'This is a workflow demonstration, not an AI-generated interpretation.' },
+]
+
+function GuidedDemo() {
+  const [step, setStep] = useState(0)
+  const [note, setNote] = useState('')
+  const current = demoSteps[step]
+  return <div className="lp2-demo-shell">
+    <div className="lp2-demo-bar"><span><img src="/skanda-mark.png" alt="" /> VoxelRad AI <span className="lp2-demo-tag">Guided demo</span></span><span>Teaching sample · No account needed</span></div>
+    <div className="lp2-demo-layout"><div className="lp2-demo-image"><ScanPreview /></div><div className="lp2-demo-guide">
+      <div className="lp2-demo-steps" aria-label="Demo steps">{demoSteps.map((item, index) => <button key={item.name} aria-pressed={index === step} onClick={() => setStep(index)}><span>{index < step ? <Check size={14} /> : index + 1}</span>{item.name}</button>)}</div>
+      <div className="lp2-demo-instruction" key={step}><p className="lp2-label">Step {step + 1} of 3</p><h3>{current.title}</h3><p>{current.text}</p>
+      {step === 1 && <label className="lp2-demo-note">Your observation<textarea maxLength={500} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: compare the anatomy in another plane." /></label>}
+      {step === 2 && <div className="lp2-draft"><span>Example report · Not reviewed</span><h4>Observation</h4><p>{note || 'No observation added. Go back a step to write your own note.'}</p><h4>Impression</h4><p>To be completed by the reviewing clinician.</p></div>}
+      <p className="lp2-demo-hint">{current.hint}</p></div>
+      <div className="lp2-demo-actions"><button disabled={step === 0} onClick={() => setStep(step - 1)} aria-label="Previous demo step"><ArrowLeft size={18} /></button>{step < 2 ? <button className="lp2-primary" onClick={() => setStep(step + 1)}>Next step <ArrowRight size={17} /></button> : <a className="lp2-primary" href="/workspace">Open workspace <ArrowRight size={17} /></a>}</div>
+    </div></div>
+  </div>
+}
+
+export function LandingPage() {
+  useEffect(() => { document.title = 'VoxelRad AI — Your imaging workspace, reimagined' }, [])
+  return <div className="landing-page lp2-page">
     <a className="lp-skip" href="#main">Skip to content</a>
-    <header className="lp-header lp-wrap"><a className="lp-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span className="lp-ai">AI</span></span></a><nav aria-label="Main navigation"><a href="#workspace">Workspace</a><a href="#workflow">How it works</a><a href="#questions">Questions</a></nav><a className="lp-login" href="/workspace">Sign in <ArrowUpRight size={16} /></a></header>
+    <header className="lp2-header lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#for-you">Who it’s for</a><a href="#demo">Try the demo</a></nav><a className="lp2-nav-login" href="/workspace">Sign in <ArrowUpRight size={16} /></a></header>
     <main id="main">
-      <section className="lp-hero lp-wrap" aria-labelledby="lp-title">
-        <div className="lp-hero-copy"><h1 id="lp-title">Every study.<br /><span>A clearer view.</span></h1><p className="lp-lead">A focused workspace for X-ray, CT and MRI. Explore the image, review the findings, and bring your report together.</p><a className="lp-button" href="/workspace">Open workspace <ArrowRight size={19} /></a><p className="lp-access-note">For research and clinician-led evaluation.</p><div className="lp-hero-foot"><span>X-ray</span><span>CT</span><span>MRI</span><span>One workspace</span></div></div>
-        <ScanPreview />
-      </section>
-      <section className="lp-workspace lp-wrap" id="workspace" aria-labelledby="workspace-title">
-        <div className="lp-section-head lp-reveal"><h2 id="workspace-title">More image.<br />Less in the way.</h2><p>The scan takes the space it deserves. Viewing controls stay close, and study context stays within reach.</p></div>
-        <div className="lp-planes">
-          {views.slice(1).map((view) => <figure className="lp-plane lp-reveal" key={view.image}><div><img src={view.image} alt={`Public MRI brain sample in the ${view.label.split(' · ')[1].toLowerCase()} plane`} loading="lazy" /></div><figcaption><span>{view.label.split(' · ')[1]}</span></figcaption></figure>)}
-        </div>
-        <div className="lp-plane-caption lp-reveal"><strong>One volume. Three perspectives.</strong><p>Move between axial, coronal and sagittal views. Adjust the window, zoom into detail, or step through slices at your own pace.</p></div>
-      </section>
-      <section className="lp-workflow" id="workflow" aria-labelledby="workflow-title"><div className="lp-wrap lp-workflow-grid"><div className="lp-workflow-intro lp-reveal"><h2 id="workflow-title">Stay with<br />the study.</h2><p>Your images, findings and report belong in the same conversation.</p><a className="lp-text-link" href="/workspace">Explore your workspace <ArrowUpRight size={18} /></a></div><div className="lp-steps">
-        <article className="lp-step lp-reveal"><div><h3>Bring the image into focus.</h3><p>Open a study or start with a teaching sample. Set your view, adjust contrast, and move through the anatomy.</p><div className="lp-mini-controls" data-ui><span>Window / level</span><span>Zoom & pan</span><span>Slice navigation</span></div></div></article>
-        <article className="lp-step lp-reveal"><div><h3>Keep evidence in context.</h3><p>Review findings alongside the source image. With a model connected, inspect suggested regions and revise draft findings before they enter your report.</p><p className="lp-feature-note">AI analysis requires a configured model server.</p></div></article>
-        <article className="lp-step lp-reveal"><div><h3>Make the report yours.</h3><p>Write and refine the impression, review the study, and export a report. The clinician stays responsible for the final interpretation.</p><div className="lp-report-fragment" data-ui><span>Report workspace</span><strong>Findings → Impression → Review</strong></div></div></article>
-      </div></div></section>
-      <section className="lp-faq lp-wrap" id="questions" aria-labelledby="questions-title"><div className="lp-reveal"><h2 id="questions-title">Before you<br />begin.</h2></div><Accordion.Root className="lp-questions" type="single" collapsible>{questions.map(([question, answer], index) => <Accordion.Item className="lp-question lp-reveal" value={String(index)} key={question}><Accordion.Header><Accordion.Trigger>{question}<Plus size={20} aria-hidden="true" /></Accordion.Trigger></Accordion.Header><Accordion.Content className="lp-answer"><p>{answer}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root></section>
-      <section className="lp-close lp-wrap lp-reveal" aria-labelledby="close-title"><div><h2 id="close-title">Your next study<br />starts here.</h2></div><div><a className="lp-button" href="/workspace">Open workspace <ArrowRight size={19} /></a><p>Already have an account? You’re ready.</p></div></section>
-    </main>
-    <footer className="lp-footer lp-wrap"><a className="lp-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span className="lp-ai">AI</span></span></a><p>Look closer. Keep context.</p><a href="/workspace">voxelradai.com <ArrowUpRight size={15} /></a><small>Teaching imagery: public Slicer CTBrain and MRHead samples. Research and evaluation use.</small></footer>
+      <section className="lp2-hero lp2-wrap" aria-labelledby="hero-title"><div className="lp2-hero-copy"><p className="lp2-label">The image is just the beginning.</p><h1 id="hero-title">A new view<br />of radiology.</h1><p className="lp2-lead">Go from a scan to a considered report. A browser workspace that brings X-ray, CT, MRI and your clinical thinking into one place.</p><div className="lp2-hero-actions"><a className="lp2-primary" href="#demo"><Play size={16} aria-hidden="true" /> Try the interactive demo</a><a className="lp2-secondary" href="/workspace">Open workspace <ArrowUpRight size={17} /></a></div><div className="lp2-hero-facts"><span><Check size={15} /> Browser-based viewing</span><span><Check size={15} /> Clinician-led review</span></div></div><VolumeIntroduction /></section>
+      <section className="lp2-capabilities lp2-wrap" aria-label="Workspace capabilities"><div><strong>X-ray</strong><span>Image review & annotation</span></div><div><strong>CT & MRI</strong><span>Slice navigation & multiplanar views</span></div><div><strong>Findings</strong><span>Evidence beside the image</span></div><div><strong>Reports</strong><span>Draft, review & export</span></div></section>
+      <section className="lp2-how lp2-wrap" id="how-it-works" aria-labelledby="how-title"><div className="lp2-section-title"><div><p className="lp2-label">How it works</p><h2 id="how-title">From first look<br />to final review.</h2></div><p>One connected workflow. Open a study, explore the anatomy, and turn your observations into a report you can stand behind.</p></div><div className="lp2-how-grid">
+        <article><span className="lp2-step-number">01 / Open</span><h3>Bring in your study.</h3><p>Open supported X-ray images, DICOM frames, or CT and MRI volumes in NRRD format. Start with a teaching sample if you’re just exploring.</p><div className="lp2-file-list"><span><FileText size={18} /> Chest radiograph <small>X-ray</small></span><span><Layers3 size={18} /> Brain volume <small>CT / MRI</small></span></div></article>
+        <article><span className="lp2-step-number">02 / Explore</span><h3>Find your perspective.</h3><p>Adjust the window, zoom into detail, and move through slices. Switch between axial, coronal and sagittal views to understand the volume.</p><div className="lp2-mini-planes">{views.slice(1).map(view => <img key={view.image} src={view.image} alt={`${view.label} teaching sample`} loading="lazy" />)}</div></article>
+        <article><span className="lp2-step-number">03 / Review</span><h3>Put it into words.</h3><p>Keep findings with the study, refine your impression, and export a reviewed report. When a model is connected, assess its suggestions before using them.</p><div className="lp2-report-line"><span>Findings</span><ArrowRight size={16} /><span>Impression</span><ArrowRight size={16} /><span>Review</span></div></article>
+      </div></section>
+      <section className="lp2-demo-section" id="demo" aria-labelledby="demo-title"><div className="lp2-wrap"><div className="lp2-section-title"><div><p className="lp2-label">A little less reading. A little more doing.</p><h2 id="demo-title">Take a closer look.</h2></div><p>Try a three-step walkthrough with a real teaching scan. Change the view, add an observation, and see it in a sample draft.</p></div><GuidedDemo /></div></section>
+      <section className="lp2-audience lp2-wrap" id="for-you" aria-labelledby="audience-title"><div className="lp2-section-title"><div><p className="lp2-label">Who it’s for</p><h2 id="audience-title">Built for people<br />who look closer.</h2></div><p>For evaluating imaging workflows, learning from anatomy, and exploring model-assisted review.</p></div><div className="lp2-audience-grid">
+        <article><span>Clinical evaluation</span><h3>Radiologists & clinicians</h3><p>Explore a focused image-to-report workflow. Keep the source scan visible as you review findings and develop your interpretation.</p><ul><li>Multiplanar CT and MRI review</li><li>Image, findings and report together</li><li>Professional judgment at every step</li></ul></article>
+        <article><span>Teaching & learning</span><h3>Residents & educators</h3><p>Make the relationship between planes tangible. Use public samples to practise navigation and discuss observations.</p><ul><li>Included public teaching volumes</li><li>Controls directly on the scan</li><li>A repeatable review workflow</li></ul></article>
+        <article><span>Research & development</span><h3>Imaging researchers</h3><p>Connect a supported model server to investigate draft findings and regions alongside their source images.</p><ul><li>Configurable model connection</li><li>Model outputs subject to review</li><li>Hosted inference not yet enabled</li></ul></article>
+      </div><p className="lp2-use-note">VoxelRad AI is for research and evaluation. It is not a clinically validated diagnostic system.</p></section>
+      <section className="lp2-questions lp2-wrap" aria-labelledby="questions-title"><div><p className="lp2-label">Good to know</p><h2 id="questions-title">A few answers.</h2><p>What’s available, what you need,<br />and where to begin.</p></div><Accordion.Root className="lp-questions" type="single" collapsible>{questions.map(([question, answer], index) => <Accordion.Item className="lp-question" value={String(index)} key={question}><Accordion.Header><Accordion.Trigger>{question}<Plus size={20} aria-hidden="true" /></Accordion.Trigger></Accordion.Header><Accordion.Content className="lp-answer"><p>{answer}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root></section>
+      <section className="lp2-close lp2-wrap"><div><img src="/skanda-mark.png" alt="" /><h2>Look closer.<br />Start here.</h2><p>Open the workspace. Give the image your full attention.</p></div><a className="lp2-primary" href="/workspace">Open VoxelRad AI <ArrowRight size={18} /></a></section>
+    </main><footer className="lp2-footer lp2-wrap"><a className="lp2-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>voxelrad<span>AI</span></span></a><p>A clearer space for imaging.</p><a href="/workspace">Sign in <ArrowUpRight size={15} /></a><small>voxelradai.com · Public teaching imagery: Slicer CTBrain and MRHead. No patient data is used in this demo.</small></footer>
   </div>
 }

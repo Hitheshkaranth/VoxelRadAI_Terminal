@@ -1,17 +1,26 @@
-# VoxelRad AI public landing page
+# VoxelRad AI landing page
 
-The root URL introduces the product. `/workspace` retains the authenticated workspace, and OIDC return queries retain the existing authenticated flow. The landing preview only uses bundled public teaching samples; it does not request patient or account data.
+The public root explains the product; `/workspace` keeps the authenticated app. Existing OIDC return queries preserve the original sign-in flow. The original Skanda mark remains the app logo.
 
-## Direction and references
+## Design
 
-The product performs: the existing CT cine and MRI teaching slices become the interactive first view. The page argues from seeing the scan, through keeping evidence in context, to reviewing a report. It retains Figtree, the original Skanda mark and VoxelRad AI identity.
+Rebuilt using the user-requested UI UX Pro Max skill from https://github.com/nextlevelbuilder/ui-ux-pro-max-skill. Its medical-imaging SaaS query recommended a light interface, clear hero-to-feature progression, restrained depth, accessible controls and reduced-motion fallbacks. The implementation keeps the established self-hosted Figtree rather than adding a remote font. Blue actions and a cool neutral ground distinguish public content from the dark scan viewer.
 
-References: [Ashby](https://www.ashbyhq.com/) for a clear product tour, [Resend](https://resend.com/) for interactive product proof, and [Arc Library](https://github.com/kuratlielia/arc-library) for moving tab selection, calm accordion transitions, keyboard semantics and reduced-motion alternatives. Arc is inspiration; no Arc source was copied or new animation dependency added. Existing Radix primitives provide keyboard and accessibility behavior.
+The introduction uses three real public MRI slice images on intersecting CSS 3D planes. This is explicitly an illustrative arrangement, not calibrated volume reconstruction. Visitors can rotate, highlight a plane, reset or pause motion; reduced-motion and focus stop automatic motion.
+
+## Content and demo
+
+- How it works: open a supported study, explore views, review a report.
+- Who it is for: clinicians evaluating workflows, residents/educators, and imaging researchers.
+- Three-step interactive demo: explore public CT/MRI scans, enter an observation, then see that note in an example report. Notes only exist in React state and are not uploaded or persisted.
+- FAQs explain formats, access, model configuration and research-only status.
+
+Arc Library remains inspiration for the moving tab indicator and accordion transitions; the implementation uses existing Radix primitives. No Arc source or new animation dependency was added. CSS classes use the isolated `lp2-` prefix to avoid collisions with the clinical viewer.
 
 ## Verification
 
-Production build and lint pass. Browser checks cover scan switching, zoom limits/reset, keyboard tab navigation, FAQ expansion, anchor destinations, reduced-motion playback, and mobile overflow. Visual inspection at 1440, 768 and 390 pixels returned zero failures. Remaining inspector warnings: compact product-preview labels add sizes to the marketing scale; the footage detector misses the nested CT video even though screenshots and playback checks confirm it.
+Production build and lint pass. Browser interaction checks cover reduced-motion cine and 3D, plane highlight/reset, note-to-report flow, scan switching, zoom/reset, FAQ, anchor destinations, and arrow-key tabs. Layout checks at 1440/768/375 pixels and phone/landscape overflow checks at 375x812, 844x390 and 320x750 pass. Screenshots reviewed at each size and stored in `docs/screenshots/landing/`.
 
-The screenshot review found a clear scan-led first viewport and consistent margins at all three widths. Refinements removed unnecessary introductory labels, strengthened paragraph contrast, and replaced abrupt selection and FAQ changes with restrained transitions. The copy distinguishes configured viewing features from currently unavailable hosted inference; it makes no customer, accuracy or clinical-validation claims.
+The generic design inspector reported zero failures. Its app-screen title/below-fold warnings are not applicable to this public landing page; high-contrast lines on the 3D illustration identify the image planes rather than panel decoration.
 
-Screenshots are in `docs/screenshots/landing/`. Public teaching image provenance remains in `app/public/samples/provenance.json` and `app/public/login/README.md`.
+The page does not claim clinical validation or working hosted inference. Teaching-image provenance is in `app/public/samples/provenance.json` and `app/public/login/README.md`.
