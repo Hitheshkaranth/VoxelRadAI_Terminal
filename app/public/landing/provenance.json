@@ -1,0 +1,170 @@
+[
+  {
+    "file": "ct-axial-brain.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT axial",
+    "note": "slice 46, W90 L40",
+    "overlay": null
+  },
+  {
+    "file": "ct-axial-bone.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT axial",
+    "note": "slice 30, W2200 L500",
+    "overlay": null
+  },
+  {
+    "file": "ct-axial-low.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT axial",
+    "note": "slice 22, W90 L40",
+    "overlay": null
+  },
+  {
+    "file": "ct-axial-high.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT axial",
+    "note": "slice 60, W90 L40",
+    "overlay": null
+  },
+  {
+    "file": "ct-sagittal.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT sagittal reformat",
+    "overlay": null
+  },
+  {
+    "file": "ct-coronal.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT coronal reformat",
+    "overlay": null
+  },
+  {
+    "file": "ct-axial-heat.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "CT axial + attention map",
+    "overlay": "ILLUSTRATIVE - drawn for this page; the teaching volume has no labelled finding"
+  },
+  {
+    "file": "xr-skull-lateral.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "Skull radiograph (lateral), digitally reconstructed from CT",
+    "overlay": null
+  },
+  {
+    "file": "xr-skull-lateral-heat.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "Skull DRR + attention map",
+    "overlay": "ILLUSTRATIVE - no labelled finding"
+  },
+  {
+    "file": "xr-skull-ap.webp",
+    "source": "app/public/samples/ct-brain.nrrd",
+    "dataset": "Slicer CTBrain (public teaching volume)",
+    "kind": "Skull radiograph (AP), digitally reconstructed from CT",
+    "overlay": null
+  },
+  {
+    "file": "mr-sagittal.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI sagittal",
+    "overlay": null
+  },
+  {
+    "file": "mr-axial.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI axial",
+    "note": "row 108",
+    "overlay": null
+  },
+  {
+    "file": "mr-axial-high.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI axial",
+    "note": "row 78",
+    "overlay": null
+  },
+  {
+    "file": "mr-axial-low.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI axial",
+    "note": "row 140",
+    "overlay": null
+  },
+  {
+    "file": "mr-coronal.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI coronal",
+    "overlay": null
+  },
+  {
+    "file": "mr-sagittal-heat.webp",
+    "source": "app/public/samples/mr-head.nrrd",
+    "dataset": "Slicer MRHead (public teaching volume)",
+    "kind": "MRI sagittal + attention map",
+    "overlay": "ILLUSTRATIVE - no labelled finding"
+  },
+  {
+    "file": "cxr-69598.webp",
+    "dataset": "ChestX-Det held-out test film (NIH ChestX-ray14 image, Apache-2.0 annotations)",
+    "source": "docs/screenshots/skanda-xray.png",
+    "kind": "Chest X-ray PA, cxd_69598",
+    "overlay": null
+  },
+  {
+    "file": "cxr-69598-skanda.webp",
+    "dataset": "ChestX-Det held-out test film (NIH ChestX-ray14 image, Apache-2.0 annotations)",
+    "source": "docs/screenshots/segmentation-outline.png",
+    "kind": "Chest X-ray + Skanda outlines",
+    "overlay": "RECORDED - Skanda outlines captured in the app (1 Nov 2026)"
+  },
+  {
+    "file": "cxr-45707-heat.webp",
+    "dataset": "ChestX-Det held-out test film (NIH ChestX-ray14 image, Apache-2.0 annotations)",
+    "source": "docs/screenshots/heatmap.png",
+    "kind": "Chest X-ray + classifier heatmap and finding boxes",
+    "overlay": "RECORDED - TorchXRayVision evidence map and MedGemma boxes captured in the app"
+  },
+  {
+    "file": "mri-brats-skanda-boxes.webp",
+    "source": "docs/screenshots/skanda-mri.png",
+    "dataset": "BraTS glioma case BraTS-GLI-00000-000, axial 75",
+    "kind": "Brain MRI T1c + Skanda candidate regions",
+    "overlay": "RECORDED - Skanda server run 3"
+  },
+  {
+    "file": "mri-brats-75.webp",
+    "source": "docs/validation/skanda-rerun/mri-75.png",
+    "dataset": "BraTS glioma, axial 75",
+    "kind": "Brain MRI T1c axial 75",
+    "overlay": null
+  },
+  {
+    "file": "mri-brats-75-reference.webp",
+    "source": "docs/validation/skanda-rerun/mri-75.png",
+    "dataset": "BraTS glioma, axial 75",
+    "kind": "Radiologist reference mask",
+    "overlay": "REFERENCE - BraTS label"
+  },
+  {
+    "file": "mri-brats-75-skanda.webp",
+    "source": "docs/validation/skanda-rerun/mri-75.png",
+    "dataset": "BraTS glioma, axial 75",
+    "kind": "Skanda outline and box",
+    "overlay": "RECORDED - Skanda server run 3, Dice in results.json"
+  }
+]

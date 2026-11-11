@@ -1,88 +1,34 @@
-# Visuvate -> VoxelRad: element-by-element adaptation
+# Visuvate → VoxelRad: element-by-element adaptation
 
-Reference: https://visuvate.com/ (inspected in Chrome at 1440px and 390px on 2026-11-10).
+Reference: https://visuvate.com/ inspected in Chrome on 2026-11-11 at a 1902 px viewport. Geometry was matched by measuring
+the same elements on both pages (`getBoundingClientRect`) and iterating until offsets agreed, then checked at 820 px and
+390 px. Code: `app/src/landing/`. The reference's copy, artwork, logos and commercial fonts are not reused.
 
-## Observed elements and project equivalents
+| # | Reference element (measured) | VoxelRad element |
+|---|---|---|
+| 1 | Nav, 69 px; floats into a 920 px blurred pill on scroll | Same behaviour; "Skanda V1" serving chip; full-screen menu dialog under 960 px |
+| 2 | Hero: eyebrow at 131, 92 px Walsheim/Fraunces headline (−0.06em), 18 px #9a9a9a lead, paired pills, blue edge glow | "Skanda V1 · Base model"; *Grounded Radiology / Visible Evidence*; Figtree + Instrument Serif stand in for Walsheim + Fraunces |
+| 2b | Design-tool editor (Pages/Layers/Assets, canvas, inspector, floating toolbar), clipped at the hero edge | Reading room: Studies/Layers/Findings, X-ray/CT/MRI switch, scan canvas with overlay toggle and press-and-hold source, finding inspector |
+| 3 | Tool logo strip, 2 × 4, 217 px band | Formats, datasets and services the repo actually uses (DICOM, NRRD, ChestX-Det, BraTS, SAM 2, TorchXRayVision, PostgreSQL, Orthanc); no endorsement implied |
+| 4 | Intro copy + wall of 357 × 268 tiles, 8 px gap, three staggered rows, scroll drift | Same grid filled with scan renders and recorded detections |
+| 5 | "Our Works": sticky 3D helix over blue light streaks | "Our *Reads*": twelve detections on the helix |
+| 6 | Services: 64 px heading, 5 × 2 grid of 254 px tiles | Ten Skanda capabilities |
+| 7 | Platform card (starfield) + 4 × 2 logo grid | Modality / format grid |
+| 8 | Keyword ticker, 70 px band | Modality ticker |
+| 9 | Pricing: 132 px title, three 425 × 522 glass cards overlapping it | **Benchmarks**: Skanda V1, MedGemma 27B, MAIRA-2 cards, then a "Head to head" chart (headline / by finding / precision) with 95 % intervals |
+| 10 | Approach bento, 764/532 alternating, rows 593/650/560 | Source First, Grounded Findings, Evidence Heatmaps, Reference-Checked (Dice 0.84), Report-Ready, Seconds per Read |
+| 11 | Testimonials: title behind glass stats + quote slider | "Evidence": held-out-split facts and three measured takeaways, including a limitation; no invented testimonials |
+| 12 | FAQ: 72 px title, 880 × 57 rows, 12 px radius | Model, comparison, imagery, limitations, regulatory status, access |
+| 13 | Footer with CTA, giant fading mark, frosted 4-column grid | Same; Skanda mark rendered white |
 
-| Reference element | VoxelRad equivalent | Implementation decision |
-| --- | --- | --- |
-| Compact navigation; persistent desktop bar | Brand, workflow, demo, audience, sign-in | Native anchors; modal mobile navigation with Escape/focus restoration; original Skanda logo. |
-| Contrasting sans/serif headline | Imaging intelligence and clinician judgment | Instrument Sans plus Instrument Serif; self-hosted OFL fonts. |
-| Centered introduction and paired actions | Open workspace / Try the walkthrough | Sign-in is the primary destination; the second action anchors to the reading room. |
-| Dark ground with blue atmosphere | Dark medical reading room | Blue perimeter around the preview; neutral readable text. |
-| Interactive editor hero | Interactive radiology preview | Study rail, scan canvas, review panel, then draft report. |
-| Gallery preview and direct manipulation | CT/MRI study selection | Native buttons select teaching imagery; source switching clears approval. |
-| Large project showcases | Working viewer demonstration | Existing cine, plane selection, zoom and observation-to-report demo. |
-| Logo/tool strip | Supported imaging workflow | CT, MRI, X-ray and reporting capabilities; no partner endorsements. |
-| Service grid | Ten imaging capability tiles | Same five-column desktop/two-column mobile arrangement, quiet outlines, centered icons and two-line labels. |
-| Approach panels | Four workflow stages | Asymmetric desktop panels, large scan imagery, source comparison, explicit approval and a report draft. |
-| Platform compatibility content | Real format support | Supported DICOM frames, X-ray images and NRRD volumes; no unverified integrations. |
-| Pricing | Access and configuration facts | Administrator-provisioned sign-in; model server required for live inference. |
-| Testimonials and metrics | Interactive product evidence | Omit invented clients, clinical results, speed claims and approval counts. |
-| Bordered accordion FAQ | Product readiness and access FAQ | Native keyboard-operable Radix accordion. |
-| Closing invitation and footer | Open workspace; return to demo | Real routes, brand, sample provenance and evaluation status. |
-| Mobile stacked composition | Scan first, controls then findings | Full-width scan, compact study selector, readable report; no horizontal viewport overflow. |
-| Motion and hover treatments | State-driven imaging transitions | Short reveal, source/overlay comparison and report entrance; reduced-motion state. |
+## Evidence rules
 
-## Scope and evidence
-
-The reference uses Walsheim and Fraunces in the inspected headline. Its desktop header was observed as a floating bar after scrolling. The editor, service grid, approach panels and FAQ were visually inspected. Gallery instructions advertise drag and hold interactions; their full gesture behavior was not independently verified, so VoxelRad uses explicit buttons instead. The reference's copy, artwork, logos and commercial typefaces are not reused.
-
-The user approved Instrument Sans as the open-source alternative to Perplexity's FK Grotesk. Instrument Serif provides the reference-inspired contrast. These are alternatives, not the reference sites' proprietary fonts.
-
-## Screen-by-screen transformation
-
-[Open the comparison gallery](../screenshots/landing/comparison/index.html). Seven paired captures use the same 1440 × 900 viewport, plus the working viewer demo and responsive captures at 768, 390 and 375 pixels. Reference screenshots are design-review evidence, not application assets.
-
-| Before | After | Why |
-| --- | --- | --- |
-| Blue-grey page and panels | Black canvas, neutral borders and white primary actions | Match the reference's dominant visual treatment. |
-| Both hero lines ended in italic words | Sans/serif positions alternate between lines | Match the reference's typographic composition using licensed alternatives. |
-| Two-line descriptive lead | One concise desktop lead | Restore the reference's compact hero rhythm. |
-| Muted preview outline | Vivid blue edge and blue side atmosphere | Match the framing and silhouette of the editor preview. |
-| Narrow scan viewport | Wide editor-like three-column frame | Adapt the editor canvas to an actual reading room. |
-| Generic blue study selection | Neutral selected row, quiet list and compact counts | Match reference control surfaces. |
-| No image-collage section | Tilted collection of actual CT/MRI teaching scans | Translate the reference's portfolio collage into imaging content. |
-| No service-grid equivalent | Ten imaging tool tiles | Preserve the reference's component geometry with relevant product content. |
-| Small equal workflow cards | Larger asymmetric panels and enlarged imagery | Match the approach panels while retaining chronological reading order. |
-| Abstract report bars | Legible illustrative report with findings/impression | Show the product's output with meaningful content. |
-| Small tinted closing card | Large type on the black page | Match the closing section's visual scale. |
-| Blue FAQ panels and plus icons | 55px bordered rows, inline numbering and chevrons | Match the FAQ component's density and open/closed affordance. |
-| Whole-label rollover | Staggered individual-letter rollover | Reproduce the observed hover treatment without moving the button. |
-| Inline mobile Explore disclosure | Full-screen navigation dialog | Provide clear mobile navigation with focus restoration and Escape dismissal. |
-| Fixed desktop header width | Floating 960px header on scroll | Match the observed persistent navigation pattern. |
-| No fullscreen view | Expand/exit reading-room control | Keep the larger imaging preview usable. |
-
-### Verification
-
-- Production build and lint pass.
-- No horizontal overflow at 1440, 768, 390 or 375 pixels; tablet service-tile intrinsic sizing was corrected after inspection.
-- Hero: direct report navigation cannot approve a finding; explicit approval, original/overlay comparison and study-change reset pass.
-- Demo: MRI coronal selection, zoom, typed note and note-to-draft transition pass.
-- Navigation: mobile dialog opens, Escape dismisses it and focus returns to the trigger.
-- Fullscreen enters and exits using the visible control; button hover has no layout shift.
-- Reduced motion pauses the opening cine and suppresses letter transitions.
-- No browser console errors in the exercised flows.
-
-The generic style inspector also flags the intentional blue gradient, framed preview, large headings and spacious service tiles. These are explicit reference-matching decisions. Its actual skip-link contrast and tablet overflow findings were corrected. This is a component-level adaptation, not a pixel-identical copy: the content, logo, fonts, medical controls and image assets differ intentionally.
-
-## “Our Works” becomes “Your workspace”
-
-The reference's sticky, full-viewport 3D portfolio was inspected separately at three scroll positions. VoxelRad has a corresponding section at `#workspace-showcase`: repository CT/MRI teaching images, an explicitly illustrative attention overlay and a captured report draft surround the large title over moving blue light bands. The cards follow a shared cylindrical helix: scroll changes their angular position and vertical pitch, with depth and orientation changing together. Scroll updates are scheduled with requestAnimationFrame; the background uses a CSS transform animation.
-
-Each preview links to its corresponding interactive reading-room state. Selecting the report preview does not grant approval. Keyboard focus brings the chosen preview into the center of the screen. At mobile widths and under reduced-motion preferences the same links become a static, ordered image gallery. Background motion has a pause/resume control and pauses offscreen or in a hidden tab; reduced-motion preferences disable it. Source imagery comes from `app/public/login/ct-poster.webp`, `mr-axial.webp` and `mr-coronal.webp`. The report preview remains a real screenshot of the demonstration draft.
-
-| Before | After | Why |
-| --- | --- | --- |
-| Portfolio section absent | Full-viewport “Your workspace” showcase | Adapt the reference's signature section to the actual application. |
-| Agency websites as reference imagery | Repository teaching scans and a captured VoxelRad report draft | Show imaging directly, with source assets already maintained by the application. |
-| Reference uses WebGL canvases | CSS perspective with scroll-driven transforms | Keep images, links and keyboard access native and avoid an extra rendering dependency. |
-| No stage-specific showcase links | Each preview opens the correct CT/MRI/demo stage | Turn the presentation into a useful product entry point. |
-
-Verified: all five image assets load; scroll changes the transforms; all five destinations open the expected stage; report access leaves approval unset; no horizontal overflow at 1440/768/390/375; reduced motion uses a static layout; build and lint pass.
-
-The background was additionally checked at two times without scrolling: its transform changes while running, remains unchanged after Pause, resumes on request, and pauses after leaving the section. The reduced-motion version has no background animation.
-
-## Build boundaries
-
-Keep the original app and backend sign-in. The hero is an illustrative workflow, never a live inference result. Keep public teaching scans and the local-only observation demo. No fabricated billing, patient information, integrations or clinical outcomes. No autoplaying decorative marquee, cookie banner or customer logos without a corresponding product need.
+- **Benchmarks** come from `app/src/landing/benchmarks.generated.ts`, written by `python benchmark/emit_landing.py` from
+  `benchmark/score.py` output on the ChestX-Det held-out test split (111 films). Skanda (run-2 best checkpoint) was read
+  twice; the page shows the mean of both reads with Wilson intervals at single-read n. No figure is typed by hand.
+- **Imagery** comes from `app/scripts/build-landing-imagery.py`, recorded in `app/public/landing/provenance.json`:
+  - CT/MR planes and skull radiographs (DRRs) rendered from the public Slicer volumes. Their heatmaps are labelled
+    *illustrative* because the volumes carry no labelled finding.
+  - Chest-film and BraTS overlays cropped from recorded app output. The `cxd_45707` heatmap is MedGemma plus the
+    TorchXRayVision classifier, and is labelled that way.
+- Reduced motion turns the helix into a static grid and stops marquees and drifts.
