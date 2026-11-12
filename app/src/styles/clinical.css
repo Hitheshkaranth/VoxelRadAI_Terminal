@@ -39,10 +39,11 @@
 .clinical-context { padding: 8px 14px; gap: 14px; }
 .clinical-patient > svg { display: none; }
 .clinical-indication > span { font-size: 11px; text-transform: none; letter-spacing: 0; font-weight: 400; }
-.sh-inspector-head { height: 40px; padding: 0; }
-.sh-inspector-head .segmented { background: none; border-radius: 0; padding: 0; height: 100%; }
-.sh-inspector-head .segmented > button { background: none; box-shadow: none; border-radius: 0; border: 0; border-bottom: 2px solid transparent; color: var(--label-2); }
-.sh-inspector-head .segmented > button[aria-selected='true'] { background: none; color: var(--label); border-bottom-color: var(--accent); }
+.sh-inspector-head { height: auto; padding: 0; border-bottom: 1px solid var(--separator); }
+.sh-inspector-head .segmented { background: none; border-radius: 0; padding: 12px; gap: 4px; height: auto; }
+.sh-inspector-head .segmented > button { min-height: 34px; background: transparent; box-shadow: none; border: 0; border-radius: 6px; color: var(--label-2); font-size: 12px; }
+.sh-inspector-head .segmented > button:hover { background: var(--bg-hover, var(--bg-control-hover)); color: var(--label); }
+:root .sh-inspector .sh-inspector-head .segmented > button[aria-selected='true'], :root .sh-inspector .sh-inspector-head .segmented > button[aria-selected='true']:hover { background: var(--bg-selected); color: var(--label); box-shadow: none; }
 .sh-count-badge { background: none; color: var(--label-2); }
 .fd-inner, .rp-panel { padding: 14px 16px 24px; gap: 12px; }
 .fd-workspace-title h1, .rp-workspace-title h1 { font-size: 16px; font-weight: 600; letter-spacing: 0; }

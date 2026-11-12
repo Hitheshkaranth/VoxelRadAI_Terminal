@@ -8,7 +8,7 @@
 .sk-page{
   --sk-bg:#000;--sk-elev:#111;--sk-surface:#181818;--sk-field:#1f1f1f;
   --sk-line:#ffffff17;--sk-line-2:#ffffff29;--sk-card-line:#ffffff24;
-  --sk-text:#fff;--sk-muted:#9a9a9a;--sk-dim:#6e6e6e;
+  --sk-text:#fff;--sk-muted:#9a9a9a;--sk-dim:#8a8a8a;
   --sk-blue:#0099ff;--sk-blue-2:#7acaff;--sk-blue-3:#0068ad;--sk-amber:#ffb840;
   --sk-ease:cubic-bezier(.22,.61,.36,1);
   --sk-display:'Figtree',system-ui,sans-serif;--sk-serif:'Instrument Serif',Georgia,serif;--sk-body:'Instrument Sans',system-ui,sans-serif;
@@ -39,7 +39,7 @@
 .sk-pill-ghost:hover{border-color:#ffffff59}
 .sk-pill-grey{background:#2a2a2a;color:#fff}
 .sk-pill-grey:hover{background:#363636}
-.sk-pill-sm{height:36px;padding:0 18px;font-size:13px}
+.sk-pill-sm{height:34px;padding:0 16px;font-size:13px}
 .sk-pill:active{transform:scale(.97)}
 .sk-roll{display:inline-grid;overflow:hidden;line-height:1.25}
 .sk-roll>span{grid-area:1/1;display:inline-flex}
@@ -82,7 +82,7 @@
 /* ---------------------------------------------------------------- hero */
 .sk-hero{position:relative;isolation:isolate;overflow:hidden;padding:clamp(112px,6.9vw,131px) 0 0;text-align:center}
 .sk-hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none}
-.sk-hero-glow::before,.sk-hero-glow::after{content:'';position:absolute;top:22%;bottom:0;width:max(24px,calc((100vw - 1370px)/2 + 24px));background:linear-gradient(180deg,#0000 0%,#06213f 30%,#0a4f95 62%,#118cff 100%);filter:saturate(1.15)}
+.sk-hero-glow::before,.sk-hero-glow::after{content:'';position:absolute;top:22%;bottom:0;width:max(24px,calc((100vw - 1370px)/2 + 24px));background:linear-gradient(180deg,#0000 0%,#06213f 30%,#0a4f95 62%,#118cff 86%,#0a4f9500 100%);filter:saturate(1.15)}
 .sk-hero-glow::before{left:0;-webkit-mask:linear-gradient(90deg,#000 55%,#0000);mask:linear-gradient(90deg,#000 55%,#0000)}
 .sk-hero-glow::after{right:0;-webkit-mask:linear-gradient(270deg,#000 55%,#0000);mask:linear-gradient(270deg,#000 55%,#0000)}
 .sk-hero-copy{padding:0 16px;animation:sk-rise 1s var(--sk-ease) both}
@@ -158,7 +158,7 @@
 /* ---------------------------------------------------------------- stack logos */
 .sk-stack{padding:clamp(48px,3.8vw,72px) 24px}
 .sk-stack ul{display:grid;grid-template-columns:repeat(4,minmax(0,150px));justify-content:center;gap:28px 20px}
-.sk-stack li{display:flex;align-items:center;justify-content:center;gap:9px;font:600 15px/1 var(--sk-display);letter-spacing:-.02em;color:#d6d6d6;opacity:.85}
+.sk-stack li{display:flex;align-items:center;justify-content:flex-start;gap:9px;font:600 15px/1 var(--sk-display);letter-spacing:-.02em;color:#d6d6d6;opacity:.85}
 
 /* ---------------------------------------------------------------- intro + wall
    Reference: 357x268 tiles, 8px gap, rows at +0/+276/+552, offset +385/+125/-852 from the 1390 container edge. */
@@ -216,7 +216,7 @@
 .sk-platform-copy h3{font:500 clamp(26px,1.7vw,32px)/1.12 var(--sk-display);letter-spacing:-.035em}
 .sk-platform-copy p{max-width:430px;font-size:15px;color:#c9c9c9}
 .sk-platform-copy b{color:#fff;font-weight:600}
-.sk-platform-copy .sk-pill{height:30px;font-size:12.5px}
+.sk-platform-copy .sk-pill{height:32px;font-size:13px}
 .sk-platform-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--sk-line-2);border-radius:12px;overflow:hidden}
 .sk-platform-grid li{display:grid;place-content:center;justify-items:center;gap:8px;border-right:1px solid var(--sk-line);border-bottom:1px solid var(--sk-line);color:#e8e8e8;transition:background .3s}
 .sk-platform-grid li:nth-child(4n){border-right:0}
@@ -381,6 +381,8 @@
 .sk-faq-list{width:min(880px,100%);margin:71px auto 0;display:grid;gap:11px}
 .sk-faq{border:1px solid var(--sk-line);border-radius:12px;background:transparent;overflow:hidden}
 .sk-faq h3{margin:0}
+.sk-faq button > span{display:flex;gap:6px}
+.sk-faq button > span > span:first-child{flex:none;font-variant-numeric:tabular-nums}
 .sk-faq button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:55px;padding:0 18px;border:0;background:none;font:500 15px/1.3 var(--sk-body);color:#eaeaea;text-align:left;cursor:pointer}
 .sk-faq button svg{flex:none;color:var(--sk-muted);transition:transform .35s var(--sk-ease)}
 .sk-faq button[data-state=open] svg{transform:rotate(180deg)}
@@ -395,7 +397,7 @@
 .sk-close{position:relative;padding:120px 24px 0;text-align:center;overflow:hidden}
 .sk-close h2{font:500 clamp(44px,3.8vw,72px)/1 var(--sk-display);letter-spacing:-.05em}
 .sk-close .sk-actions{margin-top:36px}
-.sk-close-mark{position:relative;width:min(910px,90vw);height:min(379px,37vw);margin:47px auto 0;overflow:hidden;-webkit-mask:linear-gradient(#000 30%,#0000 92%);mask:linear-gradient(#000 30%,#0000 92%)}
+.sk-close-mark{position:relative;width:min(910px,90vw);height:min(379px,37vw);margin:47px auto 0;overflow:hidden;-webkit-mask:linear-gradient(#0000,#000 18%,#000 35%,#0000 92%);mask:linear-gradient(#0000,#000 18%,#000 35%,#0000 92%)}
 .sk-close-mark img{width:64%;margin:-7% auto 0;filter:brightness(0) invert(1)}
 .sk-footer{position:relative;z-index:1;width:min(1360px,100% - 32px);margin:-121px auto 0;background:#00000099;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--sk-line)}
 .sk-social{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--sk-line)}
@@ -487,7 +489,9 @@
   .sk-wrap{width:calc(100% - 32px)}
   .sk-hero h1{font-size:clamp(40px,11.4vw,56px)}
   .sk-lead{font-size:16px}
-  .sk-seg button{padding:4px 10px}
+  .sk-seg button{padding:4px 10px;min-height:36px}
+  .sk-toolbar button{min-width:40px;height:40px}
+  .sk-pill{height:44px}
   .sk-stats{grid-template-columns:1fr}
   .sk-table [role=row]{grid-template-columns:1.4fr 1fr 48px;padding:9px 14px}
   .sk-phones figure{border-width:4px;border-radius:16px}

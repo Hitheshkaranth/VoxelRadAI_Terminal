@@ -177,7 +177,7 @@
 .volume-spatial-divider { cursor:row-resize; height:8px; flex:none; }
 @media(min-width:1024px) {
   .volume-body, .volume-body--image-only { grid-template-columns:minmax(0,1fr) 8px minmax(280px,min(var(--volume-panel-width,340px),50%)); }
-  .volume-spatial-panel { height:var(--volume-spatial-height,340px); max-height:60%; }
+  .volume-spatial-panel { height:var(--volume-spatial-height,410px); max-height:60%; }
   .volume-spatial-panel--expanded { height:auto; max-height:none; }
 }
 @media(max-width:1023px) {
@@ -192,7 +192,7 @@
 }
 @media(max-width:1023px) { .volume-review-toggle { display:none; } }
 @media(min-width:1024px) {
-  .volume-spatial-panel:not(.volume-spatial-panel--expanded) .vr-stage canvas { height:clamp(120px,calc(var(--volume-spatial-height,340px) - 180px),390px); }
+  .volume-spatial-panel:not(.volume-spatial-panel--expanded) .vr-stage canvas { height:clamp(120px,calc(var(--volume-spatial-height,410px) - 180px),390px); }
 }
 @media(min-width:1024px) {
   .volume-reading-mode { position:relative; }

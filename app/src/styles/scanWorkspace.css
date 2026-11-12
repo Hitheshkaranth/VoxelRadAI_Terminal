@@ -209,3 +209,9 @@
   .scan-content .scan-patient-context > summary { min-height: 36px; padding-block: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .scan-content *, [data-slot='popover-content'], [data-slot='tooltip-content'] { animation: none !important; transition: none !important; } }
+
+/* Scan overlays stay dark in both themes: keep native controls (range, select, number) dark too. */
+.scan-overlay-top, .scan-overlay-bottom { color-scheme: dark; }
+.scan-overlay-bottom input[type='range'] { accent-color: var(--scan-ink); }
+/* Narrow screens: keep the plane caption left of the centred orientation label instead of running under it. */
+@media (max-width: 767px) { .scan-content .volume-stage .volume-image-caption { max-width: calc(50% - 28px); white-space: normal; line-height: 1.35; } }

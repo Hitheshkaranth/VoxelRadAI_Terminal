@@ -192,7 +192,7 @@ export function Evidence() {
 export function Faqs() {
   return <section className="sk-faqs" id="faqs" aria-labelledby="faq-title">
     <Reveal><h2 id="faq-title" className="sk-h2 sk-center">Frequently Asked <em>Questions</em></h2></Reveal>
-    <Accordion.Root type="single" collapsible className="sk-faq-list">{faqs.map(([q, a], i) => <Accordion.Item key={q} value={q} className="sk-faq"><Accordion.Header><Accordion.Trigger><span>{i + 1}. {q}</span><ChevronDown size={15} /></Accordion.Trigger></Accordion.Header><Accordion.Content className="sk-faq-a"><p>{a}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root>
+    <Accordion.Root type="single" collapsible className="sk-faq-list">{faqs.map(([q, a], i) => <Accordion.Item key={q} value={q} className="sk-faq"><Accordion.Header><Accordion.Trigger><span><span>{i + 1}.</span><span>{q}</span></span><ChevronDown size={15} /></Accordion.Trigger></Accordion.Header><Accordion.Content className="sk-faq-a"><p>{a}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root>
   </section>
 }
 
