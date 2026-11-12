@@ -70,12 +70,17 @@ assert.equal((await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie
 assert.equal((await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie:admin.cookie,data:{expiresInHours:1,includeIdentity:false,includeImages:false}})).status,404)
 const share = await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie:clinician.cookie,data:{expiresInHours:1,includeIdentity:false,includeImages:false}})
 assert.equal(share.status,201)
-const sharedPath = new URL(share.body.share.url).pathname
-const readable = await call(sharedPath)
-assert.equal(readable.status,200); assert.ok(!readable.body.includes('Do not expose')); assert.ok(readable.body.includes('&lt;script&gt;'))
+// Links carry the token in the fragment; the viewer POSTs it so it never appears in a request path or log.
+const shareUrl = new URL(share.body.share.url)
+assert.equal(shareUrl.pathname,'/shared'); assert.match(shareUrl.hash,/^#[A-Za-z0-9_-]{43}$/)
+const readShare = url => call('/api/shared',{method:'POST',data:{token:new URL(url).hash.slice(1)}})
+const readable = await readShare(share.body.share.url)
+assert.equal(readable.status,200); assert.ok(!readable.body.html.includes('Do not expose')); assert.ok(readable.body.html.includes('&lt;script&gt;'))
+assert.equal((await call(`/api/shared/${shareUrl.hash.slice(1)}`)).status,200)
 assert.equal((await call(`/api/shares/${share.body.share.id}`,{method:'DELETE',cookie:admin.cookie})).status,404)
 assert.equal((await call(`/api/shares/${share.body.share.id}`,{method:'DELETE',cookie:clinician.cookie})).status,200)
-assert.equal((await call(sharedPath)).status,404)
+assert.equal((await readShare(share.body.share.url)).status,404)
+assert.equal((await call(`/api/shared/${shareUrl.hash.slice(1)}`)).status,404)
 if (process.env.DATABASE_URL) {
   const pg = createRequire(`${process.cwd()}/package.json`)('pg'); const db = new pg.Pool({connectionString:process.env.DATABASE_URL})
   const unknownCode = randomBytes(32).toString('base64url')
@@ -89,7 +94,12 @@ if (process.env.DATABASE_URL) {
   const expiring = await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie:clinician.cookie,data:{expiresInHours:1,includeIdentity:false,includeImages:false}})
   assert.equal(expiring.status,201)
   await db.query("UPDATE share_grants SET expires_at=now()-interval '1 second' WHERE id=$1",[expiring.body.share.id])
-  assert.equal((await call(new URL(expiring.body.share.url).pathname)).status,404)
+  assert.equal((await readShare(expiring.body.share.url)).status,404)
+  // Idle sessions end even before their absolute expiry.
+  const idle = await call('/api/login',{method:'POST',data:{email:process.env.TEST_ADMIN_EMAIL,password:process.env.TEST_ADMIN_PASSWORD}})
+  assert.equal((await call('/api/auth/check',{cookie:idle.cookie})).status,200)
+  await db.query("UPDATE sessions SET last_used_at=now()-interval '2 hours' WHERE token_hash=$1",[createHash('sha256').update(idle.cookie.split('=')[1]).digest('hex')])
+  assert.equal((await call('/api/auth/check',{cookie:idle.cookie})).status,401)
   await db.end()
 }
 assert.equal((await call(`/api/studies/${study.id}`,{method:'DELETE',cookie:clinician.cookie})).status,200)

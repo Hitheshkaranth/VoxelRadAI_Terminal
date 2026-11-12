@@ -6,3 +6,5 @@ PUBLIC_ORIGIN=http://localhost:8088
 ALLOW_INSECURE_LOCALHOST=true
 WEB_PORT=8088
 DB_POOL_SIZE=10
+# Minutes without requests before a signed-in session ends (5–480, default 60).
+SESSION_IDLE_MINUTES=60

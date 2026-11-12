@@ -31,7 +31,7 @@ export async function createHostedShare(study: Study, options: { expiresInHours:
   const share = result?.share
   if (!share || typeof share.id !== 'string' || typeof share.url !== 'string') throw new Error('The link was requested but its response was invalid. Refresh link history before retrying.')
   const url = new URL(share.url, window.location.origin)
-  if (url.origin !== window.location.origin || url.username || url.password || !url.pathname.startsWith('/api/shared/') || !['http:', 'https:'].includes(url.protocol)) throw new Error('The server returned an unexpected share address. Refresh link history before retrying.')
+  if (url.origin !== window.location.origin || url.username || url.password || url.pathname !== '/shared' || !/^#[A-Za-z0-9_-]{43}$/.test(url.hash) || !['http:', 'https:'].includes(url.protocol)) throw new Error('The server returned an unexpected share address. Refresh link history before retrying.')
   return { id: share.id, expiresAt: timestamp(share.expiresAt), url: url.href }
 }
 export async function revokeHostedShare(id: string): Promise<void> {

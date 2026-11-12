@@ -2,6 +2,7 @@
 import { uid } from '../store'
 import type { StudyImage } from '../types'
 import { createDicomFrameDecoder } from './dicomIntake'
+import { imageSize } from './imageSize'
 
 export const ACCEPTED_TYPES = 'image/png,image/jpeg,image/webp,image/bmp,image/gif,.dcm,.dicom,application/dicom'
 
@@ -20,8 +21,18 @@ function toStudyImage(file: File, width: number, height: number, mime = 'image/j
   }
 }
 
+// A full RGBA decode needs 4 bytes per pixel; 50 MP (~200 MB) covers mammography with room to spare.
+const MAX_DECODE_PIXELS = 50_000_000
+
 async function decodeStandardImage(file: File): Promise<StudyImage> {
-  const bitmap = await createImageBitmap(file)
+  // Read the size from the header first: a small, highly compressed file can otherwise decode to gigabytes.
+  const size = imageSize(new Uint8Array(await file.slice(0, 65536).arrayBuffer()))
+  if (size && size.width * size.height > MAX_DECODE_PIXELS) throw new Error(`${file.name}: ${size.width}×${size.height} pixels is larger than the supported ${MAX_DECODE_PIXELS / 1_000_000} megapixels.`)
+  // Let the browser downscale while decoding when it can, instead of materialising the full-size bitmap.
+  const edge = size ? Math.max(size.width, size.height) : 0
+  const bitmap = edge > MAX_EDGE
+    ? await createImageBitmap(file, size!.width >= size!.height ? { resizeWidth: MAX_EDGE, resizeQuality: 'high' } : { resizeHeight: MAX_EDGE, resizeQuality: 'high' })
+    : await createImageBitmap(file)
   const naturalW = bitmap.width
   const naturalH = bitmap.height
   const scale = Math.min(1, MAX_EDGE / Math.max(naturalW, naturalH))

@@ -54,19 +54,26 @@ function useDocumentTitle() {
   }, [analysing])
 }
 
+const NEW_STUDY_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌥N' : 'Alt+N'
+
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (document.querySelector('[role="dialog"]')) return
-      if (!e.metaKey && !e.ctrlKey) return
       // Shortcuts must not fire while the user is typing (e.g. Cmd+Enter in a report field would start an analysis).
       const target = e.target as HTMLElement | null
       if (target?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return
+      // New study is Alt/Option+N: browsers reserve Ctrl/Cmd+N for a new window and cannot be stopped from opening one.
+      if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN') {
+        e.preventDefault()
+        useShell.getState().closeVolume(); useApp.getState().createStudy(); useShell.getState().setMobileView('viewer')
+        return
+      }
+      if (!e.metaKey && !e.ctrlKey) return
       const st = useApp.getState()
       const shell = useShell.getState()
       const k = e.key.toLowerCase()
-      if (k === 'n' && !e.shiftKey) { shell.closeVolume(); st.createStudy(); shell.setMobileView('viewer') }
-      else if (k === ',') st.openSheet('settings')
+      if (k === ',') st.openSheet('settings')
       else if (k === 'i' && e.altKey) shell.toggleInspector()
       else if (k === 'i' && st.activeStudyId) st.openSheet('patient')
       else if (k === '\\') shell.toggleSidebar()
@@ -244,7 +251,7 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
       </p>
       <button className="btn btn-primary btn-lg" onClick={() => createStudy()}>
         <Plus strokeWidth={2} /> New Study
-        <span className="kbd" style={{ color: 'inherit', borderColor: 'currentColor', opacity: 0.7 }}>⌘N</span>
+        <span className="kbd" style={{ color: 'inherit', borderColor: 'currentColor', opacity: 0.7 }}>{NEW_STUDY_KEY}</span>
       </button>
       <div className="sh-empty-features">
         <div className="sh-empty-feature"><HardDrive strokeWidth={1.75} /> Studies saved in this browser</div>

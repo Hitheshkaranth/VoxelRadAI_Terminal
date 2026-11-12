@@ -58,11 +58,13 @@ async function body(req, limit = 8192) {
   for await (const chunk of req.iterator({ destroyOnReturn: false })) { bytes += chunk.length; if (bytes > limit) { req.resume(); const error = new Error('Request exceeds the allowed size'); error.status = 413; throw error } chunks.push(chunk) }
   try { const data = JSON.parse(Buffer.concat(chunks).toString('utf8')); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data } catch { const error = new Error('Request must contain a JSON object'); error.status = 400; throw error }
 }
+const sessionIdleMinutes = Math.min(480, Math.max(5, Number(process.env.SESSION_IDLE_MINUTES) || 60))
 const audit = (actor, event) => pool.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [actor, event])
 async function userFor(req) {
   const token = readSessionCookie(req.headers.cookie)
   if (!token) return null
-  const result = await pool.query('SELECT u.id,u.email,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND NOT u.disabled', [hashToken(token)])
+  // Idle sessions end after SESSION_IDLE_MINUTES; last_used_at is refreshed at most once a minute to limit writes.
+  const result = await pool.query(`UPDATE sessions s SET last_used_at=CASE WHEN s.last_used_at<now()-interval '1 minute' THEN now() ELSE s.last_used_at END FROM users u WHERE u.id=s.user_id AND s.token_hash=$1 AND s.expires_at>now() AND s.last_used_at>now()-make_interval(mins=>$2) AND NOT u.disabled RETURNING u.id,u.email,u.role`, [hashToken(token), sessionIdleMinutes])
   return result.rows[0] || null
 }
 // Client address for abuse limits. Vercel and the bundled nginx set X-Real-IP themselves; elsewhere use the socket.
@@ -152,6 +154,15 @@ export async function handler(req, res) {
         return send(res, 200, { user: { id: account.id, email: account.email, role: account.role } }, { 'Set-Cookie': sessionCookie(token, secureCookies) })
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
     }
+    if (path === '/api/shared' && req.method === 'POST') {
+      // Token travels in the body so it never appears in request logs; the viewer page reads it from the URL fragment.
+      const data = await body(req, 1024)
+      if (typeof data.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(data.token)) return send(res, 404, { error: 'This share link is unavailable or expired.' })
+      const result = await pool.query('SELECT g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(data.token)])
+      if (!result.rows[0]?.snapshot_html) return send(res, 404, { error: 'This share link is unavailable or expired.' })
+      return send(res, 200, { html: result.rows[0].snapshot_html })
+    }
+    // Legacy path-token links stay readable until they expire (at most 168 hours after issue).
     if (path.startsWith('/api/shared/') && req.method === 'GET') {
       const token = path.slice('/api/shared/'.length)
       if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return send(res, 404, { error: 'This share link is unavailable or expired.' })
@@ -288,7 +299,7 @@ export async function handler(req, res) {
       const token = newToken(), id = randomUUID(), expiresAt = new Date(Date.now() + data.expiresInHours * 3600000)
       await pool.query('INSERT INTO share_grants(id,owner_id,study_id,token_hash,expires_at,snapshot_html) VALUES ($1,$2,$3,$4,$5,$6)', [id,user.id,shareMatch[1],hashToken(token),expiresAt,sharedDocument(study.rows[0].payload,data)])
       await audit(user.id, 'share.created')
-      return send(res, 201, { share: { id, expiresAt: expiresAt.toISOString(), url: `${publicOrigin}/api/shared/${token}` } })
+      return send(res, 201, { share: { id, expiresAt: expiresAt.toISOString(), url: `${publicOrigin}/shared#${token}` } })
     }
     if (path.startsWith('/api/shares/') && req.method === 'DELETE') {
       const id = path.slice('/api/shares/'.length)

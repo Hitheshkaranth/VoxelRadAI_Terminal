@@ -305,5 +305,6 @@ export function downloadFile(name: string, content: string | Blob, mime: string)
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  // Safari and Firefox start the download asynchronously; revoking immediately can cancel it.
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }

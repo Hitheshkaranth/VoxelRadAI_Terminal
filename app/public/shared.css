@@ -1,0 +1,5 @@
+html,body{margin:0;height:100%;background:#f4f5f6;color:#20252a;font:16px/1.5 system-ui,sans-serif}
+#status{max-width:640px;margin:15vh auto;padding:0 24px;text-align:center}
+#report{display:block;width:100%;height:100%;border:0;background:#f4f5f6}
+#report[hidden]{display:none}
+@media print{html,body{height:auto}#report{height:auto;min-height:100vh}}

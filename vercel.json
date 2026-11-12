@@ -50,6 +50,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/shared",
+      "destination": "/shared.html"
+    },
+    {
       "source": "/workspace/",
       "destination": "/index.html"
     },

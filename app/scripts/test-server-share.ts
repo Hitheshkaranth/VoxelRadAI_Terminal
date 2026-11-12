@@ -12,10 +12,10 @@ try {
   const calls: Array<{ path: string; init: RequestInit | undefined }> = []
   globalThis.fetch = (async (path, init) => {
     calls.push({ path: String(path), init })
-    return new Response(JSON.stringify(calls.length === 1 ? { ok: true } : { share: { id: 'share-id', expiresAt, url: '/api/shared/synthetic-token' } }))
+    return new Response(JSON.stringify(calls.length === 1 ? { ok: true } : { share: { id: 'share-id', expiresAt, url: '/shared#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } }))
   }) as typeof fetch
   const result = await createHostedShare(study, options)
-  assert.equal(result.url, 'https://skanda.example/api/shared/synthetic-token')
+  assert.equal(result.url, 'https://skanda.example/shared#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
   assert.equal(result.expiresAt, Date.parse(expiresAt))
   assert.equal(calls[0].path, '/api/studies')
   assert.deepEqual(JSON.parse(String(calls[0].init?.body)), study)
@@ -26,7 +26,7 @@ try {
   const history = await listHostedShares(study.id)
   assert.equal(history.length, 1)
   assert.equal(JSON.stringify(history).includes('TOKEN_MUST_NOT_SURVIVE'), false)
-  for (const url of ['javascript:alert(1)', 'https://other.example/api/shared/token', '/api/admin/metrics']) {
+  for (const url of ['javascript:alert(1)', 'https://other.example/shared#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '/api/admin/metrics', '/api/shared/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '/shared#short', '/shared']) {
     globalThis.fetch = (async () => new Response(JSON.stringify({ share: { id: 'share-id', expiresAt, url } }))) as typeof fetch
     await assert.rejects(createHostedShare(study, options), /unexpected share address/)
   }
