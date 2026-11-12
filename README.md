@@ -106,7 +106,7 @@ Open **http://localhost:8088**. For HTTPS, persistence and backups, see the [dep
   </tr>
 </table>
 
-<sub>Workspace captured November 10, 2026 with public teaching samples and no model running. These screenshots show layout and navigation, not diagnostic performance.</sub>
+<sub>CT and MRI views captured November 12, 2026 (X-ray November 10) with public teaching samples and no model running. These screenshots show layout and navigation, not diagnostic performance.</sub>
 
 ## 📊 Benchmarks
 

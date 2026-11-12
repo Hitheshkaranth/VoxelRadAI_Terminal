@@ -1,11 +1,11 @@
 # Workspace captures
 
-Captured November 10, 2026 from the actual application at `127.0.0.1:5173`, in Chrome fullscreen at 1920 x 1080. Screenshots were captured through native computer-use tooling and saved without image editing.
+The four CT/MRI captures were retaken November 12, 2026 from the running development application at `127.0.0.1:5173` (local browser-storage mode). System Chrome was driven headlessly through `playwright-core` at a 1920 x 1080 viewport, and the images were saved without editing. Focus was cleared before each capture so no tooltips or focus rings show.
 
-- `ct-workspace.png`: CT brain teaching sample, axial slice 33/76, optional panels collapsed.
-- `ct-review.png`: same CT sample with the 3D locator and review panel open.
+- `ct-workspace.png`: CT brain teaching sample, axial slice 39/76 (default), optional panels collapsed.
+- `ct-review.png`: same CT sample with the 3D locator and Review panel open.
 - `mri-three-planes.png`: MRI head teaching sample in synchronized three-plane view.
-- `study-workspace.png`: MRI workspace with the study sidebar visible; its empty Untitled Study contains no patient information.
+- `study-workspace.png`: MRI three-plane workspace with the Studies sidebar open. The worklist is empty and the sample is not linked to a patient.
 
 The model service was disconnected. No findings were generated for these captures. Sample provenance is recorded in `app/public/samples/provenance.json` at the repository root. These images show the application layout, not clinical validation or segmentation performance.
 
