@@ -1,137 +1,155 @@
 <div align="center">
 
-<img src="app/public/skanda-mark.png" alt="VoxelRad AI" width="64">
+<img src="app/public/skanda-mark.png" alt="VoxelRad AI" width="72">
 
 # VoxelRad AI
 
-On `main`: the login now includes a looping CT teaching scan with pause and reduced-motion support. Optional [Keycloak sign-in](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md), and [Orthanc imports](docs/orthanc.md) are available through `compose.integrations.yaml`. They are disabled until configured. Real-provider deployment acceptance and the latest login visual verification remain pending; the existing beta.2 downloads do not include these newer changes.
+### Grounded radiology. Visible evidence.
 
-**voxelradai.com** — a browser workspace for X-ray, CT and MRI review.
+A browser workspace for X-ray, CT and MRI reading, where every model finding points back to the pixels behind it.
 
-Live at [voxelradai.com](https://voxelradai.com), with backend sign-in required. Vercel hosts the frontend and API; Neon provides PostgreSQL. See [Vercel deployment](docs/vercel.md).
+[![Live site](https://img.shields.io/badge/live-voxelradai.com-0a84ff?style=flat-square)](https://voxelradai.com)
+[![Release](https://img.shields.io/github/v/release/Hitheshkaranth/VoxelRadAI_Terminal?include_prereleases&style=flat-square&label=release)](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases)
+[![Node 24+](https://img.shields.io/badge/node-24%2B-339933?style=flat-square&logo=node.js&logoColor=white)](#-quick-start)
+[![React + Vite](https://img.shields.io/badge/React-Vite-646cff?style=flat-square&logo=vite&logoColor=white)](app)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-server%20mode-4169e1?style=flat-square&logo=postgresql&logoColor=white)](server)
+[![Research use only](https://img.shields.io/badge/use-research%20only-f59e0b?style=flat-square)](#-evaluation-and-limitations)
 
-Open a scan. Explore the anatomy. Review model candidates against their source. Prepare a report.
+[**Live site**](https://voxelradai.com) · [**Download beta**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) · [Quick start](#-quick-start) · [Benchmarks](#-benchmarks) · [Docs](#-documentation)
 
-[Download beta](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.2) · [Quick start](#quick-start) · [Workspace](#workspace) · [Deployment](docs/deployment.md) · [Model evidence](docs/reading-with-skanda.md)
+<br>
+
+<a href="https://voxelradai.com"><img src="docs/screenshots/landing/hero.png" alt="VoxelRad AI landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda V1 outlines on a chest X-ray" width="100%"></a>
+
+<sub>The <a href="https://voxelradai.com">voxelradai.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda V1 output on a public ChestX-Det test film.</sub>
 
 </div>
 
-![MRI sample in the updated three-plane workspace, with integrated plane and slice controls](docs/screenshots/v0.2.0/mri-three-planes.png)
+> [!IMPORTANT]
+> VoxelRad AI is **research and review-support software. It is not a medical device.** Model findings are candidates and need review by a qualified reader. The benchmarks below are small, selected evaluations, not clinical validation.
 
-*Current interface, captured November 10, 2026. Public teaching samples; model service offline. These screenshots demonstrate navigation and layout, not model findings or diagnostic performance.*
+## Contents
 
-## What's in this release
+- [Highlights](#-highlights)
+- [Quick start](#-quick-start)
+- [Workspace tour](#-workspace-tour)
+- [Benchmarks](#-benchmarks)
+- [Review workflow](#-review-workflow)
+- [Architecture](#-architecture)
+- [Evaluation and limitations](#-evaluation-and-limitations)
+- [Development](#-development)
+- [Documentation](#-documentation)
+- [Attribution](#-attribution)
 
-**v0.2.0-beta.2** gives scans more of the browser: a full-width canvas, floating control docks, optional study/review panels, and equal-width MRI/CT plane views. Buttons, popovers and tooltips use editable shadcn components backed by Radix. Loading feedback uses Thinking Orbs from the Libraries.dev collection.
+## ✨ Highlights
 
-| Capability | Available now |
+| | |
 | --- | --- |
-| X-ray workspace | Image stepping, pan/zoom, brightness/contrast, candidate overlays and finding review |
-| CT and MRI | Scalar NRRD import, axial/coronal/sagittal views, synchronized crosshairs, windowing and cine playback |
-| Spatial context | Optional voxel-derived 3D locator and source-plane navigation |
-| Review and reporting | Accept/dismiss candidates, track coverage, draft from reviewed findings and export |
-| Private server mode | Sign-in, administrator tools, saved image studies and expiring/revocable share links |
-| Local mode | Browser storage and a separately configured model service |
+| 🩻 **X-ray workspace** | Image stepping, pan/zoom, brightness/contrast, candidate overlays and per-finding review |
+| 🧠 **CT and MRI** | Scalar NRRD import, axial/coronal/sagittal views, synchronized crosshairs, windowing and cine |
+| 🧭 **Spatial context** | Optional voxel-derived 3D locator and source-plane navigation |
+| 🎯 **Grounded findings** | Every candidate links to its source slice, outline or box, so you can compare it with the original image |
+| 📝 **Review and reporting** | Accept or dismiss candidates, track coverage, draft from reviewed findings, sign and export |
+| 🔐 **Server mode** | Sign-in, admin tools, saved studies in PostgreSQL, and share links that expire or can be revoked |
+| 🔌 **Integrations** | Optional [Keycloak SSO](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md) and [Orthanc import](docs/orthanc.md). All are off until configured |
+| 💻 **Local mode** | Studies stay in browser storage. Bring your own model service |
 
-This is research and review-support software. Model findings require qualified review. The interface and its consistency checks do not establish diagnostic correctness; see [evaluation and limitations](#evaluation-and-limitations).
+## 🚀 Quick start
 
-## Quick start
-
-### Explore locally
-
-Use **Node.js 24+**. A model server is not needed to open samples and use the viewer.
+### 1. Explore locally (no model needed)
 
 ```sh
-git clone https://github.com/Hitheshkaranth/skanda-radiology.git
-cd skanda-radiology/app
+git clone https://github.com/Hitheshkaranth/VoxelRadAI_Terminal.git
+cd VoxelRadAI_Terminal/app
 npm ci
 npm run dev
 ```
 
-Open **http://localhost:5173**. Choose **CT** or **MRI** under Sample scans. This mode stores studies in the browser; it does not enable server accounts or hosted storage.
+Open **http://localhost:5173** and pick **CT** or **MRI** under *Sample scans*. Studies are kept in the browser only.
 
-### Connect a reader
+### 2. Connect a model
 
-Run a compatible model service separately on port **1234**. In Settings, select the exact model ID returned by:
+Run a compatible OpenAI-style model service on port **1234**, then choose the exact model ID in **Settings**:
 
 ```sh
 curl http://localhost:1234/v1/models
 ```
 
-The development proxy uses `/lmstudio/v1`. Selecting a model ID does not download or load weights. For a remote inference machine, configure the proxy or service endpoint explicitly.
+The dev proxy forwards `/lmstudio/v1` to that service. The [Skanda reader guide](docs/reading-with-skanda.md) covers bf16 serving, hardware, modality inputs and outlines. Model weights are not included in this repo.
 
-The [Skanda reader guide](docs/reading-with-skanda.md) covers bf16 serving, hardware observations, modality inputs, outlines and recorded evaluation results. GGUF serving through LM Studio does not run Skanda's outline model. Model weights and GPU services are not bundled here.
+> [!NOTE]
+> GGUF serving through LM Studio does not run Skanda's outline model. Use the bf16 setup for outlines.
 
-### Run with accounts and PostgreSQL
-
-From the repository root, copy `config.example` to `.env`, fill the database password and bootstrap administrator credentials, then run:
+### 3. Run with accounts and PostgreSQL
 
 ```sh
+cp config.example .env   # set the DB password and bootstrap admin credentials
 docker compose up -d --build
 ```
 
-Open **http://localhost:8088**. Compose builds authenticated server mode. Follow the [deployment guide](docs/deployment.md) for configuration, bootstrap cleanup, HTTPS, persistence and backup/restore. Browser-local studies are uploaded only through an explicit save action; full NRRD volume hosting is not included.
+Open **http://localhost:8088**. For HTTPS, persistence and backups, see the [deployment guide](docs/deployment.md). For the hosted setup (Vercel and Neon), see [Vercel deployment](docs/vercel.md). To add SSO, S3 or Orthanc, layer on `compose.integrations.yaml`.
 
 ### Release packages
 
-Get [v0.2.0-beta.2](https://github.com/Hitheshkaranth/skanda-radiology/releases/tag/v0.2.0-beta.2):
+[**v0.2.0-beta.2**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) ships a **source ZIP**, a prebuilt local-only **web ZIP** (serve it over HTTP) and **SHA256SUMS.txt**. `main` may be ahead of the beta. The login CT cine and the integrations are not in the beta packages.
 
-- **Source ZIP:** application, API, Dockerfiles and Compose configuration.
-- **Web ZIP:** prebuilt local-only frontend. Serve it over HTTP; opening `index.html` directly is unsupported. API/model proxy services must be configured separately.
-- **SHA256SUMS.txt:** checksums for both archives.
+## 🖼️ Workspace tour
 
-The beta packages contain the tagged application. The main branch may include newer documentation and packaging-helper fixes.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/v0.2.0/mri-three-planes.png" alt="MRI three-plane workspace"><br><sub><b>Three-plane MRI.</b> Equal-width views with built-in plane and slice controls.</sub></td>
+    <td width="50%"><img src="docs/screenshots/v0.2.0/ct-workspace.png" alt="CT workspace with collapsed panels"><br><sub><b>Full-width canvas.</b> Plane and layout controls at the top. Slice, playback, zoom and Display at the bottom.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/v0.2.0/ct-review.png" alt="CT with 3D locator and review panel"><br><sub><b>3D locator and review.</b> Navigation aid only, not validated segmentation.</sub></td>
+    <td><img src="docs/screenshots/v0.2.0/xray-workspace.png" alt="Chest X-ray workspace"><br><sub><b>X-ray.</b> Public ChestX-Det film opened through the file picker.</sub></td>
+  </tr>
+</table>
 
-## Workspace
+<sub>Workspace captured November 10, 2026 with public teaching samples and no model running. These screenshots show layout and navigation, not diagnostic performance.</sub>
 
-### X-ray on desktop and mobile
+## 📊 Benchmarks
 
-![Public chest radiograph in the updated image workspace](docs/screenshots/v0.2.0/xray-workspace.png)
+Chest X-ray, **ChestX-Det held-out test split**: 111 radiologist-labelled films, with the same prompts, parser and scorer for every model. Brackets are Wilson 95% intervals.
 
-<img src="docs/screenshots/v0.2.0/xray-mobile.png" alt="X-ray viewer at a 400-pixel mobile viewport, with scrollable tools and dedicated navigation" width="320">
+| Metric | **Skanda V1** | MedGemma 27B | MAIRA-2 |
+| --- | :-: | :-: | :-: |
+| Normal films called normal | **82.8%** <sub>[65.5–92.4]</sub> | 72.4% <sub>[54.3–85.3]</sub> | 72.4% <sub>[54.3–85.3]</sub> |
+| Abnormal films flagged | 85.4% <sub>[76.1–91.4]</sub> | **90.2%** <sub>[81.9–95.0]</sub> | **90.2%** <sub>[81.9–95.0]</sub> |
+| Right finding type (all 220 labels) | 40.5% <sub>[34.2–47.1]</sub> | **40.9%** <sub>[34.6–47.5]</sub> | 34.1% <sub>[28.1–40.6]</sub> |
+| Box centre inside the reference box | **52.3%** <sub>[41.2–63.2]</sub> | 16.5% <sub>[10.1–25.8]</sub> | **52.3%** <sub>[40.4–64.0]</sub> |
 
-Public ChestX-Det test image 36199, imported through the file picker. Image-type selection, brightness, zoom, fit, reset and mobile navigation were checked; no inference was run. [Follow-up verification](docs/validation/2026-11-10-swarm-followup.md).
+<details>
+<summary><b>Per-finding sensitivity chart</b></summary>
+<br>
+<img src="docs/benchmark/cxr-comparison-dark.png" alt="Chest X-ray model comparison: headline rates and sensitivity by radiologist label">
+</details>
 
-### A larger scan canvas
+The numbers are generated from `score.py` output by [`benchmark/emit_landing.py`](benchmark/emit_landing.py), the same source the landing page uses. Reproduce them with the [benchmark guide](benchmark/README.md). The small per-label sample sizes produce wide intervals.
 
-![CT brain sample with the study and review panels collapsed and controls on the canvas](docs/screenshots/v0.2.0/ct-workspace.png)
+## 🔁 Review workflow
 
-Plane selection and layout controls sit at the top of the canvas. Slice navigation, playback, zoom, fit and **Display** sit along the bottom. Open Display for windowing controls and Tools for sample switching, workspace reset and shortcuts.
+**X-ray.** Create a study, add a PNG, JPEG, WebP or uncompressed DICOM image, and analyze it. Check each candidate against the source, then accept or dismiss it. Draft the report and sign it. Amendments are kept in a history. A classifier heatmap is supporting evidence, not a confirmed lesion boundary.
 
-### Context when you need it
+**CT/MRI.** Open a sample or a scalar NRRD volume and set the plane and window. Then run an acquired-slice job, or choose current-slice analysis explicitly. Check coverage and any failed slices, go back to each candidate's source, and draft from the findings you accepted. Volume analysis sends one request per slice. It is not native whole-volume inference.
 
-![CT sample with the 3D locator and findings panel open](docs/screenshots/v0.2.0/ct-review.png)
+<details>
+<summary><b>Keyboard shortcuts</b></summary>
 
-Toggle **3D** to relate the current plane to the loaded voxels. Toggle **Review** for findings and report tools. The 3D display uses reduced resolution and is a navigation aid, not validated lesion segmentation. The screenshot's empty findings state is intentional: no inference was run.
-
-### Studies alongside the image
-
-![MRI three-plane workspace with study navigation expanded](docs/screenshots/v0.2.0/study-workspace.png)
-
-Open **Studies** to search and filter the worklist, create an image study, or load a teaching sample. The open-volume card distinguishes a sample from a linked patient study. Mobile layouts provide separate Studies, Viewer, Findings and Report destinations.
-
-## Review workflow
-
-**X-ray:** Create a study, add a supported PNG/JPEG/WebP or uncompressed DICOM image, confirm the model connection, and analyze. Review each candidate against the source before accepting or dismissing it. Draft and edit the report; the image-study workflow includes signing checks and amendment history. A classifier heatmap is separate evidence, not a confirmed lesion boundary.
-
-**CT/MRI:** Open a sample or scalar NRRD volume, choose the plane and display window, then open Review. Analyze an acquired-slice job or explicitly choose current-slice analysis. Inspect coverage and failures, return to each candidate's source, then draft from accepted findings. A reviewed volume draft remains unsigned and is distinct from image-study signing.
-
-Volume analysis sends acquired slices as individual requests. It is not native whole-volume inference. Use **Acquisition** to explicitly enter modality, region, sequence and contrast for an imported NRRD. CT HU confirmation requires a calibrated source; checking the option does not calibrate voxel values. Changing context invalidates incompatible analysis/resume identities.
-
-| Volume shortcut | Action |
+| Key | Action |
 | --- | --- |
-| Space | Play / pause |
-| F | Fit image |
-| P / W | Pan / window |
-| M | Single / three-plane layout |
-| H / hold Alt | Toggle / temporarily hide overlays |
-| J / K | Next / previous pending finding |
-| A / R | Accept / reject selected finding |
-| ? | Shortcut help |
+| <kbd>Space</kbd> | Play / pause |
+| <kbd>F</kbd> | Fit image |
+| <kbd>P</kbd> / <kbd>W</kbd> | Pan / window |
+| <kbd>M</kbd> | Single / three-plane layout |
+| <kbd>H</kbd> / hold <kbd>Alt</kbd> | Toggle / temporarily hide overlays |
+| <kbd>J</kbd> / <kbd>K</kbd> | Next / previous pending finding |
+| <kbd>A</kbd> / <kbd>R</kbd> | Accept / reject selected finding |
+| <kbd>?</kbd> | Shortcut help |
 
-Shortcuts depend on the active viewer; text inputs retain editing behavior.
+</details>
 
-## Architecture and data
+## 🏗️ Architecture
 
 ```mermaid
 flowchart LR
@@ -143,52 +161,60 @@ flowchart LR
     H --> D[Draft and export]
     V -->|Explicit save in server mode| A[Authenticated API]
     A --> P[(PostgreSQL)]
+    A -.optional.-> S[(S3 volumes)]
+    A -.optional.-> O[Orthanc / Keycloak]
 ```
 
-Inference sends images to the configured model host. Optional TorchXRayVision and MAIRA services are separate chest-X-ray tools. In server mode, explicitly saved image studies, sessions and share snapshots persist in PostgreSQL. Hosted share links are bearer links until expiration or revocation. This is not a PACS or a multi-tenant clinical archive.
-
-| Code | Responsibility |
+| Path | Responsibility |
 | --- | --- |
-| [Viewer](app/src/components/viewer) | Image rendering, volume navigation and review controls |
-| [Shell](app/src/components/shell) | Worklist, settings, sessions and administration |
-| [UI primitives](app/src/components/ui) | Editable shadcn components |
-| [Volume jobs](app/src/lib/volumeJobs.ts) | Coverage, progress, retries and resume |
-| [Validation](app/src/lib/volumeValidation.ts) | Limited source-consistency rules |
-| [API](server) | Authentication, study storage, sharing and migrations |
+| [`app/src/landing`](app/src/landing) | Public landing page, reading-room hero and benchmarks |
+| [`app/src/components/viewer`](app/src/components/viewer) | Image rendering, volume navigation and review controls |
+| [`app/src/components/shell`](app/src/components/shell) | Worklist, settings, sessions and administration |
+| [`app/src/components/ui`](app/src/components/ui) | Editable shadcn/Radix primitives |
+| [`app/src/lib/volumeJobs.ts`](app/src/lib/volumeJobs.ts) | Coverage, progress, retries and resume |
+| [`server`](server) | Auth, study storage, sharing and migrations |
+| [`api`](api) | Vercel serverless entry point |
+| [`benchmark`](benchmark) | Scoring, plots and landing-page data generation |
 
-## Evaluation and limitations
+Inference sends images to whichever model host you configure. In server mode, only studies you explicitly save are persisted. Hosted share links work as bearer links until they expire or are revoked. VoxelRad AI is not a PACS or a multi-tenant clinical archive.
 
-The release build and application tests pass; all ten server tests pass. Browser inspection covered CT/MRI views, display popovers and responsive CT controls. [Workspace verification](docs/validation/2026-11-10-scan-workspace.md) and [platform QC](docs/validation/2026-11-10-platform-qc.md) separate completed checks from gaps.
+## 🧪 Evaluation and limitations
 
-**Swarm follow-up:** X-ray visual import/display verification is complete. Acquisition metadata editing, multi-frame DICOM intake, keyboard/modal improvements, account recovery, process metrics and transport failure checks are implemented. See the [swarm verification record](docs/validation/2026-11-10-swarm-followup.md).
+- ✅ The release build and application tests pass, and all server tests pass. Browser QC covers the CT/MRI views, the popovers and the responsive layouts. See the [workspace verification](docs/validation/2026-11-10-scan-workspace.md), [platform QC](docs/validation/2026-11-10-platform-qc.md) and [swarm follow-up](docs/validation/2026-11-10-swarm-followup.md).
+- ⚠️ Earlier labelled tests found large localization errors: five of six positive-slice GGUF boxes had zero overlap with the reference. The bf16 Skanda rerun improved selected MRI outlines, but CT tumour outlines remained poor. See the [failure report](docs/validation/2026-11-02-labeled-case-failure-report.md) and the [volume validation protocol](benchmark/volume-validation/README.md).
+- ⏳ Still outstanding: full accessibility and physical-device testing, live hosted inference, geometric DICOM-series/PACS integration, MFA, multi-tenant isolation and durable server inference jobs. Real-provider acceptance of the integrations is also pending. The [capability manifest](server/capabilities.json) lists what is available and what is not.
 
-**Still outstanding:** comprehensive accessibility/physical-device testing, live inference, geometric DICOM-series/PACS integration, SSO/MFA, full-volume hosted storage, multi-tenant isolation and durable server inference jobs. The user confirmed no inference engine is currently set up. The [deployment capability manifest](server/capabilities.json) distinguishes available functionality from these integrations.
-
-Historical labeled tests exposed substantial localization errors: five of six positive-slice GGUF boxes had zero reference overlap. The bf16 Skanda rerun improved selected MRI outlines, while CT tumour outlines remained poor. These small, selected-slice evaluations are not full-volume or clinical validation.
-
-- [Detailed model setup, rerun evidence and historical demo](docs/reading-with-skanda.md)
-- [Labeled-case failure report](docs/validation/2026-11-02-labeled-case-failure-report.md)
-- [Reproduction protocol and saved results](benchmark/volume-validation/README.md)
-- [Historical CXR benchmarks](benchmark/README.md)
-
-## Development
+## 🛠️ Development
 
 ```sh
-# Frontend, from app/
-npm test
-npm run lint
-npm run build
-python server/test_servers.py
+# Frontend (app/)
+npm test && npm run lint && npm run build
 
-# API, from server/
-npm ci
+# API (server/)
+npm ci && npm test
+
+# Whole repo
 npm test
 ```
 
-The API integration harness creates synthetic records and must target a disposable deployment. See [server documentation](server/README.md). To package a clean tagged release after building the frontend, run `python scripts/package-release.py` from the repository root; archives are written under ignored `output/releases/`.
+The API integration harness writes synthetic records, so run it only against a disposable deployment ([server docs](server/README.md)). To package a tagged release, run `python scripts/package-release.py`. The output goes to `output/releases/`, which git ignores.
 
-## Attribution
+## 📚 Documentation
 
-The screenshots use built-in public Slicer teaching volumes: [sample provenance](app/public/samples/provenance.json). They are not expert-labeled validation cases. See [pydicom fixture attribution](app/public/samples/README.md) and [evaluation provenance](benchmark/volume-validation/provenance.json) for other datasets.
+| Guide | |
+| --- | --- |
+| [Deployment](docs/deployment.md) · [Vercel](docs/vercel.md) | Self-hosted Compose and hosted setup |
+| [Keycloak](docs/keycloak.md) · [S3 storage](docs/s3-storage.md) · [Orthanc](docs/orthanc.md) | Optional integrations |
+| [Reading with Skanda](docs/reading-with-skanda.md) | Model serving, inputs and evidence |
+| [Benchmarks](benchmark/README.md) | CXR scoring and reproduction |
+| [Landing page design](docs/design/landing-page.md) · [element map](docs/design/visuvate-mapping.md) | Design notes |
 
-UI components derive from [shadcn/ui](https://github.com/shadcn-ui/ui), with the [MIT notice](app/src/components/ui/LICENSE). [Libraries.dev](https://github.com/Jakubantalik/Libraries.dev) informed the loading-indicator choice. Figtree is self-hosted with its [SIL Open Font License](app/public/fonts/Figtree-OFL.txt). The public landing page uses self-hosted Figtree, Instrument Sans and Instrument Serif, the latter two with their [Sans](app/public/fonts/InstrumentSans-OFL.txt) and [Serif](app/public/fonts/InstrumentSerif-OFL.txt) SIL Open Font Licenses. Release web packages include dependency license notices. See the [Visuvate-to-VoxelRad element map](docs/design/visuvate-mapping.md) and [landing-page design notes](docs/design/landing-page.md).
+## 🙏 Attribution
+
+- Screenshots and samples use public Slicer teaching volumes and pydicom fixtures ([sample provenance](app/public/samples/provenance.json), [pydicom notice](app/public/samples/README.md)). Landing images are listed in [`app/public/landing/provenance.json`](app/public/landing/provenance.json). None of these are expert-labelled validation cases.
+- The UI is built on [shadcn/ui](https://github.com/shadcn-ui/ui) ([MIT notice](app/src/components/ui/LICENSE)). [Libraries.dev](https://github.com/Jakubantalik/Libraries.dev) informed the choice of loading indicator.
+- Fonts are self-hosted under the SIL Open Font License: [Figtree](app/public/fonts/Figtree-OFL.txt), [Instrument Sans](app/public/fonts/InstrumentSans-OFL.txt) and [Instrument Serif](app/public/fonts/InstrumentSerif-OFL.txt).
+
+<div align="center">
+<sub>Built for readers who want to see the evidence. <a href="https://voxelradai.com">voxelradai.com</a></sub>
+</div>
