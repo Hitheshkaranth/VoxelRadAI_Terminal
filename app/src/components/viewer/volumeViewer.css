@@ -192,7 +192,7 @@
 }
 @media(max-width:1023px) { .volume-review-toggle { display:none; } }
 @media(min-width:1024px) {
-  .volume-spatial-panel:not(.volume-spatial-panel--expanded) .vr-stage canvas { height:clamp(120px,calc(var(--volume-spatial-height,340px) - 110px),390px); }
+  .volume-spatial-panel:not(.volume-spatial-panel--expanded) .vr-stage canvas { height:clamp(120px,calc(var(--volume-spatial-height,340px) - 180px),390px); }
 }
 @media(min-width:1024px) {
   .volume-reading-mode { position:relative; }

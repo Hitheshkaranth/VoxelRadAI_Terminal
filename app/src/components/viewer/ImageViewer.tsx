@@ -4,7 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Finding, Heatmap, OverlayStyle, ViewerState } from '../../types'
 import { useActiveImage, useActiveStudy, useApp } from '../../store'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
@@ -498,7 +498,7 @@ export function ImageViewer() {
           <span>Image {study.images.findIndex((item) => item.id === image.id) + 1} / {study.images.length}</span>
           <ScanButton type="button" className="btn btn-sm" aria-label="Next image" disabled={study.images.findIndex((item) => item.id === image.id) >= study.images.length - 1} onClick={() => { const index = study.images.findIndex((item) => item.id === image.id); if (index < study.images.length - 1) selectImage(study.images[index + 1].id) }}><ChevronRight aria-hidden="true" /></ScanButton>
         </div>}
-        <Popover><PopoverTrigger asChild><ScanButton className="scan-display-trigger">Display</ScanButton></PopoverTrigger><PopoverContent side="top" align="end" className="scan-display-popover"><div className="vw-adjustment-fields">
+        <Popover><PopoverTrigger asChild><ScanButton className="scan-display-trigger"><SlidersHorizontal size={16} aria-hidden="true" /><span>Display</span></ScanButton></PopoverTrigger><PopoverContent side="top" align="end" className="scan-display-popover"><div className="vw-adjustment-fields">
           <label>Brightness <input type="range" min={20} max={300} value={viewer.brightness} onChange={(event) => setViewer({ brightness: Number(event.target.value) })} /><output>{viewer.brightness}%</output></label>
           <label>Contrast <input type="range" min={20} max={400} value={viewer.contrast} onChange={(event) => setViewer({ contrast: Number(event.target.value) })} /><output>{viewer.contrast}%</output></label>
           <ScanButton className="btn btn-sm" onClick={() => setViewer({ brightness: 100, contrast: 100, invert: false })}>Reset display</ScanButton><small>Display adjustment only. Source pixels are unchanged.</small>
