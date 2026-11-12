@@ -31,7 +31,7 @@ export function OrganizationSignIn({ account = false }: { account?: boolean }) {
     setBusy(true); setError('')
     try {
       const response = await fetch(linked ? '/api/oidc/identity' : '/api/oidc/link', { method: linked ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: password }) })
-      const data = await response.json()
+      const data = (response.headers.get('content-type') ?? '').includes('json') ? await response.json().catch(() => ({})) : {}
       if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Account linking failed. Try again.')
       setPassword('')
       if (linked) { window.location.reload(); return }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { FileImage, FileText, Plus, HardDrive, Target } from 'lucide-react'
-import { hydrate, uid, useActiveStudy, useApp } from './store'
+import { hydrate, useActiveStudy, useApp } from './store'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
 import { extractImagesFromClipboard } from './lib/imageIntake'
@@ -13,7 +13,7 @@ import { Inspector } from './components/shell/Inspector'
 import { PatientSheet } from './components/shell/PatientSheet'
 import { SettingsSheet } from './components/shell/SettingsSheet'
 import { Toasts } from './components/shell/Toasts'
-import { analyzeImageAction, useShell } from './components/shell/shellState'
+import { analyzeImageAction, routeDroppedFiles, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
 import { VOLUME_SAMPLES } from './lib/volumeSources'
 import { VolumeJobIndicator } from './components/shell/VolumeJobIndicator'
@@ -59,6 +59,9 @@ function useShortcuts() {
     const onKey = (e: KeyboardEvent) => {
       if (document.querySelector('[role="dialog"]')) return
       if (!e.metaKey && !e.ctrlKey) return
+      // Shortcuts must not fire while the user is typing (e.g. Cmd+Enter in a report field would start an analysis).
+      const target = e.target as HTMLElement | null
+      if (target?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return
       const st = useApp.getState()
       const shell = useShell.getState()
       const k = e.key.toLowerCase()
@@ -106,9 +109,7 @@ function useGlobalUpload() {
       if (!hasFiles(e)) return
       e.preventDefault()
       const files = Array.from(e.dataTransfer!.files)
-      const volumeFile = files.find((file) => file.name.toLowerCase().endsWith('.nrrd'))
-      if (volumeFile) useShell.getState().openVolume({ id: uid(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
-      else { useShell.getState().closeVolume(); void addFilesToActiveStudy(files) }
+      routeDroppedFiles(files)
     }
     // Capture phase so nested drop targets can't swallow the event and leave the overlay stuck.
     const reset = () => {

@@ -12,14 +12,16 @@ interface ChatPart {
   image_url?: { url: string }
 }
 
+/** One resolution rule for the configured model URL, shared by analysis and Settings checks. */
+export function resolveModelUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/, '')
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (typeof location === 'undefined') return trimmed
+  return new URL(trimmed.startsWith('/') ? trimmed : `/${trimmed}`, location.origin).href.replace(/\/+$/, '')
+}
+
 function endpoint(settings: Settings, suffix = ''): string {
-  const base =
-    settings.baseUrl.startsWith('http') || settings.baseUrl.startsWith('//')
-      ? settings.baseUrl
-      : typeof location !== 'undefined'
-        ? location.origin + settings.baseUrl
-        : settings.baseUrl
-  return `${base}${suffix}`
+  return `${resolveModelUrl(settings.baseUrl)}${suffix}`
 }
 
 // ---- SSE streaming ---------------------------------------------------------

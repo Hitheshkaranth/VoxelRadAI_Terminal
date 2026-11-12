@@ -73,6 +73,15 @@ export async function loadVolumeJob(identity: string): Promise<VolumeJob | null>
   loading.set(identity, pending)
   return pending
 }
+/** Stop every volume job and forget in-memory state, e.g. before deleting all local data, so no running job writes its reads back afterwards. */
+export async function resetVolumeJobs(): Promise<void> {
+  for (const controller of controllers.values()) controller.abort()
+  controllers.clear()
+  await Promise.allSettled([...saves.values(), ...loading.values()])
+  records.clear(); saves.clear(); loading.clear()
+  allRecords = []
+  for (const listener of allListeners) listener()
+}
 export function pauseVolumeJob(identity: string) {
   controllers.get(identity)?.abort(); controllers.delete(identity)
   const job = records.get(identity)

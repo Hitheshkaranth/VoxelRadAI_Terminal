@@ -1,7 +1,7 @@
 import http from 'node:http'
 import { randomUUID } from 'node:crypto'
 import pg from 'pg'
-import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword } from './security.mjs'
+import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword, needsRehash } from './security.mjs'
 import { sharedDocument } from './share.mjs'
 import { migrate } from './migrate.mjs'
 import { validStudy } from './studyValidation.mjs'
@@ -19,15 +19,17 @@ const localOverride = process.env.ALLOW_INSECURE_LOCALHOST === 'true' && ['local
 if (process.env.NODE_ENV === 'production' && !secureCookies && !localOverride) throw new Error('Production requires HTTPS PUBLIC_ORIGIN (or explicit loopback-only ALLOW_INSECURE_LOCALHOST=true).')
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DB_POOL_SIZE || 10), connectionTimeoutMillis: 5000, statement_timeout: 10000 })
+let waitUntil = null
 if (process.env.VERCEL) {
-  const { attachDatabasePool } = await import('@vercel/functions')
-  attachDatabasePool(pool)
+  const vercelFunctions = await import('@vercel/functions')
+  vercelFunctions.attachDatabasePool(pool)
+  waitUntil = vercelFunctions.waitUntil
 }
 pool.on('error', () => console.error('Database connection interrupted'))
 await migrate(pool)
 
 // Bootstrap is opt-in and only allowed when the user table is empty. No shipped credentials.
-if (process.env.BOOTSTRAP_ADMIN_EMAIL || process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+if ((process.env.BOOTSTRAP_ADMIN_EMAIL || process.env.BOOTSTRAP_ADMIN_PASSWORD) && !(await pool.query('SELECT 1 FROM users LIMIT 1')).rowCount) {
   const email = normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL)
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD
   if (!validEmail(email) || !validPassword(password)) throw new Error('Bootstrap requires a valid email and password of 12–256 characters')
@@ -63,11 +65,24 @@ async function userFor(req) {
   const result = await pool.query('SELECT u.id,u.email,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND NOT u.disabled', [hashToken(token)])
   return result.rows[0] || null
 }
-async function rateLimit(key) {
-  const result = await pool.query("INSERT INTO login_attempts(key_hash,attempts,resets_at) VALUES ($1,1,now()+interval '15 minutes') ON CONFLICT(key_hash) DO UPDATE SET attempts=CASE WHEN login_attempts.resets_at<now() THEN 1 ELSE login_attempts.attempts+1 END,resets_at=CASE WHEN login_attempts.resets_at<now() THEN now()+interval '15 minutes' ELSE login_attempts.resets_at END RETURNING attempts", [hashToken(key)])
-  return result.rows[0].attempts > 15
+// Client address for abuse limits. Vercel and the bundled nginx set X-Real-IP themselves; elsewhere use the socket.
+function clientIp(req) {
+  const header = req.headers['x-real-ip']
+  if ((process.env.VERCEL || process.env.TRUST_PROXY_HEADERS === 'true') && typeof header === 'string' && header.length <= 64) return header.trim()
+  return req.socket?.remoteAddress || 'unknown'
 }
-const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit,
+const clearRateLimit = key => pool.query('DELETE FROM login_attempts WHERE key_hash=$1', [hashToken(key)])
+async function confirmAdmin(user, password) {
+  if (typeof password !== 'string' || !password || password.length > 256) return false
+  if (await rateLimit(`admin-reauth:${user.id}`)) return false
+  const result = await pool.query("SELECT password_hash FROM users WHERE id=$1 AND role='admin' AND NOT disabled", [user.id])
+  return Boolean(result.rows[0]) && await verifyPassword(password, result.rows[0].password_hash)
+}
+async function rateLimit(key, max = 15) {
+  const result = await pool.query("INSERT INTO login_attempts(key_hash,attempts,resets_at) VALUES ($1,1,now()+interval '15 minutes') ON CONFLICT(key_hash) DO UPDATE SET attempts=CASE WHEN login_attempts.resets_at<now() THEN 1 ELSE login_attempts.attempts+1 END,resets_at=CASE WHEN login_attempts.resets_at<now() THEN now()+interval '15 minutes' ELSE login_attempts.resets_at END RETURNING attempts", [hashToken(key)])
+  return result.rows[0].attempts > max
+}
+const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit, clientIp,
   issueSession: async (client, user) => {
     const token = newToken()
     await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), user.id])
@@ -76,8 +91,13 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 })
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
+// Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
+async function cleanup() {
+  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()')])
+}
 export async function handler(req, res) {
   const requestId = operations.begin(res)
+  if (waitUntil && Math.random() < 0.02) waitUntil(cleanup())
   try {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
@@ -113,7 +133,7 @@ export async function handler(req, res) {
     if (path === '/api/login' && req.method === 'POST') {
       const data = await body(req); const email = normalizeEmail(data.email)
       if (!validEmail(email) || typeof data.password !== 'string' || data.password.length > 256) return send(res, 401, { error: 'Email or password is incorrect.' })
-      if (await rateLimit(`email:${email}`)) return send(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' }, { 'Retry-After': '900' })
+      if (await rateLimit(`login-ip:${clientIp(req)}`, 60) || await rateLimit(`email:${email}`)) return send(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' }, { 'Retry-After': '900' })
       const client = await pool.connect()
       try {
         await client.query('BEGIN')
@@ -126,14 +146,16 @@ export async function handler(req, res) {
         await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), account.id])
         await client.query('UPDATE users SET last_login_at=now() WHERE id=$1', [account.id])
         await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)',[account.id,'login'])
+        if (needsRehash(account.password_hash)) await client.query('UPDATE users SET password_hash=$2 WHERE id=$1', [account.id, await hashPassword(data.password)])
         await client.query('COMMIT')
+        await clearRateLimit(`email:${email}`).catch(() => {})
         return send(res, 200, { user: { id: account.id, email: account.email, role: account.role } }, { 'Set-Cookie': sessionCookie(token, secureCookies) })
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
     }
     if (path.startsWith('/api/shared/') && req.method === 'GET') {
       const token = path.slice('/api/shared/'.length)
       if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return send(res, 404, { error: 'This share link is unavailable or expired.' })
-      const result = await pool.query('SELECT snapshot_html FROM share_grants WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()', [hashToken(token)])
+      const result = await pool.query('SELECT g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(token)])
       if (!result.rows[0]?.snapshot_html) return send(res, 404, { error: 'This share link is unavailable or expired.' })
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" })
       return res.end(result.rows[0].snapshot_html)
@@ -202,6 +224,7 @@ export async function handler(req, res) {
     if (path === '/api/admin/users' && req.method === 'POST') {
       const data = await body(req); const email = normalizeEmail(data.email)
       if (!validEmail(email) || !validPassword(data.password) || !['admin','clinician'].includes(data.role)) return send(res, 400, { error: 'Use a valid email, a 12–256 character password, and admin or clinician role.' })
+      if (!await confirmAdmin(user, data.currentPassword)) return send(res, 403, { error: 'Administrator password is incorrect.' })
       const result = await pool.query('INSERT INTO users(id,email,password_hash,role) VALUES ($1,$2,$3,$4) RETURNING id,email,role', [randomUUID(), email, await hashPassword(data.password), data.role])
       await audit(user.id, 'user.created'); return send(res, 201, { user: result.rows[0] })
     }
@@ -211,6 +234,8 @@ export async function handler(req, res) {
       if (target === user.id && data.disabled === true) return send(res,400,{error:'You cannot disable your own account.'})
       if (typeof data.disabled !== 'boolean' && !validPassword(data.password)) return send(res,400,{error:'Supply disabled true/false or a 12–256 character password.'})
       if ('password' in data && !validPassword(data.password)) return send(res,400,{error:'Password must contain 12–256 characters.'})
+      if ('password' in data && target === user.id) return send(res,400,{error:'Change your own password from account security.'})
+      if ('password' in data && !await confirmAdmin(user, data.currentPassword)) return send(res,403,{error:'Administrator password is incorrect.'})
       const passwordHash = data.password ? await hashPassword(data.password) : null
       const client = await pool.connect()
       try {
@@ -222,6 +247,7 @@ export async function handler(req, res) {
         if (!result.rowCount) { await client.query('ROLLBACK'); return send(res,404,{error:'User not found.'}) }
         if (data.disabled === true || passwordHash) await client.query('DELETE FROM sessions WHERE user_id=$1',[target])
         if (data.disabled === true || passwordHash) await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',[target])
+        if (data.disabled === true) await client.query('UPDATE share_grants SET revoked_at=now() WHERE owner_id=$1 AND revoked_at IS NULL',[target])
         await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)',[user.id,passwordHash ? 'user.password_reset' : data.disabled ? 'user.disabled' : 'user.enabled'])
         await client.query('COMMIT'); return send(res,200,{user:result.rows[0]})
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
@@ -288,6 +314,8 @@ export async function handler(req, res) {
   } catch (error) {
     if (error.code === '23505') return send(res, 409, { error: 'This record already exists.' })
     if (error.status) return send(res, error.status, { error: error.message })
+    // Vercel's lazy body parser reports malformed or oversized bodies with statusCode.
+    if (error.statusCode === 400 || error.statusCode === 413) return send(res, error.statusCode, { error: error.statusCode === 413 ? 'Request exceeds the allowed size' : 'Request must contain a JSON object' })
     console.error(JSON.stringify({ event: 'http.error', requestId, code: error.code || error.name }))
     if (!res.headersSent) send(res, 503, { error: 'Service unavailable. Please retry.' })
   }
@@ -297,6 +325,6 @@ const server = http.createServer(handler)
 server.requestTimeout = 30000
 server.headersTimeout = 15000
 server.listen(port, '0.0.0.0', () => console.log(`VoxelRad AI API listening on ${port}`))
-const cleanup = setInterval(() => { objectStorage.cleanupExpiredUploads().catch(() => {}); pool.query('DELETE FROM sessions WHERE expires_at<now()').catch(() => {}); pool.query('DELETE FROM login_attempts WHERE resets_at<now()').catch(() => {}); pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()').catch(() => {}) }, 3600000).unref()
-for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanup); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })
+const cleanupTimer = setInterval(() => { cleanup().catch(() => {}) }, 3600000).unref()
+for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanupTimer); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })
 }

@@ -8,8 +8,10 @@ interface SavedVolume { id: string; fileName: string; title: string; sizeBytes: 
 interface StorageStatus { enabled: boolean; maxVolumeBytes: number; uploadOrigins: string[]; downloadOrigins: string[]; allowInsecureTransport?: boolean }
 async function api(path: string, signal: AbortSignal, method = 'GET', data?: unknown) {
   const response = await fetch(path, { method, signal, cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) })
-  const result = await response.json()
+  // A proxy error page is HTML, not JSON: show a readable message instead of a parse error.
+  const result = (response.headers.get('content-type') ?? '').includes('json') ? await response.json().catch(() => ({})) : {}
   if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Volume storage is unavailable. Try again.')
+  if (!result || typeof result !== 'object') throw new Error('Volume storage returned an unexpected response. Try again.')
   return result
 }
 function storageUrl(value: string, origins: string[], allowHttp = false) {

@@ -123,12 +123,13 @@ export function buildReportPrompt(study: Study): string {
 
   // Findings the reviewer dismissed are left out. Findings the TorchXRayVision cross-check did not support
   // (and nobody has reviewed yet) stay in, marked unconfirmed so the draft words them as possible.
-  const images = study.images.flatMap((i) => {
+  // Original filenames often carry a patient name or MRN, so the model only sees positional labels.
+  const images = study.images.flatMap((i, index) => {
     const a = i.analysis
     if (!a) return []
     return [
       {
-        name: i.name,
+        name: `Image ${index + 1}`,
         analysis: {
           view: a.view,
           imageQuality: a.imageQuality,

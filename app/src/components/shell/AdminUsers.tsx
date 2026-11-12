@@ -20,16 +20,17 @@ export function AdminUsers() {
   const [message, setMessage] = useState('')
   const [manage, setManage] = useState<AdminUser | null>(null)
   const [resetPassword, setResetPassword] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
   const [manageError, setManageError] = useState('')
   const refreshUsers = () => { setLoading(true); setError(''); setAttempt((value) => value + 1) }
   const showPage = (next: number) => { setLoading(true); setError(''); setOffset(next) }
-  const changeUser = async (patch: { disabled: boolean } | { password: string }) => {
+  const changeUser = async (patch: { disabled: boolean } | { password: string; currentPassword: string }) => {
     if (!manage || saving) return
     setSaving(true); setManageError('')
     try {
       const response = await fetch(`/api/admin/users/${encodeURIComponent(manage.id)}`, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
-      if (!response.ok) throw new Error(response.status === 403 ? 'This account change is not permitted.' : 'The account could not be updated. Please try again.')
-      setManage(null); setResetPassword(''); refreshUsers()
+      if (!response.ok) throw new Error(response.status === 403 ? ('password' in patch ? 'Your administrator password is incorrect.' : 'This account change is not permitted.') : response.status === 429 ? 'Too many attempts. Try again in 15 minutes.' : 'The account could not be updated. Please try again.')
+      setManage(null); setResetPassword(''); setAdminPassword(''); refreshUsers()
     } catch (reason) { setManageError(reason instanceof Error ? reason.message : 'The account could not be updated.') }
     finally { setSaving(false) }
   }
@@ -48,9 +49,9 @@ export function AdminUsers() {
     if (saving) return
     setSaving(true); setMessage('')
     try {
-      const response = await fetch('/api/admin/users', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), password, role }) })
-      if (!response.ok) throw new Error(response.status === 409 ? 'An account with this email already exists.' : response.status === 403 ? 'An administrator account is required.' : 'Account could not be created. Check the fields and try again.')
-      setEmail(''); setPassword(''); setRole('clinician'); setMessage('Account created. Give the credentials to the intended user through your approved secure channel.'); setOffset(0); refreshUsers()
+      const response = await fetch('/api/admin/users', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), password, role, currentPassword: adminPassword }) })
+      if (!response.ok) throw new Error(response.status === 409 ? 'An account with this email already exists.' : response.status === 403 ? 'Your administrator password is incorrect, or this account is not an administrator.' : response.status === 429 ? 'Too many attempts. Try again in 15 minutes.' : 'Account could not be created. Check the fields and try again.')
+      setEmail(''); setPassword(''); setAdminPassword(''); setRole('clinician'); setMessage('Account created. Give the credentials to the intended user through your approved secure channel.'); setOffset(0); refreshUsers()
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Account could not be created.') }
     finally { setSaving(false) }
   }
@@ -65,14 +66,15 @@ export function AdminUsers() {
     {manage && <section className="admin-create"><h3 className="admin-heading">Manage {manage.email}</h3><p className="admin-note">Disabling an account or resetting its password ends its active sessions.</p>
       <ShellButton className="btn" disabled={saving || manage.id === currentUser?.id} onClick={() => { void changeUser({ disabled: !manage.disabled }) }}>{manage.disabled ? 'Enable account' : 'Disable account'}</ShellButton>
       {manage.id === currentUser?.id && <p className="admin-note">You cannot disable your own account.</p>}
-      <form onSubmit={(event) => { event.preventDefault(); void changeUser({ password: resetPassword }) }}><label>New password<input type="password" autoComplete="new-password" minLength={12} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} disabled={saving} /></label><ShellButton className="btn" disabled={saving} type="submit">Reset password</ShellButton></form>
+      <form onSubmit={(event) => { event.preventDefault(); void changeUser({ password: resetPassword, currentPassword: adminPassword }) }}><label>New password<input type="password" autoComplete="new-password" minLength={12} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} disabled={saving || manage.id === currentUser?.id} /></label><label>Your administrator password<input type="password" autoComplete="current-password" required value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} disabled={saving || manage.id === currentUser?.id} /></label><ShellButton className="btn" disabled={saving || manage.id === currentUser?.id} type="submit">Reset password</ShellButton></form>{manage.id === currentUser?.id && <p className="admin-note">Change your own password from Account security.</p>}
       {manageError && <p role="alert" className="admin-error">{manageError}</p>}
       {!manage.disabled && <AdminRecovery key={manage.id} userId={manage.id} />}
-      <ShellButton className="btn" disabled={saving} onClick={() => { setManage(null); setResetPassword('') }}>Close account controls</ShellButton>
+      <ShellButton className="btn" disabled={saving} onClick={() => { setManage(null); setResetPassword(''); setAdminPassword('') }}>Close account controls</ShellButton>
     </section>}
     <details className="admin-create"><summary>Create an account</summary><form onSubmit={(event) => { void createUser(event) }}>
       <label>Email address<input type="email" autoComplete="off" required value={email} onChange={(event) => setEmail(event.target.value)} disabled={saving} /></label>
       <label>Initial password<input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} disabled={saving} /><small>At least 12 characters. No email is sent automatically.</small></label>
+      <label>Your administrator password<input type="password" autoComplete="current-password" required value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} disabled={saving} /><small>Confirms it is you before creating an account.</small></label>
       <label>Role<select value={role} onChange={(event) => setRole(event.target.value as 'admin' | 'clinician')} disabled={saving}><option value="clinician">Clinician</option><option value="admin">Administrator</option></select></label>
       {role === 'admin' && <p className="admin-note">This account will be able to create users and view organization analytics.</p>}
       <ShellButton type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating account...' : 'Create account'}</ShellButton>

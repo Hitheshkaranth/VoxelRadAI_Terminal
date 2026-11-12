@@ -180,8 +180,9 @@ export const useApp = create<AppState>()((set, get) => ({
   addImages: (studyId, images) =>
     set((st) => ({
       studies: mapStudy(st.studies, studyId, (s) => ({ ...s, images: [...s.images, ...images] })),
-      activeImageId: images[0]?.id ?? st.activeImageId,
-      selectedFindingId: null,
+      // An import that finishes after the user switched studies must not hijack the open study's selection.
+      activeImageId: studyId === st.activeStudyId ? (images[0]?.id ?? st.activeImageId) : st.activeImageId,
+      selectedFindingId: studyId === st.activeStudyId ? null : st.selectedFindingId,
     })),
   removeImage: (studyId, imageId) =>
     set((st) => {

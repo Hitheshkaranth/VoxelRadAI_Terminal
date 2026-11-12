@@ -5,6 +5,7 @@ import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent }
 import { FileImage, Loader2, Paperclip } from 'lucide-react'
 import { filesToStudyImages, pickImageFiles, readDroppedItems } from '../../lib/imageIntake'
 import { useApp } from '../../store'
+import { routeDroppedFiles } from '../shell/shellState'
 import './viewer.css'
 
 export function Dropzone({ studyId }: { studyId: string }) {
@@ -42,7 +43,9 @@ export function Dropzone({ studyId }: { studyId: string }) {
       e.stopPropagation()
       setDragging(false)
       readDroppedItems(e.dataTransfer).then((files) => {
-        if (files.length) void processFiles(files)
+        // An .nrrd volume dropped here must open as a volume, not be decoded as a 2D image.
+        if (files.some((file) => file.name.toLowerCase().endsWith('.nrrd'))) routeDroppedFiles(files)
+        else if (files.length) void processFiles(files)
       })
     },
     [processFiles],

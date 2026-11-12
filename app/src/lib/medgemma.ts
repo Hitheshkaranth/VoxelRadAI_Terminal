@@ -93,7 +93,7 @@ export async function analyzeImage(opts: {
       role: 'user',
       content: [
         { type: 'image_url', image_url: { url: imageUrl } },
-        { type: 'text', text: skandaSlice ? skandaSlicePrompt(skandaSlice) : crossSectional ? buildSlicePrompt(opts.image.sourceModality!, opts.image.name, opts.patient) : skanda ? SKANDA_ANALYSIS_PROMPT : buildAnalysisPrompt(opts.patient) },
+        { type: 'text', text: skandaSlice ? skandaSlicePrompt(skandaSlice) : crossSectional ? buildSlicePrompt(opts.image.sourceModality!, 'displayed slice', opts.patient) : skanda ? SKANDA_ANALYSIS_PROMPT : buildAnalysisPrompt(opts.patient) },
       ],
     },
   ]

@@ -4,6 +4,8 @@ import { VOLUME_SAMPLES, type VolumeSource } from '../../lib/volumeSources'
 import { create } from 'zustand'
 import { useApp } from '../../store'
 import { runAnalysis } from '../../lib/analysis'
+import { addFilesToActiveStudy } from '../../lib/upload'
+import { uid } from '../../store'
 
 export type MobileView = 'studies' | 'viewer' | 'findings' | 'report'
 
@@ -64,4 +66,15 @@ export function analyzeImageAction(studyId: string, imageId: string): boolean {
 /** "2 findings · 1 flagged" — the one wording used everywhere a count is shown. */
 export function countLabel(active: number, flagged: number): string {
   return `${active} finding${active === 1 ? '' : 's'}${flagged ? ` · ${flagged} flagged` : ''}`
+}
+
+/** One routing rule for dropped files, wherever they land: an .nrrd opens as a volume; images join the active study. */
+export function routeDroppedFiles(files: File[]): void {
+  const volumeFile = files.find((file) => file.name.toLowerCase().endsWith('.nrrd'))
+  const images = files.filter((file) => file !== volumeFile)
+  if (images.length) {
+    if (!volumeFile) useShell.getState().closeVolume()
+    void addFilesToActiveStudy(images)
+  }
+  if (volumeFile) useShell.getState().openVolume({ id: uid(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
 }

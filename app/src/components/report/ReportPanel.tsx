@@ -25,6 +25,7 @@ import {
   Unlock,
 } from 'lucide-react'
 import { useActiveStudy, useApp } from '../../store'
+import { SERVER_MODE, useSession } from '../../lib/session'
 import { cancelReport, generateStudyReport, reportSourceKey, useReportJob } from '../../lib/analysis'
 import { excludedFindings, isUnconfirmed } from '../../lib/classifier'
 import type { PatientInfo, ReportDraft, Study } from '../../types'
@@ -218,7 +219,12 @@ function ExcludedBanner({ study, locked }: { study: Study; locked: boolean }) {
 export function ReportPanel() {
   const study = useActiveStudy() as Study | null
   const settings = useApp((s) => s.settings)
-  const reportJob = useReportJob()
+  const job = useReportJob()
+  // With accounts, a signature names the signed-in account; it is not free text another user could type.
+  const sessionEmail = useSession((state) => state.user?.email)
+  const accountSigner = SERVER_MODE ? sessionEmail : undefined
+  // Only show a draft's progress or error on the study it was started for.
+  const reportJob = study && job.studyId === study.id ? job : { running: false, progressText: undefined, error: undefined }
   const setReport = useApp((s) => s.setReport)
   const updatePatient = useApp((s) => s.updatePatient)
   const openSheet = useApp((s) => s.openSheet)
@@ -258,13 +264,13 @@ export function ReportPanel() {
       // Record what was signed past so the override stays visible on the signed report.
       signOverrides: overrides.length ? overrides : undefined,
       signedAt: Date.now(),
-      radiologist: report.radiologist.trim(),
+      radiologist: accountSigner ?? report.radiologist.trim(),
       // Freeze the patient header: later edits to patient details must not change a signed report.
       patientSnapshot: { ...study.patient },
       // Signing accepts the current draft; there is nothing left to undo back to.
       previous: undefined,
     })
-  }, [study, report, setReport])
+  }, [study, report, setReport, accountSigner])
 
   const onSign = useCallback(() => {
     if (!study || !report) return
@@ -276,9 +282,9 @@ export function ReportPanel() {
   const onUnlock = useCallback(() => {
     if (!study || !report) return
     setConfirmUnlock(false)
-    const amendment = { signedAt: report.signedAt ?? 0, unlockedAt: Date.now(), by: report.radiologist }
+    const amendment = { signedAt: report.signedAt ?? 0, unlockedAt: Date.now(), by: accountSigner ?? report.radiologist }
     setReport(study.id, { signed: false, signedAt: undefined, signOverrides: undefined, amendments: [...(report.amendments ?? []), amendment] })
-  }, [study, report, setReport])
+  }, [study, report, setReport, accountSigner])
 
   const onRegenerate = useCallback(() => {
     if (!study) return
@@ -582,15 +588,17 @@ export function ReportPanel() {
           <div className="rp-signoff-row">
             <input
               className="input"
-              value={report.radiologist}
+              value={accountSigner ?? report.radiologist}
               aria-label="Radiologist name"
               placeholder="Radiologist name"
+              readOnly={Boolean(accountSigner)}
+              title={accountSigner ? 'Reports are signed by the signed-in account.' : undefined}
               onChange={(e) => setReport(study.id, { radiologist: e.target.value } as Partial<ReportDraft>)}
             />
             <ShellButton
               type="button"
               className="btn btn-primary"
-              disabled={!report.radiologist.trim() || reportJob.running}
+              disabled={!(accountSigner ?? report.radiologist).trim() || reportJob.running}
               onClick={onSign}
             >
               Sign report

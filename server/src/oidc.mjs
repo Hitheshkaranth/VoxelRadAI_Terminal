@@ -31,7 +31,7 @@ export function validateIdentityClaims(claims, settings) {
 }
 
 /** issueSession(tx, user, req) inserts the existing app session inside tx and returns its Set-Cookie string. */
-export function createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, issueSession, rateLimit, env = process.env, client = oidcClient }) {
+export function createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, issueSession, rateLimit, clientIp, env = process.env, client = oidcClient }) {
   const settings = readOidcSettings(env, publicOrigin)
   let discovery
   async function configuration() {
@@ -70,6 +70,8 @@ export function createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, b
     const linkSession = linking ? readSessionCookie(req.headers.cookie) : null
     if (linking && !linkSession) return send(res,401,{error:'Sign in before linking an identity.'})
     if (linking) await reauthenticationLimit(user)
+    // Unauthenticated starts write flow state; bound them per client so one source cannot exhaust the global cap.
+    if (!linking && rateLimit && clientIp && await rateLimit(`oidc-start:${clientIp(req)}`, 30)) return send(res,429,{error:'Too many sign-in attempts. Try again in 15 minutes.'},{'Retry-After':'900'})
     const config = await configuration()
     const state = newToken(), browser = newToken(), verifier = client.randomPKCECodeVerifier(), nonce = client.randomNonce()
     const challenge = await client.calculatePKCECodeChallenge(verifier)

@@ -21,3 +21,18 @@ test('origin checks reject missing and cross-origin mutation requests', () => {
   assert.equal(allowedOrigin('https://skanda.example', 'https://skanda.example'), true)
   assert.equal(normalizeEmail(' Reader@Example.com '), 'reader@example.com')
 })
+
+test('legacy scrypt hashes still verify and are flagged for upgrade', async () => {
+  const { scryptSync } = await import('node:crypto')
+  const { verifyPassword, needsRehash, hashPassword } = await import('../src/security.mjs')
+  const salt = '0123456789abcdef0123456789abcdef'
+  const legacy = `scrypt:${salt}:${scryptSync('correct horse battery', salt, 64).toString('hex')}`
+  assert.equal(await verifyPassword('correct horse battery', legacy), true)
+  assert.equal(await verifyPassword('wrong horse battery!', legacy), false)
+  assert.equal(needsRehash(legacy), true)
+  const current = await hashPassword('correct horse battery')
+  assert.match(current, /^scrypt2:131072:8:1:[a-f0-9]{32}:[a-f0-9]{128}$/)
+  assert.equal(needsRehash(current), false)
+  assert.equal(await verifyPassword('correct horse battery', current), true)
+  assert.equal(await verifyPassword('correct horse battery', 'scrypt2:999:8:1:' + salt + ':' + 'a'.repeat(128)), false)
+})

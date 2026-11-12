@@ -11,7 +11,7 @@ export async function addFilesToActiveStudy(files: File[]): Promise<void> {
   try {
     const imgs = await filesToStudyImages(usable)
     useApp.getState().addImages(studyId, imgs)
-    const skipped = usable.length - imgs.length
+    const skipped = imgs.errors.length
     // Name the first reason so a skipped DICOM or oversized file is not a silent mystery.
     const why = imgs.errors[0] ? ` (${imgs.errors[0]})` : ''
     toast(

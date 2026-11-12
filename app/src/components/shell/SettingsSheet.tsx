@@ -1,4 +1,7 @@
 import { ShellButton } from './ShellButton'
+import { cancelImages, cancelReport } from '../../lib/analysis'
+import { resetVolumeJobs } from '../../lib/volumeJobs'
+import { resolveModelUrl } from '../../lib/modelTransport'
 import { ChangePasswordForm } from './AccountSecurity'
 import { OrganizationSignIn } from './OrganizationSignIn'
 import { SavedVolumesSheet } from './SavedVolumesSheet'
@@ -60,6 +63,18 @@ export function SettingsSheet() {
             setSigningOut(true)
             try { await logout() } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
           }}>{signingOut ? 'Signing out…' : 'Sign out'}</ShellButton>}
+          {SERVER_MODE && <ShellButton className="btn" disabled={signingOut} title="For shared computers: removes this account's local studies, images and reports from this browser, then signs out." onClick={async () => {
+            if (!window.confirm('Remove all studies, images and reports stored in this browser for this account, then sign out? Studies you have not saved to the server will be lost.')) return
+            setSigningOut(true)
+            try {
+              cancelReport()
+              cancelImages(useApp.getState().studies.flatMap((study) => study.images.map((image) => image.id)))
+              useShell.getState().closeVolume()
+              await resetVolumeJobs()
+              await clearWorkspace()
+              await logout()
+            } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
+          }}>Sign out and clear this device</ShellButton>}
         </div>
         {SERVER_MODE && <ChangePasswordForm />}
         {SERVER_MODE && <OrganizationSignIn account />}
@@ -411,6 +426,11 @@ function DataControls() {
   const deleteAll = async () => {
     setDeleting(true)
     try {
+      // Stop running work first: an in-flight analysis or volume job would otherwise write its results back after the wipe.
+      cancelReport()
+      cancelImages(useApp.getState().studies.flatMap((study) => study.images.map((image) => image.id)))
+      useShell.getState().closeVolume()
+      await resetVolumeJobs()
       await clearWorkspace()
       useApp.setState({
         studies: [],
@@ -514,7 +534,4 @@ function Spinner() {
   return <span className="spinner" aria-label="Loading" />
 }
 
-function resolveUrl(baseUrl: string): string {
-  if (/^https?:\/\//i.test(baseUrl)) return baseUrl
-  return `${window.location.origin}${baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`}`
-}
+const resolveUrl = resolveModelUrl

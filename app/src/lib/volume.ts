@@ -44,6 +44,7 @@ export interface VolumeSlice extends SliceGeometry {
 }
 
 const MAX_VOXELS = 256 * 1024 * 1024
+const MAX_AXIS = 4096
 const scalarTypes: Record<string, { bytes: 1 | 2 | 4; signed: boolean }> = {
   char: { bytes: 1, signed: true }, 'signed char': { bytes: 1, signed: true }, int8: { bytes: 1, signed: true }, int8_t: { bytes: 1, signed: true },
   uchar: { bytes: 1, signed: false }, 'unsigned char': { bytes: 1, signed: false }, uint8: { bytes: 1, signed: false }, uint8_t: { bytes: 1, signed: false },
@@ -136,6 +137,8 @@ export async function decodeNrrd(input: ArrayBuffer): Promise<Volume> {
   const dimensions = sizes as Vec3
   const length = sizes.reduce((count, size) => count * size, 1)
   if (!Number.isSafeInteger(length) || length > MAX_VOXELS) throw new Error('NRRD volume exceeds the supported 256-million-voxel limit.')
+  // Every plane renders as an RGBA slice, so bound each axis too: a 16384² slice alone would need 1 GiB.
+  if (sizes.some((size) => size > MAX_AXIS)) throw new Error(`NRRD dimensions above ${MAX_AXIS} voxels per axis are not supported.`)
   const space = fields.space?.toLowerCase()
   const signs: Vec3 | undefined = ({
     'left-posterior-superior': [1, 1, 1], lps: [1, 1, 1],

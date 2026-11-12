@@ -19,7 +19,9 @@ assert.equal((await fetch(baseUrl+'/api/login',{method:'POST',headers:{Origin:or
 const admin = await call('/api/login',{method:'POST',data:{email:process.env.TEST_ADMIN_EMAIL,password:process.env.TEST_ADMIN_PASSWORD}})
 assert.equal(admin.status,200); assert.ok(admin.cookie)
 const id = randomUUID(), email = `test-${id}@example.invalid`, password = `Test-${randomUUID()}`
-assert.equal((await call('/api/admin/users',{method:'POST',cookie:admin.cookie,data:{email,password,role:'clinician'}})).status,201)
+assert.equal((await call('/api/admin/users',{method:'POST',cookie:admin.cookie,data:{email,password,role:'clinician',currentPassword:process.env.TEST_ADMIN_PASSWORD}})).status,201)
+// Account creation and password resets require the administrator's own password.
+assert.equal((await call('/api/admin/users',{method:'POST',cookie:admin.cookie,data:{email:`x-${email}`,password,role:'admin'}})).status,403)
 const clinician = await call('/api/login',{method:'POST',data:{email,password}})
 assert.equal(clinician.status,200)
 const operational = await call('/api/admin/operations',{cookie:admin.cookie})
@@ -102,12 +104,12 @@ assert.equal((await call('/api/password-recovery',{method:'POST',data:{token:dis
 assert.equal((await call('/api/auth/check',{cookie:signedAgain.cookie})).status,401)
 assert.equal((await call('/api/login',{method:'POST',data:{email,password}})).status,401)
 const nextPassword = `Reset-${randomUUID()}`
-assert.equal((await call(`/api/admin/users/${userId}`,{method:'PATCH',cookie:admin.cookie,data:{disabled:false,password:nextPassword}})).status,200)
+assert.equal((await call(`/api/admin/users/${userId}`,{method:'PATCH',cookie:admin.cookie,data:{disabled:false,password:nextPassword,currentPassword:process.env.TEST_ADMIN_PASSWORD}})).status,200)
 assert.equal((await call('/api/login',{method:'POST',data:{email,password}})).status,401)
 assert.equal((await call('/api/login',{method:'POST',data:{email,password:nextPassword}})).status,200)
 const [racingLogin,racingReset] = await Promise.all([
   call('/api/login',{method:'POST',data:{email,password:nextPassword}}),
-  call(`/api/admin/users/${userId}`,{method:'PATCH',cookie:admin.cookie,data:{password:`Final-${randomUUID()}`}}),
+  call(`/api/admin/users/${userId}`,{method:'PATCH',cookie:admin.cookie,data:{password:`Final-${randomUUID()}`,currentPassword:process.env.TEST_ADMIN_PASSWORD}}),
 ])
 assert.equal(racingReset.status,200); assert.ok([200,401].includes(racingLogin.status))
 if(racingLogin.cookie) assert.equal((await call('/api/auth/check',{cookie:racingLogin.cookie})).status,401)

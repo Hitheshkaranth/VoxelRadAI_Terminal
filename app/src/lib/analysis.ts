@@ -253,7 +253,8 @@ export async function runSecondReader(studyId: string): Promise<{ added: number;
 // Pure and node-tested; they live with the review helpers.
 export { reportSourceKey, reportTraceLines } from './classifier'
 
-export const useReportJob = create<{ running: boolean; progressText?: string; error?: string }>()(() => ({
+/** A single report draft runs at a time; studyId says which study its progress and errors belong to. */
+export const useReportJob = create<{ running: boolean; studyId?: string; progressText?: string; error?: string }>()(() => ({
   running: false,
 }))
 
@@ -265,7 +266,7 @@ export async function generateStudyReport(studyId: string): Promise<void> {
   cancelReport()
   const controller = new AbortController()
   reportController = controller
-  useReportJob.setState({ running: true, progressText: 'Compiling…', error: undefined })
+  useReportJob.setState({ running: true, studyId, progressText: 'Compiling…', error: undefined })
   // Keyed on the inputs at the start: changes made while drafting leave the new draft stale, as they should.
   const sourceKey = reportSourceKey(study)
 
