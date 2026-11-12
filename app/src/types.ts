@@ -118,6 +118,20 @@ export type ImageStatus = 'idle' | 'analyzing' | 'done' | 'error'
 
 export type AnalysisStage = 'queued' | 'reading' | 'retry' | 'lung-pattern' | 'cross-check' | 'second-reader'
 
+/** Normalised point on the image, 0..1 on both axes, origin top-left. */
+export interface MeasurePoint {
+  x: number
+  y: number
+}
+
+/** A reader's manual measurement: a length (2 points) or an angle at the middle point (3 points). */
+export interface ImageMeasurement {
+  id: string
+  kind: 'length' | 'angle'
+  points: MeasurePoint[]
+  createdAt: number
+}
+
 export interface StudyImage {
   /** Source metadata from DICOM, or an explicit user selection for raster imports. */
   sourceModality?: string
@@ -129,6 +143,14 @@ export interface StudyImage {
   /** Actual DICOM source identities for grouping/traceability, never inferred from filenames. */
   sourceSeriesUid?: string
   sourceSopInstanceUid?: string
+  /** Original pixel grid, before the display downscale. */
+  sourceRows?: number
+  sourceColumns?: number
+  /** mm per source pixel from DICOM: 'pixel' = Pixel Spacing (0028,0030), 'imager' = Imager Pixel Spacing (0018,1164,
+   * at the detector, not corrected for magnification). Absent for raster imports: never estimated. */
+  pixelSpacing?: { row: number; col: number; source: 'pixel' | 'imager' }
+  /** Reader's manual lengths and angles. */
+  measurements?: ImageMeasurement[]
   id: string
   name: string
   mime: string

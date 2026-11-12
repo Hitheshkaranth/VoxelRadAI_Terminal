@@ -4,9 +4,10 @@ import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react'
-import type { Finding, Heatmap, OverlayStyle, ViewerState } from '../../types'
-import { useActiveImage, useActiveStudy, useApp } from '../../store'
+import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, Ruler, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import type { Finding, Heatmap, ImageMeasurement, MeasurePoint, OverlayStyle, ViewerState } from '../../types'
+import { uid, useActiveImage, useActiveStudy, useApp } from '../../store'
+import { MAX_MEASUREMENTS, clampPoint, measurementText, pointsFor, spacingNote } from '../../lib/measure'
 import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../lib/classifier'
 import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
 import { clampZoom } from './displayAdjustments'
@@ -36,7 +37,7 @@ const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
   { id: 'fill', label: 'Fill', hint: 'Filled outline (opacity below)' },
 ]
 /** Clicks on these never start a pan or window-level drag. */
-const UI = '.vw-toolbox, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
+const UI = '.vw-toolbox, .vw-measure-panel, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || !!t.closest('[role="dialog"], input, textarea, select, [contenteditable="true"]'))
@@ -58,6 +59,13 @@ export function ImageViewer() {
   const [animating, setAnimating] = useState(false)
   const focused = useRef(false)
   const drag = useRef<null | { pointerId: number; mode: 'pan' | 'wl'; x: number; y: number; v: ViewerState }>(null)
+  // Measuring: the active tool, points placed so far, the pointer (for the live preview), and a press in progress.
+  const [measureTool, setMeasureTool] = useState<ImageMeasurement['kind'] | null>(null)
+  const [measureOpen, setMeasureOpen] = useState(false)
+  const [showMeasurements, setShowMeasurements] = useState(true)
+  const [draft, setDraft] = useState<MeasurePoint[]>([])
+  const [cursor, setCursor] = useState<MeasurePoint | null>(null)
+  const press = useRef<null | { pointerId: number; x: number; y: number; point: MeasurePoint }>(null)
 
   const cancelGesture = useCallback(() => {
     const ids = [...touches.current.keys()]
@@ -65,12 +73,15 @@ export function ImageViewer() {
     touches.current.clear()
     pinch.current = null
     drag.current = null
+    press.current = null
     // Clear state before release: lostpointercapture can be delivered synchronously.
     for (const id of ids) {
       const el = stageRef.current
       if (el?.hasPointerCapture(id)) el.releasePointerCapture(id)
     }
   }, [])
+
+  useEffect(() => { setDraft([]); setCursor(null); press.current = null }, [image?.id, measureTool])
 
   useLayoutEffect(() => {
     cancelGesture()
@@ -134,8 +145,40 @@ export function ImageViewer() {
     const rect = e.currentTarget.getBoundingClientRect()
     return { x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 }
   }
+  const imagePoint = (clientX: number, clientY: number): MeasurePoint | null => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    return rect && rect.width && rect.height ? clampPoint((clientX - rect.left) / rect.width, (clientY - rect.top) / rect.height) : null
+  }
+  const saveMeasurement = (points: MeasurePoint[]) => {
+    if (!study || !image || !measureTool) return
+    const existing = image.measurements ?? []
+    const next = { id: uid(), kind: measureTool, points, createdAt: Date.now() }
+    useApp.getState().setImageMeasurements(study.id, image.id, [...existing, next].slice(-MAX_MEASUREMENTS))
+    setDraft([])
+  }
+  const placePoint = (point: MeasurePoint) => {
+    if (!measureTool) return
+    const points = [...draft, point]
+    if (points.length >= pointsFor(measureTool)) saveMeasurement(points)
+    else setDraft(points)
+  }
+  // Shift-drag still pans while a measuring tool is on; right / ⌥-drag still adjusts the window.
+  const measuring = (e: ReactPointerEvent) => !!measureTool && e.button === 0 && !e.altKey && !e.shiftKey
   const onPointerDown = (e: ReactPointerEvent) => {
     if ((e.target as HTMLElement).closest(UI)) return
+    if (measuring(e) && !(e.pointerType === 'touch' && touches.current.size >= 1)) {
+      const point = imagePoint(e.clientX, e.clientY)
+      if (!point) return
+      e.currentTarget.setPointerCapture(e.pointerId)
+      if (e.pointerType === 'touch') touches.current.set(e.pointerId, localPoint(e))
+      press.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, point }
+      setCursor(point)
+      return
+    }
+    if (e.pointerType === 'touch' && touches.current.size === 1 && press.current) {
+      // A second finger turns a measuring press into a pinch.
+      press.current = null
+    }
     const wl = e.button === 2 || e.altKey
     if (e.button !== 0 && !wl) return
     // Use exactly two contacts; extra fingers cannot replace the active pair.
@@ -153,6 +196,11 @@ export function ImageViewer() {
     drag.current = { pointerId: e.pointerId, mode: wl ? 'wl' : 'pan', x: e.clientX, y: e.clientY, v: useApp.getState().viewer }
   }
   const onPointerMove = (e: ReactPointerEvent) => {
+    if (measureTool && (press.current?.pointerId === e.pointerId || (!press.current && e.pointerType !== 'touch' && draft.length))) {
+      const point = imagePoint(e.clientX, e.clientY)
+      if (point) setCursor(point)
+      if (press.current) { if (e.pointerType === 'touch') touches.current.set(e.pointerId, localPoint(e)); return }
+    }
     if (touches.current.has(e.pointerId)) {
       touches.current.set(e.pointerId, localPoint(e))
       if (touches.current.size >= 2 && pinch.current) {
@@ -173,6 +221,19 @@ export function ImageViewer() {
       })
   }
   const onPointerUp = (e: ReactPointerEvent) => {
+    const p = press.current
+    if (p && p.pointerId === e.pointerId) {
+      press.current = null
+      touches.current.delete(e.pointerId)
+      const end = imagePoint(e.clientX, e.clientY)
+      const moved = Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6
+      // A drag draws a whole ruler; a tap or click places one point (the angle's arms are placed point by point).
+      if (moved && end && measureTool === 'length' && !draft.length) saveMeasurement([p.point, end])
+      else if (moved && end && measureTool === 'angle' && !draft.length) setDraft([p.point, end])
+      else placePoint(moved && end ? end : p.point)
+      if (e.pointerType === 'touch') setCursor(null)
+      return
+    }
     if (!touches.current.has(e.pointerId) && drag.current?.pointerId !== e.pointerId) return
     touches.current.delete(e.pointerId)
     pinch.current = null
@@ -227,8 +288,18 @@ export function ImageViewer() {
         case 'r':
           resetViewer()
           break
+        case 'l':
+        case 'g': {
+          const kind = e.key === 'l' ? 'length' : 'angle'
+          setMeasureTool(measureTool === kind ? null : kind)
+          setShowMeasurements(true)
+          break
+        }
         case 'Escape':
-          if (layersOpen) setLayersOpen(false)
+          if (draft.length) setDraft([])
+          else if (measureTool) setMeasureTool(null)
+          else if (measureOpen) setMeasureOpen(false)
+          else if (layersOpen) setLayersOpen(false)
           else selectFinding(null)
           break
         case 'ArrowRight':
@@ -244,7 +315,7 @@ export function ImageViewer() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage, layersOpen])
+  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage, layersOpen, measureTool, measureOpen, draft.length])
 
   // Selecting a finding zooms onto its box; clearing the selection (Esc, click again) returns to the whole film.
   useEffect(() => {
@@ -320,12 +391,13 @@ export function ImageViewer() {
     <div className="vw-workspace">
     <div
       ref={stageRef}
-      className={`vw-stage${focusId && viewer.showOverlay ? ' vw-hl' : ''}`}
+      className={`vw-stage${focusId && viewer.showOverlay ? ' vw-hl' : ''}${measureTool ? ' vw-measuring' : ''}`}
       onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={cancelGesture}
+      onPointerLeave={(e) => { if (e.pointerType !== 'touch' && !press.current) setCursor(null) }}
       onLostPointerCapture={(e) => {
         // Normal pointerup already removes the pointer. An unexpected capture
         // loss ends the entire gesture, including any remaining touch contact.
@@ -333,14 +405,14 @@ export function ImageViewer() {
       }}
       onContextMenu={(e) => e.preventDefault()}
       onDoubleClick={(e) => {
-        if ((e.target as HTMLElement).closest(UI)) return
+        if ((e.target as HTMLElement).closest(UI) || measureTool) return
         if (viewer.zoom > 1.01) setViewer({ zoom: 1, panX: 0, panY: 0 })
         else {
           const rect = stageRef.current!.getBoundingClientRect()
           zoomAt(2, e.clientX - rect.left - rect.width / 2, e.clientY - rect.top - rect.height / 2)
         }
       }}
-      style={{ cursor: drag.current ? 'grabbing' : 'grab' }}
+      style={{ cursor: measureTool ? 'crosshair' : drag.current ? 'grabbing' : 'grab' }}
       aria-label={`Image viewer: ${image.name}`}
     >
       <div
@@ -438,8 +510,26 @@ export function ImageViewer() {
             <span className="vw-compare-tag vw-compare-r">Overlay</span>
           </div>
         )}
+        {(showMeasurements || measureTool) && (
+          <MeasureLayer
+            image={image}
+            width={dispW}
+            height={dispH}
+            measurements={image.measurements ?? []}
+            draft={measureTool ? previewPoints(draft, cursor, press.current?.point ?? null) : []}
+            draftKind={measureTool}
+          />
+        )}
         {image.status === 'analyzing' && <div className="vw-scan" />}
       </div>
+      {measureTool && (
+        <div className="vw-measure-hint" role="status">
+          {measureTool === 'length'
+            ? draft.length ? 'Place the end point' : 'Drag across the structure, or place two points'
+            : ['Place the end of the first arm', 'Place the vertex', 'Place the end of the second arm'][Math.min(draft.length, 2)]}
+          {' · Esc to stop · Shift-drag to pan'}
+        </div>
+      )}
 
       <div className="vw-info" style={{ top: 'var(--sp-3)', left: 'var(--sp-3)' }}>
         <span className="vw-name">{p.name || 'Unnamed patient'}</span>
@@ -577,9 +667,19 @@ export function ImageViewer() {
           aria-pressed={layersOpen}
           aria-expanded={layersOpen}
           disabled={!findings.length}
-          onClick={() => setLayersOpen(!layersOpen)}
+          onClick={() => { setLayersOpen(!layersOpen); setMeasureOpen(false) }}
         >
           <Layers strokeWidth={1.75} />
+        </ScanButton>
+        <ScanButton
+          className="vw-tool"
+          aria-label="Measure: length (L), angle (G)"
+          title="Measure: length (L), angle (G)"
+          aria-pressed={measureOpen || !!measureTool}
+          aria-expanded={measureOpen}
+          onClick={() => { const open = !measureOpen; setMeasureOpen(open); if (open) setLayersOpen(false); if (open && !measureTool) setMeasureTool('length') }}
+        >
+          <Ruler strokeWidth={1.75} />
         </ScanButton>
         <span className="vw-sep" />
         <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
@@ -587,6 +687,17 @@ export function ImageViewer() {
         </ScanButton>
       </div>
 
+      {measureOpen && (
+        <MeasurePanel
+          image={image}
+          tool={measureTool}
+          onTool={setMeasureTool}
+          shown={showMeasurements}
+          onShown={setShowMeasurements}
+          onChange={(next) => useApp.getState().setImageMeasurements(study.id, image.id, next)}
+          onClose={() => { setMeasureOpen(false); setMeasureTool(null) }}
+        />
+      )}
       {layersOpen && findings.length > 0 && (
         <div className="vw-layers-panel" role="dialog" aria-label="Overlay display" onPointerDown={(e) => e.stopPropagation()}>
           <div className="vw-lp-row">
@@ -753,6 +864,86 @@ function HeatmapLayer({ sources }: { sources: HeatSource[] }) {
           #{s.number} {Math.round(fh[i].strength * 100)}%
         </span>
       ))}
+    </div>
+  )
+}
+
+/** Points to draw for the measurement being placed: those placed, plus the pointer or the press start. */
+function previewPoints(draft: MeasurePoint[], cursor: MeasurePoint | null, pressStart: MeasurePoint | null): MeasurePoint[] {
+  if (!draft.length && pressStart) return cursor ? [pressStart, cursor] : [pressStart]
+  return cursor && draft.length ? [...draft, cursor] : draft
+}
+
+type MeasureImage = NonNullable<ReturnType<typeof useActiveImage>>
+
+/** Lengths and angles drawn in display pixels, so lines and labels stay the same size at every zoom. */
+function MeasureLayer({ image, width, height, measurements, draft, draftKind }: {
+  image: MeasureImage
+  width: number
+  height: number
+  measurements: ImageMeasurement[]
+  draft: MeasurePoint[]
+  draftKind: ImageMeasurement['kind'] | null
+}) {
+  const shape = (m: ImageMeasurement, preview = false) => {
+    const pts = m.points.map((p) => ({ x: p.x * width, y: p.y * height }))
+    const label = m.points.length === pointsFor(m.kind) ? measurementText(image, m) : ''
+    const at = m.kind === 'angle' && pts.length >= 2 ? pts[1] : pts.length === 2 ? { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 } : pts[0]
+    return (
+      <g key={m.id} className={preview ? 'vw-measure-draft' : undefined}>
+        <polyline points={pts.map((p) => `${p.x},${p.y}`).join(' ')} />
+        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={3.5} />)}
+        {label && at && <text x={at.x + 8} y={at.y - 8}>{label}</text>}
+      </g>
+    )
+  }
+  return (
+    <svg className="vw-measure" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      {measurements.map((m) => shape(m))}
+      {draftKind && draft.length > 0 && shape({ id: 'draft', kind: draftKind, points: draft.slice(0, pointsFor(draftKind)), createdAt: 0 }, true)}
+    </svg>
+  )
+}
+
+function MeasurePanel({ image, tool, onTool, shown, onShown, onChange, onClose }: {
+  image: MeasureImage
+  tool: ImageMeasurement['kind'] | null
+  onTool: (tool: ImageMeasurement['kind'] | null) => void
+  shown: boolean
+  onShown: (shown: boolean) => void
+  onChange: (next: ImageMeasurement[]) => void
+  onClose: () => void
+}) {
+  const list = image.measurements ?? []
+  return (
+    <div className="vw-layers-panel vw-measure-panel" role="dialog" aria-label="Measurements" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="vw-lp-row">
+        <span className="vw-lp-k">Tool</span>
+        <div className="vw-seg" role="radiogroup" aria-label="Measuring tool">
+          {([['length', 'Length (L)'], ['angle', 'Angle (G)']] as const).map(([kind, label]) => (
+            <ScanButton key={kind} role="radio" aria-checked={tool === kind} onClick={() => onTool(tool === kind ? null : kind)}>{label}</ScanButton>
+          ))}
+        </div>
+      </div>
+      <p className="vw-lp-note">{spacingNote(image)} Manual measurements are the reader's own and are not checked by the model.</p>
+      {list.length > 0 ? (
+        <ol className="vw-lp-list vw-measure-list" aria-label="Measurements on this image">
+          {list.map((m, i) => (
+            <li key={m.id} className="vw-lp-item">
+              <span className="vw-lp-n">{i + 1}</span>
+              <span className="vw-lp-t">{m.kind === 'length' ? 'Length' : 'Angle'} <strong>{measurementText(image, m)}</strong></span>
+              <ScanButton className="vw-measure-delete" aria-label={`Delete measurement ${i + 1}`} title="Delete" onClick={() => onChange(list.filter((x) => x.id !== m.id))}>
+                <Trash2 size={14} aria-hidden="true" />
+              </ScanButton>
+            </li>
+          ))}
+        </ol>
+      ) : <p className="vw-lp-note">No measurements on this image yet.</p>}
+      <div className="vw-lp-row vw-measure-actions">
+        <label className="vw-measure-show"><input type="checkbox" checked={shown} onChange={(e) => onShown(e.target.checked)} /> Show on image</label>
+        <ScanButton className="btn btn-sm" disabled={!list.length} onClick={() => onChange([])}>Clear all</ScanButton>
+        <ScanButton className="btn btn-sm" onClick={onClose}>Done</ScanButton>
+      </div>
     </div>
   )
 }

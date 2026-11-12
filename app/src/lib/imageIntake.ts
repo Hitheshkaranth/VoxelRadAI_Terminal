@@ -50,6 +50,7 @@ async function decodeStandardImage(file: File): Promise<StudyImage> {
   ctx.drawImage(bitmap, 0, 0, w, h)
   await bitmap.close()
   const img = toStudyImage(file, w, h)
+  if (size) { img.sourceColumns = size.width; img.sourceRows = size.height }
   img.dataUrl = canvas.toDataURL('image/jpeg', 0.92)
   return img
 }

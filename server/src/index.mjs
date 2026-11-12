@@ -10,6 +10,7 @@ import { createOperations } from './operations.mjs'
 import { createOidcRoutes } from './oidc.mjs'
 import { createObjectStorageRouter } from './objectStorage.mjs'
 import { createDicomweb } from './dicomweb.mjs'
+import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 
 const { Pool } = pg
 const port = Number(process.env.PORT || 8080)
@@ -59,7 +60,17 @@ async function body(req, limit = 8192) {
   try { const data = JSON.parse(Buffer.concat(chunks).toString('utf8')); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data } catch { const error = new Error('Request must contain a JSON object'); error.status = 400; throw error }
 }
 const sessionIdleMinutes = Math.min(480, Math.max(5, Number(process.env.SESSION_IDLE_MINUTES) || 60))
-const audit = (actor, event) => pool.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [actor, event])
+const audit = (actor, event, subject = null) => pool.query('INSERT INTO audit_events(actor_id,event_type,subject_id) VALUES ($1,$2,$3)', [actor, event, subject])
+const AUDIT_TYPE = /^[a-z]+\.[a-z_]+$/
+// Arrays of images and findings inside stored study payloads; malformed payloads contribute nothing.
+const IMAGES = "jsonb_array_elements(CASE WHEN jsonb_typeof(s.payload->'images')='array' THEN s.payload->'images' ELSE '[]'::jsonb END)"
+const FINDINGS = "jsonb_array_elements(CASE WHEN jsonb_typeof(i.img->'analysis'->'findings')='array' THEN i.img->'analysis'->'findings' ELSE '[]'::jsonb END)"
+function auditFilter(params) {
+  const type = params.get('type') || '', days = params.get('days') || '30'
+  if (type && !AUDIT_TYPE.test(type)) throw Object.assign(new Error('Unknown event type.'), { status: 400 })
+  if (!/^\d{1,3}$/.test(days) || Number(days) < 1 || Number(days) > 365) throw Object.assign(new Error('Choose 1 to 365 days.'), { status: 400 })
+  return { where: "e.created_at>now()-make_interval(days=>$1::int) AND ($2::text='' OR e.event_type=$2::text)", values: [Number(days), type] }
+}
 async function userFor(req) {
   const token = readSessionCookie(req.headers.cookie)
   if (!token) return null
@@ -127,7 +138,7 @@ export async function handler(req, res) {
         await client.query('UPDATE users SET password_hash=$2 WHERE id=$1', [target, await hashPassword(data.password)])
         await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL', [target])
         await client.query('DELETE FROM sessions WHERE user_id=$1', [target])
-        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [target, 'account.recovered'])
+        await client.query('INSERT INTO audit_events(actor_id,event_type,subject_id) VALUES ($1,$2,$3)', [target, 'account.recovered', target])
         await client.query('COMMIT')
         return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
       } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
@@ -158,16 +169,18 @@ export async function handler(req, res) {
       // Token travels in the body so it never appears in request logs; the viewer page reads it from the URL fragment.
       const data = await body(req, 1024)
       if (typeof data.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(data.token)) return send(res, 404, { error: 'This share link is unavailable or expired.' })
-      const result = await pool.query('SELECT g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(data.token)])
+      const result = await pool.query('SELECT g.id,g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(data.token)])
       if (!result.rows[0]?.snapshot_html) return send(res, 404, { error: 'This share link is unavailable or expired.' })
+      await audit(null, 'share.opened', result.rows[0].id)
       return send(res, 200, { html: result.rows[0].snapshot_html })
     }
     // Legacy path-token links stay readable until they expire (at most 168 hours after issue).
     if (path.startsWith('/api/shared/') && req.method === 'GET') {
       const token = path.slice('/api/shared/'.length)
       if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return send(res, 404, { error: 'This share link is unavailable or expired.' })
-      const result = await pool.query('SELECT g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(token)])
+      const result = await pool.query('SELECT g.id,g.snapshot_html FROM share_grants g JOIN users u ON u.id=g.owner_id WHERE g.token_hash=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND NOT u.disabled', [hashToken(token)])
       if (!result.rows[0]?.snapshot_html) return send(res, 404, { error: 'This share link is unavailable or expired.' })
+      await audit(null, 'share.opened', result.rows[0].id)
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" })
       return res.end(result.rows[0].snapshot_html)
     }
@@ -220,7 +233,7 @@ export async function handler(req, res) {
         const token = newToken(), expiresAt = new Date(Date.now() + 15 * 60000)
         await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL', [target])
         await client.query('INSERT INTO password_recovery_tokens(token_hash,user_id,created_by,expires_at) VALUES ($1,$2,$3,$4)', [hashToken(token), target, user.id, expiresAt])
-        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)', [user.id, 'account.recovery_issued'])
+        await client.query('INSERT INTO audit_events(actor_id,event_type,subject_id) VALUES ($1,$2,$3)', [user.id, 'account.recovery_issued', target])
         await client.query('COMMIT')
         return send(res, 201, { token, expiresAt: expiresAt.toISOString() })
       } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
@@ -237,7 +250,7 @@ export async function handler(req, res) {
       if (!validEmail(email) || !validPassword(data.password) || !['admin','clinician'].includes(data.role)) return send(res, 400, { error: 'Use a valid email, a 12–256 character password, and admin or clinician role.' })
       if (!await confirmAdmin(user, data.currentPassword)) return send(res, 403, { error: 'Administrator password is incorrect.' })
       const result = await pool.query('INSERT INTO users(id,email,password_hash,role) VALUES ($1,$2,$3,$4) RETURNING id,email,role', [randomUUID(), email, await hashPassword(data.password), data.role])
-      await audit(user.id, 'user.created'); return send(res, 201, { user: result.rows[0] })
+      await audit(user.id, 'user.created', result.rows[0].id); return send(res, 201, { user: result.rows[0] })
     }
     const userMatch = path.match(/^\/api\/admin\/users\/([a-f0-9-]+)$/i)
     if (userMatch && UUID.test(userMatch[1]) && req.method === 'PATCH') {
@@ -259,7 +272,7 @@ export async function handler(req, res) {
         if (data.disabled === true || passwordHash) await client.query('DELETE FROM sessions WHERE user_id=$1',[target])
         if (data.disabled === true || passwordHash) await client.query('UPDATE password_recovery_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',[target])
         if (data.disabled === true) await client.query('UPDATE share_grants SET revoked_at=now() WHERE owner_id=$1 AND revoked_at IS NULL',[target])
-        await client.query('INSERT INTO audit_events(actor_id,event_type) VALUES ($1,$2)',[user.id,passwordHash ? 'user.password_reset' : data.disabled ? 'user.disabled' : 'user.enabled'])
+        await client.query('INSERT INTO audit_events(actor_id,event_type,subject_id) VALUES ($1,$2,$3)',[user.id,passwordHash ? 'user.password_reset' : data.disabled ? 'user.disabled' : 'user.enabled',target])
         await client.query('COMMIT'); return send(res,200,{user:result.rows[0]})
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
     }
@@ -271,6 +284,38 @@ export async function handler(req, res) {
         pool.query("SELECT count(*)::int AS total FROM audit_events WHERE created_at>now()-interval '30 days'")])
       const s = studies.rows[0]
       return send(res, 200, { scope: 'organization', generatedAt: new Date().toISOString(), browserLocalExcluded: true, users: { total: users.rows[0].total, active30d: users.rows[0].active }, studies: { total: s.total }, images: { total: s.images }, reports: { total: s.reports, signed: s.signed }, shares: shares.rows[0], jobs: { queued: 0, running: 0, failed: 0, available: false }, events: { total30d: events.rows[0].total } })
+    }
+    if (path === '/api/admin/audit' && req.method === 'GET') {
+      const params = new URL(req.url, 'http://internal').searchParams
+      let limit, offset
+      try { ({ limit, offset } = pagination(params)) } catch (error) { return send(res, 400, { error: error.message }) }
+      const filter = auditFilter(params)
+      const [events, count, types] = await Promise.all([
+        pool.query(`SELECT e.id::text,e.event_type AS "eventType",u.email AS "actorEmail",e.subject_id AS "subjectId",e.created_at AS "createdAt" FROM audit_events e LEFT JOIN users u ON u.id=e.actor_id WHERE ${filter.where} ORDER BY e.created_at DESC,e.id DESC LIMIT $3 OFFSET $4`, [...filter.values, limit, offset]),
+        pool.query(`SELECT count(*)::int AS total FROM audit_events e WHERE ${filter.where}`, filter.values),
+        pool.query("SELECT DISTINCT event_type FROM audit_events WHERE created_at>now()-interval '365 days' ORDER BY 1")])
+      return send(res, 200, { events: events.rows, total: count.rows[0].total, types: types.rows.map(row => row.event_type) })
+    }
+    if (path === '/api/admin/audit.csv' && req.method === 'GET') {
+      const filter = auditFilter(new URL(req.url, 'http://internal').searchParams)
+      const result = await pool.query(`SELECT e.created_at,e.event_type,u.email,e.actor_id,e.subject_id FROM audit_events e LEFT JOIN users u ON u.id=e.actor_id WHERE ${filter.where} ORDER BY e.created_at DESC,e.id DESC LIMIT 10000`, filter.values)
+      await audit(user.id, 'audit.exported')
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="voxelrad-audit-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' })
+      return res.end(toCsv(['time_utc', 'event', 'actor_email', 'actor_id', 'subject_id'], result.rows.map(row => [row.created_at.toISOString(), row.event_type, row.email, row.actor_id, row.subject_id])))
+    }
+    if (path === '/api/admin/reviews' && req.method === 'GET') {
+      const [findings, reports] = await Promise.all([
+        pool.query(`SELECT i.img->>'sourceModality' AS source_modality,i.img->'analysis'->>'modality' AS modality,f.item->>'category' AS category,i.img->'analysis'->>'model' AS model,f.item->>'review' AS review,count(*)::int AS n FROM studies s CROSS JOIN LATERAL ${IMAGES} AS i(img) CROSS JOIN LATERAL ${FINDINGS} AS f(item) GROUP BY 1,2,3,4,5`),
+        pool.query("SELECT count(*) FILTER (WHERE report_signed)::int AS signed,count(*) FILTER (WHERE report_signed AND payload->'report'->>'edited'='true')::int AS edited FROM studies")])
+      return send(res, 200, { generatedAt: new Date().toISOString(), ...summarizeReviews(findings.rows), reports: reports.rows[0] })
+    }
+    if (path === '/api/admin/reviews/export' && req.method === 'GET') {
+      const params = new URL(req.url, 'http://internal').searchParams
+      let limit, offset
+      try { ({ limit, offset } = pagination(params)) } catch (error) { return send(res, 400, { error: error.message }) }
+      const result = await pool.query(`SELECT s.id AS study_id,i.img->>'id' AS image_id,i.img->>'sourceModality' AS source_modality,(i.img->'analysis') - 'rawText'::text - 'heatmaps'::text - 'classifierProbs'::text AS analysis,s.payload->'report'->>'signed' AS signed,s.payload->'report'->>'edited' AS edited FROM studies s CROSS JOIN LATERAL ${IMAGES} WITH ORDINALITY AS i(img,ord) WHERE jsonb_typeof(i.img->'analysis')='object' ORDER BY s.created_at,s.id,i.ord LIMIT $1 OFFSET $2`, [limit + 1, offset])
+      if (offset === 0) await audit(user.id, 'reviews.exported')
+      return send(res, 200, { records: result.rows.slice(0, limit).map(reviewRecord), nextOffset: result.rows.length > limit ? offset + limit : null })
     }
     if (path === '/api/studies' && req.method === 'GET') {
       const params = new URL(req.url,'http://internal').searchParams
@@ -284,21 +329,21 @@ export async function handler(req, res) {
       if (!validStudy(data)) return send(res, 400, { error: 'The study has invalid patient, image, analysis or report fields. Export a valid Skanda study and retry.' })
       const result = await pool.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,image_count=EXCLUDED.image_count,has_report=EXCLUDED.has_report,report_signed=EXCLUDED.report_signed,updated_at=now() WHERE studies.owner_id=$2 RETURNING id', [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed])
       if (!result.rowCount) return send(res, 404, { error: 'Study not found.' })
-      await audit(user.id, 'study.saved'); return send(res, 200, { id: data.id })
+      await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id })
     }
     const shareMatch = path.match(/^\/api\/studies\/([a-f0-9-]+)\/shares$/i)
     if (shareMatch && UUID.test(shareMatch[1]) && ['GET','POST'].includes(req.method)) {
       const study = await pool.query('SELECT payload FROM studies WHERE id=$1 AND owner_id=$2', [shareMatch[1],user.id])
       if (!study.rows[0]) return req.method === 'GET' ? send(res, 200, { shares: [] }) : send(res, 404, { error: 'Study not found.' })
       if (req.method === 'GET') {
-        const result = await pool.query('SELECT id,expires_at AS "expiresAt",revoked_at AS "revokedAt",created_at AS "createdAt" FROM share_grants WHERE study_id=$1 AND owner_id=$2 ORDER BY created_at DESC', [shareMatch[1],user.id])
+        const result = await pool.query(`SELECT g.id,g.expires_at AS "expiresAt",g.revoked_at AS "revokedAt",g.created_at AS "createdAt",o.opens::int AS "openCount",o.last AS "lastOpenedAt" FROM share_grants g LEFT JOIN LATERAL (SELECT count(*) AS opens,max(created_at) AS last FROM audit_events WHERE event_type='share.opened' AND subject_id=g.id::text) o ON true WHERE g.study_id=$1 AND g.owner_id=$2 ORDER BY g.created_at DESC`, [shareMatch[1],user.id])
         return send(res, 200, { shares: result.rows })
       }
       const data = await body(req)
       if (!Number.isInteger(data.expiresInHours) || data.expiresInHours < 1 || data.expiresInHours > 168 || typeof data.includeIdentity !== 'boolean' || typeof data.includeImages !== 'boolean') return send(res, 400, { error: 'Choose expiry from 1 to 168 hours and explicit identity/image options.' })
       const token = newToken(), id = randomUUID(), expiresAt = new Date(Date.now() + data.expiresInHours * 3600000)
       await pool.query('INSERT INTO share_grants(id,owner_id,study_id,token_hash,expires_at,snapshot_html) VALUES ($1,$2,$3,$4,$5,$6)', [id,user.id,shareMatch[1],hashToken(token),expiresAt,sharedDocument(study.rows[0].payload,data)])
-      await audit(user.id, 'share.created')
+      await audit(user.id, 'share.created', id)
       return send(res, 201, { share: { id, expiresAt: expiresAt.toISOString(), url: `${publicOrigin}/shared#${token}` } })
     }
     if (path.startsWith('/api/shares/') && req.method === 'DELETE') {
@@ -306,7 +351,7 @@ export async function handler(req, res) {
       if (!UUID.test(id)) return send(res, 400, { error: 'Invalid share ID.' })
       const result = await pool.query('UPDATE share_grants SET revoked_at=COALESCE(revoked_at,now()) WHERE id=$1 AND owner_id=$2 RETURNING id', [id,user.id])
       if (!result.rowCount) return send(res, 404, { error: 'Share not found.' })
-      await audit(user.id, 'share.revoked'); return send(res, 200, { ok: true })
+      await audit(user.id, 'share.revoked', id); return send(res, 200, { ok: true })
     }
     if (path.startsWith('/api/studies/') && req.method === 'GET') {
       const id = path.slice('/api/studies/'.length)
@@ -319,7 +364,7 @@ export async function handler(req, res) {
       if (!UUID.test(id)) return send(res, 400, { error: 'Invalid study ID.' })
       const result = await pool.query('DELETE FROM studies WHERE id=$1 AND owner_id=$2', [id,user.id])
       if (!result.rowCount) return send(res, 404, { error: 'Study not found.' })
-      await audit(user.id, 'study.deleted'); return send(res, 200, { ok: true })
+      await audit(user.id, 'study.deleted', id); return send(res, 200, { ok: true })
     }
     return send(res, 404, { error: 'Endpoint not found.' })
   } catch (error) {

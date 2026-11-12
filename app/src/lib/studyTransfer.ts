@@ -1,4 +1,5 @@
 import type { Study } from '../types.ts'
+import { MAX_MEASUREMENTS, validMeasurement } from './measure.ts'
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -16,6 +17,9 @@ export function validateTransferredStudy(value: unknown): Study {
     if (image.sourceFrameCount !== undefined && (!Number.isSafeInteger(image.sourceFrameCount) || (image.sourceFrameCount as number) < 1 || (image.sourceFrameCount as number) > 500)) return fail()
     if (image.sourceFrameIndex !== undefined && (!Number.isSafeInteger(image.sourceFrameIndex) || (image.sourceFrameIndex as number) < 0 || image.sourceFrameCount === undefined || (image.sourceFrameIndex as number) >= (image.sourceFrameCount as number))) return fail()
     if (!['sourceSeriesUid', 'sourceSopInstanceUid'].every(key => image[key] === undefined || typeof image[key] === 'string' && (image[key] as string).length <= 64 && /^\d+(?:\.\d+)*$/.test(image[key] as string))) return fail()
+    if (!['sourceRows', 'sourceColumns'].every((key) => image[key] === undefined || (Number.isSafeInteger(image[key]) && (image[key] as number) > 0 && (image[key] as number) <= 65535))) return fail()
+    if (image.pixelSpacing !== undefined && (!object(image.pixelSpacing) || !['row', 'col'].every((key) => { const v = (image.pixelSpacing as Record<string, unknown>)[key]; return finite(v) && (v as number) > 0 && (v as number) <= 10 }) || !['pixel', 'imager'].includes(image.pixelSpacing.source as string))) return fail()
+    if (image.measurements !== undefined && (!Array.isArray(image.measurements) || image.measurements.length > MAX_MEASUREMENTS || !image.measurements.every(validMeasurement))) return fail()
     if (image.analysis !== undefined) {
       const analysis = image.analysis
       if (!object(analysis) || !hasStrings(analysis, ['modality', 'bodyPart', 'view', 'imageQuality', 'impression', 'rawText', 'model']) || !finite(analysis.durationMs) || !finite(analysis.createdAt) || !['routine', 'priority', 'urgent'].includes(analysis.urgency as string) || !strings(analysis.pertinentNegatives) || !strings(analysis.recommendations) || !strings(analysis.differential) || !Array.isArray(analysis.findings)) return fail()

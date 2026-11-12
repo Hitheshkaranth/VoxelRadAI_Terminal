@@ -767,3 +767,64 @@
 .vw-lp-n { color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; }
 .vw-lp-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vw-lp-tag { font-size: 10.5px; padding: 0 5px; border-radius: 999px; background: rgba(82, 202, 252, 0.18); color: #a5e3fd; }
+
+/* Manual measurements: drawn in display pixels above the overlays, so the before/after divider never hides them. */
+.vw-measure { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.vw-measure polyline { fill: none; stroke: #ffd24a; stroke-width: 1.75; stroke-linejoin: round; filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.9)); }
+.vw-measure circle { fill: #111; stroke: #ffd24a; stroke-width: 1.5; }
+.vw-measure text {
+  fill: #fff4c7;
+  font: 600 12px/1 var(--font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+.vw-measure .vw-measure-draft polyline { stroke-dasharray: 5 4; }
+.vw-measuring .vw-layers .vw-overlays .vw-finding { pointer-events: none; }
+.vw-measure-hint {
+  position: absolute;
+  top: var(--sp-3);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 2 * var(--sp-3));
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(18, 18, 18, 0.88);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 4;
+}
+.vw-measure-list { margin: 0; padding: 6px 0 0; list-style: none; max-height: 180px; }
+.vw-measure-list strong { font-variant-numeric: tabular-nums; color: #fff4c7; font-weight: 600; }
+.vw-measure-delete {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+}
+.vw-measure-delete:hover, .vw-measure-delete:focus-visible { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.vw-measure-actions { flex-wrap: wrap; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 8px; }
+.vw-measure-show { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; cursor: pointer; }
+.vw-measure-show input { accent-color: #52cafc; }
+@media (pointer: coarse) {
+  .vw-measure-delete { width: 40px; height: 40px; }
+  .vw-measure circle { r: 6px; }
+}
+/* Phones: the panel sits above the image controls and the hint below the toolbar, so the film stays reachable. */
+@media (max-width: 767px) {
+  .scan-content .vw-layers-panel.vw-measure-panel { top: auto; bottom: 124px; max-height: 40%; gap: 6px; }
+  .vw-measure-panel .vw-lp-note:first-of-type { display: none; }
+  .vw-measure-list { max-height: 84px; }
+  .scan-content .vw-measure-hint { top: 100px; }
+}

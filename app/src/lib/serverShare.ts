@@ -1,6 +1,6 @@
 import type { Study } from '../types.ts'
 
-export interface HostedShare { id: string; expiresAt: number; createdAt: number; revokedAt: number | null }
+export interface HostedShare { id: string; expiresAt: number; createdAt: number; revokedAt: number | null; openCount?: number; lastOpenedAt?: number | null }
 export interface CreatedShare { id: string; expiresAt: number; url: string }
 
 function timestamp(value: unknown): number {
@@ -22,7 +22,9 @@ export async function listHostedShares(studyId: string, signal?: AbortSignal): P
   if (!result || !Array.isArray(result.shares)) throw new Error('The server returned an invalid share list.')
   return result.shares.map((item: unknown) => {
     if (!item || typeof item !== 'object' || !('id' in item) || typeof item.id !== 'string' || !('expiresAt' in item) || !('createdAt' in item) || !('revokedAt' in item)) throw new Error('The server returned an invalid share list.')
-    return { id: item.id, expiresAt: timestamp(item.expiresAt), createdAt: timestamp(item.createdAt), revokedAt: item.revokedAt == null ? null : timestamp(item.revokedAt) }
+    const opens = 'openCount' in item && Number.isSafeInteger(item.openCount) && (item.openCount as number) >= 0 ? item.openCount as number : undefined
+    const lastOpenedAt = 'lastOpenedAt' in item && item.lastOpenedAt != null ? timestamp(item.lastOpenedAt) : null
+    return { id: item.id, expiresAt: timestamp(item.expiresAt), createdAt: timestamp(item.createdAt), revokedAt: item.revokedAt == null ? null : timestamp(item.revokedAt), openCount: opens, lastOpenedAt }
   })
 }
 export async function createHostedShare(study: Study, options: { expiresInHours: number; includeIdentity: boolean; includeImages: boolean }): Promise<CreatedShare> {

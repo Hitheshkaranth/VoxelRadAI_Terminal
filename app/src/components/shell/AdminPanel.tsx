@@ -6,6 +6,8 @@ import { fetchOrganizationMetrics, localMetrics, type OrganizationMetrics } from
 import { Sheet } from './Sheet'
 import { AdminUsers } from './AdminUsers'
 import { OperationsPanel } from './OperationsPanel'
+import { AdminReviews } from './AdminReviews'
+import { AdminAudit } from './AdminAudit'
 import './admin.css'
 
 export function AdminPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -39,11 +41,14 @@ function AdminPanelContent({ onClose }: { onClose: () => void }) {
       <h3 className="admin-heading">Image processing</h3>
       <dl className="admin-rows"><Metric title="Analyzed" value={local.analyzed} /><Metric title="In progress" value={local.analyzing} /><Metric title="Needs retry" value={local.errors} /><Metric title="Not analyzed" value={local.images - local.analyzed - local.analyzing - local.errors} /></dl>
       <p className="admin-note">Counts are computed locally. Opening this view does not send patient details, images or reports to an analytics service.</p>
+      <AdminReviews scope="local" studies={studies} />
     </> : <>
       <div className="admin-refresh"><p className="admin-note">Server totals for your organization. Requires an administrator session.</p><ShellButton className="btn" disabled={loading} onClick={() => { setLoading(true); setError(''); setRemote(null); setAttempt((value) => value + 1) }}><RefreshCw aria-hidden="true" />Refresh</ShellButton></div>
       <div aria-live="polite">{loading && <p className="admin-note">Loading organization activity...</p>}{error && <p className="admin-error" role="alert">{error}</p>}</div>
       {remote && <><p className="admin-note">Updated {new Date(remote.generatedAt).toLocaleString()}</p><dl className="admin-metrics"><Metric title="Registered users" value={remote.users.total} /><Metric title="Active users / 30 days" value={remote.users.active30d} /><Metric title="Stored studies" value={remote.studies.total} /><Metric title="Stored images" value={remote.images.total} /></dl><h3 className="admin-heading">Reports and sharing</h3><dl className="admin-rows"><Metric title="Reports" value={remote.reports.total} /><Metric title="Signed reports" value={remote.reports.signed} /><Metric title="Active shares" value={remote.shares.active} /><Metric title="Revoked shares" value={remote.shares.revoked} /></dl><h3 className="admin-heading">Processing and activity</h3>{remote.jobs.available === false && <p className="admin-note">Server processing metrics are unavailable. Analysis currently runs through the browser workspace.</p>}<dl className="admin-rows">{remote.jobs.available !== false && <><Metric title="Queued jobs" value={remote.jobs.queued} /><Metric title="Running jobs" value={remote.jobs.running} /><Metric title="Failed jobs" value={remote.jobs.failed} /></>}<Metric title="Recorded events / 30 days" value={remote.events.total30d} /></dl></>}
       <OperationsPanel />
+      {remote && <AdminReviews scope="organization" studies={studies} />}
+      {remote && <AdminAudit />}
       {remote && <AdminUsers />}
     </>}
   </Sheet>

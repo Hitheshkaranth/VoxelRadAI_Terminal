@@ -9,6 +9,21 @@ function readNum(ds: dicomParser.DataSet, tag: string): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
+/** Row and column spacing in mm; Pixel Spacing wins over the detector-plane Imager Pixel Spacing. */
+export function parseSpacing(text: string | undefined): { row: number; col: number } | undefined {
+  if (!text) return undefined
+  const parts = text.split('\\').map((value) => Number(value.trim()))
+  if (parts.length !== 2 || !parts.every((value) => Number.isFinite(value) && value > 0 && value <= 10)) return undefined
+  return { row: parts[0], col: parts[1] }
+}
+
+function readSpacing(ds: dicomParser.DataSet): { row: number; col: number; source: 'pixel' | 'imager' } | undefined {
+  const pixel = parseSpacing(ds.string('x00280030'))
+  if (pixel) return { ...pixel, source: 'pixel' }
+  const imager = parseSpacing(ds.string('x00181164'))
+  return imager ? { ...imager, source: 'imager' } : undefined
+}
+
 const IMPLICIT_LE = '1.2.840.10008.1.2'
 const UNCOMPRESSED = new Set([IMPLICIT_LE, '1.2.840.10008.1.2.1', '1.2.840.10008.1.2.2'])
 
@@ -56,6 +71,7 @@ export function createDicomFrameDecoder(bytes: Uint8Array) {
   const len = pixelEl.length !== 0xffffffff ? pixelEl.length : ds.byteArray.length - start
   const frameBytes = rows * cols * (bitsAllocated / 8)
   if (len < frameBytes * frames || start + frameBytes * frames > ds.byteArray.length) throw new Error('The DICOM pixel data is truncated.')
+  const spacing = readSpacing(ds)
   const photo = (ds.string('x00280004') ?? 'MONOCHROME2').trim()
   if (!['MONOCHROME1', 'MONOCHROME2'].includes(photo)) throw new Error('Only MONOCHROME1 and MONOCHROME2 DICOM images are supported.')
   return { frameCount: frames, decode(frameIndex = 0) {
@@ -76,7 +92,7 @@ export function createDicomFrameDecoder(bytes: Uint8Array) {
     mono1: photo === 'MONOCHROME1',
   })
   const uid = (tag: string) => { const value = ds.string(tag)?.trim(); return value && value.length <= 64 && /^\d+(?:\.\d+)*$/.test(value) ? value : undefined }
-  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018') }
+  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018'), sourceRows: rows, sourceColumns: cols, ...(spacing ? { pixelSpacing: spacing } : {}) }
   } }
 }
 

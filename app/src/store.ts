@@ -3,6 +3,7 @@ import { readThemePreference, saveThemePreference } from './lib/theme'
 import { workspaceGet as idbGet, workspaceSet as idbSet } from './lib/workspaceStorage'
 import { toast } from './components/shell/toastStore'
 import type {
+  ImageMeasurement,
   AnalysisResult,
   AnalysisStage,
   ConnectionState,
@@ -118,6 +119,8 @@ interface AppState {
   setImageAnalysis: (studyId: string, imageId: string, analysis: AnalysisResult) => void
   /** Accept or dismiss a finding; undefined clears the decision. */
   setFindingReview: (studyId: string, imageId: string, findingId: string, review: FindingReview | undefined) => void
+  /** Replace an image's manual measurements. */
+  setImageMeasurements: (studyId: string, imageId: string, measurements: ImageMeasurement[]) => void
   /** Drop an image's analysis so it can be re-run. */
   resetImageAnalysis: (studyId: string, imageId: string) => void
 
@@ -245,6 +248,13 @@ export const useApp = create<AppState>()((set, get) => ({
               }
             : i,
         ),
+      })),
+    })),
+  setImageMeasurements: (studyId, imageId, measurements) =>
+    set((st) => ({
+      studies: mapStudy(st.studies, studyId, (s) => ({
+        ...s,
+        images: s.images.map((i) => (i.id === imageId ? { ...i, measurements: measurements.length ? measurements : undefined } : i)),
       })),
     })),
   resetImageAnalysis: (studyId, imageId) =>
