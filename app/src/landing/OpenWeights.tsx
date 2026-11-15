@@ -68,6 +68,7 @@ export function OpenWeights({ intro = true, cards = true, chart = true }: { intr
         </div>
       </article>
     })}</Reveal>}
+    {cards && <p className="sk-wrap sk-swipe-hint" aria-hidden="true">Swipe for int8 and int4 →</p>}
 
     {chart && <Reveal className="sk-wrap sk-chart-card">
       <div className="sk-chart-head">

@@ -69,7 +69,7 @@ export function CiteCard() {
           <button type="button" className={`sk-pill ${copied ? 'sk-pill-light' : 'sk-pill-grey'}`} onClick={copy} aria-live="polite">{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy BibTeX</>}</button>
         </div>
         <pre tabIndex={0} aria-label="BibTeX citation"><code>{bibtex}</code></pre>
-        <p className="sk-cite-foot">Skanda-0 weights are CC BY-NC 4.0. For commercial use or collaboration, reach out on <a className="sk-inline-link" href="https://huggingface.co/hitheshkaranth/Skanda-0/discussions">Hugging Face</a> or <a className="sk-inline-link" href="https://x.com/HitheshKaranth">X</a>.</p>
+        <p className="sk-cite-foot">Skanda-0 weights are CC BY-NC 4.0. For commercial use or collaboration, reach out on <a className="sk-inline-link" href="https://huggingface.co/hitheshkaranth/Skanda-0/discussions">Hugging Face</a> or on X at <a className="sk-inline-link" href="https://x.com/HitheshKaranth">@HitheshKaranth</a>.</p>
       </div>
   </>
 }

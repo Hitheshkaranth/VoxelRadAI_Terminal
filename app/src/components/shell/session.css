@@ -96,3 +96,5 @@
   .session-access-footer { padding-top: 36px; gap: 10px; flex-wrap: wrap; width: min(100%,420px); align-self: center; }
 }
 @media (prefers-reduced-motion: reduce) { .session-page * { transition: none !important; } }
+
+.session-access-top > a { display: inline-flex; align-items: center; min-height: 44px; }

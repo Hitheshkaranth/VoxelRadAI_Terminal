@@ -23,6 +23,7 @@ export function Foundations() {
       <p className="sk-found-trained"><b>Fine-tuned for Skanda.</b> {f.trained}</p>
       <a className="sk-found-link" href={f.href} {...(f.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}>{f.licence}<ArrowUpRight size={13} /></a>
     </article>)}</Reveal>
+    <p className="sk-swipe-hint" aria-hidden="true">Swipe for SAM 2.1 and the Skanda heads →</p>
 
     <Reveal className="sk-data">
       <div className="sk-data-total">

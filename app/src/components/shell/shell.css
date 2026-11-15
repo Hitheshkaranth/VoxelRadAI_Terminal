@@ -544,3 +544,6 @@
 .sh-inspector-head .segmented > button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 96px; }
 .sh-inspector-head .segmented .sh-count-badge { height: 16px; padding: 0 6px; font-size: 10px; }
 .sh-count-badge .sh-count-flag { font-weight: 500; color: var(--label-2); }
+
+/* The search field's input fills its 40px row so the whole field is a touch target. */
+.sh-search-field input { align-self: stretch; min-height: 36px; }

@@ -729,11 +729,11 @@
 .sk-builders{display:grid;gap:18px;margin-top:auto}
 .sk-builders>li{display:flex;gap:16px;align-items:flex-start}
 .sk-builders>li>div{flex:1;min-width:0;display:grid;gap:10px}
-.sk-builders b{font:500 18px var(--sk-display);color:#fff;padding-top:4px}
+.sk-builders b{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font:500 18px var(--sk-display);color:#fff;padding-top:4px}
 .sk-builders .sk-monogram{width:48px;height:48px;font-size:16px}
 .sk-builders>li+li .sk-monogram{background:conic-gradient(from 20deg,#0068ad,#ffb840,#0099ff,#0068ad)}
 .sk-builders .sk-about-links{margin-top:0}
-.sk-builder-role{display:inline-block;margin-left:10px;padding:2px 9px;border:1px solid #7acaff59;border-radius:999px;font:500 12px var(--sk-body);color:var(--sk-blue-2);vertical-align:2px}
+.sk-builder-role{display:inline-block;padding:2px 9px;border:1px solid #7acaff59;border-radius:999px;font:500 12px var(--sk-body);color:var(--sk-blue-2);vertical-align:2px}
 
 /* ---------------------------------------------------------------- foundations + training data */
 .sk-found{padding:clamp(80px,7.3vw,139px) 0 0;scroll-margin-top:60px}
@@ -801,3 +801,49 @@
 .sk-found-logo img{width:26px;height:26px}
 .sk-found-also b{display:inline-flex;align-items:center;gap:7px}
 .sk-log-row a svg:first-child{margin-right:5px}
+
+/* ---------------------------------------------------------------- phones and touch */
+.sk-select select{align-self:stretch;height:100%}
+@media (max-width:900px){
+  /* Card rows swipe sideways instead of stacking three tall cards; the next card peeks in. */
+  .sk-found-grid,.sk-weights-plans{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:min(86%,420px);gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:0;padding-bottom:10px;scrollbar-width:none}
+  .sk-found-grid::-webkit-scrollbar,.sk-weights-plans::-webkit-scrollbar{display:none}
+  .sk-found-grid>*,.sk-weights-plans>*{scroll-snap-align:start}
+  .sk-weights-plans{margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}
+  .sk-found-grid{margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}
+  .sk-swipe-hint{display:flex}
+  .sk-helix-card small,.sk-log-kind{font-size:11.5px}
+}
+.sk-swipe-hint{display:none;align-items:center;gap:6px;margin:10px 0 0;font-size:12px;color:var(--sk-dim)}
+@media (pointer:coarse){
+  .sk-stack li a,.sk-details,.sk-crumbs a,.sk-found-link,.sk-log-row a,.sk-weights-more,.sk-page-split .sk-about-card>a,.sk-demo-try,.sk-log-more{min-height:44px;display:inline-flex;align-items:center}
+  .sk-crumbs{align-items:center}
+  .sk-chart-foot a,.sk-weights-lead a,.sk-access-points a,.sk-cite-foot a,.sk-copy a,.sk-faq-a a{padding-block:10px;margin-block:-10px;display:inline-block}
+}
+@media (pointer:coarse){.sk-footer-cols a{display:inline-flex;align-items:center;min-height:40px}.sk-footer-cols ul{gap:0}}
+
+@media (max-width:900px){
+  .sk-weights-plans{width:auto;margin-inline:0;padding-inline:16px;scroll-padding-inline:16px}
+  .sk-plan-actions{flex-wrap:wrap;gap:10px}
+  .sk-plan-actions .sk-details{white-space:nowrap}
+}
+@media (max-width:520px){
+  .sk-about-links span{white-space:nowrap}
+  .sk-about-links small{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+.sk-about-links{grid-template-columns:minmax(0,1fr)}
+.sk-about-links li,.sk-about-links a{min-width:0}
+.sk-about-links a>svg:last-child{flex:none;margin-left:auto}
+@media (max-width:400px){
+  /* The logo names the service; keep the word for screen readers and give the handle the room. */
+  .sk-about-links a>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .sk-about-links a{position:relative}
+  .sk-about-links small{color:#e3e3e3;font-size:13.5px}
+}
+@media (max-width:400px){
+  .sk-builders>li{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:12px}
+  .sk-builders>li>div{display:contents}
+  .sk-builders b{grid-column:2;padding-top:0}
+  .sk-builders .sk-about-links{grid-column:1/-1}
+  .sk-builders .sk-monogram{width:40px;height:40px;font-size:13px;box-shadow:0 0 0 3px #000,0 0 0 4px #ffffff2e}
+}
