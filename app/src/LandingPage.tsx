@@ -3,6 +3,7 @@ import './landing/skanda-landing.css'
 import { Hero, Nav } from './landing/Hero'
 import { Approach, Capabilities, Closing, Evidence, Faqs, Footer, Intro, Reads, Stack } from './landing/Sections'
 import { ResultsLog } from './landing/ResultsLog'
+import { Foundations } from './landing/Foundations'
 import { Benchmarks } from './landing/Benchmarks'
 import { OpenWeights } from './landing/OpenWeights'
 import { Demo } from './landing/Demo'
@@ -22,6 +23,7 @@ export function LandingPage() {
       <Intro />
       <Reads />
       <Capabilities />
+      <Foundations />
       <Benchmarks history={false} />
       <OpenWeights chart={false} />
       <Approach />

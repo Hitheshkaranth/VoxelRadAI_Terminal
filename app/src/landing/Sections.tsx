@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { Accordion } from 'radix-ui'
-import { ArrowLeft, ArrowRight, ArrowUpRight, Boxes, Brain, ChevronDown, Database, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Brain, ChevronDown, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
 import { faqs, img, reads, wall } from './data'
 import { Pill, Reveal, anchor, useReducedMotion } from './ui'
 
 /* ------------------------------------------------------------------ 3 · stack */
 const stack = [
-  [FileImage, 'DICOM'], [Boxes, 'NRRD'], [Stethoscope, 'ChestX-Det'], [Brain, 'BraTS'],
-  [Shapes, 'SAM 2'], [Microscope, 'TorchXRayVision'], [Database, 'PostgreSQL'], [Server, 'Orthanc'],
+  [Sparkles, 'Qwen3-VL'], [Shapes, 'SAM 2'], [Microscope, 'TorchXRayVision'], [Stethoscope, 'ChestX-Det'],
+  [Brain, 'MSD · ISLES'], [ScanLine, 'DeepLesion'], [FileImage, 'DICOM'], [Server, 'Orthanc'],
 ] as const
 export function Stack() {
   return <section className="sk-stack" aria-label="Built on and evaluated with">
-    <ul>{stack.map(([Icon, name]) => <li key={name}><Icon size={22} strokeWidth={1.7} /><span>{name}</span></li>)}</ul>
+    <ul>{stack.map(([Icon, name]) => <li key={name}><a href="#foundations"><Icon size={22} strokeWidth={1.7} /><span>{name}</span></a></li>)}</ul>
   </section>
 }
 
@@ -194,7 +194,7 @@ const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
     ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
-    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '/benchmarks'], ['Skanda-0 (open source)', '/skanda-0'], ['Results log', '#log'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
+    ['Model', [['Skanda V1', '#model'], ['Foundation models', '#foundations'], ['Benchmarks', '/benchmarks'], ['Skanda-0 (open source)', '/skanda-0'], ['Results log', '#log'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['The builders', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const

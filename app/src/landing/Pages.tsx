@@ -6,6 +6,7 @@ import { Benchmarks } from './Benchmarks'
 import { OpenWeights } from './OpenWeights'
 import { CiteCard } from './About'
 import { RequestAccess } from './RequestAccess'
+import { Foundations } from './Foundations'
 import { BUILDS, MODEL_DISCLAIMER, QUANT_NOTE, SKANDA_0, hfFilesUrl, hfUrl } from '../lib/openModels'
 import { Pill, Reveal } from './ui'
 import './skanda-landing.css'
@@ -56,6 +57,7 @@ export function Skanda0Page() {
       </ol></section>
     </Reveal>
 
+    <Foundations />
     <OpenWeights intro={false} />
 
     <Reveal className="sk-wrap sk-page-split">
