@@ -22,7 +22,7 @@ export function LandingPage() {
       <Intro />
       <Reads />
       <Capabilities />
-      <Benchmarks />
+      <Benchmarks history={false} />
       <OpenWeights chart={false} />
       <Approach />
       <Evidence />

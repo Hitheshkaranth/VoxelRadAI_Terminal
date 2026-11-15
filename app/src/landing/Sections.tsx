@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Accordion } from 'radix-ui'
 import { ArrowLeft, ArrowRight, ArrowUpRight, Boxes, Brain, ChevronDown, Database, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
-import { faqs, img, models, reads, wall } from './data'
-import { Pill, Reveal, anchor, frac, pct, useReducedMotion } from './ui'
+import { faqs, img, reads, wall } from './data'
+import { Pill, Reveal, anchor, useReducedMotion } from './ui'
 
 /* ------------------------------------------------------------------ 3 · stack */
 const stack = [
@@ -126,7 +126,7 @@ export function Approach() {
         <div className="sk-table" role="table" aria-label="Example findings"><div role="row" className="sk-table-head"><span role="columnheader">Finding</span><span role="columnheader">Zone</span><span role="columnheader">Image</span></div>{findings.map(([f, z, im, t]) => <div role="row" key={f + z}><span role="cell"><FileText size={13} />{f}<small>{t}</small></span><span role="cell">{z}</span><span role="cell"><img src={img(im)} alt="" loading="lazy" /></span></div>)}</div>
       </Reveal>
       <Reveal as="article" className="sk-card sk-card-dial">
-        <h3>Seconds per Read</h3><p>In the benchmark run, Skanda's main read took <b>about 15 seconds</b> per chest film.</p>
+        <h3>Seconds per Read</h3><p>On the pre-registered confirmatory set, Skanda V1 took <b>about 6 seconds</b> per read, as served (6.4 s across X-ray, CT and MRI).</p>
         <Stopwatch />
       </Reveal>
     </div>
@@ -150,11 +150,11 @@ function Stopwatch() {
 
 /* ------------------------------------------------------------------ 11 · evidence */
 export function Evidence() {
-  const [s, m, a] = [models[0], models[1], models[2]]
+  // Skanda V1 model card (bf16) and its pre-registered confirmatory set; see lib/skandaV1.ts.
   const notes = [
-    { stat: `${frac(s.headline.normals.k, s.headline.normals.n)} normals`, text: `Skanda V1 called ${pct(s.headline.normals.pct)} of normal films normal, the highest of the three models, against ${pct(m.headline.normals.pct)} for MedGemma and MAIRA-2.`, who: 'Specificity · held-out split' },
-    { stat: `${pct(s.headline.localised.pct)} localised`, text: `Its boxes landed inside the radiologist's box ${pct(s.headline.localised.pct)} of the time, level with MAIRA-2 (${pct(a.headline.localised.pct)}) and about three times MedGemma (${pct(m.headline.localised.pct)}).`, who: 'Localisation · box centre in reference' },
-    { stat: `${frac(s.sensitivity.Pneumothorax.k, s.sensitivity.Pneumothorax.n)} pneumothorax`, text: `It still misses most pneumothoraces and small nodules, where MedGemma found ${frac(m.sensitivity.Pneumothorax.k, m.sensitivity.Pneumothorax.n)}. That is why every finding stays a draft until a clinician signs it off.`, who: 'Known limitation · same split' },
+    { stat: '76% normals', text: 'Skanda V1 cleared 76% of normal chest films, against 72% for MedGemma 27B, MAIRA-2 and the two fused.', who: 'Specificity · ChestX-Det test, 111 films', source: 'Held-out benchmark' },
+    { stat: '13.5% box recall', text: 'Its boxes found 13.5% of radiologist-boxed chest findings: level with MAIRA-2 (13%) and more than twice MedGemma 27B (5.5%). Most findings are still not boxed where a radiologist would.', who: 'Localisation · box centre in reference', source: 'Held-out benchmark' },
+    { stat: '2,584 cases', text: 'On a confirmatory set fixed in advance, it cleared 80% of normal cases and outlined 36% of findings overall, 23.5% on chest X-ray. That is why every finding stays a draft until a clinician signs it off.', who: 'Pre-registered · descriptive pass', source: 'Confirmatory set' },
   ]
   const [i, setI] = useState(0)
   const note = notes[i]
@@ -162,12 +162,12 @@ export function Evidence() {
     <div className="sk-globe" aria-hidden="true" />
     <Reveal><h2 id="evidence-title" className="sk-giant">Evidence</h2></Reveal>
     <Reveal className="sk-evidence-grid">
-      <div className="sk-stats"><p><b>111</b><span>Held-out chest films</span></p><p><b>3<sup>×</sup></b><span>Radiologists annotating each film</span></p><p><b>13</b><span>Finding classes scored</span></p></div>
+      <div className="sk-stats"><p><b>691</b><span>Held-out benchmark cases</span></p><p><b>2,584</b><span>Pre-registered confirmatory cases</span></p><p><b>3<sup>×</sup></b><span>Radiologists per chest film</span></p></div>
       <div className="sk-quote">
         <div className="sk-quote-top"><span><b>{String(i + 1).padStart(2, '0')}</b> / {String(notes.length).padStart(2, '0')}</span><span className="sk-quote-mark">”</span></div>
         <span className="sk-chip">{note.stat}</span>
         <blockquote key={i}>“{note.text}”</blockquote>
-        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/skanda-mark.png" alt="" /><span><b>ChestX-Det test · 111 films</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
+        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/skanda-mark.png" alt="" /><span><b>Skanda V1 · {note.source}</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
       </div>
     </Reveal>
   </section>

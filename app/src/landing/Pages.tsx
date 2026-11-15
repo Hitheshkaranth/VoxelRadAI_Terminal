@@ -77,12 +77,12 @@ export function Skanda0Page() {
 export function BenchmarksPage() {
   usePageMeta('Benchmarks · Skanda vs MedGemma 27B and MAIRA-2 · VoxelRad AI', 'Held-out results for Skanda on chest X-ray, CT and MRI against MedGemma 27B and MAIRA-2, with method, intervals and known failures.')
   return <Shell>
-    <PageHead eyebrow="Benchmarks" title={<>Benchmarks, <em>held out</em></>} lead="Every figure here comes from held-out cases and a committed scorer. Chest X-ray compares three models on 111 radiologist-labelled films; CT and MRI come from the Skanda-0 model card. Known failures are listed next to the wins.">
+    <PageHead eyebrow="Benchmarks" title={<>Benchmarks, <em>held out</em></>} lead="Every figure here comes from held-out cases and one scorer. Skanda V1, the served model, is compared with MedGemma 27B and MAIRA-2 on chest X-ray, CT and MRI, then tested on a confirmatory set fixed in advance. Earlier checkpoints and the open Skanda-0 follow, with known failures next to the wins.">
       <ul className="sk-bench-facts">
-        <li><b>111</b><span>held-out chest films, 3 radiologists</span></li>
-        <li><b>340</b><span>CT cases</span></li>
-        <li><b>240</b><span>MRI cases</span></li>
-        <li><b>95%</b><span>Wilson intervals on X-ray</span></li>
+        <li><b>691</b><span>held-out cases: 111 X-ray, 340 CT, 240 MRI</span></li>
+        <li><b>2,584</b><span>pre-registered confirmatory cases</span></li>
+        <li><b>3×</b><span>radiologists per chest film</span></li>
+        <li><b>6.4 s</b><span>per read, Skanda V1 as served</span></li>
       </ul>
     </PageHead>
     <Benchmarks />
@@ -91,16 +91,17 @@ export function BenchmarksPage() {
       <section className="sk-about-card" aria-labelledby="method-title"><h2 id="method-title">Method</h2>
         <ul>
           <li>Chest X-ray: the ChestX-Det test split (111 films), labelled and boxed by three radiologists. All three models are served in the same pipeline with the same prompts and parser, and scored by one script.</li>
+          <li>Skanda V1 figures and their baselines come from the Skanda V1 model card (weights private); the confirmatory set's analysis plan was committed before Skanda V1 read it.</li>
           <li>Skanda read every X-ray film twice; its figures are the mean of both reads. MedGemma 27B and MAIRA-2 read once.</li>
-          <li>CT (340) and MRI (240) figures are from the Skanda-0 model card and are not directly comparable with the X-ray comparison.</li>
+          <li>The earlier runs 2–3 comparison uses the results committed in this repository; the Skanda-0 CT and MRI charts come from its public model card.</li>
           <li>Differences under about 15 labels are within run-to-run noise.</li>
         </ul>
         <a className="sk-inline-link" href={`${repo}benchmark/README.md`}>Full method and scorer <ArrowUpRight size={13} /></a>
       </section>
       <section className="sk-about-card sk-limits" aria-labelledby="fail-title"><h2 id="fail-title">Known failures</h2>
         <ul>
-          <li>Pneumothorax: found on 2 of 10 held-out films, where MedGemma found all 10.</li>
-          <li>Small nodules are often missed.</li>
+          <li>Chest X-ray outlines: Skanda V1 outlined 23.5% of findings on the confirmatory set.</li>
+          <li>Pneumothorax (runs 2–3): found on 2 of 10 held-out films, where MedGemma found all 10. Small nodules are often missed.</li>
           <li>CT and MRI localisation on targeted labelled slices: five of six positive-slice boxes had zero overlap with the reference.</li>
         </ul>
         <a className="sk-inline-link" href={failureReport}>Read the fault report <ArrowUpRight size={13} /></a>

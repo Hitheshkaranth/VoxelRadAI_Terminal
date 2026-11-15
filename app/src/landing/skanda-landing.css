@@ -544,7 +544,7 @@
 .sk-demo-chapters b{font:600 12px ui-monospace,'SF Mono',Menlo,monospace;color:var(--sk-blue-2)}
 .sk-inline-link{color:#fff;text-decoration:underline;text-decoration-color:#ffffff59;text-underline-offset:3px;white-space:nowrap}
 .sk-inline-link:hover{text-decoration-color:var(--sk-blue-2)}
-.sk-copy a{color:var(--sk-muted)}
+.sk-copy a{color:var(--sk-muted);text-decoration:underline;text-underline-offset:2px}
 .sk-copy a:hover{color:#fff}
 .sk-evidence{scroll-margin-top:80px}
 @media (max-width:900px){
@@ -691,3 +691,36 @@
 .sk-subpage .sk-bench{padding-top:40px}
 .sk-subpage .sk-plans{margin-top:0}
 .sk-copy span{text-align:center}
+
+/* ---------------------------------------------------------------- Skanda V1 results + confirmatory set */
+.sk-v1{margin-top:-10px;position:relative;z-index:1}
+.sk-v1 .sk-chart-head h3{margin-top:8px}
+.sk-bar[data-model=skanda] b{color:#fff}
+.sk-confirm{margin-top:20px;padding:36px 40px 30px;border:1px solid #2b6fd6;border-radius:12px;background:radial-gradient(80% 70% at 100% 0%,#0b2350 0%,#030712 55%,#030303 85%);box-shadow:0 30px 90px -60px #1a7dff}
+.sk-confirm-head{display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
+.sk-confirm-head h3{margin-top:8px;font:500 30px/1.1 var(--sk-display);letter-spacing:-.035em}
+.sk-confirm-head>p{max-width:520px;font-size:13.5px;color:var(--sk-muted)}
+.sk-confirm-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:26px;border:1px solid var(--sk-line);border-radius:10px;overflow:hidden;background:var(--sk-line)}
+.sk-confirm-tiles li{display:grid;gap:6px;padding:20px;background:#030712}
+.sk-confirm-tiles b{font:500 38px/1 var(--sk-display);letter-spacing:-.04em}
+.sk-confirm-tiles span{font-size:12.5px;color:var(--sk-muted)}
+.sk-table-scroll{margin-top:22px;overflow-x:auto}
+.sk-confirm-table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.sk-confirm-table th,.sk-confirm-table td{padding:10px 12px;border-bottom:1px solid var(--sk-line);text-align:right;white-space:nowrap}
+.sk-confirm-table th[scope=row],.sk-confirm-table thead th:first-child{text-align:left;font-weight:400;color:#e3e3e3}
+.sk-confirm-table thead th{font-weight:500;color:var(--sk-muted);font-size:12px}
+.sk-confirm-all{color:#fff;font-weight:600}
+.sk-history-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-top:clamp(56px,6vw,96px);margin-bottom:28px}
+.sk-history-head h3{font:500 30px/1.1 var(--sk-display);letter-spacing:-.035em}
+.sk-history-head p{max-width:560px;font-size:13.5px;color:var(--sk-muted)}
+.sk-history-link{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:20px;padding:18px 22px;border:1px dashed var(--sk-line-2);border-radius:12px;color:#e3e3e3;font-size:14px;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
+.sk-history-link span{color:var(--sk-muted)}
+.sk-history-link:hover{border-color:#ffffff59;background:#0a0a0a}
+@media (max-width:900px){
+  .sk-confirm{padding:24px 18px}
+  .sk-confirm-head,.sk-history-head{flex-direction:column;align-items:flex-start;gap:12px}
+  .sk-confirm-tiles{grid-template-columns:1fr 1fr}
+  .sk-confirm-tiles b{font-size:30px}
+  .sk-history-link{flex-direction:column;align-items:flex-start}
+}
+.sk-bench .sk-history-head + .sk-plans{margin-top:0}

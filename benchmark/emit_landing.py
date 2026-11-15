@@ -18,7 +18,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "app" / "src" / "landing" / "benchmarks.generated.ts"
 MODELS = [
-    ("skanda", "Skanda V1", ["results-skanda-manifest-cxd.jsonl", "results-skanda-r2-manifest-cxd.jsonl"]),
+    ("skanda", "Skanda runs 2–3", ["results-skanda-manifest-cxd.jsonl", "results-skanda-r2-manifest-cxd.jsonl"]),
     ("medgemma", "MedGemma 27B", ["results-cxd.jsonl"]),
     ("maira", "MAIRA-2", ["results-maira2-cxd.jsonl"]),
 ]
@@ -92,7 +92,7 @@ CARD = HERE.parent / "docs" / "benchmark-card.svg"
 
 
 def run3_right_type() -> float:
-    """Skanda V1 (run 3) chest X-ray 'right finding type', read from the committed benchmark card.
+    """Skanda run 3 (released as Skanda-0) chest X-ray 'right finding type', read from the committed benchmark card.
 
     Run 3's raw results are not in this repository, so this one figure comes from the card. Its columns are
     MedGemma, MedGemma + MAIRA-2, Skanda run 2, Skanda run 3; the first 'Right' label belongs to the chest X-ray block.

@@ -3,7 +3,7 @@
 export const benchmarks = [
   {
     "key": "skanda",
-    "name": "Skanda V1",
+    "name": "Skanda runs 2–3",
     "reads": 2,
     "files": [
       "results-skanda-manifest-cxd.jsonl",

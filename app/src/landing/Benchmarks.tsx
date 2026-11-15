@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { modelColor, models } from './data'
 import { Pill, Reveal, frac, pct } from './ui'
+import { V1Confirmatory, V1Results } from './V1Results'
 
 type Stat = { k: number; n: number; pct: number; ci: readonly number[]; source?: string }
 /** One decimal for right finding type, so 40.5 (Skanda) and 40.9 (MedGemma) don't both round to 41%. */
@@ -9,7 +10,7 @@ const digitsFor = (label: string) => (label.startsWith('Right finding type') ? 1
 const method = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/benchmark/README.md'
 
 const cards = {
-  skanda: { label: 'Base model · Skanda V1', blurb: 'Our grounded reader. Writes the report and outlines each finding. Read twice; mean of both reads.' },
+  skanda: { label: 'Earlier checkpoints · Skanda runs 2–3', blurb: 'The checkpoints released as Skanda-0, before Skanda V1. Read twice; mean of both reads.' },
   medgemma: { label: 'Generalist · MedGemma 27B', blurb: 'Google’s open medical VLM, served in the same pipeline with the same prompts and parser.' },
   maira: { label: 'Grounded · MAIRA-2', blurb: 'Microsoft’s grounded CXR reporting model. One box per sentence; no severity or confidence.' },
 } as const
@@ -34,11 +35,17 @@ const notes: Record<keyof typeof views, string> = {
   Precision: 'Of the films where the model reported this finding type, how many truly had it.',
 }
 
-export function Benchmarks() {
+/** Skanda V1 first; the runs 2–3 comparison with intervals follows in full on /benchmarks and as a link on the landing page. */
+export function Benchmarks({ history = true }: { history?: boolean } = {}) {
   const [view, setView] = useState<keyof typeof views>('Headline')
   const [hover, setHover] = useState<string | null>(null)
   return <section className="sk-bench" id="benchmarks" aria-labelledby="bench-title">
     <div className="sk-wrap"><h2 id="bench-title" className="sk-giant">Benchmarks</h2></div>
+    <V1Results />
+    <V1Confirmatory full={history} />
+    {!history && <a className="sk-wrap sk-history-link" href="/benchmarks"><strong>Earlier checkpoints with 95% intervals, method and known failures</strong><span>Skanda runs 2–3 vs MedGemma 27B and MAIRA-2 on 111 chest films →</span></a>}
+    {history && <>
+    <div className="sk-wrap sk-history-head"><h3>Earlier checkpoints, with intervals</h3><p>Skanda runs 2–3 (released as Skanda-0) against MedGemma 27B and MAIRA-2 on the same 111 chest films, with Wilson 95% intervals from the results committed in this repository. Kept as a record; Skanda V1 above supersedes them.</p></div>
     <Reveal className="sk-wrap sk-plans">{models.map((m) => {
       const c = cards[m.key]
       return <article key={m.key} className="sk-plan" data-model={m.key}>
@@ -47,7 +54,7 @@ export function Benchmarks() {
         <p className="sk-plan-blurb">{c.blurb}</p>
         <ul>{headlineRows.slice(0, 3).map(([key, label]) => { const s = m.headline[key] as Stat; return <li key={key}><span>{label}</span><b>{pct(s.pct, digitsFor(label))}</b></li> })}
           <li><span>Cardiomegaly found</span><b>{frac(m.sensitivity.Cardiomegaly.k, m.sensitivity.Cardiomegaly.n)}</b></li></ul>
-        <div className="sk-plan-actions"><Pill href={m.key === 'skanda' ? '#access' : method} tone={m.key === 'skanda' ? 'light' : 'grey'}>{m.key === 'skanda' ? 'Request access' : 'See the method'}</Pill><a href={method} className="sk-details">Details <ArrowRight size={13} /></a></div>
+        <div className="sk-plan-actions"><Pill href={m.key === 'skanda' ? '/skanda-0' : method} tone={m.key === 'skanda' ? 'light' : 'grey'}>{m.key === 'skanda' ? 'Get Skanda-0' : 'See the method'}</Pill><a href={method} className="sk-details">Details <ArrowRight size={13} /></a></div>
       </article>
     })}</Reveal>
 
@@ -74,7 +81,8 @@ export function Benchmarks() {
           })}</div>
         </div>)}
       </div>
-      <p className="sk-chart-foot">Skanda V1: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href="/benchmarks">All benchmarks, including CT and MRI</a> · <a href={method}>Full method</a> · <a href="https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md">Known failures</a></p>
+      <p className="sk-chart-foot">Skanda runs 2–3: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href="/benchmarks">All benchmarks, including CT and MRI</a> · <a href={method}>Full method</a> · <a href="https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md">Known failures</a></p>
     </Reveal>
+    </>}
   </section>
 }
