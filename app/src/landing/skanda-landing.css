@@ -185,7 +185,7 @@
 .sk-streaks path{fill:none;stroke:#1d7bff;stroke-width:2.2;filter:drop-shadow(0 0 6px #0a6dff) drop-shadow(0 0 18px #0050d0);opacity:.55;animation:sk-stream 14s ease-in-out infinite alternate}
 .sk-streaks path:nth-child(even){stroke:#3d93ff;opacity:.35;animation-duration:18s}
 @keyframes sk-stream{to{transform:translateY(40px) scaleY(1.06)}}
-.sk-reads h2{position:absolute;z-index:1;font:500 clamp(72px,8vw,150px)/1 var(--sk-display);letter-spacing:-.05em;text-align:center;pointer-events:none}
+.sk-reads h2{position:absolute;z-index:3;text-shadow:0 2px 2px #000a,0 10px 60px #000;font:500 clamp(72px,8vw,150px)/1 var(--sk-display);letter-spacing:-.05em;text-align:center;pointer-events:none}
 .sk-helix{position:absolute;inset:0;display:grid;place-items:center;transform-style:preserve-3d;z-index:2}
 .sk-helix-card{grid-area:1/1;position:relative;width:clamp(200px,17vw,330px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0a0a0a;border:1px solid #ffffff2e;box-shadow:0 30px 60px -20px #000;will-change:transform;transition:filter .3s}
 .sk-helix-card img{width:100%;height:100%;object-fit:cover}
@@ -551,4 +551,36 @@
   .sk-demo-head{flex-direction:column;align-items:flex-start;gap:14px}
   .sk-demo-chapters{grid-template-columns:1fr}
   .sk-demo-play>span{width:64px;height:64px}
+}
+.sk-reads-sticky::after{content:'';position:absolute;inset:auto 0 0;height:22vh;z-index:2999;pointer-events:none;background:linear-gradient(#0000,#000)}
+
+/* ---------------------------------------------------------------- about + cite */
+.sk-about{padding:clamp(80px,7.3vw,139px) 0 0;scroll-margin-top:80px}
+.sk-about-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:20px}
+.sk-about-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:22px;padding:40px;border:1px solid var(--sk-card-line);border-radius:12px;background:radial-gradient(90% 70% at 0% 0%,#0b2350 0%,#020814 45%,#000 75%)}
+.sk-about-id{display:flex;align-items:center;gap:18px}
+.sk-monogram{display:grid;place-items:center;width:64px;height:64px;flex:none;border-radius:50%;background:conic-gradient(from 200deg,#0068ad,#7acaff,#0099ff,#0068ad);font:600 20px var(--sk-display);color:#fff;letter-spacing:-.02em;box-shadow:0 0 0 4px #000,0 0 0 5px #ffffff2e,0 10px 40px -10px #1a7dff}
+.sk-about-id h2{margin-top:6px;font:500 clamp(32px,2.6vw,46px)/1.05 var(--sk-display);letter-spacing:-.04em}
+.sk-about-text{font-size:15.5px;color:#cfcfcf;max-width:560px}
+.sk-about-facts{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--sk-line)}
+.sk-about-facts>div{padding:14px 0}
+.sk-about-facts>div+div{padding-left:16px;border-left:1px solid var(--sk-line)}
+.sk-about-facts dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--sk-dim)}
+.sk-about-facts dd{margin-top:4px;font:500 18px var(--sk-display);color:#fff}
+.sk-about-links{display:grid;gap:8px;margin-top:auto}
+.sk-about-links a{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--sk-line);border-radius:10px;background:#0000004d;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease),transform .25s var(--sk-ease)}
+.sk-about-links a:hover{border-color:#ffffff40;background:#0d0d0d;transform:translateX(3px)}
+.sk-about-links span{font-weight:500;color:#fff}
+.sk-about-links small{flex:1;color:var(--sk-muted);font-size:13px}
+.sk-cite{background:#030303}
+.sk-cite-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.sk-cite-head h3{margin-top:8px;font:500 26px/1.15 var(--sk-display);letter-spacing:-.03em}
+.sk-cite pre{margin:0;padding:18px 20px;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--sk-line);border-radius:10px;background:#0a0a0a;font:12.5px/1.7 ui-monospace,'SF Mono',Menlo,monospace;color:#d6d6d6}
+.sk-cite-foot{font-size:13px;color:var(--sk-muted)}
+.sk-reveal[data-in=true] .sk-about-card{animation:sk-rise .8s var(--sk-ease) both}
+.sk-reveal[data-in=true] .sk-about-card+.sk-about-card{animation-delay:.12s}
+@media (max-width:900px){
+  .sk-about-grid{grid-template-columns:1fr}
+  .sk-about-card{padding:26px 22px}
+  .sk-cite-head{flex-direction:column}
 }

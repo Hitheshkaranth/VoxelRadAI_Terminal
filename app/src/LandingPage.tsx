@@ -5,6 +5,7 @@ import { Approach, Capabilities, Closing, Evidence, Faqs, Footer, Intro, Reads, 
 import { Benchmarks } from './landing/Benchmarks'
 import { OpenWeights } from './landing/OpenWeights'
 import { Demo } from './landing/Demo'
+import { About } from './landing/About'
 
 /** Public landing page. Section order and component geometry follow visuvate.com, re-themed for radiology. */
 export function LandingPage() {
@@ -24,6 +25,7 @@ export function LandingPage() {
       <OpenWeights />
       <Approach />
       <Evidence />
+      <About />
       <Faqs />
       <Closing />
     </main>
