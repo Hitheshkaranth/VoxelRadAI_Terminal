@@ -1,0 +1,14 @@
+:root { --demo-bar-h: 40px; }
+.demo-bar { position: relative; z-index: 50; display: flex; align-items: center; gap: 12px; height: var(--demo-bar-h); padding: 0 16px; background: #0b2350; color: #e8f1ff; font: 13px/1.3 var(--font-sans); border-bottom: 1px solid #1d4ea0; }
+.demo-bar > svg { width: 16px; height: 16px; flex: none; color: #7acaff; }
+.demo-bar > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.demo-bar a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: #fff; color: #0b2350; font-weight: 600; text-decoration: none; }
+.demo-bar a svg { width: 14px; height: 14px; }
+.demo-bar a.demo-bar-home { background: transparent; color: #cfe3ff; font-weight: 500; border: 1px solid #ffffff40; }
+.demo-bar a:focus-visible { outline: 2px solid #7acaff; outline-offset: 2px; }
+.demo-bar-error { color: #ffb3b3; }
+html.demo-mode .sh-app { height: calc(100dvh - var(--demo-bar-h)) !important; }
+.demo-loading { padding: 24px; }
+@media (max-width: 760px) {
+  .demo-bar-long, .demo-bar-home { display: none !important; }
+}

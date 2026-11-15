@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import { toast } from '../components/shell/toastStore'
 import { useApp } from '../store'
+import { DEMO_ANALYSIS_MESSAGE, DEMO_MODE } from './session'
 import type { AnalysisResult, AnalysisStage, ReportDraft, Settings, StudyImage } from '../types'
 import { crossCheck, reportSourceKey, reportTraceLines } from './classifier'
 import { analysisEligibility, isCrossSectional } from './modality'
@@ -28,7 +29,15 @@ const STAGE_TEXT: Record<AnalysisStage, string> = {
  * any running analysis is cancelled and the previous result discarded first.
  * Streams progress back into the store, throttled to ~5 updates/s.
  */
+/** In the demo, model actions explain themselves instead of clearing the recorded read and failing. */
+function demoBlocked(): boolean {
+  if (!DEMO_MODE) return false
+  toast(DEMO_ANALYSIS_MESSAGE, 'info', { label: 'Request access', run: () => { window.location.href = '/#access' } })
+  return true
+}
+
 export function runAnalysis(studyId: string, imageId: string, opts?: { force?: boolean }): void {
+  if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   const image = study?.images.find((i) => i.id === imageId)
   if (!study || !image) return
@@ -193,6 +202,7 @@ function notify(studyId: string, imageId: string, text: string, kind: 'success' 
 // ---- Public actions --------------------------------------------------------
 
 export function runAnalysisForStudy(studyId: string): void {
+  if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   if (!study) return
   for (const image of study.images) {
@@ -260,6 +270,7 @@ export const useReportJob = create<{ running: boolean; studyId?: string; progres
 
 /** Generate a formal report from all analysed images of a study and write it into the store. */
 export async function generateStudyReport(studyId: string): Promise<void> {
+  if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   if (!study) return
 

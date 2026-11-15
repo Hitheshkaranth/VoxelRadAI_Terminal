@@ -31,6 +31,7 @@ export function RequestAccess() {
         <p>The hosted workspace runs Skanda V1 and is opened to people one at a time while it is evaluated. Tell us who you are and what you would read; every request is reviewed by hand and answered by email.</p>
         <ul className="sk-access-points">
           <li><Check size={15} /><span>Research and evaluation use only. Please don’t upload identifiable patient data.</span></li>
+          <li><Check size={15} /><span>Want to look first? <a className="sk-inline-link" href="/demo">Try the demo workspace</a>, no account needed.</span></li>
           <li><Check size={15} /><span>Prefer to self-host? <a className="sk-inline-link" href="#weights">Skanda-0 is open source</a>.</span></li>
           <li><Check size={15} /><span>Your details are used only to answer this request. See <a className="sk-inline-link" href="/privacy">privacy</a>.</span></li>
         </ul>

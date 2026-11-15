@@ -79,3 +79,5 @@
 .wl-open-study .wl-study-top, .wl-open-study .wl-study-status { display: flex; }
 .wl-open-study .wl-patient-id, .wl-open-study .sh-row-sub { display: block; }
 .wl-sidebar .wl-study:focus-within .sh-row-actions { opacity: 1; }
+/* The row's click target is a ShellButton, whose default size class fixes it at 32px; let it grow with the study details. */
+.wl-sidebar .wl-open-study { height: auto; white-space: normal; align-items: flex-start; }

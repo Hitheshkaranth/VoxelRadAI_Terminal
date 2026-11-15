@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Boxes, FileImage, FileText, Plus, HardDrive, Target } from 'lucide-react'
 import { track } from '@vercel/analytics'
 import { hydrate, useActiveStudy, useApp } from './store'
+import { DEMO_MODE } from './lib/session'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
 import { extractImagesFromClipboard } from './lib/imageIntake'
@@ -174,7 +175,8 @@ export default function App() {
     return () => window.removeEventListener('hashchange', followAddress)
   }, [])
   useEffect(() => {
-    if (activeImageId && !volumeSource) useShell.getState().setSidebarCollapsed(true)
+    // The demo keeps its case list visible so visitors can move between the recorded reads.
+    if (activeImageId && !volumeSource && !DEMO_MODE) useShell.getState().setSidebarCollapsed(true)
   }, [activeImageId, volumeSource])
   useTheme()
   useConnectionPolling()
@@ -198,7 +200,7 @@ export default function App() {
         {volumeSource ? <Suspense fallback={<p role="status">Loading volume viewer…</p>}><VolumeViewer key={`${volumeSource.id}:${JSON.stringify(volumeSource.acquisition ?? null)}`} source={volumeSource} /></Suspense> : study ? (
           <>
             <Toolbar />
-            <details className="scan-patient-context"><summary>Patient &amp; clinical context</summary><ClinicalContext /></details>
+            <details className="scan-patient-context" open={DEMO_MODE || undefined}><summary>Patient &amp; clinical context</summary><ClinicalContext /></details>
             <div className="sh-reading">
               <section className="sh-viewer-col" aria-label="Image viewer">
                 <div className="scan-image-surface" style={{ flex: 1, minHeight: 0, position: 'relative' }}>

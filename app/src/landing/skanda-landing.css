@@ -622,3 +622,8 @@
   .sk-access-card{padding:22px}
   .sk-form-row{grid-template-columns:1fr}
 }
+.sk-demo-try{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px;padding:16px 18px;border:1px dashed #7acaff59;border-radius:10px;font-size:14px;color:#e6e6e6;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
+.sk-demo-try span{color:var(--sk-muted)}
+.sk-demo-try:hover{border-color:var(--sk-blue-2);background:#06121f}
+.sk-demo-try svg{transition:transform .25s var(--sk-ease)}
+.sk-demo-try:hover svg{transform:translateX(3px)}

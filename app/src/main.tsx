@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'
 import './styles/shadcn.css'
@@ -22,8 +22,6 @@ import './components/findings/findings.css'
 import './components/report/report.css'
 import './components/report/shareStudy.css'
 import './components/report/print.css'
-import { WorkspaceRoot } from './WorkspaceRoot'
-import { LandingPage } from './LandingPage'
 import { Analytics, type BeforeSendEvent } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import './styles/workspace.css'
@@ -36,9 +34,20 @@ import './styles/scanWorkspace.css'
 const bareUrl = (href: string) => { const url = new URL(href); return url.origin + url.pathname }
 const stripUrl = (event: BeforeSendEvent): BeforeSendEvent => ({ ...event, url: bareUrl(event.url) })
 
+// Each entry point is its own chunk: the landing page does not download the workspace, and vice versa.
+const LandingPage = lazy(() => import('./LandingPage').then((m) => ({ default: m.LandingPage })))
+const WorkspaceRoot = lazy(() => import('./WorkspaceRoot').then((m) => ({ default: m.WorkspaceRoot })))
+const DemoRoot = lazy(() => import('./DemoRoot').then((m) => ({ default: m.DemoRoot })))
+const path = window.location.pathname.replace(/\/+$/, '') || '/'
+function Route() {
+  if (path === '/demo') return <DemoRoot />
+  if (path === '/' && !new URLSearchParams(window.location.search).has('oidc')) return <LandingPage />
+  return <WorkspaceRoot />
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {window.location.pathname === '/' && !new URLSearchParams(window.location.search).has('oidc') ? <LandingPage /> : <WorkspaceRoot />}
+    <Suspense fallback={null}><Route /></Suspense>
     <Analytics beforeSend={stripUrl} />
     <SpeedInsights beforeSend={(e) => ({ ...e, url: bareUrl(e.url) })} />
   </StrictMode>,

@@ -208,7 +208,7 @@ const social = [[GitBranch, 'GitHub', 'https://github.com/Hitheshkaranth/VoxelRa
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
-    ['Product', [['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
+    ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
     ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['Built by Hithesh Karanth', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],

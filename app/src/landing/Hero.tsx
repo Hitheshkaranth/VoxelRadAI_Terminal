@@ -121,7 +121,7 @@ export function Hero() {
       <p className="sk-eyebrow">Skanda V1 · Base model</p>
       <h1 id="hero-title"><span>Grounded <em>Radiology</em></span><span><i>Visible</i> Evidence</span></h1>
       <p className="sk-lead">X-ray, CT and MRI reads that point to the pixels behind every finding.</p>
-      <div className="sk-actions"><Pill href="#access">Request access</Pill><Pill href="#demo" tone="ghost">Watch a read</Pill></div>
+      <div className="sk-actions"><Pill href="#access">Request access</Pill><Pill href="/demo" tone="ghost">Try the demo</Pill></div>
       <a className="sk-hero-oss" href="#weights"><span>New</span>Skanda-0 is open source · bf16, int8 and int4 on Hugging Face<ArrowUpRight size={14} /></a>
     </div>
     <ReadingRoom />

@@ -1,3 +1,4 @@
+import { DEMO_ANALYSIS_MESSAGE, DEMO_MODE } from './session.ts'
 import type { ConnectionState, Settings } from '../types.ts'
 import { parseSseLines, type SseParse } from './sse.ts'
 
@@ -53,6 +54,7 @@ export async function chatStream({
   /** Extra request fields (Skanda's server reads "skanda"; other servers ignore unknown fields). */
   extra?: Record<string, unknown>
 }): Promise<ChatResult> {
+  if (DEMO_MODE) throw new Error(DEMO_ANALYSIS_MESSAGE)
   if (signal?.aborted) throw abortError()
   // Own controller so a stalled stream can be aborted without touching the caller's signal.
   const ac = new AbortController()
@@ -182,6 +184,7 @@ function abortError(): Error {
 // ---- checkConnection -------------------------------------------------------
 
 export async function checkConnection(settings: Settings): Promise<ConnectionState> {
+  if (DEMO_MODE) return 'offline'
   const ac = new AbortController()
   const timer = setTimeout(() => ac.abort(), 4000)
   try {

@@ -46,6 +46,10 @@
   ],
   "rewrites": [
     {
+      "source": "/demo",
+      "destination": "/index.html"
+    },
+    {
       "source": "/privacy",
       "destination": "/privacy.html"
     },

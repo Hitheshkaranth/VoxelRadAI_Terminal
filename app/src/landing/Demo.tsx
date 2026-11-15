@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Play } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 import { track } from '@vercel/analytics'
 import { Reveal } from './ui'
 
@@ -32,6 +32,7 @@ export function Demo() {
       </div>
       <ol className="sk-demo-chapters" aria-label="Chapters">{chapters.map(([t, label, at]) =>
         <li key={t}><button type="button" onClick={() => play(at)}><b>{t}</b>{label}</button></li>)}</ol>
+      <a className="sk-demo-try" href="/demo" onClick={() => track('demo_cta', { from: 'video' })}><span>Prefer to click around?</span> Open the demo workspace with six recorded reads, no account needed <ArrowRight size={15} /></a>
     </Reveal>
   </section>
 }

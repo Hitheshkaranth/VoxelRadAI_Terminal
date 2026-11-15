@@ -1,7 +1,10 @@
 import { create } from 'zustand'
 
 export interface SessionUser { id: string; email: string; role: 'admin' | 'clinician' }
-export const SERVER_MODE = import.meta.env?.VITE_SERVER_MODE === 'true'
+/** The public /demo route: a local, account-free workspace seeded with recorded reads. Never talks to the API or a model. */
+export const DEMO_MODE = typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/demo'
+export const SERVER_MODE = import.meta.env?.VITE_SERVER_MODE === 'true' && !DEMO_MODE
+export const DEMO_ANALYSIS_MESSAGE = 'Live analysis is off in the demo. These cases show recorded Skanda reads. Request access to read your own studies.'
 
 function parseSession(value: unknown): SessionUser | null {
   if (!value || typeof value !== 'object' || !('user' in value)) throw new Error('The session service returned an invalid response.')
