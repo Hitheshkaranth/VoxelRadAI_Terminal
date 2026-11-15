@@ -173,7 +173,7 @@ export function Evidence() {
   ]
   const [i, setI] = useState(0)
   const note = notes[i]
-  return <section className="sk-evidence" aria-labelledby="evidence-title">
+  return <section className="sk-evidence" id="evidence" aria-labelledby="evidence-title">
     <div className="sk-globe" aria-hidden="true" />
     <Reveal><h2 id="evidence-title" className="sk-giant">Evidence</h2></Reveal>
     <Reveal className="sk-evidence-grid">
@@ -192,7 +192,7 @@ export function Evidence() {
 export function Faqs() {
   return <section className="sk-faqs" id="faqs" aria-labelledby="faq-title">
     <Reveal><h2 id="faq-title" className="sk-h2 sk-center">Frequently Asked <em>Questions</em></h2></Reveal>
-    <Accordion.Root type="single" collapsible className="sk-faq-list">{faqs.map(([q, a], i) => <Accordion.Item key={q} value={q} className="sk-faq"><Accordion.Header><Accordion.Trigger><span><span>{i + 1}.</span><span>{q}</span></span><ChevronDown size={15} /></Accordion.Trigger></Accordion.Header><Accordion.Content className="sk-faq-a"><p>{a}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root>
+    <Accordion.Root type="single" collapsible className="sk-faq-list">{faqs.map(([q, a, link], i) => <Accordion.Item key={q} value={q} className="sk-faq"><Accordion.Header><Accordion.Trigger><span><span>{i + 1}.</span><span>{q}</span></span><ChevronDown size={15} /></Accordion.Trigger></Accordion.Header><Accordion.Content className="sk-faq-a"><p>{a}{link && <> <a className="sk-inline-link" href={link.href}>{link.label}</a></>}</p></Accordion.Content></Accordion.Item>)}</Accordion.Root>
   </section>
 }
 
@@ -204,18 +204,18 @@ export function Closing() {
   </section>
 }
 
-const social = [[GitBranch, 'GitHub', 'https://github.com/Hitheshkaranth/skanda-radiology'], [BookOpen, 'Reader guide', 'https://github.com/Hitheshkaranth/skanda-radiology/blob/main/docs/reading-with-skanda.md'], [Sparkles, 'Benchmarks', 'https://github.com/Hitheshkaranth/skanda-radiology/blob/main/benchmark/README.md'], [Package, 'Releases', 'https://github.com/Hitheshkaranth/skanda-radiology/releases']] as const
-const repo = 'https://github.com/Hitheshkaranth/skanda-radiology/blob/main/'
+const social = [[GitBranch, 'GitHub', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal'], [BookOpen, 'Reader guide', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/reading-with-skanda.md'], [Sparkles, 'Benchmarks', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/benchmark/README.md'], [Package, 'Releases', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases']] as const
+const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
     ['Product', [['Workspace', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
-    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#benchmarks']]],
-    ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Image provenance', '/landing/provenance.json']]],
-    ['About', [['Research & evaluation use', '#faqs'], ['Not a diagnostic device', '#faqs'], ['Public teaching imagery', '/samples/provenance.json'], ['Open source', 'https://github.com/Hitheshkaranth/skanda-radiology']]],
+    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
+    ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
+    ['About', [['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Cite Skanda', 'https://huggingface.co/hitheshkaranth/Skanda-0'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const
   return <footer className="sk-footer">
     <ul className="sk-social">{social.map(([Icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span><Icon size={15} />{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
     <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={href}>{label}</a></li>)}</ul></div>)}</div>
-    <p className="sk-copy"><FileCode2 size={12} /> © 2026 VoxelRad AI. Research and evaluation use only. Not a diagnostic device.</p>
+    <p className="sk-copy"><FileCode2 size={12} /> © 2026 VoxelRad AI. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
   </footer>
 }

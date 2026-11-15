@@ -525,3 +525,30 @@
 .sk-cmd-done button{color:var(--sk-blue-2);animation:sk-pop .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes sk-pop{from{transform:scale(.6)}}
 @media (max-width:520px){.sk-cmd button{width:40px;height:40px}}
+
+/* ---------------------------------------------------------------- demo video */
+.sk-demo{padding:clamp(80px,7.3vw,139px) 0 0}
+.sk-demo-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:36px}
+.sk-demo-head p{max-width:520px;font-size:15px;color:var(--sk-muted)}
+.sk-demo-frame{position:relative;overflow:hidden;aspect-ratio:16/10;border:1px solid var(--sk-card-line);border-radius:14px;background:#050505;box-shadow:0 40px 120px -60px #1a7dff80}
+.sk-demo-frame video{display:block;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--sk-ease),filter .6s var(--sk-ease)}
+.sk-demo-frame[data-started=false] video{filter:brightness(.62) saturate(.9);transform:scale(1.015)}
+.sk-demo-frame[data-started=false]:hover video{transform:scale(1.04);filter:brightness(.72)}
+.sk-demo-play{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;border:0;background:none;cursor:pointer;font:500 14px var(--sk-body);color:#fff}
+.sk-demo-play>span{display:grid;place-items:center;width:84px;height:84px;padding-left:4px;border-radius:50%;background:#ffffffe6;color:#000;box-shadow:0 0 0 0 #ffffff55;animation:sk-pulse 2.4s var(--sk-ease) infinite;transition:transform .35s var(--sk-ease)}
+.sk-demo-play:hover>span{transform:scale(1.08)}
+@keyframes sk-pulse{70%{box-shadow:0 0 0 22px #fff0}100%{box-shadow:0 0 0 0 #fff0}}
+.sk-demo-chapters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.sk-demo-chapters button{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1px solid var(--sk-line);border-radius:10px;background:#0a0a0a;cursor:pointer;font-size:13.5px;color:#e3e3e3;text-align:left;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
+.sk-demo-chapters button:hover{border-color:#ffffff40;background:#111}
+.sk-demo-chapters b{font:600 12px ui-monospace,'SF Mono',Menlo,monospace;color:var(--sk-blue-2)}
+.sk-inline-link{color:#fff;text-decoration:underline;text-decoration-color:#ffffff59;text-underline-offset:3px;white-space:nowrap}
+.sk-inline-link:hover{text-decoration-color:var(--sk-blue-2)}
+.sk-copy a{color:var(--sk-muted);margin-inline:2px}
+.sk-copy a:hover{color:#fff}
+.sk-evidence{scroll-margin-top:80px}
+@media (max-width:900px){
+  .sk-demo-head{flex-direction:column;align-items:flex-start;gap:14px}
+  .sk-demo-chapters{grid-template-columns:1fr}
+  .sk-demo-play>span{width:64px;height:64px}
+}

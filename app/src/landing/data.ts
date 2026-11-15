@@ -50,13 +50,14 @@ export const reads = [
   { image: 'ct-axial-bone', title: 'Bone window', meta: 'CT head · source' },
 ]
 
-export const faqs: [string, string][] = [
+export type Faq = [question: string, answer: string, link?: { label: string; href: string }]
+export const faqs: Faq[] = [
   ['What is Skanda V1?', 'Skanda is the base model behind VoxelRad AI. It reads chest X-rays and axial CT and MRI slices, writes a structured report, and points to where each finding is with a box and an outline. On the held-out chest X-ray split it gets the right finding type 40.5% of the time (run-3 checkpoint); the page’s other Skanda figures come from the run-2 results committed in benchmark/.'],
   ['How were MedGemma and MAIRA-2 compared?', 'All three models read the same 111 held-out ChestX-Det films, labelled and boxed by three radiologists, and were scored by the same script (benchmark/score.py). Skanda read every film twice, so its figures are the mean of both reads. Intervals are Wilson 95%.'],
   ['Are the scans and heatmaps on this page real?', 'The chest films and BraTS MRI overlays are crops of real model output recorded in the app. The CT and MR head teaching volumes carry no labelled finding, so their heatmaps are marked as illustrative. Skull radiographs are reconstructed from the public CT volume.'],
-  ['Where does Skanda fall short?', 'On the held-out split it found 2 of 10 pneumothoraces and few small nodules, and its CT tumour outlines remain poor. MedGemma found all 10 pneumothoraces. Every model finding stays a draft until a clinician reviews it.'],
+  ['Where does Skanda fall short?', 'On the held-out split it found 2 of 10 pneumothoraces and few small nodules, and its CT tumour outlines remain poor. MedGemma found all 10 pneumothoraces. Every model finding stays a draft until a clinician reviews it. In the labelled CT/MRI fault report, five of six positive-slice boxes missed their reference region entirely.', { label: 'Read the fault report', href: 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md' }],
   ['Is VoxelRad AI a diagnostic device?', 'No. It is a research and evaluation workspace. It has not been clinically validated, and any clinical use needs independent validation and review by a qualified professional.'],
-  ['How do I get access?', 'Sign in with an account your workspace administrator has created. Skanda runs on your own GPU server. The weights and serving scripts are documented in the Skanda reader guide.'],
+  ['How do I get access?', 'The hosted workspace is invite-only: sign in with an account your workspace administrator has created. To run Skanda yourself, download the open weights (bf16, int8 or int4) from Hugging Face and follow the Skanda reader guide. For anything else, open an issue on GitHub.', { label: 'Get the open weights', href: '#weights' }],
 ]
 
 export const models = benchmarks

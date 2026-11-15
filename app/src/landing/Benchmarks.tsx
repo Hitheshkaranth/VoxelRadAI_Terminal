@@ -6,7 +6,7 @@ import { Pill, Reveal, frac, pct } from './ui'
 type Stat = { k: number; n: number; pct: number; ci: readonly number[]; source?: string }
 /** One decimal for right finding type, so 40.5 (Skanda) and 40.9 (MedGemma) don't both round to 41%. */
 const digitsFor = (label: string) => (label.startsWith('Right finding type') ? 1 : 0)
-const method = 'https://github.com/Hitheshkaranth/skanda-radiology/blob/main/benchmark/README.md'
+const method = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/benchmark/README.md'
 
 const cards = {
   skanda: { label: 'Base model · Skanda V1', blurb: 'Our grounded reader. Writes the report and outlines each finding. Read twice; mean of both reads.' },
@@ -74,7 +74,7 @@ export function Benchmarks() {
           })}</div>
         </div>)}
       </div>
-      <p className="sk-chart-foot">Skanda V1: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href={method}>Full method</a></p>
+      <p className="sk-chart-foot">Skanda V1: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href={method}>Full method</a> · <a href="https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md">Known failures</a></p>
     </Reveal>
   </section>
 }

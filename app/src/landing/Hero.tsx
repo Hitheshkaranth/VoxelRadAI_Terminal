@@ -16,10 +16,28 @@ export function Nav() {
     return () => removeEventListener('scroll', on)
   }, [])
   useEffect(() => { if (open) dialog.current?.showModal(); else dialog.current?.close() }, [open])
+  // Highlight the menu item for the last section whose top has passed the middle of the viewport.
+  const [active, setActive] = useState<string>('#top')
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      frame = 0
+      let current = '#top'
+      for (const [, href] of links) {
+        const el = document.querySelector<HTMLElement>(href)
+        if (el && el.getBoundingClientRect().top <= innerHeight * 0.45) current = href
+      }
+      setActive(current)
+    }
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update) }
+    update()
+    addEventListener('scroll', onScroll, { passive: true })
+    return () => { removeEventListener('scroll', onScroll); cancelAnimationFrame(frame) }
+  }, [])
   return <header className="sk-nav" data-scrolled={scrolled}>
     <div className="sk-nav-inner">
       <a className="sk-brand" href="#top" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a>
-      <nav aria-label="Main">{links.map(([label, href], i) => <a key={href} href={href} aria-current={i === 0 ? 'page' : undefined}><Roll>{label}</Roll></a>)}</nav>
+      <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={href} aria-current={href === active ? 'location' : undefined}><Roll>{label}</Roll></a>)}</nav>
       <div className="sk-nav-end">
         <span className="sk-serving" title="Base model"><i aria-hidden="true" />Skanda V1</span>
         <a className="sk-pill sk-pill-light sk-pill-sm" href="/workspace"><Roll>Open workspace</Roll></a>

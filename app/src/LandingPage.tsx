@@ -4,6 +4,7 @@ import { Hero, Nav } from './landing/Hero'
 import { Approach, Capabilities, Closing, Evidence, Faqs, Footer, Intro, Reads, Stack, Ticker } from './landing/Sections'
 import { Benchmarks } from './landing/Benchmarks'
 import { OpenWeights } from './landing/OpenWeights'
+import { Demo } from './landing/Demo'
 
 /** Public landing page. Section order and component geometry follow visuvate.com, re-themed for radiology. */
 export function LandingPage() {
@@ -18,6 +19,7 @@ export function LandingPage() {
       <Reads />
       <Capabilities />
       <Ticker />
+      <Demo />
       <Benchmarks />
       <OpenWeights />
       <Approach />

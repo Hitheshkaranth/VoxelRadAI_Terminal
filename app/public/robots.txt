@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /workspace
+Disallow: /shared
+
+Sitemap: https://voxelradai.com/sitemap.xml
