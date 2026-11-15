@@ -19,9 +19,9 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 
 <br>
 
-<a href="https://voxelradai.com"><img src="docs/screenshots/landing/hero.png" alt="VoxelRad AI landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda V1 outlines on a chest X-ray" width="100%"></a>
+<a href="https://voxelradai.com"><img src="docs/screenshots/landing/hero.png" alt="VoxelRad AI landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda's outlines on a chest X-ray" width="100%"></a>
 
-<sub>The <a href="https://voxelradai.com">voxelradai.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda V1 output on a public ChestX-Det test film.</sub>
+<sub>The <a href="https://voxelradai.com">voxelradai.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda output on a public ChestX-Det test film.</sub>
 
 </div>
 
@@ -110,9 +110,57 @@ Open **http://localhost:8088**. For HTTPS, persistence and backups, see the [dep
 
 ## 📊 Benchmarks
 
-Chest X-ray, **ChestX-Det held-out test split**: 111 radiologist-labelled films, with the same prompts, parser and scorer for every model. Brackets are Wilson 95% intervals.
+Two Skanda checkpoints appear below:
+- **Skanda V1** is the run 4b checkpoint that the hosted workspace serves. Its weights are private.
+- **Skanda-0** is the earlier run 3, open source on [Hugging Face](https://huggingface.co/hitheshkaranth/Skanda-0) in bf16, int8 and int4.
 
-| Metric | **Skanda V1** | MedGemma 27B | MAIRA-2 |
+Every figure is labelled with the checkpoint it came from.
+
+### Skanda V1, held out
+
+The same held-out cases for every model, read by one runner and scored by one script. Percent, higher is better. Source: the Skanda V1 model card (bf16), which also publishes the baselines below. These baselines are a later re-read, so they differ slightly from the run 2–3 table further down. Each chest X-ray number moves about ±10 points by chance across 111 films.
+
+| 🩻 Chest X-ray · 111 ChestX-Det test films | MedGemma 27B | MAIRA-2 | MedGemma + MAIRA-2 | **Skanda V1** |
+| --- | :-: | :-: | :-: | :-: |
+| Abnormal flagged | 86 | **89** | 87.5 | 82.5 |
+| Normals called normal | 72 | 72 | 72 | **76** |
+| Right finding type | 36 | 34 | **42** | 39 |
+| Box precision | 8.5 | **30** | 10.5 | 27 |
+| Box recall | 5.5 | 13 | 7 | **13.5** |
+
+| | 🫁 CT · 340 cases | | 🧠 MRI · 240 cases | |
+| --- | :-: | :-: | :-: | :-: |
+| | MedGemma 27B | **Skanda V1** | MedGemma 27B | **Skanda V1** |
+| Abnormal flagged | **97** | 81 | **99** | 86 |
+| Normals called normal | 6 | **91** | 2 | **94** |
+| Right finding type | 49 | **68** | 42 | **84** |
+| Box precision | 1 | **18** | 6 | **73** |
+| Box recall | 3 | **13** | 8 | **65** |
+
+MAIRA-2 reads chest X-rays only. Chest X-ray: Skanda's figures are the mean of two passes. Box metrics on X-ray count a predicted box when its centre falls inside a radiologist box of the same class. On CT and MRI they need box IoU ≥ 0.3, matched one-to-one.
+
+### Skanda V1, pre-registered confirmatory set
+
+The analysis plan, lexicon and scoring code were committed on 6 Nov 2026 before Skanda V1 read any of these cases. The results are descriptive; the planned hypothesis tests with confidence intervals, and the int8 and int4 passes, are still running. Skanda V1 ran in bf16 as served. Percent, except seconds.
+
+| Metric | 🩻 Chest X-ray · 707 | 🫁 CT · 1,093 | 🧠 MRI · 784 | All · 2,584 |
+| --- | :-: | :-: | :-: | :-: |
+| Abnormal flagged | 79.5 | 71.6 | 79.6 | 76.2 |
+| Normals cleared (no finding drawn) | 79.5 | 72.4 | 93.5 | 80.4 |
+| Outline recall (mask IoU ≥ 0.3) | 23.5 | 28.0 | 61.4 | 36.2 |
+| Outline precision | 32.5 | 28.4 | 67.8 | 42.8 |
+| Mean Dice of found outlines | 70.9 | 72.1 | 74.8 | 73.2 |
+| Finding type agrees (found outlines) | 44.5 | 68.5 | 95.7 | 75.7 |
+| Side agrees (found outlines) | 83.2 | 94.0 | 95.7 | 91.8 |
+| Seconds per read | 7.0 | 5.5 | 7.3 | 6.4 |
+
+The chest X-ray set is 307 confirmatory films plus 400 fresh normal films. The CT and MRI cases are MSD and autoPET test cases. All 2,584 reads parsed. Outlines here are matched on mask IoU ≥ 0.3, which is stricter than the box-centre rule above, so the two tables are not comparable.
+
+### Earlier checkpoints: Skanda runs 2–3, with intervals
+
+This table uses the same 111 chest films, scored from the result files committed in this repository, with Wilson 95% intervals in brackets. Skanda read every film twice; its figures are the mean of both reads. Right finding type comes from run 3, which was released as Skanda-0. The other Skanda figures come from run 2. Skanda V1 above supersedes these numbers; this table is kept as a record.
+
+| Metric | **Skanda runs 2–3** | MedGemma 27B | MAIRA-2 |
 | --- | :-: | :-: | :-: |
 | Normal films called normal | **82.8%** <sub>[65.5–92.4]</sub> | 72.4% <sub>[54.3–85.3]</sub> | 72.4% <sub>[54.3–85.3]</sub> |
 | Abnormal films flagged | 85.4% <sub>[76.1–91.4]</sub> | **90.2%** <sub>[81.9–95.0]</sub> | **90.2%** <sub>[81.9–95.0]</sub> |
@@ -125,7 +173,7 @@ Chest X-ray, **ChestX-Det held-out test split**: 111 radiologist-labelled films,
 <img src="docs/benchmark/cxr-comparison-dark.png" alt="Chest X-ray model comparison: headline rates and sensitivity by radiologist label">
 </details>
 
-The numbers are generated from `score.py` output by [`benchmark/emit_landing.py`](benchmark/emit_landing.py), the same source the landing page uses. Reproduce them with the [benchmark guide](benchmark/README.md). The small per-label sample sizes produce wide intervals.
+These numbers are generated from `score.py` output by [`benchmark/emit_landing.py`](benchmark/emit_landing.py), which also feeds the earlier-checkpoints chart on [voxelradai.com/benchmarks](https://voxelradai.com/benchmarks). Reproduce them with the [benchmark guide](benchmark/README.md). The small per-label sample sizes produce wide intervals.
 
 ## 🔁 Review workflow
 
