@@ -196,11 +196,11 @@ export function Footer() {
     ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
     ['Model', [['Skanda V1', '#model'], ['Benchmarks', '/benchmarks'], ['Skanda-0 (open source)', '/skanda-0'], ['Results log', '#log'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
-    ['About', [['Built by Hithesh Karanth', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
+    ['About', [['The builders', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const
   return <footer className="sk-footer">
     <ul className="sk-social">{social.map(([Icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span><Icon size={15} />{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
     <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={anchor(href)}>{label}</a></li>)}</ul></div>)}</div>
-    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 VoxelRad AI · Built by <a href={anchor('#about')}>Hithesh Karanth</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
+    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 VoxelRad AI · Built by <a href={anchor('#about')}>Hithesh Karanth and Skanda Kumar Udupa</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
   </footer>
 }

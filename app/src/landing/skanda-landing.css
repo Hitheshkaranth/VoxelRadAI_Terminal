@@ -724,3 +724,12 @@
   .sk-history-link{flex-direction:column;align-items:flex-start}
 }
 .sk-bench .sk-history-head + .sk-plans{margin-top:0}
+/* Builders: one row per person with their own profile links. */
+.sk-about-names{margin-top:8px;font:500 clamp(28px,2.2vw,38px)/1.1 var(--sk-display);letter-spacing:-.035em}
+.sk-builders{display:grid;gap:18px;margin-top:auto}
+.sk-builders>li{display:flex;gap:16px;align-items:flex-start}
+.sk-builders>li>div{flex:1;min-width:0;display:grid;gap:10px}
+.sk-builders b{font:500 18px var(--sk-display);color:#fff;padding-top:4px}
+.sk-builders .sk-monogram{width:48px;height:48px;font-size:16px}
+.sk-builders>li+li .sk-monogram{background:conic-gradient(from 20deg,#0068ad,#ffb840,#0099ff,#0068ad)}
+.sk-builders .sk-about-links{margin-top:0}
