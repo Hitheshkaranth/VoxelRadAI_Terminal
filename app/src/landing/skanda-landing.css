@@ -323,8 +323,8 @@
 .sk-triptych figure{min-height:0}
 .sk-cursor{position:absolute;padding:4px 10px;border-radius:999px;font:600 11px var(--sk-body);color:#fff;box-shadow:0 6px 16px -6px #000;animation:sk-float 4s ease-in-out infinite}
 .sk-cursor::before{content:'';position:absolute;left:-10px;top:-10px;border:7px solid transparent;border-left-color:inherit;border-top-color:inherit;transform:rotate(-10deg)}
-.sk-cursor-a{left:46%;top:52%;background:#1fa463;border-color:#1fa463}
-.sk-cursor-b{left:38%;top:28%;background:var(--sk-blue);border-color:var(--sk-blue);animation-delay:-2s}
+.sk-cursor-a{left:46%;top:52%;background:#0f7a45;border-color:#0f7a45}
+.sk-cursor-b{left:38%;top:28%;background:var(--sk-blue-3);border-color:var(--sk-blue-3);animation-delay:-2s}
 @keyframes sk-float{50%{transform:translate(6px,-6px)}}
 .sk-card-silk{background:radial-gradient(70% 70% at 90% 0%,#6b6f78 0%,#2a2c31 30%,#0000 62%),radial-gradient(50% 60% at 10% 20%,#33363c,#0000 60%),#060606}
 .sk-table{flex:1;margin:28px -37px 0 0;padding:6px 0 0;background:#060606f2;border:1px solid #ffffff26;border-right:0;border-bottom:0;border-radius:12px 0 0 0;font-size:12px}
@@ -583,4 +583,42 @@
   .sk-about-grid{grid-template-columns:1fr}
   .sk-about-card{padding:26px 22px}
   .sk-cite-head{flex-direction:column}
+}
+
+/* ---------------------------------------------------------------- hero open-source line + nav sign-in */
+.sk-hero-oss{display:inline-flex;align-items:center;gap:10px;margin-top:22px;padding:5px 12px 5px 5px;border:1px solid var(--sk-line-2);border-radius:999px;background:#0b0b0bcc;font-size:13px;color:#d6d6d6;transition:border-color .25s var(--sk-ease),color .25s var(--sk-ease)}
+.sk-hero-oss span{padding:3px 8px;border-radius:999px;background:var(--sk-blue-3);color:#fff;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk-hero-oss:hover{border-color:#7acaff80;color:#fff}
+.sk-hero-oss svg{transition:transform .25s var(--sk-ease)}
+.sk-hero-oss:hover svg{transform:translate(2px,-2px)}
+.sk-nav-signin{margin-right:-2px}
+@media (max-width:1100px){.sk-nav-signin{display:none}}
+
+/* ---------------------------------------------------------------- request access */
+.sk-access{padding:clamp(80px,7.3vw,139px) 0 0;scroll-margin-top:60px}
+.sk-access-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:start}
+.sk-access-copy .sk-h2{margin-top:22px}
+.sk-access-copy>p{margin-top:18px;max-width:480px;color:var(--sk-muted);font-size:15.5px}
+.sk-access-points{display:grid;gap:12px;margin-top:28px;font-size:14px;color:#d0d0d0}
+.sk-access-points li{display:flex;gap:10px;align-items:flex-start}
+.sk-access-points svg{flex:none;margin-top:4px;color:var(--sk-blue-2)}
+.sk-access-card{display:grid;gap:16px;padding:32px;border:1px solid var(--sk-card-line);border-radius:14px;background:radial-gradient(80% 60% at 100% 0%,#0b2350 0%,#030712 50%,#030303 80%);box-shadow:0 40px 100px -60px #1a7dff99}
+.sk-form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sk-form-field{display:grid;gap:7px;font-size:12.5px;color:var(--sk-muted)}
+.sk-form-field :is(input,select,textarea){width:100%;padding:11px 13px;border:1px solid var(--sk-line-2);border-radius:9px;background:#0a0a0a;color:#fff;font:15px/1.4 var(--sk-body);transition:border-color .2s var(--sk-ease),box-shadow .2s var(--sk-ease)}
+.sk-form-field textarea{resize:vertical;min-height:110px}
+.sk-form-field :is(input,select,textarea):focus{outline:0;border-color:var(--sk-blue-2);box-shadow:0 0 0 3px #0099ff33}
+.sk-form-field :is(input,textarea)::placeholder{color:#6f6f6f}
+.sk-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.sk-access-error{padding:10px 12px;border:1px solid #ff6b6b55;border-radius:9px;background:#2a0b0b;color:#ffb3b3;font-size:13.5px}
+.sk-access-submit{justify-self:start;height:44px;padding:0 22px;font-size:14.5px}
+.sk-access-submit:disabled{opacity:.6;cursor:progress}
+.sk-access-done{place-items:start;min-height:340px;align-content:center}
+.sk-access-done h3{font:500 30px/1.1 var(--sk-display);letter-spacing:-.03em}
+.sk-access-done p{color:var(--sk-muted);max-width:420px}
+.sk-access-tick{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--sk-blue-3);color:#fff;animation:sk-pop .5s cubic-bezier(.34,1.56,.64,1)}
+@media (max-width:900px){
+  .sk-access-grid{grid-template-columns:1fr;gap:32px}
+  .sk-access-card{padding:22px}
+  .sk-form-row{grid-template-columns:1fr}
 }

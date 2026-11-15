@@ -8,6 +8,7 @@ import { AdminUsers } from './AdminUsers'
 import { OperationsPanel } from './OperationsPanel'
 import { AdminReviews } from './AdminReviews'
 import { AdminAudit } from './AdminAudit'
+import { AdminAccessRequests } from './AdminAccessRequests'
 import './admin.css'
 
 export function AdminPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -48,6 +49,7 @@ function AdminPanelContent({ onClose }: { onClose: () => void }) {
       {remote && <><p className="admin-note">Updated {new Date(remote.generatedAt).toLocaleString()}</p><dl className="admin-metrics"><Metric title="Registered users" value={remote.users.total} /><Metric title="Active users / 30 days" value={remote.users.active30d} /><Metric title="Stored studies" value={remote.studies.total} /><Metric title="Stored images" value={remote.images.total} /></dl><h3 className="admin-heading">Reports and sharing</h3><dl className="admin-rows"><Metric title="Reports" value={remote.reports.total} /><Metric title="Signed reports" value={remote.reports.signed} /><Metric title="Active shares" value={remote.shares.active} /><Metric title="Revoked shares" value={remote.shares.revoked} /></dl><h3 className="admin-heading">Processing and activity</h3>{remote.jobs.available === false && <p className="admin-note">Server processing metrics are unavailable. Analysis currently runs through the browser workspace.</p>}<dl className="admin-rows">{remote.jobs.available !== false && <><Metric title="Queued jobs" value={remote.jobs.queued} /><Metric title="Running jobs" value={remote.jobs.running} /><Metric title="Failed jobs" value={remote.jobs.failed} /></>}<Metric title="Recorded events / 30 days" value={remote.events.total30d} /></dl></>}
       <OperationsPanel />
       {remote && <AdminReviews scope="organization" studies={studies} />}
+      {remote && <AdminAccessRequests />}
       {remote && <AdminAudit />}
       {remote && <AdminUsers />}
     </>}

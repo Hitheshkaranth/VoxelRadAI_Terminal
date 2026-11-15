@@ -93,7 +93,7 @@ const capabilities = [
 ] as const
 export function Capabilities() {
   return <section className="sk-wrap sk-caps" id="capabilities" aria-labelledby="caps-title">
-    <Reveal className="sk-head-row"><h2 id="caps-title">Elevate every<br />clinical read.</h2><div className="sk-actions"><Pill href="#approach">View the approach</Pill><Pill href="/workspace" tone="grey">Open workspace</Pill></div></Reveal>
+    <Reveal className="sk-head-row"><h2 id="caps-title">Elevate every<br />clinical read.</h2><div className="sk-actions"><Pill href="#approach">View the approach</Pill><Pill href="#access" tone="grey">Request access</Pill></div></Reveal>
     <Reveal className="sk-cap-grid">{capabilities.map(([Icon, a, b], i) => <a key={a} href="#approach" style={{ ['--i' as string]: i }}><Icon size={26} strokeWidth={1.8} /><span>{a}<br />{b}</span></a>)}</Reveal>
     <Platform />
   </section>
@@ -199,7 +199,7 @@ export function Faqs() {
 /* ------------------------------------------------------------------ 13 · closing + footer */
 export function Closing() {
   return <section className="sk-close" aria-labelledby="close-title">
-    <Reveal><h2 id="close-title">See More.<br />Report Better.</h2><div className="sk-actions"><Pill href="#benchmarks" tone="grey">See benchmarks</Pill><Pill href="/workspace">Open workspace</Pill></div></Reveal>
+    <Reveal><h2 id="close-title">See More.<br />Report Better.</h2><div className="sk-actions"><Pill href="#weights" tone="grey">Get Skanda-0</Pill><Pill href="#access">Request access</Pill></div></Reveal>
     <div className="sk-close-mark" aria-hidden="true"><img src="/skanda-mark.png" alt="" /></div>
   </section>
 }
@@ -208,7 +208,7 @@ const social = [[GitBranch, 'GitHub', 'https://github.com/Hitheshkaranth/VoxelRa
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
-    ['Product', [['Workspace', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
+    ['Product', [['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
     ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['Built by Hithesh Karanth', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],

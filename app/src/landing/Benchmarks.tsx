@@ -47,7 +47,7 @@ export function Benchmarks() {
         <p className="sk-plan-blurb">{c.blurb}</p>
         <ul>{headlineRows.slice(0, 3).map(([key, label]) => { const s = m.headline[key] as Stat; return <li key={key}><span>{label}</span><b>{pct(s.pct, digitsFor(label))}</b></li> })}
           <li><span>Cardiomegaly found</span><b>{frac(m.sensitivity.Cardiomegaly.k, m.sensitivity.Cardiomegaly.n)}</b></li></ul>
-        <div className="sk-plan-actions"><Pill href={m.key === 'skanda' ? '/workspace' : method} tone={m.key === 'skanda' ? 'light' : 'grey'}>{m.key === 'skanda' ? 'Read with Skanda' : 'See the method'}</Pill><a href={method} className="sk-details">Details <ArrowRight size={13} /></a></div>
+        <div className="sk-plan-actions"><Pill href={m.key === 'skanda' ? '#access' : method} tone={m.key === 'skanda' ? 'light' : 'grey'}>{m.key === 'skanda' ? 'Request access' : 'See the method'}</Pill><a href={method} className="sk-details">Details <ArrowRight size={13} /></a></div>
       </article>
     })}</Reveal>
 

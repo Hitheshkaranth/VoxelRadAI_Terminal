@@ -11,6 +11,7 @@ import { createOidcRoutes } from './oidc.mjs'
 import { createObjectStorageRouter } from './objectStorage.mjs'
 import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
+import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 
 const { Pool } = pg
 const port = Number(process.env.PORT || 8080)
@@ -106,7 +107,7 @@ const objectStorage = await createObjectStorageRouter({ pool, body, send, env: p
 const pacs = createDicomweb({ env: process.env })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
-  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()')])
+  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'")])
 }
 export async function handler(req, res) {
   const requestId = operations.begin(res)
@@ -184,6 +185,15 @@ export async function handler(req, res) {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" })
       return res.end(result.rows[0].snapshot_html)
     }
+    if (path === '/api/access-requests' && req.method === 'POST') {
+      const parsed = parseAccessRequest(await body(req, 4096))
+      if (parsed.spam) return send(res, 202, { ok: true })
+      if (parsed.error) return send(res, 400, { error: parsed.error })
+      if (await rateLimit(`access-ip:${clientIp(req)}`, 5) || await rateLimit(`access-email:${parsed.value.email}`, 2)) return send(res, 429, { error: 'We already have your request. Try again in 15 minutes if you need to change it.' }, { 'Retry-After': '900' })
+      const { name, email, organization, role, useCase } = parsed.value
+      await pool.query('INSERT INTO access_requests(id,name,email,organization,role,use_case) VALUES ($1,$2,$3,$4,$5,$6)', [randomUUID(), name, email, organization, role, useCase])
+      return send(res, 202, { ok: true })
+    }
     const user = await userFor(req)
     if (path === '/api/auth/check' && req.method === 'GET') return send(res, user ? 200 : 401, user ? { ok: true } : { error: 'Sign in to continue.' })
     if (path === '/api/session' && req.method === 'GET') return send(res, 200, { user })
@@ -237,6 +247,22 @@ export async function handler(req, res) {
         await client.query('COMMIT')
         return send(res, 201, { token, expiresAt: expiresAt.toISOString() })
       } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
+    if (path === '/api/admin/access-requests' && req.method === 'GET') {
+      let limit,offset
+      try { ({limit,offset}=pagination(new URL(req.url, 'http://internal').searchParams)) } catch(error) { return send(res,400,{error:error.message}) }
+      const [result,count] = await Promise.all([pool.query('SELECT id,name,email,organization,role,use_case AS "useCase",status,created_at AS "createdAt",reviewed_at AS "reviewedAt" FROM access_requests ORDER BY (status=\'new\') DESC,created_at DESC,id LIMIT $1 OFFSET $2',[limit,offset]),pool.query("SELECT count(*)::int AS total, count(*) FILTER (WHERE status='new')::int AS pending FROM access_requests")])
+      return send(res, 200, { requests: result.rows, total: count.rows[0].total, pending: count.rows[0].pending })
+    }
+    if (path.startsWith('/api/admin/access-requests/') && req.method === 'PATCH') {
+      const id = path.slice('/api/admin/access-requests/'.length)
+      if (!UUID.test(id)) return send(res, 404, { error: 'Request not found.' })
+      const data = await body(req)
+      if (!ACCESS_STATUSES.includes(data.status)) return send(res, 400, { error: 'Status must be new, approved or declined.' })
+      const result = await pool.query("UPDATE access_requests SET status=$2,reviewed_at=CASE WHEN $2='new' THEN NULL ELSE now() END WHERE id=$1 RETURNING id", [id, data.status])
+      if (!result.rowCount) return send(res, 404, { error: 'Request not found.' })
+      await audit(user.id, 'access.reviewed', id)
+      return send(res, 200, { ok: true })
     }
     if (path === '/api/admin/users' && req.method === 'GET') {
       const params = new URL(req.url, 'http://internal').searchParams

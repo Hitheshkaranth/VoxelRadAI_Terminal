@@ -40,14 +40,15 @@ export function Nav() {
       <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={href} aria-current={href === active ? 'location' : undefined}><Roll>{label}</Roll></a>)}</nav>
       <div className="sk-nav-end">
         <span className="sk-serving" title="Base model"><i aria-hidden="true" />Skanda V1</span>
-        <a className="sk-pill sk-pill-light sk-pill-sm" href="/workspace"><Roll>Open workspace</Roll></a>
+        <a className="sk-pill sk-pill-ghost sk-pill-sm sk-nav-signin" href="/workspace"><Roll>Sign in</Roll></a>
+        <a className="sk-pill sk-pill-light sk-pill-sm" href="#access"><Roll>Request access</Roll></a>
         <button className="sk-menu" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={20} /></button>
       </div>
     </div>
     <dialog ref={dialog} className="sk-sheet" onClose={() => setOpen(false)} aria-label="Menu">
       <div className="sk-sheet-top"><a className="sk-brand" href="#top" onClick={() => setOpen(false)}><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
       <ol>{links.map(([label, href], i) => <li key={href}><a href={href} onClick={() => setOpen(false)}><span>{String(i + 1).padStart(2, '0')}</span>{label}<ArrowUpRight size={18} /></a></li>)}</ol>
-      <Pill href="/workspace">Open workspace</Pill>
+      <div className="sk-actions"><Pill href="#access" onClick={() => setOpen(false)}>Request access</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
     </dialog>
   </header>
 }
@@ -120,7 +121,8 @@ export function Hero() {
       <p className="sk-eyebrow">Skanda V1 · Base model</p>
       <h1 id="hero-title"><span>Grounded <em>Radiology</em></span><span><i>Visible</i> Evidence</span></h1>
       <p className="sk-lead">X-ray, CT and MRI reads that point to the pixels behind every finding.</p>
-      <div className="sk-actions"><Pill href="/workspace">Open workspace</Pill><Pill href="#benchmarks" tone="ghost">See benchmarks</Pill></div>
+      <div className="sk-actions"><Pill href="#access">Request access</Pill><Pill href="#demo" tone="ghost">Watch a read</Pill></div>
+      <a className="sk-hero-oss" href="#weights"><span>New</span>Skanda-0 is open source · bf16, int8 and int4 on Hugging Face<ArrowUpRight size={14} /></a>
     </div>
     <ReadingRoom />
   </section>

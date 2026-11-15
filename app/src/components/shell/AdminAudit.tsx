@@ -10,7 +10,7 @@ const LABELS: Record<string, string> = {
   'user.created': 'Created an account', 'user.disabled': 'Disabled an account', 'user.enabled': 'Enabled an account', 'user.password_reset': 'Reset a password',
   'study.saved': 'Saved a study', 'study.deleted': 'Deleted a study', 'share.created': 'Created a share link', 'share.revoked': 'Revoked a share link', 'share.opened': 'Share link opened',
   'volume.saved': 'Saved a volume', 'volume.deleted': 'Deleted a volume', 'pacs.query': 'Searched PACS', 'pacs.instance_retrieved': 'Retrieved from PACS',
-  'audit.exported': 'Exported the audit log', 'reviews.exported': 'Exported finding reviews',
+  'audit.exported': 'Exported the audit log', 'access.reviewed': 'Reviewed an access request', 'reviews.exported': 'Exported finding reviews',
 }
 const label = (type: string) => LABELS[type] ?? type
 

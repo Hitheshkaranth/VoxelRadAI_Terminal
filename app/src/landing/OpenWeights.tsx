@@ -103,7 +103,7 @@ export function OpenWeights() {
 function CopyCommand({ command, build }: { command: string; build: string }) {
   const [copied, setCopied] = useState(false)
   return <div className={`sk-cmd${copied ? ' sk-cmd-done' : ''}`}>
-    <code>{command}</code>
+    <code tabIndex={0} aria-label={`Download command: ${command}`}>{command}</code>
     <button type="button" aria-label={copied ? 'Copied' : 'Copy download command'} onClick={async () => {
       try {
         await navigator.clipboard.writeText(command)
