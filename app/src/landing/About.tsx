@@ -5,12 +5,12 @@ import { BENCHMARKS, BUILDS } from '../lib/openModels'
 import { Reveal } from './ui'
 
 const builders = [
-  { name: 'Hithesh Karanth', initials: 'HK', profiles: [
+  { name: 'Hithesh Karanth', role: '', initials: 'HK', profiles: [
     ['GitHub', 'https://github.com/Hitheshkaranth', '@Hitheshkaranth'],
     ['Hugging Face', 'https://huggingface.co/hitheshkaranth', 'hitheshkaranth'],
     ['X', 'https://x.com/HitheshKaranth', '@HitheshKaranth'],
   ] },
-  { name: 'Skanda Kumar Udupa', initials: 'SU', profiles: [
+  { name: 'Dr\u00a0Skanda Kumar Udupa', role: 'Radiologist', initials: 'SU', profiles: [
     ['X', 'https://x.com/skandaudupa14g1', '@skandaudupa14g1'],
   ] },
 ] as const
@@ -39,7 +39,7 @@ export function About() {
         </dl>
         <ul className="sk-builders">{builders.map((b) => <li key={b.name}>
           <span className="sk-monogram" aria-hidden="true">{b.initials}</span>
-          <div><b>{b.name}</b><ul className="sk-about-links">{b.profiles.map(([label, href, handle]) =>
+          <div><b>{b.name}{b.role && <small className="sk-builder-role">{b.role}</small>}</b><ul className="sk-about-links">{b.profiles.map(([label, href, handle]) =>
             <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label, who: b.initials })}><span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul></div>
         </li>)}</ul>
       </div>
