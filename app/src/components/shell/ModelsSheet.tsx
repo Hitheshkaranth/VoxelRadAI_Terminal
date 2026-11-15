@@ -18,7 +18,7 @@ export function ModelsSheet() {
   const table = BENCHMARKS.find((t) => t.id === tableId) ?? BENCHMARKS[0]
 
   return (
-    <Sheet open wide onClose={() => openSheet(null)} title="Open models" subtitle="Skanda-0 weights on Hugging Face, with benchmark results.">
+    <Sheet open wide onClose={() => openSheet(null)} title="Open models" subtitle="Skanda-0, the open-source Skanda model, on Hugging Face. The hosted workspace serves Skanda V1.">
       <div className="om-stack">
         <section className="sh-settings-section" aria-labelledby="om-model">
           <div className="om-model-head">

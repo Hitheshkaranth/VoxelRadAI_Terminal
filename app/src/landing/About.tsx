@@ -42,7 +42,7 @@ export function About() {
             <h2 id="about-title">{name}</h2>
           </div>
         </div>
-        <p className="sk-about-text">VoxelRad AI and the Skanda model are built end to end by {name}: the reading workspace and volume viewer, the fine-tuned grounded model and its quantized builds, and the benchmarks and fault reports on this page.</p>
+        <p className="sk-about-text">VoxelRad AI and the Skanda model are built end to end by {name}: the reading workspace and volume viewer, Skanda V1 that the workspace serves, the open-source Skanda-0 and its quantized builds, and the benchmarks and fault reports on this page.</p>
         <dl className="sk-about-facts">
           <div><dt>Modalities</dt><dd>X-ray · CT · MRI</dd></div>
           <div><dt>Open builds</dt><dd>{BUILDS.length}</dd></div>
@@ -53,11 +53,11 @@ export function About() {
       </div>
       <div className="sk-about-card sk-cite" id="cite">
         <div className="sk-cite-head">
-          <div><p className="sk-plan-label">Cite</p><h3>Using Skanda in your work?</h3></div>
+          <div><p className="sk-plan-label">Cite</p><h3>Using Skanda-0 in your work?</h3></div>
           <button type="button" className={`sk-pill ${copied ? 'sk-pill-light' : 'sk-pill-grey'}`} onClick={copy} aria-live="polite">{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy BibTeX</>}</button>
         </div>
         <pre tabIndex={0} aria-label="BibTeX citation"><code>{bibtex}</code></pre>
-        <p className="sk-cite-foot">Weights are CC BY-NC 4.0. For commercial use or collaboration, reach out on <a className="sk-inline-link" href="https://huggingface.co/hitheshkaranth/Skanda-0/discussions">Hugging Face</a> or <a className="sk-inline-link" href="https://x.com/HitheshKaranth">X</a>.</p>
+        <p className="sk-cite-foot">Skanda-0 weights are CC BY-NC 4.0. For commercial use or collaboration, reach out on <a className="sk-inline-link" href="https://huggingface.co/hitheshkaranth/Skanda-0/discussions">Hugging Face</a> or <a className="sk-inline-link" href="https://x.com/HitheshKaranth">X</a>.</p>
       </div>
     </Reveal>
   </section>

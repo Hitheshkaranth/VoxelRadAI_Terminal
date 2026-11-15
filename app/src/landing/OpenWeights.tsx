@@ -43,9 +43,9 @@ export function OpenWeights() {
 
   return <section className="sk-bench sk-weights" id="weights" aria-labelledby="weights-title">
     <div className="sk-wrap sk-center">
-      <p className="sk-eyebrow">Hugging Face · {SKANDA_0.license}</p>
+      <p className="sk-eyebrow">Open source · Skanda-0 · {SKANDA_0.license}</p>
       <h2 id="weights-title" className="sk-h2 sk-weights-title">Open <em>weights</em></h2>
-      <p className="sk-weights-lead">Skanda V1 is published as <a href={hfUrl(SKANDA_0.repo)} onClick={() => track('model_card_open', { from: 'landing' })}>{SKANDA_0.repo}</a>, in three builds. Only the language model is quantized; the outline model and score head stay bf16.</p>
+      <p className="sk-weights-lead">Skanda-0 is our open-source model, published on Hugging Face as <a href={hfUrl(SKANDA_0.repo)} onClick={() => track('model_card_open', { from: 'landing' })}>{SKANDA_0.repo}</a> in three builds. Only its language model is quantized; the outline model and score head stay bf16. The hosted workspace serves Skanda V1, which is not part of this release.</p>
     </div>
 
     <Reveal className="sk-wrap sk-plans sk-weights-plans">{BUILDS.map((b, i) => {
@@ -69,10 +69,10 @@ export function OpenWeights() {
     <Reveal className="sk-wrap sk-chart-card">
       <div className="sk-chart-head">
         <div>
-          <h3>{view === 'Quantized builds' ? 'What quantization costs' : `${view}, held out`}</h3>
+          <h3>{view === 'Quantized builds' ? 'What quantization costs' : `Skanda-0 on ${view}`}</h3>
           <p>{view === 'Quantized builds'
-            ? 'The same test sets re-read with each build. int8 tracks bf16 within a point or two; int4 gives up most on MRI box recall and CT normals.'
-            : `${v.table.groups.find((g) => g.label === v.group)?.cases}. Skanda against MedGemma 27B in the same pipeline. MAIRA-2 reads chest X-ray only.`}</p>
+            ? 'The same test sets re-read with each Skanda-0 build. int8 tracks bf16 within a point or two; int4 gives up most on MRI box recall and CT normals.'
+            : `${v.table.groups.find((g) => g.label === v.group)?.cases}. Open Skanda-0 against MedGemma 27B in the same pipeline. MAIRA-2 reads chest X-ray only.`}</p>
         </div>
         <div className="sk-seg sk-seg-lg" role="tablist" aria-label="Open weights benchmark view">{(Object.keys(views) as View[]).map((k) =>
           <button key={k} role="tab" aria-selected={k === view} onClick={() => { setView(k); track('benchmark_tab', { table: k, from: 'landing' }) }}>{k}</button>)}</div>
@@ -95,7 +95,7 @@ export function OpenWeights() {
           })}</div>
         </div>)}
       </div>
-      <p className="sk-chart-foot">{v.table.caption} {v.table.footnote} Source: the <a href={hfUrl(SKANDA_0.repo)}>Skanda-0 model card</a>. CT and MRI figures come from the model card’s held-out sets, which differ from the chest X-ray comparison above. Research use only; not a medical device.</p>
+      <p className="sk-chart-foot">{v.table.caption} {v.table.footnote} These figures are for the open Skanda-0, not Skanda V1. Source: the <a href={hfUrl(SKANDA_0.repo)}>Skanda-0 model card</a>. CT and MRI figures come from the model card’s held-out sets, which differ from the chest X-ray comparison above. Research use only; not a medical device.</p>
     </Reveal>
   </section>
 }
