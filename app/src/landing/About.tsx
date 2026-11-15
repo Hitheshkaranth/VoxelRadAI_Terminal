@@ -23,15 +23,6 @@ const bibtex = `@misc{karanth2026skanda,
 }`
 
 export function About() {
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(bibtex)
-      setCopied(true)
-      track('cite_copy')
-      setTimeout(() => setCopied(false), 1600)
-    } catch { /* the block stays selectable */ }
-  }
   return <section className="sk-about" id="about" aria-labelledby="about-title">
     <Reveal className="sk-wrap sk-about-grid">
       <div className="sk-about-card">
@@ -51,7 +42,23 @@ export function About() {
         <ul className="sk-about-links">{profiles.map(([label, href, handle]) =>
           <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label })}><span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul>
       </div>
-      <div className="sk-about-card sk-cite" id="cite">
+      <CiteCard />
+    </Reveal>
+  </section>
+}
+
+export function CiteCard() {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(bibtex)
+      setCopied(true)
+      track('cite_copy')
+      setTimeout(() => setCopied(false), 1600)
+    } catch { /* the block stays selectable */ }
+  }
+  return <>
+    <div className="sk-about-card sk-cite" id="cite">
         <div className="sk-cite-head">
           <div><p className="sk-plan-label">Cite</p><h3>Using Skanda-0 in your work?</h3></div>
           <button type="button" className={`sk-pill ${copied ? 'sk-pill-light' : 'sk-pill-grey'}`} onClick={copy} aria-live="polite">{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy BibTeX</>}</button>
@@ -59,6 +66,5 @@ export function About() {
         <pre tabIndex={0} aria-label="BibTeX citation"><code>{bibtex}</code></pre>
         <p className="sk-cite-foot">Skanda-0 weights are CC BY-NC 4.0. For commercial use or collaboration, reach out on <a className="sk-inline-link" href="https://huggingface.co/hitheshkaranth/Skanda-0/discussions">Hugging Face</a> or <a className="sk-inline-link" href="https://x.com/HitheshKaranth">X</a>.</p>
       </div>
-    </Reveal>
-  </section>
+  </>
 }

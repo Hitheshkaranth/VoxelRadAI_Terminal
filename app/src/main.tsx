@@ -38,9 +38,13 @@ const stripUrl = (event: BeforeSendEvent): BeforeSendEvent => ({ ...event, url: 
 const LandingPage = lazy(() => import('./LandingPage').then((m) => ({ default: m.LandingPage })))
 const WorkspaceRoot = lazy(() => import('./WorkspaceRoot').then((m) => ({ default: m.WorkspaceRoot })))
 const DemoRoot = lazy(() => import('./DemoRoot').then((m) => ({ default: m.DemoRoot })))
+const Skanda0Page = lazy(() => import('./landing/Pages').then((m) => ({ default: m.Skanda0Page })))
+const BenchmarksPage = lazy(() => import('./landing/Pages').then((m) => ({ default: m.BenchmarksPage })))
 const path = window.location.pathname.replace(/\/+$/, '') || '/'
 function Route() {
   if (path === '/demo') return <DemoRoot />
+  if (path === '/skanda-0') return <Skanda0Page />
+  if (path === '/benchmarks') return <BenchmarksPage />
   if (path === '/' && !new URLSearchParams(window.location.search).has('oidc')) return <LandingPage />
   return <WorkspaceRoot />
 }

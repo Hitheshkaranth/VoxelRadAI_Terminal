@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlignCenterHorizontal, AlignEndHorizontal, AlignStartHorizontal, AlignStartVertical, AlignCenterVertical, AlignEndVertical, ChevronDown, ChevronRight, Contrast, Eye, EyeOff, Hand, Layers, Menu, MousePointer2, ScanLine, Search, Sparkles, X, ArrowUpRight } from 'lucide-react'
 import { studies, img, type Modality } from './data'
-import { Pill, Roll } from './ui'
+import { Pill, Roll, anchor, onLanding } from './ui'
 
 const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['Weights', '#weights'], ['FAQs', '#faqs']] as const
 
@@ -19,6 +19,7 @@ export function Nav() {
   // Highlight the menu item for the last section whose top has passed the middle of the viewport.
   const [active, setActive] = useState<string>('#top')
   useEffect(() => {
+    if (!onLanding()) { setActive(''); return }
     let frame = 0
     const update = () => {
       frame = 0
@@ -36,19 +37,19 @@ export function Nav() {
   }, [])
   return <header className="sk-nav" data-scrolled={scrolled}>
     <div className="sk-nav-inner">
-      <a className="sk-brand" href="#top" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a>
-      <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={href} aria-current={href === active ? 'location' : undefined}><Roll>{label}</Roll></a>)}</nav>
+      <a className="sk-brand" href={anchor('#top')} aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a>
+      <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={anchor(href)} aria-current={href === active ? 'location' : undefined}><Roll>{label}</Roll></a>)}</nav>
       <div className="sk-nav-end">
-        <span className="sk-serving" title="Base model"><i aria-hidden="true" />Skanda V1</span>
+        <span className="sk-serving" title="Model used by the hosted workspace">Skanda V1</span>
         <a className="sk-pill sk-pill-ghost sk-pill-sm sk-nav-signin" href="/workspace"><Roll>Sign in</Roll></a>
-        <a className="sk-pill sk-pill-light sk-pill-sm" href="#access"><Roll>Request access</Roll></a>
+        <a className="sk-pill sk-pill-light sk-pill-sm" href={anchor('#access')}><Roll>Request access</Roll></a>
         <button className="sk-menu" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={20} /></button>
       </div>
     </div>
     <dialog ref={dialog} className="sk-sheet" onClose={() => setOpen(false)} aria-label="Menu">
-      <div className="sk-sheet-top"><a className="sk-brand" href="#top" onClick={() => setOpen(false)}><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
-      <ol>{links.map(([label, href], i) => <li key={href}><a href={href} onClick={() => setOpen(false)}><span>{String(i + 1).padStart(2, '0')}</span>{label}<ArrowUpRight size={18} /></a></li>)}</ol>
-      <div className="sk-actions"><Pill href="#access" onClick={() => setOpen(false)}>Request access</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
+      <div className="sk-sheet-top"><a className="sk-brand" href={anchor('#top')} onClick={() => setOpen(false)}><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
+      <ol>{links.map(([label, href], i) => <li key={href}><a href={anchor(href)} onClick={() => setOpen(false)}><span>{String(i + 1).padStart(2, '0')}</span>{label}<ArrowUpRight size={18} /></a></li>)}</ol>
+      <div className="sk-actions"><Pill href={anchor('#access')} onClick={() => setOpen(false)}>Request access</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
     </dialog>
   </header>
 }

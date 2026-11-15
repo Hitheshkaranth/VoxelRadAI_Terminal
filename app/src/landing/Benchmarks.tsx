@@ -51,7 +51,7 @@ export function Benchmarks() {
       </article>
     })}</Reveal>
 
-    <Reveal className="sk-wrap sk-chart-card">
+    <Reveal className="sk-wrap sk-chart-card" id="head-to-head">
       <div className="sk-chart-head">
         <div><h3>Head to head</h3><p className="sk-bench-sub">Three models, the same 111 held-out ChestX-Det films, labelled and boxed by three radiologists. One scorer, Wilson 95% intervals, nothing typed by hand.</p><p>{notes[view]}</p></div>
         <div className="sk-seg sk-seg-lg" role="tablist" aria-label="Benchmark view">{(Object.keys(views) as (keyof typeof views)[]).map((v) => <button key={v} role="tab" aria-selected={v === view} onClick={() => setView(v)}>{v}</button>)}</div>
@@ -74,7 +74,7 @@ export function Benchmarks() {
           })}</div>
         </div>)}
       </div>
-      <p className="sk-chart-foot">Skanda V1: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href={method}>Full method</a> · <a href="https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md">Known failures</a></p>
+      <p className="sk-chart-foot">Skanda V1: two reads of every film, mean shown with single-read intervals. Right finding type is from the run-3 checkpoint (docs/benchmark-card.svg); the other Skanda figures are from the run-2 results committed in benchmark/. MedGemma 27B and MAIRA-2: one read each. Single-run differences under ~15 labels are within run-to-run noise. Chest X-ray only; CT and MRI were evaluated separately on small selected slices. <a href="/benchmarks">All benchmarks, including CT and MRI</a> · <a href={method}>Full method</a> · <a href="https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/validation/2026-11-02-labeled-case-failure-report.md">Known failures</a></p>
     </Reveal>
   </section>
 }

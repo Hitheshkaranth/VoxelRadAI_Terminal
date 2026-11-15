@@ -46,6 +46,14 @@
   ],
   "rewrites": [
     {
+      "source": "/skanda-0",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/benchmarks",
+      "destination": "/index.html"
+    },
+    {
       "source": "/demo",
       "destination": "/index.html"
     },

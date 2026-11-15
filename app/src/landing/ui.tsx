@@ -42,3 +42,7 @@ export function useReducedMotion() {
 
 export const pct = (v: number, digits = 0) => `${v.toFixed(digits)}%`
 export const frac = (k: number, n: number) => `${Number.isInteger(k) ? k : k.toFixed(1)} / ${Number.isInteger(n) ? n : n.toFixed(1)}`
+
+/** In-page anchors (#benchmarks) resolve to the landing page when used on /skanda-0 or /benchmarks. */
+export const onLanding = () => typeof location === 'undefined' || location.pathname === '/'
+export const anchor = (href: string) => (href.startsWith('#') && !onLanding() ? `/${href}` : href)

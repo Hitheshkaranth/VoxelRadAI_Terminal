@@ -32,7 +32,8 @@ const views = {
 } as const
 type View = keyof typeof views
 
-export function OpenWeights() {
+/** Landing section by default; the /skanda-0 and /benchmarks pages reuse its parts. */
+export function OpenWeights({ intro = true, cards = true, chart = true }: { intro?: boolean; cards?: boolean; chart?: boolean } = {}) {
   const [view, setView] = useState<View>('CT')
   const [hover, setHover] = useState<string | null>(null)
   const v = views[view]
@@ -42,13 +43,14 @@ export function OpenWeights() {
     : v.table.groups.flatMap((g) => g.rows.map((r) => ({ label: `${r.metric} · ${g.label === 'Chest X-ray' ? 'X-ray' : g.label}`, values: r.values })))
 
   return <section className="sk-bench sk-weights" id="weights" aria-labelledby="weights-title">
-    <div className="sk-wrap sk-center">
+    {intro && <div className="sk-wrap sk-center">
       <p className="sk-eyebrow">Open source · Skanda-0 · {SKANDA_0.license}</p>
       <h2 id="weights-title" className="sk-h2 sk-weights-title">Open <em>weights</em></h2>
       <p className="sk-weights-lead">Skanda-0 is our open-source model, published on Hugging Face as <a href={hfUrl(SKANDA_0.repo)} onClick={() => track('model_card_open', { from: 'landing' })}>{SKANDA_0.repo}</a> in three builds. Only its language model is quantized; the outline model and score head stay bf16. The hosted workspace serves Skanda V1, which is not part of this release.</p>
-    </div>
+      <a className="sk-weights-more" href="/skanda-0">Skanda-0 model page: CT and MRI results, quantization trade-offs and how to run it <ArrowRight size={14} /></a>
+    </div>}
 
-    <Reveal className="sk-wrap sk-plans sk-weights-plans">{BUILDS.map((b, i) => {
+    {cards && <Reveal className="sk-wrap sk-plans sk-weights-plans">{BUILDS.map((b, i) => {
       const c = buildCopy[b.precision]
       return <article key={b.repo} className="sk-plan" data-model={b.recommended ? 'skanda' : undefined} style={{ ['--r' as string]: i }}>
         <span className="sk-plan-label">{c.label}</span>
@@ -64,9 +66,9 @@ export function OpenWeights() {
           <a href={hfUrl(b.repo)} className="sk-details" onClick={() => track('model_download', { build: b.precision, link: 'huggingface', from: 'landing' })}>Model card <ArrowRight size={13} /></a>
         </div>
       </article>
-    })}</Reveal>
+    })}</Reveal>}
 
-    <Reveal className="sk-wrap sk-chart-card">
+    {chart && <Reveal className="sk-wrap sk-chart-card">
       <div className="sk-chart-head">
         <div>
           <h3>{view === 'Quantized builds' ? 'What quantization costs' : `Skanda-0 on ${view}`}</h3>
@@ -96,7 +98,7 @@ export function OpenWeights() {
         </div>)}
       </div>
       <p className="sk-chart-foot">{v.table.caption} {v.table.footnote} These figures are for the open Skanda-0, not Skanda V1. Source: the <a href={hfUrl(SKANDA_0.repo)}>Skanda-0 model card</a>. CT and MRI figures come from the model card’s held-out sets, which differ from the chest X-ray comparison above. Research use only; not a medical device.</p>
-    </Reveal>
+    </Reveal>}
   </section>
 }
 

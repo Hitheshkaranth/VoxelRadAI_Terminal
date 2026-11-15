@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import './landing/skanda-landing.css'
 import { Hero, Nav } from './landing/Hero'
-import { Approach, Capabilities, Closing, Evidence, Faqs, Footer, Intro, Reads, Stack, Ticker } from './landing/Sections'
+import { Approach, Capabilities, Closing, Evidence, Faqs, Footer, Intro, Reads, Stack } from './landing/Sections'
+import { ResultsLog } from './landing/ResultsLog'
 import { Benchmarks } from './landing/Benchmarks'
 import { OpenWeights } from './landing/OpenWeights'
 import { Demo } from './landing/Demo'
@@ -17,15 +18,15 @@ export function LandingPage() {
     <main id="main">
       <Hero />
       <Stack />
+      <Demo />
       <Intro />
       <Reads />
       <Capabilities />
-      <Ticker />
-      <Demo />
       <Benchmarks />
-      <OpenWeights />
+      <OpenWeights chart={false} />
       <Approach />
       <Evidence />
+      <ResultsLog />
       <About />
       <Faqs />
       <RequestAccess />

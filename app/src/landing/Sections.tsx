@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Accordion } from 'radix-ui'
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bone, Boxes, Brain, ChevronDown, Database, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Boxes, Brain, ChevronDown, Database, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
 import { faqs, img, models, reads, wall } from './data'
-import { Pill, Reveal, frac, pct, useReducedMotion } from './ui'
+import { Pill, Reveal, anchor, frac, pct, useReducedMotion } from './ui'
 
 /* ------------------------------------------------------------------ 3 · stack */
 const stack = [
@@ -95,22 +95,7 @@ export function Capabilities() {
   return <section className="sk-wrap sk-caps" id="capabilities" aria-labelledby="caps-title">
     <Reveal className="sk-head-row"><h2 id="caps-title">Elevate every<br />clinical read.</h2><div className="sk-actions"><Pill href="#approach">View the approach</Pill><Pill href="#access" tone="grey">Request access</Pill></div></Reveal>
     <Reveal className="sk-cap-grid">{capabilities.map(([Icon, a, b], i) => <a key={a} href="#approach" style={{ ['--i' as string]: i }}><Icon size={26} strokeWidth={1.8} /><span>{a}<br />{b}</span></a>)}</Reveal>
-    <Platform />
   </section>
-}
-
-const formats = [[Stethoscope, 'X-ray'], [ScanLine, 'CT'], [Brain, 'MRI'], [FileImage, 'DICOM'], [Boxes, 'NRRD'], [Bone, 'DRR'], [FileText, 'PDF report'], [Database, 'PACS']] as const
-function Platform() {
-  return <Reveal className="sk-platform">
-    <div className="sk-platform-copy"><h3>Modality flexibility.<br />Model consistency.</h3><p>Whatever the study, the reading stays <b>consistent</b>, <b>grounded</b>, <b>reviewable</b>, and built to be checked.</p><Pill href="#reads" tone="grey">See the reads</Pill></div>
-    <ul className="sk-platform-grid">{formats.map(([Icon, name]) => <li key={name} title={name}><Icon size={30} strokeWidth={1.6} /><span>{name}</span></li>)}</ul>
-  </Reveal>
-}
-
-/* ------------------------------------------------------------------ 8 · ticker */
-export function Ticker() {
-  const words = ['Chest X-ray', 'CT volumes', 'MRI sequences', 'Grounded findings', 'Evidence heatmaps', 'Report drafts']
-  return <div className="sk-ticker" aria-hidden="true"><div>{[...words, ...words, ...words].map((w, i) => <span key={i}>{w}<i>•</i></span>)}</div></div>
 }
 
 /* ------------------------------------------------------------------ 10 · approach bento */
@@ -209,13 +194,13 @@ const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
     ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
-    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
+    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '/benchmarks'], ['Skanda-0 (open source)', '/skanda-0'], ['Results log', '#log'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['Built by Hithesh Karanth', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const
   return <footer className="sk-footer">
     <ul className="sk-social">{social.map(([Icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span><Icon size={15} />{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
-    <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={href}>{label}</a></li>)}</ul></div>)}</div>
-    <p className="sk-copy"><FileCode2 size={12} /> © 2026 VoxelRad AI · Built by <a href="#about">Hithesh Karanth</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+    <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={anchor(href)}>{label}</a></li>)}</ul></div>)}</div>
+    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 VoxelRad AI · Built by <a href={anchor('#about')}>Hithesh Karanth</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
   </footer>
 }
