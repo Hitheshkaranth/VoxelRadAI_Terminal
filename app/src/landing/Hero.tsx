@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlignCenterHorizontal, AlignEndHorizontal, AlignStartHorizontal, AlignStartVertical, AlignCenterVertical, AlignEndVertical, ChevronDown, ChevronRight, Contrast, Eye, EyeOff, Hand, Layers, Menu, MousePointer2, ScanLine, Search, Sparkles, X, ArrowUpRight } from 'lucide-react'
 import { studies, img, type Modality } from './data'
 import { Pill, Roll, anchor, onLanding } from './ui'
+import { BrandIcon } from '../components/BrandIcon'
 
 const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['Weights', '#weights'], ['FAQs', '#faqs']] as const
 
@@ -123,7 +124,7 @@ export function Hero() {
       <h1 id="hero-title"><span>Grounded <em>Radiology</em></span><span><i>Visible</i> Evidence</span></h1>
       <p className="sk-lead">X-ray, CT and MRI reads that point to the pixels behind every finding.</p>
       <div className="sk-actions"><Pill href="#access">Request access</Pill><Pill href="/demo" tone="ghost">Try the demo</Pill></div>
-      <a className="sk-hero-oss" href="#weights"><span>New</span>Skanda-0 is open source · bf16, int8 and int4 on Hugging Face<ArrowUpRight size={14} /></a>
+      <a className="sk-hero-oss" href="#weights"><span>New</span><BrandIcon name="huggingface" size={17} />Skanda-0 is open source · bf16, int8 and int4 on Hugging Face<ArrowUpRight size={14} /></a>
     </div>
     <ReadingRoom />
   </section>

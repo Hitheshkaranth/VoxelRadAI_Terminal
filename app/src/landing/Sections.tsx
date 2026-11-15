@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Accordion } from 'radix-ui'
-import { ArrowLeft, ArrowRight, ArrowUpRight, Brain, ChevronDown, FileImage, FileText, Flame, GitBranch, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, Shapes, Sparkles, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Brain, ChevronDown, FileImage, FileText, Flame, GitCompareArrows, Layers, Microscope, ScanLine, ScanSearch, Server, SquareDashed, Stethoscope, Waypoints, BookOpen, Package, FileCode2 } from 'lucide-react'
 import { faqs, img, reads, wall } from './data'
+import { BrandIcon } from '../components/BrandIcon'
 import { Pill, Reveal, anchor, useReducedMotion } from './ui'
 
 /* ------------------------------------------------------------------ 3 · stack */
+const QwenMark = ({ size }: { size?: number }) => <BrandIcon name="qwen" size={size} />
+const MetaMark = ({ size }: { size?: number }) => <BrandIcon name="meta" size={size} />
 const stack = [
-  [Sparkles, 'Qwen3-VL'], [Shapes, 'SAM 2'], [Microscope, 'TorchXRayVision'], [Stethoscope, 'ChestX-Det'],
+  [QwenMark, 'Qwen3-VL'], [MetaMark, 'SAM 2'], [Microscope, 'TorchXRayVision'], [Stethoscope, 'ChestX-Det'],
   [Brain, 'MSD · ISLES'], [ScanLine, 'DeepLesion'], [FileImage, 'DICOM'], [Server, 'Orthanc'],
 ] as const
 export function Stack() {
@@ -189,7 +192,12 @@ export function Closing() {
   </section>
 }
 
-const social = [[GitBranch, 'GitHub', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal'], [BookOpen, 'Reader guide', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/reading-with-skanda.md'], [Sparkles, 'Benchmarks', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/benchmark/README.md'], [Package, 'Releases', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases']] as const
+const social = [
+  [<BrandIcon key="gh" name="github" size={15} mono />, 'GitHub', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal'],
+  [<BrandIcon key="hf" name="huggingface" size={15} />, 'Hugging Face', 'https://huggingface.co/hitheshkaranth/Skanda-0'],
+  [<BookOpen key="rg" size={15} />, 'Reader guide', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/docs/reading-with-skanda.md'],
+  [<Package key="rel" size={15} />, 'Releases', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases'],
+] as const
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
@@ -199,7 +207,7 @@ export function Footer() {
     ['About', [['The builders', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const
   return <footer className="sk-footer">
-    <ul className="sk-social">{social.map(([Icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span><Icon size={15} />{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
+    <ul className="sk-social">{social.map(([icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span>{icon}{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
     <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={anchor(href)}>{label}</a></li>)}</ul></div>)}</div>
     <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 VoxelRad AI · Built by <a href={anchor('#about')}>Hithesh Karanth and Dr&nbsp;Skanda Kumar Udupa</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
   </footer>

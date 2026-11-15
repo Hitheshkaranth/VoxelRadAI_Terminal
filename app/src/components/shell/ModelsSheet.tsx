@@ -1,13 +1,14 @@
 // Open models: the published Skanda-0 builds, download links and benchmark numbers, shown inside the app.
 import { useState, type CSSProperties } from 'react'
 import { track } from '@vercel/analytics'
-import { AlertCircle, Check, Copy, Download, ExternalLink } from 'lucide-react'
+import { AlertCircle, Check, Copy, Download } from 'lucide-react'
 import { useApp } from '../../store'
 import {
   BENCHMARKS, BUILDS, MODEL_DISCLAIMER, QUANT_NOTE, SKANDA_0,
   downloadCommand, hfFilesUrl, hfUrl, type BenchTable,
 } from '../../lib/openModels'
 import { Sheet } from './Sheet'
+import { BrandIcon } from '../BrandIcon'
 import { toast } from './toastStore'
 import './shell.css'
 import './models.css'
@@ -28,10 +29,10 @@ export function ModelsSheet() {
             </div>
             <div className="om-links">
               <a className="btn btn-sm btn-primary" href={hfUrl(SKANDA_0.repo)} target="_blank" rel="noreferrer" onClick={() => track('model_card_open')}>
-                <ExternalLink /> Model card
+                <BrandIcon name="huggingface" /> Model card
               </a>
               <a className="btn btn-sm" href={SKANDA_0.github} target="_blank" rel="noreferrer">
-                <ExternalLink /> Code
+                <BrandIcon name="github" mono /> Code
               </a>
             </div>
           </div>
@@ -61,7 +62,7 @@ export function ModelsSheet() {
                 <CopyCommand command={downloadCommand(b.repo)} build={b.precision} />
                 <div className="om-build-actions">
                   <a className="btn btn-sm" href={hfFilesUrl(b.repo)} target="_blank" rel="noreferrer" onClick={() => track('model_download', { build: b.precision, link: 'files' })}><Download /> Files</a>
-                  <a className="btn btn-sm" href={hfUrl(b.repo)} target="_blank" rel="noreferrer" onClick={() => track('model_download', { build: b.precision, link: 'huggingface' })}><ExternalLink /> Hugging Face</a>
+                  <a className="btn btn-sm" href={hfUrl(b.repo)} target="_blank" rel="noreferrer" onClick={() => track('model_download', { build: b.precision, link: 'huggingface' })}><BrandIcon name="huggingface" /> Hugging Face</a>
                 </div>
               </article>
             ))}

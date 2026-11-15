@@ -6,8 +6,8 @@ export function Roll({ children }: { children: string }) {
   return <span className="sk-roll"><span>{letters}</span><span aria-hidden="true">{letters}</span></span>
 }
 
-export function Pill({ href, children, tone = 'light', icon, onClick }: { href?: string; children: string; tone?: 'light' | 'ghost' | 'grey'; icon?: ReactNode; onClick?: () => void }) {
-  const body = <><Roll>{children}</Roll>{icon}</>
+export function Pill({ href, children, tone = 'light', icon, lead, onClick }: { href?: string; children: string; tone?: 'light' | 'ghost' | 'grey'; icon?: ReactNode; lead?: ReactNode; onClick?: () => void }) {
+  const body = <>{lead}<Roll>{children}</Roll>{icon}</>
   return href ? <a className={`sk-pill sk-pill-${tone}`} href={href} onClick={onClick}>{body}</a> : <button type="button" className={`sk-pill sk-pill-${tone}`} onClick={onClick}>{body}</button>
 }
 

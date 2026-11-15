@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import { APP_MODELS, DATASET_COUNT, FOUNDATIONS, TRAINING_DATA, TRAINING_TOTAL, groupTotal } from '../lib/foundations'
 import { Reveal } from './ui'
+import { BrandIcon } from '../components/BrandIcon'
 
 const max = Math.max(...TRAINING_DATA.flatMap((g) => g.sets.map((s) => s.records)))
 const n = (v: number) => v.toLocaleString('en-US')
@@ -14,6 +15,7 @@ export function Foundations() {
     </Reveal>
 
     <Reveal className="sk-found-grid">{FOUNDATIONS.map((f, i) => <article key={f.name} className="sk-found-card" style={{ ['--i' as string]: i }}>
+      <span className="sk-found-logo" aria-hidden="true">{f.logo === 'skanda' ? <img src="/skanda-mark.png" alt="" /> : <BrandIcon name={f.logo} size={26} />}</span>
       <span className="sk-plan-label">{f.by}</span>
       <h3>{f.name}</h3>
       <p className="sk-found-role">{f.role}</p>
@@ -41,7 +43,7 @@ export function Foundations() {
     <p className="sk-chart-foot sk-found-foot">These are the training records of Skanda-0 (runs 2–3), from its public data card. Skanda V1 continues from Skanda-0 with more training data, not yet itemised. Held-out test cases are never trained on, and only datasets whose licences allow commercial use were included. Baseline models were never used as training text.</p>
 
     <Reveal className="sk-found-also"><p className="sk-plan-label">Also in the app</p>
-      <ul>{APP_MODELS.map((m) => <li key={m.name}><b>{m.name}</b><small>{m.by}</small><span>{m.role}</span></li>)}</ul>
+      <ul>{APP_MODELS.map((m) => <li key={m.name}><b>{m.logo && <BrandIcon name={m.logo} size={15} />}{m.name}</b><small>{m.by}</small><span>{m.role}</span></li>)}</ul>
     </Reveal>
   </section>
 }

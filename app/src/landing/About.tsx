@@ -3,6 +3,9 @@ import { ArrowUpRight, Check, Copy } from 'lucide-react'
 import { track } from '@vercel/analytics'
 import { BENCHMARKS, BUILDS } from '../lib/openModels'
 import { Reveal } from './ui'
+import { BrandIcon, type Brand } from '../components/BrandIcon'
+
+const brandOf: Record<string, Brand> = { GitHub: 'github', 'Hugging Face': 'huggingface', X: 'x' }
 
 const builders = [
   { name: 'Hithesh Karanth', role: '', initials: 'HK', profiles: [
@@ -40,7 +43,7 @@ export function About() {
         <ul className="sk-builders">{builders.map((b) => <li key={b.name}>
           <span className="sk-monogram" aria-hidden="true">{b.initials}</span>
           <div><b>{b.name}{b.role && <small className="sk-builder-role">{b.role}</small>}</b><ul className="sk-about-links">{b.profiles.map(([label, href, handle]) =>
-            <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label, who: b.initials })}><span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul></div>
+            <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label, who: b.initials })}><BrandIcon name={brandOf[label]} size={16} /><span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul></div>
         </li>)}</ul>
       </div>
       <CiteCard />

@@ -1,3 +1,4 @@
+import { BrandIcon } from '../components/BrandIcon'
 import { useState } from 'react'
 import { ArrowRight, Check, Copy } from 'lucide-react'
 import { track } from '@vercel/analytics'
@@ -44,9 +45,9 @@ export function OpenWeights({ intro = true, cards = true, chart = true }: { intr
 
   return <section className="sk-bench sk-weights" id="weights" aria-labelledby="weights-title">
     {intro && <div className="sk-wrap sk-center">
-      <p className="sk-eyebrow">Open source · Skanda-0 · {SKANDA_0.license}</p>
+      <p className="sk-eyebrow sk-eyebrow-logo"><BrandIcon name="huggingface" size={16} />Open source · Skanda-0 · {SKANDA_0.license}</p>
       <h2 id="weights-title" className="sk-h2 sk-weights-title">Open <em>weights</em></h2>
-      <p className="sk-weights-lead">Skanda-0 is our open-source model, published on Hugging Face as <a href={hfUrl(SKANDA_0.repo)} onClick={() => track('model_card_open', { from: 'landing' })}>{SKANDA_0.repo}</a> in three builds. Only its language model is quantized; the outline model and score head stay bf16. The hosted workspace serves Skanda V1, which is not part of this release.</p>
+      <p className="sk-weights-lead">Skanda-0 is our open-source model, published on Hugging Face as <a href={hfUrl(SKANDA_0.repo)} onClick={() => track('model_card_open', { from: 'landing' })}><BrandIcon name="huggingface" size={15} className="sk-inline-logo" />{SKANDA_0.repo}</a> in three builds. Only its language model is quantized; the outline model and score head stay bf16. The hosted workspace serves Skanda V1, which is not part of this release.</p>
       <a className="sk-weights-more" href="/skanda-0">Skanda-0 model page: CT and MRI results, quantization trade-offs and how to run it <ArrowRight size={14} /></a>
     </div>}
 
@@ -62,8 +63,8 @@ export function OpenWeights({ intro = true, cards = true, chart = true }: { intr
         })}</ul>
         <CopyCommand command={downloadCommand(b.repo)} build={b.precision} />
         <div className="sk-plan-actions">
-          <Pill href={hfFilesUrl(b.repo)} tone={b.recommended ? 'light' : 'grey'} onClick={() => track('model_download', { build: b.precision, link: 'files', from: 'landing' })}>Download</Pill>
-          <a href={hfUrl(b.repo)} className="sk-details" onClick={() => track('model_download', { build: b.precision, link: 'huggingface', from: 'landing' })}>Model card <ArrowRight size={13} /></a>
+          <Pill href={hfFilesUrl(b.repo)} tone={b.recommended ? 'light' : 'grey'} onClick={() => track('model_download', { build: b.precision, link: 'files', from: 'landing' })} lead={<BrandIcon name="huggingface" size={15} />}>Download</Pill>
+          <a href={hfUrl(b.repo)} className="sk-details" onClick={() => track('model_download', { build: b.precision, link: 'huggingface', from: 'landing' })}><BrandIcon name="huggingface" size={13} />Model card <ArrowRight size={13} /></a>
         </div>
       </article>
     })}</Reveal>}

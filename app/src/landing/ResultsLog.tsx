@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowUpRight, ChevronDown } from 'lucide-react'
 import { Reveal } from './ui'
+import { BrandIcon } from '../components/BrandIcon'
 
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 type Entry = { date: string; title: string; text: string; kind: 'model' | 'eval' | 'product' | 'failure'; link?: [string, string] }
@@ -28,7 +29,7 @@ export function ResultsLog() {
     <Reveal className="sk-log-head"><h2 id="log-title" className="sk-h2">Results <em>log</em></h2><p>What changed, when, including what didn’t work. Dates come from the repository history and the model card.</p></Reveal>
     <ol className="sk-log-list">{shown.map((e) => <li key={e.date + e.title} className="sk-log-item" data-kind={e.kind}><Reveal className="sk-log-row">
       <time>{e.date}</time>
-      <div><span className="sk-log-kind">{kindLabel[e.kind]}</span><h3>{e.title}</h3><p>{e.text}</p>{e.link && <a className="sk-inline-link" href={e.link[1]}>{e.link[0]}{e.link[1].startsWith('http') && <ArrowUpRight size={13} />}</a>}</div>
+      <div><span className="sk-log-kind">{kindLabel[e.kind]}</span><h3>{e.title}</h3><p>{e.text}</p>{e.link && <a className="sk-inline-link" href={e.link[1]}>{e.link[1].includes('huggingface.co') ? <BrandIcon name="huggingface" size={14} /> : e.link[1].includes('github.com') ? <BrandIcon name="github" size={14} mono /> : null}{e.link[0]}{e.link[1].startsWith('http') && <ArrowUpRight size={13} />}</a>}</div>
     </Reveal></li>)}</ol>
     {!all && <button type="button" className="sk-log-more" onClick={() => setAll(true)}>Show {entries.length - 4} earlier entries <ChevronDown size={15} /></button>}
   </section>

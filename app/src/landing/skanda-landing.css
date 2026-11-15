@@ -788,3 +788,16 @@
 }
 .sk-stack li a{display:flex;align-items:center;gap:9px;color:inherit;transition:color .25s var(--sk-ease)}
 .sk-stack li a:hover{color:#fff}
+
+/* ---------------------------------------------------------------- brand marks */
+.sk-pill svg[aria-hidden]{flex:none}
+.sk-details{gap:6px}
+.sk-eyebrow-logo{display:inline-flex;align-items:center;gap:8px}
+.sk-inline-logo{display:inline-block;vertical-align:-2px;margin-right:6px}
+.sk-hero-oss>svg:first-of-type{margin-left:-2px}
+.sk-social a span{display:inline-flex;align-items:center;gap:8px}
+.sk-about-links a{gap:10px}
+.sk-found-logo{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#ffffff0d;border:1px solid var(--sk-line);margin-bottom:4px}
+.sk-found-logo img{width:26px;height:26px}
+.sk-found-also b{display:inline-flex;align-items:center;gap:7px}
+.sk-log-row a svg:first-child{margin-right:5px}

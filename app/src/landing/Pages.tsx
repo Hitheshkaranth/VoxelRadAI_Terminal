@@ -9,6 +9,7 @@ import { RequestAccess } from './RequestAccess'
 import { Foundations } from './Foundations'
 import { BUILDS, MODEL_DISCLAIMER, QUANT_NOTE, SKANDA_0, hfFilesUrl, hfUrl } from '../lib/openModels'
 import { Pill, Reveal } from './ui'
+import { BrandIcon } from '../components/BrandIcon'
 import './skanda-landing.css'
 
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
@@ -45,7 +46,7 @@ export function Skanda0Page() {
   const int8 = BUILDS.find((b) => b.recommended) ?? BUILDS[0]
   return <Shell>
     <PageHead eyebrow="Skanda-0" title={<>Skanda-0, <em>open source</em></>} lead={`${SKANDA_0.summary} Published under ${SKANDA_0.license}. The hosted VoxelRad workspace serves the newer Skanda V1, which is not part of this release.`}>
-      <div className="sk-actions sk-actions-left"><Pill href={hfFilesUrl(int8.repo)}>{`Download int8 · ${int8.size}`}</Pill><Pill href={hfUrl(SKANDA_0.repo)} tone="ghost">Model card</Pill></div>
+      <div className="sk-actions sk-actions-left"><Pill href={hfFilesUrl(int8.repo)} lead={<BrandIcon name="huggingface" size={16} />}>{`Download int8 · ${int8.size}`}</Pill><Pill href={hfUrl(SKANDA_0.repo)} tone="ghost" lead={<BrandIcon name="huggingface" size={16} />}>Model card</Pill></div>
     </PageHead>
 
     <Reveal className="sk-wrap sk-spec-grid">
