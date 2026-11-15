@@ -2,9 +2,10 @@ import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useEffect, useRef, useState } from 'react'
 import { ThemeSwitch } from './ThemeSwitch'
-import { CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
+import { Boxes, CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
+import { track } from '@vercel/analytics'
 import { useApp } from '../../store'
 import { cancelImages } from '../../lib/analysis'
 import { findingCounts, worstSeverity } from '../../lib/classifier'
@@ -288,6 +289,9 @@ function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionS
           <span className="sh-status-a" title={model}>{model}</span>
           <span className="sh-status-b">{label}</span>
         </span>
+      </ShellButton>
+      <ShellButton type="button" className="icon-btn" aria-label="Open models and benchmarks" title="Open models" onClick={() => { useApp.getState().openSheet('models'); track('open_models', { from: 'sidebar' }) }}>
+        <Boxes />
       </ShellButton>
       <ShellButton type="button" className="icon-btn" aria-label="Settings" onClick={onOpenSettings}>
         <Settings />

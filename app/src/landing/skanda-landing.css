@@ -500,3 +500,28 @@
   .sk-page *,.sk-page *::before,.sk-page *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
   .sk-reveal{opacity:1;transform:none}
 }
+
+/* ---------------------------------------------------------------- open weights */
+.sk-weights-title{margin-top:22px}
+.sk-weights-lead{max-width:640px;margin:18px auto 0;font-size:15px;color:var(--sk-muted)}
+.sk-weights-lead a{color:#fff;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.92em;text-decoration:underline;text-decoration-color:var(--sk-line-2);text-underline-offset:4px;transition:text-decoration-color .22s var(--sk-ease)}
+.sk-weights-lead a:hover{text-decoration-color:var(--sk-blue-2)}
+.sk-weights-plans{margin-top:56px}
+.sk-weights .sk-plan{min-height:0}
+.sk-weights-unit{font:500 .42em var(--sk-display);letter-spacing:-.01em;color:var(--sk-muted);margin-left:-2px}
+.sk-reveal[data-in=true] .sk-plan{animation:sk-rise .8s calc(var(--r) * 90ms) var(--sk-ease) both}
+.sk-weights .sk-plan{transition:transform .35s var(--sk-ease),border-color .35s var(--sk-ease)}
+.sk-weights .sk-plan:hover{transform:translateY(-4px);border-color:#ffffff59}
+.sk-weights .sk-plan[data-model=skanda]:hover{border-color:#4a8ff0}
+.sk-weights .sk-plan[data-model=skanda]::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,#0000 35%,#7acaff1f 50%,#0000 65%);background-size:260% 100%;background-position:160% 0}
+.sk-reveal[data-in=true] .sk-plan[data-model=skanda]::after{animation:sk-sheen 2.4s .9s var(--sk-ease) both}
+@keyframes sk-sheen{to{background-position:-60% 0}}
+.sk-cmd{display:flex;align-items:center;gap:6px;margin:0 0 20px;padding:6px 6px 6px 12px;border:1px solid var(--sk-line);border-radius:8px;background:#0a0a0a;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
+.sk-cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font:12px/1.5 ui-monospace,'SF Mono',Menlo,monospace;color:#d6d6d6}
+.sk-cmd code::before{content:'$ ';color:var(--sk-dim)}
+.sk-cmd button{flex:none;display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:6px;background:#1c1c1c;cursor:pointer;transition:background .2s var(--sk-ease)}
+.sk-cmd button:hover{background:#2a2a2a}
+.sk-cmd-done{border-color:#2b6fd6;background:#06121f}
+.sk-cmd-done button{color:var(--sk-blue-2);animation:sk-pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes sk-pop{from{transform:scale(.6)}}
+@media (max-width:520px){.sk-cmd button{width:40px;height:40px}}

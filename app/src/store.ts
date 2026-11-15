@@ -96,7 +96,7 @@ interface AppState {
   settings: Settings
   connection: ConnectionState
   /** Which modal sheet is open. */
-  sheet: null | 'patient' | 'settings'
+  sheet: null | 'patient' | 'settings' | 'models'
 
   // Studies
   createStudy: (title?: string) => string

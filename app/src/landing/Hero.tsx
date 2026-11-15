@@ -3,7 +3,7 @@ import { AlignCenterHorizontal, AlignEndHorizontal, AlignStartHorizontal, AlignS
 import { studies, img, type Modality } from './data'
 import { Pill, Roll } from './ui'
 
-const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['FAQs', '#faqs']] as const
+const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['Weights', '#weights'], ['FAQs', '#faqs']] as const
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false)

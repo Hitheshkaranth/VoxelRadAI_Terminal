@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { FileImage, FileText, Plus, HardDrive, Target } from 'lucide-react'
+import { Boxes, FileImage, FileText, Plus, HardDrive, Target } from 'lucide-react'
+import { track } from '@vercel/analytics'
 import { hydrate, useActiveStudy, useApp } from './store'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
@@ -12,6 +13,7 @@ import { Toolbar } from './components/shell/Toolbar'
 import { Inspector } from './components/shell/Inspector'
 import { PatientSheet } from './components/shell/PatientSheet'
 import { SettingsSheet } from './components/shell/SettingsSheet'
+import { ModelsSheet } from './components/shell/ModelsSheet'
 import { Toasts } from './components/shell/Toasts'
 import { analyzeImageAction, routeDroppedFiles, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
@@ -224,6 +226,7 @@ export default function App() {
       <MobileNavigation />
       {sheet === 'patient' && <PatientSheet />}
       {sheet === 'settings' && <SettingsSheet />}
+      {sheet === 'models' && <ModelsSheet />}
       <Toasts />
       {dragging && (
         <div className="sh-dropveil" aria-hidden>
@@ -258,6 +261,9 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
         <div className="sh-empty-feature"><Target strokeWidth={1.75} /> Review findings against the scan</div>
         <div className="sh-empty-feature"><FileText strokeWidth={1.75} /> Structured, signable reports</div>
       </div>
+      <button type="button" className="btn btn-sm" onClick={() => { useApp.getState().openSheet('models'); track('open_models', { from: 'welcome' }) }}>
+        <Boxes strokeWidth={1.75} /> Open models &amp; benchmarks
+      </button>
     </div>
   )
 }

@@ -209,7 +209,7 @@ const repo = 'https://github.com/Hitheshkaranth/skanda-radiology/blob/main/'
 export function Footer() {
   const cols = [
     ['Product', [['Workspace', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
-    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Approach', '#approach'], ['Evidence', '#benchmarks']]],
+    ['Model', [['Skanda V1', '#model'], ['Benchmarks', '#benchmarks'], ['Open weights', '#weights'], ['Approach', '#approach'], ['Evidence', '#benchmarks']]],
     ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['Research & evaluation use', '#faqs'], ['Not a diagnostic device', '#faqs'], ['Public teaching imagery', '/samples/provenance.json'], ['Open source', 'https://github.com/Hitheshkaranth/skanda-radiology']]],
   ] as const

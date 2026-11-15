@@ -24,14 +24,22 @@ import './components/report/shareStudy.css'
 import './components/report/print.css'
 import { WorkspaceRoot } from './WorkspaceRoot'
 import { LandingPage } from './LandingPage'
+import { Analytics, type BeforeSendEvent } from '@vercel/analytics/react'
 import './styles/workspace.css'
 import './styles/mobile.css'
 import './styles/clinical.css'
 import './styles/material.css'
 import './styles/scanWorkspace.css'
 
+// Vercel Web Analytics is cookieless. Drop query and hash before sending so no study or volume state leaves the browser.
+const stripUrl = (event: BeforeSendEvent): BeforeSendEvent => {
+  const url = new URL(event.url)
+  return { ...event, url: url.origin + url.pathname }
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {window.location.pathname === '/' && !new URLSearchParams(window.location.search).has('oidc') ? <LandingPage /> : <WorkspaceRoot />}
+    <Analytics beforeSend={stripUrl} />
   </StrictMode>,
 )
