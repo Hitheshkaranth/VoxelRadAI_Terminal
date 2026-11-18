@@ -22,6 +22,7 @@ import { CloudStudiesSheet } from './CloudStudiesSheet'
 import { logout, SERVER_MODE, useSession } from '../../lib/session'
 import type { ConnectionState, Settings } from '../../types'
 import './shell.css'
+import './settings.css'
 
 const VERSION = `v${packageInfo.version}`
 
@@ -34,12 +35,20 @@ const CONNECTION_LABEL: Record<ConnectionState, string> = {
 }
 
 const DEFAULT_MAIRA_KINDS = ['effusion', 'nodule / mass', 'atelectasis']
+const SETTINGS_SECTIONS = [
+  ['account', SERVER_MODE ? 'Account' : 'Workspace'],
+  ['model', 'Model & connection'],
+  ['report', 'Report'],
+  ['appearance', 'Appearance'],
+  ['data', 'Data & storage'],
+  ['about', 'About'],
+] as const
 
 export function SettingsSheet() {
   const settings = useApp((s) => s.settings)
   const updateSettings = useApp((s) => s.updateSettings)
   const openSheet = useApp((s) => s.openSheet)
-  const { setSidebarCollapsed, setInspectorCollapsed } = useShell()
+  const [section, setSection] = useState<(typeof SETTINGS_SECTIONS)[number][0]>('account')
   const [open] = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [cloudOpen, setCloudOpen] = useState(false)
@@ -52,7 +61,15 @@ export function SettingsSheet() {
 
   return (
     <>
-    <Sheet open={open} onClose={() => openSheet(null)} title="Settings" subtitle="Model, connection, and appearance.">
+    <Sheet open={open} onClose={() => openSheet(null)} title="Settings" subtitle="Manage your account, model, and workspace."
+      className="sh-sheet--settings"
+      footer={<ShellButton type="button" className="btn btn-primary" onClick={() => openSheet(null)}>Done</ShellButton>}>
+      <nav className="settings-nav" aria-label="Settings sections">
+        {SETTINGS_SECTIONS.map(([id, label]) => <button key={id} type="button" aria-pressed={section === id}
+          aria-controls="settings-panel" onClick={() => setSection(id)}>{label}</button>)}
+      </nav>
+      <section key={section} id="settings-panel" className="settings-panel" aria-label={`${SETTINGS_SECTIONS.find(([id]) => id === section)?.[1]} settings`}>
+      {section === 'account' &&
       <Section title={SERVER_MODE ? 'Account & workspace' : 'Local workspace'} desc={SERVER_MODE ? `Signed in as ${user?.email ?? ''}. Image studies remain in this browser until explicitly uploaded.` : 'No sign-in is required in local mode. Studies are stored in this browser, without account access protection or cloud backup.'}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
           <ShellButton className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</ShellButton>
@@ -78,10 +95,11 @@ export function SettingsSheet() {
         </div>
         {SERVER_MODE && <ChangePasswordForm />}
         {SERVER_MODE && <OrganizationSignIn account />}
-      </Section>
-      <Section title="Model" desc={`${settings.model} served through LM Studio.`}>
+      </Section>}
+      {section === 'model' && <>
+      <Section title="Model" desc={`Connect to the service running ${settings.model}.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
-          <Field label="LM Studio base URL" fullWidth>
+          <Field label="Model service URL" fullWidth>
             <input
               className="input"
               value={settings.baseUrl}
@@ -120,7 +138,9 @@ export function SettingsSheet() {
       <ConnectionControls />
 
       <SecondReaderControls settings={settings} change={change} />
+      </>}
 
+      {section === 'report' &&
       <Section title="Report" desc="Default text prefilled into each report.">
         <Field label="Institution">
           <input
@@ -138,8 +158,9 @@ export function SettingsSheet() {
             placeholder="Dr. Ray"
           />
         </Field>
-      </Section>
+      </Section>}
 
+      {section === 'appearance' &&
       <Section title="Appearance">
         <div className="sh-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
           <Field label="Panel appearance">
@@ -163,21 +184,10 @@ export function SettingsSheet() {
             </div>
           </Field>
         </div>
-      </Section>
-
-      <DataControls />
-
-      <AboutSection />
-
-      <div className="sh-sheet-foot">
-        <ShellButton type="button" className="btn btn-primary" onClick={() => {
-          openSheet(null)
-          setSidebarCollapsed(false)
-          setInspectorCollapsed(false)
-        }}>
-          Done
-        </ShellButton>
-      </div>
+      </Section>}
+      {section === 'data' && <DataControls />}
+      {section === 'about' && <AboutSection />}
+      </section>
     </Sheet>
     <AdminPanel open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
     <CloudStudiesSheet open={cloudOpen} onClose={() => setCloudOpen(false)} />
@@ -210,7 +220,7 @@ function ModelControls({ settings, change }: { settings: Settings; change: (p: P
       else setMatchNote(`“${settings.model}” is not loaded under that exact id — pick one from the list.`)
     } catch {
       setModelIds([])
-      toast('Could not list models — is LM Studio running?', 'error')
+      toast('Could not list models. Check the model service connection.', 'error')
     } finally {
       setDetecting(false)
     }
@@ -272,7 +282,7 @@ function ConnectionControls() {
   }
 
   return (
-    <Section title="Connection" desc="Test the link to LM Studio.">
+    <Section title="Connection" desc="Test the connection to your model service.">
       <div className="sh-settings-row">
         <div style={{ flex: 1, minWidth: 0 }}>
           {testStatus ? (

@@ -161,7 +161,8 @@
 .fd-error-title { font-size: var(--text-callout); font-weight: 600; color: var(--label); }
 .fd-error-msg { font-size: var(--text-footnote); color: var(--label-2); margin: 4px 0 0; line-height: 1.45; white-space: pre-wrap; }
 .fd-error-hint { font-size: var(--text-footnote); color: var(--label-3); }
-.fd-error-actions { display: flex; gap: var(--sp-2); }
+.fd-error-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.fd-error-hint p + p { margin-top: 8px; }
 
 /* ---- Summary header card ---- */
 .fd-summary {

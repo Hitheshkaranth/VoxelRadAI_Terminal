@@ -1,4 +1,5 @@
 import { analysisEligibility } from '../../lib/modality'
+import { gpuQuota } from '../../lib/gpuQuota'
 // OWNER: Agent 3 (Findings Inspector). Orchestrates the five analysis states.
 import { useCallback, useState } from 'react'
 import type { AnalysisResult, ConnectionState, FindingReview, Settings, Study } from '../../types'
@@ -125,6 +126,8 @@ function IdleState({ studyId, imageId, unanalyzed }: { studyId: string; imageId:
 
 /** Turn the raw error into the most likely fix. */
 function errorHint(error: string, settings: Settings): string {
+  if (/ZeroGPU.*(?:timed out|queue|result connection failed)/i.test(error))
+    return 'The hosted inference service did not complete this read. Retry after the queue clears. Reports can still be drafted from images that were already analyzed.'
   if (/out.of.memory|insufficient memory|kIOGPUCommandBufferCallbackErrorOutOfMemory/i.test(error))
     return 'The model ran out of GPU memory while reading the image. Use a smaller model or quantization, reduce image processing size, and reload it in LM Studio.'
   if (/no output for|stopped responding/i.test(error))
@@ -142,23 +145,30 @@ function errorHint(error: string, settings: Settings): string {
 
 function ErrorState({ studyId, imageId, error }: { studyId: string; imageId: string; error: string }) {
   const settings = useApp((s) => s.settings)
+  const quota = gpuQuota(error)
+  const hasAnalyzed = useApp((s) => s.studies.find((study) => study.id === studyId)?.images.some((image) => image.analysis))
   return (
     <div className="fd-error">
       <div className="fd-error-head">
         <div className="fd-error-mark"><AlertTriangle /></div>
         <div>
-          <div className="fd-error-title">Analysis couldn’t finish</div>
-          <p className="fd-error-msg">{error || 'The model did not return a result.'}</p>
+          <div className="fd-error-title">{quota ? 'ZeroGPU quota reached' : 'Analysis couldn’t finish'}</div>
+          <p className="fd-error-msg">{quota?.message || error || 'The model did not return a result.'}</p>
         </div>
       </div>
-      <div className="fd-error-hint">{errorHint(error, settings)}</div>
+      <div className="fd-error-hint">{quota ? <>
+        <p>New image analysis needs available Hugging Face GPU quota. VoxelRad sign-in does not increase that allowance. Reloading the model will not renew it.</p>
+        {quota.resetWait && <p>Reset wait reported when this request failed: {quota.resetWait}.</p>}
+        <p>Reports can still be drafted from images that were already analyzed.</p>
+      </> : errorHint(error, settings)}</div>
       <div className="fd-error-actions">
         <button className="btn btn-primary" onClick={() => runAnalysis(studyId, imageId)}>
-          <RotateCcw /> Try Again
+          <RotateCcw /> {quota ? 'Retry when quota is available' : 'Try Again'}
         </button>
-        <button className="btn" onClick={() => void recheck()}>
+        {quota ? <a className="btn" href="https://huggingface.co/docs/hub/spaces-zerogpu#usage-tiers" target="_blank" rel="noreferrer">GPU quota options</a> : <button className="btn" onClick={() => void recheck()}>
           Check connection
-        </button>
+        </button>}
+        {quota && hasAnalyzed && <button className="btn" onClick={() => useApp.getState().setInspectorTab('report')}>Open report</button>}
       </div>
     </div>
   )

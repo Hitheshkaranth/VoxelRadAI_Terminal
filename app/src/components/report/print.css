@@ -554,3 +554,30 @@
   .rp-table { min-width: 600px; }
   .rp-footer { flex-wrap: wrap; gap: 12px; }
 }
+
+/* ---- Template letterhead and rich sections ---------------------------------- */
+.rp-lh-tpl { display: flex; align-items: center; gap: 16px; text-align: left; }
+.rp-lh-tpl.rp-lh-center { flex-direction: column; text-align: center; gap: 6px; }
+.rp-lh-logo { max-height: 64px; max-width: 180px; object-fit: contain; flex: none; }
+.rp-lh-text { flex: 1; min-width: 0; }
+.rp-lh-tpl .rp-lh-name { font-size: 20px; }
+.rp-lh-dept { margin-top: 2px; font-size: 13px; font-weight: 600; color: #3a3a3c; }
+.rp-lh-line { font-size: 11px; line-height: 1.45; color: #55555c; }
+.rp-lh-right { text-align: right; flex: none; }
+.rp-lh-center .rp-lh-right { text-align: center; }
+.rp-lh-tpl .rp-lh-sub { font-size: 11px; }
+.rp-rich p, .rp-rich h3, .rp-rich h4 { margin: 0 0 6px; }
+.rp-rich h3, .rp-rich h4 { font-size: 13px; font-weight: 650; }
+.rp-rich ul, .rp-rich ol { margin: 0 0 6px; padding-left: 20px; }
+.rp-footer-template { display: block; white-space: pre-wrap; margin-bottom: 6px; color: #55555c; font-size: 11px; }
+@media print {
+  /* Page margins (footer, page numbers) follow the color scheme; keep them on white paper in dark mode. */
+  :root { color-scheme: light !important; }
+  @page { background: #fff; }
+  /* In print the template footer is drawn by @page on every page instead. */
+  .rp-screen-only { display: none !important; }
+}
+@media (max-width: 600px) {
+  .rp-lh-tpl { flex-direction: column; align-items: flex-start; }
+  .rp-lh-right { text-align: left; }
+}

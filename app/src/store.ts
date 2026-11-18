@@ -17,6 +17,7 @@ import type {
   StudyImage,
   ViewerState,
 } from './types'
+import { REPORT_FIELD_KEYS } from './types'
 
 // crypto.randomUUID exists only in secure contexts (https, localhost); opened over the LAN or a tailnet by plain http
 // the app would fail to create a study, so fall back to getRandomValues, which works everywhere.
@@ -31,7 +32,7 @@ export const uid = (): string => {
 
 export const DEFAULT_SETTINGS: Settings = {
   baseUrl: '/lmstudio/v1',
-  model: 'skanda-grounding-q3-mixed',
+  model: import.meta.env?.VITE_MODEL_ID || 'skanda-grounding-q3-mixed',
   temperature: 0.2,
   maxTokens: 3072,
   institution: 'VoxelRad AI',
@@ -138,6 +139,13 @@ interface AppState {
   updateSettings: (patch: Partial<Settings>) => void
   setConnection: (c: ConnectionState) => void
   openSheet: (s: AppState['sheet']) => void
+}
+
+const dropRich = (rich: ReportDraft['rich'], patch: Partial<ReportDraft>): ReportDraft['rich'] => {
+  if (!rich) return undefined
+  const next = { ...rich }
+  for (const key of REPORT_FIELD_KEYS) if (key in patch) delete next[key]
+  return Object.keys(next).length ? next : undefined
 }
 
 const touch = (s: Study): Study => ({ ...s, updatedAt: Date.now() })
@@ -288,6 +296,8 @@ export const useApp = create<AppState>()((set, get) => ({
           generated: false,
           ...s.report,
           ...patch,
+          // A plain-text section written without its rich form (e.g. a new draft) drops the stale formatting.
+          rich: patch.rich ?? dropRich(s.report?.rich, patch),
           updatedAt: Date.now(),
         },
       })),

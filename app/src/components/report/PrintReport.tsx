@@ -10,6 +10,10 @@ import { HEAT_ACCURACY, findingHeat } from '../../lib/heatmap'
 import { isExcluded, isUnconfirmed } from '../../lib/classifier'
 import { reliabilityFor } from '../../lib/reliability'
 import { DISCLAIMER, analyzedImages, examSummary, exclusionReason, reportPatient, splitFindings } from '../../lib/reportExport'
+import { cssString, sanitizeReportHtml } from '../../lib/richText'
+import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import type { ReportFieldKey } from '../../types'
+import { TemplateHeader } from './TemplateHeader'
 import './print.css'
 
 interface PrintReportProps {
@@ -37,6 +41,19 @@ function TextBlock({ value }: { value: string | undefined }) {
       ))}
     </div>
   )
+}
+
+/** A report section: sanitized rich text when the radiologist formatted it, otherwise the plain lines. */
+function SectionBody({ html, value, ordered }: { html?: string; value?: string; ordered?: boolean }) {
+  if (html && value?.trim()) return <div className="rp-text rp-rich" dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(html) }} />
+  if (ordered && splitLines(value).length > 1) {
+    return (
+      <ol className="rp-ordered">
+        {splitLines(value).map((line, i) => <li key={i}><strong>{line.replace(/^\d+[.)]\s*/, '')}</strong></li>)}
+      </ol>
+    )
+  }
+  return <TextBlock value={value} />
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -116,6 +133,19 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const analysisModels = [...new Set(analyzed.map((image) => image.analysis?.model).filter(Boolean))].join(', ')
   const patient = reportPatient(study)
   const report = study.report
+  const templates = useTemplates((s) => s.templates)
+  const loadTemplates = useTemplates((s) => s.load)
+  const templatesLoaded = useTemplates((s) => s.loaded)
+  useEffect(() => { if (!templatesLoaded) void loadTemplates() }, [templatesLoaded, loadTemplates])
+  const template = templateForReport(templates, report)
+  const body = (key: ReportFieldKey, ordered = false) => (
+    <Section key={key} title={sectionTitle(template, key)}>
+      <SectionBody html={report?.rich?.[key]} value={report?.[key]} ordered={ordered} />
+    </Section>
+  )
+  const pageStyle = template
+    ? `@media print { @page { margin-bottom: ${template.footer.text.trim() ? 22 : 16}mm; ${template.footer.showPageNumbers ? '' : '@bottom-right { content: none; }'} ${template.footer.text.trim() ? `@bottom-left { content: ${cssString(template.footer.text.trim())}; white-space: pre-wrap; font: 9px -apple-system, BlinkMacSystemFont, sans-serif; color: #55555c; width: 70%; }` : ''} } }`
+    : ''
   const { included, excluded } = splitFindings(study)
 
   // Re-render thumbnails only when what is burned into them changes: the analysed set, each analysis,
@@ -228,15 +258,13 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
         <div className="rp-print-scroll" tabIndex={0} aria-label="Report preview document">
           <div className="rp-print-page" role="document">
             <div className="rp-print-inner">
-              <header className="rp-lh">
-                <div className="rp-lh-name">{settings.institution || 'Diagnostic Radiology'}</div>
-                <div className="rp-lh-sub">
-                  {report?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft'}
-                </div>
-                <div className="rp-lh-meta">
-                  Report date: {new Date().toLocaleDateString()} · Accession: {accession}
-                </div>
-              </header>
+              {pageStyle ? <style>{pageStyle}</style> : null}
+              <TemplateHeader
+                template={template}
+                fallbackInstitution={settings.institution}
+                subtitle={report?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft'}
+                meta={`Report date: ${new Date().toLocaleDateString()} · Accession: ${accession}`}
+              />
 
               <div className="rp-demo">
                 <div className="rp-demo-cell">
@@ -325,35 +353,11 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </Section>
               )}
 
-              <Section title="Technique">
-                <TextBlock value={study.report?.technique} />
-              </Section>
-
-              <Section title="Comparison">
-                <TextBlock value={study.report?.comparison} />
-              </Section>
-
-              <Section title="Findings">
-                <TextBlock value={study.report?.findings} />
-              </Section>
-
-              <Section title="Impression">
-                {splitLines(study.report?.impression).length > 1 ? (
-                  <ol className="rp-ordered">
-                    {splitLines(study.report?.impression).map((line, i) => (
-                      <li key={i}>
-                        <strong>{line.replace(/^\d+[.)]\s*/, '')}</strong>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <TextBlock value={study.report?.impression} />
-                )}
-              </Section>
-
-              <Section title="Recommendations">
-                <TextBlock value={study.report?.recommendations} />
-              </Section>
+              {body('technique')}
+              {body('comparison')}
+              {body('findings')}
+              {body('impression', true)}
+              {body('recommendations')}
 
               {included.length > 0 && (
                 <section className="rp-section rp-table-section">
@@ -447,10 +451,13 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
               </div>
 
               <footer className="rp-footer">
-                <span className="rp-footer-disclaimer">
-                  {DISCLAIMER} Drafted with AI assistance ({analysisModels || 'model not recorded'}
-                  {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
-                </span>
+                {template?.footer.text.trim() ? <span className="rp-footer-template rp-screen-only">{template.footer.text}</span> : null}
+                {!template || template.footer.showDisclaimer || !report?.signed ? (
+                  <span className="rp-footer-disclaimer">
+                    {DISCLAIMER} Drafted with AI assistance ({analysisModels || 'model not recorded'}
+                    {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
+                  </span>
+                ) : null}
               </footer>
             </div>
           </div>

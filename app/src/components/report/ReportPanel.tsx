@@ -1,7 +1,7 @@
 import { ShellButton } from '../shell/ShellButton'
 import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 4 (Report). The inspector report editor, sign-off, and print/copy/export bar.
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -28,7 +28,7 @@ import { useActiveStudy, useApp } from '../../store'
 import { SERVER_MODE, useSession } from '../../lib/session'
 import { cancelReport, generateStudyReport, reportSourceKey, useReportJob } from '../../lib/analysis'
 import { excludedFindings, isUnconfirmed } from '../../lib/classifier'
-import type { PatientInfo, ReportDraft, Study } from '../../types'
+import type { PatientInfo, ReportDraft, ReportFieldKey, Study } from '../../types'
 import {
   downloadFile,
   exclusionReason,
@@ -41,9 +41,11 @@ import { Sheet } from '../shell/Sheet'
 import { toast } from '../shell/toastStore'
 import { PrintReport } from './PrintReport'
 import { ShareStudySheet } from './ShareStudySheet'
+import { RichSectionEditor } from './RichSectionEditor'
+import { DictationBar } from './DictationBar'
+import { TemplatesSheet } from './TemplatesSheet'
+import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
 import './report.css'
-
-type ReportFieldKey = 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'
 
 const REPORT_FIELDS: { key: ReportFieldKey; label: string; icon: ReactNode; emphasis?: boolean }[] = [
   { key: 'technique', label: 'Technique', icon: <ScanLine /> },
@@ -126,7 +128,7 @@ function samePatient(a: PatientInfo, b: PatientInfo): boolean {
   return (Object.keys(a) as (keyof PatientInfo)[]).every((k) => a[k] === b[k])
 }
 
-function StatusChip({ edited, signed }: { edited: boolean; signed: boolean }) {
+function StatusChip({ edited, signed, method }: { edited: boolean; signed: boolean; method?: ReportDraft['draftMethod'] }) {
   if (signed) return null
   if (edited) {
     return (
@@ -137,7 +139,7 @@ function StatusChip({ edited, signed }: { edited: boolean; signed: boolean }) {
   }
   return (
     <span className="rp-pill rp-pill-draft">
-      <FileText size={12} /> AI draft
+      <FileText size={12} /> {method === 'findings' ? 'Findings draft' : 'AI draft'}
     </span>
   )
 }
@@ -248,13 +250,18 @@ export function ReportPanel() {
   const totalCount = study?.images.length ?? 0
 
   const onFieldChange = useCallback(
-    (key: ReportFieldKey) => (value: string) => {
+    (key: ReportFieldKey) => (html: string, plain: string) => {
       if (!study) return
-      // `edited` persists so the Edited / AI draft chip survives reloads.
-      setReport(study.id, { [key]: value, ...(report?.edited ? {} : { edited: true }) } as Partial<ReportDraft>)
+      // `edited` persists so the Edited / AI draft chip survives reloads. The plain text stays the source for checks and exports.
+      setReport(study.id, { [key]: plain, rich: { ...report?.rich, [key]: html }, ...(report?.edited ? {} : { edited: true }) } as Partial<ReportDraft>)
     },
     [study, report, setReport],
   )
+  const templates = useTemplates((s) => s.templates)
+  const templatesLoaded = useTemplates((s) => s.loaded)
+  const loadTemplates = useTemplates((s) => s.load)
+  useEffect(() => { if (!templatesLoaded) void loadTemplates() }, [templatesLoaded, loadTemplates])
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
@@ -388,8 +395,8 @@ export function ReportPanel() {
             <>
               <div className="rp-draft-title">Draft report from analyzed images</div>
               <div className="rp-draft-text">
-                {settings.model} will synthesize all {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'} and the
-                patient context into a structured, editable, signable report.
+                Create an editable draft from {analyzedCount} analyzed image{analyzedCount === 1 ? '' : 's'}.
+                Unreviewed findings remain marked as possible. No additional GPU request is needed.
                 {analyzedCount < totalCount ? ` ${totalCount - analyzedCount} image${totalCount - analyzedCount === 1 ? ' is' : 's are'} not analyzed yet and will be left out.` : ''}
               </div>
             </>
@@ -403,8 +410,11 @@ export function ReportPanel() {
               onClick={() => generateStudyReport(study.id)}
             >
               {reportJob.running ? <div className="spinner" /> : <FileText size={16} />}{' '}
-              {reportJob.running ? 'Drafting…' : 'Draft Report'}
+              {reportJob.running ? 'Drafting…' : 'Draft from findings'}
             </ShellButton>
+            {!reportJob.running && <ShellButton type="button" className="btn"
+              title="Requires available model quota. Falls back to existing findings if quota is exhausted."
+              onClick={() => generateStudyReport(study.id, 'model')}>Draft with model</ShellButton>}
             {reportJob.running ? (
               <ShellButton type="button" className="btn btn-destructive" onClick={cancelReport}>
                 Cancel
@@ -425,6 +435,8 @@ export function ReportPanel() {
   const completedSections = REPORT_FIELDS.filter((field) => report[field.key].trim()).length
   const reviewFindings = study.images.flatMap((img) => img.analysis?.findings ?? []).filter((f) => f.severity !== 'normal')
   const reviewedFindings = reviewFindings.filter((f) => !!f.review).length
+  const template = templateForReport(templates, report)
+  const sectionLabels = Object.fromEntries(REPORT_FIELDS.map((f) => [f.key, sectionTitle(template, f.key)])) as Record<ReportFieldKey, string>
 
   return (
     <div className="rp-panel">
@@ -455,7 +467,7 @@ export function ReportPanel() {
           </ShellButton>
         </div>
         <div className="rp-meta-row">
-          <StatusChip edited={!!report.edited} signed={signed} />
+          <StatusChip edited={!!report.edited} signed={signed} method={report.draftMethod} />
           <span className="rp-report-meta">
             {patient.studyDate ? `Study ${patient.studyDate} · ` : ''}Updated {updatedLabel}
           </span>
@@ -544,12 +556,28 @@ export function ReportPanel() {
         <span>{reviewedFindings}/{reviewFindings.length} findings reviewed</span>
         <span>{analyzedCount}/{totalCount} images analyzed</span>
       </section>
+      <section className="rp-card tpl-pick" aria-label="Report template">
+        <label className="tpl-pick-label">
+          Template
+          <select
+            className="input"
+            value={report.templateId && templates.some((t) => t.id === report.templateId) ? report.templateId : ''}
+            disabled={signed}
+            onChange={(e) => setReport(study.id, { templateId: e.target.value || undefined })}
+          >
+            <option value="">{templates.find((t) => t.isDefault) ? `Default (${templates.find((t) => t.isDefault)!.name})` : 'Standard header'}</option>
+            {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </label>
+        <ShellButton type="button" className="btn btn-sm" onClick={() => setTemplatesOpen(true)}>Manage</ShellButton>
+      </section>
+      <DictationBar disabled={signed} labels={sectionLabels} />
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)
           section?.scrollIntoView({ block: 'start', behavior: 'instant' })
-          section?.querySelector('textarea')?.focus({ preventScroll: true })
-        }}>{field.label}</ShellButton>)}
+          section?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus({ preventScroll: true })
+        }}>{sectionLabels[field.key]}</ShellButton>)}
       </nav>
 
       <AutoGrowField
@@ -565,14 +593,15 @@ export function ReportPanel() {
       {REPORT_FIELDS.map((field) => (
         <div key={field.key} className="rp-field-wrap">
           {field.key === 'findings' ? <ExcludedBanner study={study} locked={signed} /> : null}
-          <AutoGrowField
-            value={report[field.key]}
-            sectionId={`report-${field.key}`}
+          <RichSectionEditor
+            sectionKey={field.key}
+            html={report.rich?.[field.key]}
+            plain={report[field.key]}
             icon={field.icon}
             emphasis={field.emphasis}
-            label={field.label}
+            label={sectionLabels[field.key]}
             readOnly={signed}
-            placeholder={`Add ${field.label.toLowerCase()}…`}
+            placeholder={`Add ${sectionLabels[field.key].toLowerCase()}… or dictate`}
             onChange={onFieldChange(field.key)}
           />
         </div>
@@ -701,6 +730,7 @@ export function ReportPanel() {
       {previewOpen ? (
         <PrintReport study={study} settings={settings} onClose={() => setPreviewOpen(false)} />
       ) : null}
+      <TemplatesSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} institution={settings.institution} />
       {shareOpen ? <ShareStudySheet key={study.id} study={study} institution={settings.institution} onClose={() => setShareOpen(false)} /> : null}
     </div>
   )

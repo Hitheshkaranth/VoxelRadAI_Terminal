@@ -560,3 +560,74 @@
   .rp-panel .rp-anon input { width: 20px; height: 20px; }
   .rp-panel .rp-confirm-actions { flex-wrap: wrap; }
 }
+
+/* ---- Rich-text section editor --------------------------------------------- */
+.rte .rp-sec-head { min-height: 26px; }
+.rte .rp-sec-head > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Formatting controls appear only on the section being edited. visibility (not display) keeps the
+   layout fixed, so focus moving away never shifts the panel under the pointer. */
+.rte-toolbar { display: flex; gap: 2px; margin-left: auto; visibility: hidden; }
+.rte:focus-within .rte-toolbar { visibility: visible; }
+.rte-tool {
+  display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
+  border: 0; border-radius: 3px; background: transparent; color: var(--label-2); cursor: pointer;
+}
+.rte-tool:hover { background: var(--bg-control); color: var(--label); }
+.rte-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rte-body { overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rte-body:empty::before { content: attr(data-placeholder); color: var(--label-3); pointer-events: none; }
+.rte-body p, .rte-body h3, .rte-body h4 { margin: 0 0 6px; }
+.rte-body h3, .rte-body h4 { font-size: 13px; font-weight: 650; }
+.rte-body ul, .rte-body ol { margin: 0 0 6px; padding-left: 20px; }
+.rte-active:not(.rp-sec-ro) { border-color: color-mix(in srgb, var(--accent) 55%, var(--separator)); }
+
+/* ---- Dictation bar --------------------------------------------------------- */
+.dict-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; }
+.dict-bar > .btn { justify-self: start; }
+.dict-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dict-bar.dict-on { border-color: color-mix(in srgb, var(--red) 40%, var(--separator)); }
+.dict-off { display: flex; gap: 8px; color: var(--label-2); font-size: 12px; line-height: 1.45; }
+.dict-off svg { flex: none; }
+.dict-meter { width: 44px; height: 6px; border-radius: 3px; background: var(--bg-control); overflow: hidden; }
+.dict-meter span { display: block; height: 100%; background: var(--green); transform-origin: left; transition: transform 80ms linear; }
+.dict-status { flex: 1; min-width: 0; font-size: 12px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dict-status strong { color: var(--label); font-weight: 600; }
+.dict-lang { width: auto; max-width: 150px; height: 30px; font-size: 12px; }
+.dict-last, .dict-help { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.5; }
+.dict-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dict-help p { margin: 0 0 6px; }
+.dict-help ul { margin: 0 0 6px; padding-left: 18px; }
+@media (prefers-reduced-motion: reduce) { .dict-meter span { transition: none; } }
+
+/* ---- Template picker and manager ------------------------------------------ */
+.tpl-pick { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 8px; padding: 10px 12px; }
+.tpl-pick-label { display: flex; min-width: 0; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
+.tpl-pick-label select { width: 100%; min-width: 0; height: 30px; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.tpl-list { display: flex; flex-direction: column; gap: 8px; }
+.tpl-empty, .tpl-error { margin: 0 0 8px; font-size: 13px; color: var(--label-2); }
+.tpl-error { color: var(--red); }
+.tpl-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--separator); border-radius: 6px; }
+.tpl-row-main { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.tpl-row-main strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-row-main span { font-size: 11px; color: var(--label-2); }
+.tpl-star-on { color: var(--orange); }
+.tpl-star-on svg { fill: currentColor; }
+.tpl-form { display: flex; flex-direction: column; gap: 14px; }
+.tpl-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--label-2); }
+.tpl-form fieldset { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--separator); border-radius: 6px; }
+.tpl-form legend { padding: 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
+.tpl-form .tpl-check { flex-direction: row; align-items: center; gap: 8px; color: var(--label); }
+.tpl-titles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tpl-logo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tpl-logo { max-width: 120px; max-height: 48px; object-fit: contain; border-radius: 4px; background: #fff; }
+.tpl-logo-empty { display: grid; place-items: center; width: 96px; height: 40px; font-size: 11px; color: var(--label-3); background: var(--bg-control); }
+.tpl-form .tpl-upload { flex-direction: row; align-items: center; gap: 6px; cursor: pointer; color: var(--label); }
+.tpl-preview { padding: 14px; border-radius: 6px; background: #fff; color: #1c1c1e; overflow-x: auto; }
+.tpl-preview .rp-lh { margin-bottom: 0; }
+
+/* Touch-sized controls on phones and tablets, matching the shell's 44px targets. */
+@media screen and (max-width: 1023px) {
+  .rte-tool { width: 44px; height: 44px; }
+  .dict-lang, .tpl-pick-label select, .tpl-form .input { min-height: 44px; }
+  .dict-meter { width: 64px; }
+}

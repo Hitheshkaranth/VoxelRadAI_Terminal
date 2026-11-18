@@ -8,6 +8,7 @@ import { crossCheck, reportSourceKey, reportTraceLines } from './classifier'
 import { analysisEligibility, isCrossSectional } from './modality'
 import { augment, mairaHealth } from './maira'
 import { analyzeImage, generateReport, reencodeForClassifier } from './medgemma'
+import { findingsReport } from './findingsReport'
 
 const controllers = new Map<string, AbortController>()
 const lastProgress = new Map<string, number>()
@@ -269,10 +270,11 @@ export const useReportJob = create<{ running: boolean; studyId?: string; progres
 }))
 
 /** Generate a formal report from all analysed images of a study and write it into the store. */
-export async function generateStudyReport(studyId: string): Promise<void> {
+export async function generateStudyReport(studyId: string, method: 'findings' | 'model' = 'findings'): Promise<void> {
   if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   if (!study) return
+  if (study.report?.signed) { toast('Unlock the signed report before replacing its draft.', 'info'); return }
 
   cancelReport()
   const controller = new AbortController()
@@ -283,12 +285,20 @@ export async function generateStudyReport(studyId: string): Promise<void> {
 
   try {
     const settings = useApp.getState().settings
-    const fields = await generateReport({
+    let draftMethod = method
+    const fields = method === 'findings' ? findingsReport(study) : await generateReport({
       study,
       settings,
       signal: controller.signal,
-      onProgress: (text) => useReportJob.setState({ progressText: text }),
+      onProgress: (text) => { if (reportController === controller) useReportJob.setState({ progressText: text }) },
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || !/quota|GPU limit|illegal duration/i.test(errorMessage(error))) throw error
+      draftMethod = 'findings'
+      toast('Model quota unavailable. Created a draft from existing findings.', 'info')
+      return findingsReport(study)
     })
+    if (reportController !== controller || controller.signal.aborted) return
+    if (useApp.getState().studies.find((s) => s.id === studyId)?.report?.signed) return
     const trace = reportTraceLines(study)
     const recommendations = [fields.recommendations.trim(), ...trace].filter(Boolean).join('\n')
     const prev = useApp.getState().studies.find((s) => s.id === studyId)?.report
@@ -298,6 +308,7 @@ export async function generateStudyReport(studyId: string): Promise<void> {
       ...fields,
       recommendations,
       generated: true,
+      draftMethod,
       signed: false,
       radiologist: settings.radiologist,
       sourceKey,
@@ -307,11 +318,14 @@ export async function generateStudyReport(studyId: string): Promise<void> {
     useReportJob.setState({ running: false, progressText: undefined, error: undefined })
   } catch (err) {
     // A newer generation replaced this one: leave its job state alone.
-    if (reportController && reportController !== controller) return
+    if (reportController !== controller) return
     if (controller.signal.aborted) useReportJob.setState({ running: false, error: 'Report cancelled.' })
     else useReportJob.setState({ running: false, error: errorMessage(err) })
   } finally {
-    if (reportController === controller) reportController = undefined
+    if (reportController === controller) {
+      reportController = undefined
+      useReportJob.setState({ running: false, progressText: undefined })
+    }
   }
 }
 

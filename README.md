@@ -252,6 +252,7 @@ The API integration harness writes synthetic records, so run it only against a d
 | Guide | |
 | --- | --- |
 | [Deployment](docs/deployment.md) · [Vercel](docs/vercel.md) | Self-hosted Compose and hosted setup |
+| [Hugging Face Space](docs/huggingface.md) | Full application with queued Skanda V1 bf16 reads on ZeroGPU |
 | [Keycloak](docs/keycloak.md) · [S3 storage](docs/s3-storage.md) · [Orthanc](docs/orthanc.md) | Optional integrations |
 | [Reading with Skanda](docs/reading-with-skanda.md) | Model serving, inputs and evidence |
 | [Benchmarks](benchmark/README.md) | CXR scoring and reproduction |

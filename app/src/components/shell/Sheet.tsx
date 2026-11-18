@@ -6,6 +6,7 @@ import './shell.css'
 import './shellAccessibility.css'
 
 interface SheetProps {
+  className?: string
   wide?: boolean
   open: boolean
   onClose: () => void
@@ -16,14 +17,14 @@ interface SheetProps {
 }
 
 /** Radix supplies modal isolation, stacked-dialog Escape handling and focus trapping. */
-export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: SheetProps) {
+export function Sheet({ open, onClose, title, subtitle, children, footer, wide, className = '' }: SheetProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const descriptionId = useId()
   return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
     <Dialog.Portal>
       <Dialog.Overlay className="sh-sheet-backdrop">
-        <Dialog.Content ref={cardRef} className={`sh-sheet${wide ? ' sh-sheet--wide' : ''}`}
+        <Dialog.Content ref={cardRef} className={`sh-sheet${wide ? ' sh-sheet--wide' : ''} ${className}`.trim()}
           aria-describedby={subtitle ? descriptionId : undefined}
           onOpenAutoFocus={(event) => {
             event.preventDefault()

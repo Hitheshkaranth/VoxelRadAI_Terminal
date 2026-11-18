@@ -12,8 +12,14 @@ import { createObjectStorageRouter } from './objectStorage.mjs'
 import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
+import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
+import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
 
-const { Pool } = pg
+const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
+if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
+// Neon uses WebSockets over port 443, which is available from Hugging Face Spaces.
+// Keep native PostgreSQL for Compose and existing deployments unless opted in.
+const { Pool } = databaseDriver === 'neon' ? await import('@neondatabase/serverless') : pg
 const port = Number(process.env.PORT || 8080)
 const publicOrigin = new URL(process.env.PUBLIC_ORIGIN || 'http://localhost:5173').origin
 const secureCookies = publicOrigin.startsWith('https:')
@@ -222,6 +228,52 @@ export async function handler(req, res) {
         await client.query('COMMIT')
         return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
       } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
+    if (path === '/api/speech/transcribe' && req.method === 'POST') {
+      if (await rateLimit(`speech:${user.id}`, 400)) return send(res, 429, { error: 'Dictation limit reached. Try again in 15 minutes.' }, { 'Retry-After': '900' })
+      const result = await transcribe(parseSpeechRequest(await body(req, STT_BODY_LIMIT)), { apiKey: process.env.SARVAM_API_KEY, ...(process.env.SARVAM_STT_URL ? { endpoint: process.env.SARVAM_STT_URL } : {}) })
+      return send(res, 200, result)
+    }
+    if (path === '/api/speech/status' && req.method === 'GET') return send(res, 200, { configured: Boolean(process.env.SARVAM_API_KEY), provider: 'sarvam' })
+    if (path === '/api/report-templates' && req.method === 'GET') {
+      const result = await pool.query('SELECT id,name,content,is_default AS "isDefault",updated_at AS "updatedAt" FROM report_templates WHERE owner_id=$1 ORDER BY is_default DESC,updated_at DESC', [user.id])
+      return send(res, 200, { templates: result.rows.map(({ content, ...row }) => ({ ...row, ...content })) })
+    }
+    const templateMatch = path.match(/^\/api\/report-templates(?:\/([a-f0-9-]+))?(\/default)?$/i)
+    if (templateMatch && (!templateMatch[1] || UUID.test(templateMatch[1])) && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
+      const id = templateMatch[1]
+      if (templateMatch[2]) {
+        // PUT /api/report-templates/:id/default sets the preference; DELETE clears it.
+        if (!id || !['PUT', 'DELETE'].includes(req.method)) return send(res, 404, { error: 'Endpoint not found.' })
+        const client = await pool.connect()
+        try {
+          await client.query('BEGIN')
+          await client.query('UPDATE report_templates SET is_default=false WHERE owner_id=$1 AND is_default', [user.id])
+          const result = req.method === 'PUT' ? await client.query('UPDATE report_templates SET is_default=true WHERE id=$1 AND owner_id=$2 RETURNING id', [id, user.id]) : { rowCount: 1 }
+          if (!result.rowCount) { await client.query('ROLLBACK'); return send(res, 404, { error: 'Template not found.' }) }
+          await client.query('COMMIT')
+        } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+        return send(res, 200, { ok: true })
+      }
+      if (req.method === 'DELETE') {
+        if (!id) return send(res, 404, { error: 'Endpoint not found.' })
+        const result = await pool.query('DELETE FROM report_templates WHERE id=$1 AND owner_id=$2', [id, user.id])
+        return result.rowCount ? send(res, 200, { ok: true }) : send(res, 404, { error: 'Template not found.' })
+      }
+      const data = await body(req, TEMPLATE_BODY_LIMIT)
+      if (!validTemplate(data)) return send(res, 400, { error: 'Template has invalid fields. Logos must be PNG, JPEG or WebP under 400 KB.' })
+      if (req.method === 'POST' && !id) {
+        const count = await pool.query('SELECT count(*)::int AS n FROM report_templates WHERE owner_id=$1', [user.id])
+        if (count.rows[0].n >= MAX_TEMPLATES) return send(res, 400, { error: `You can keep up to ${MAX_TEMPLATES} templates.` })
+        const newId = randomUUID()
+        await pool.query('INSERT INTO report_templates(id,owner_id,name,content) VALUES ($1,$2,$3,$4)', [newId, user.id, data.name.trim(), JSON.stringify(data)])
+        return send(res, 201, { id: newId })
+      }
+      if (req.method === 'PUT' && id) {
+        const result = await pool.query('UPDATE report_templates SET name=$3,content=$4,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id', [id, user.id, data.name.trim(), JSON.stringify(data)])
+        return result.rowCount ? send(res, 200, { id }) : send(res, 404, { error: 'Template not found.' })
+      }
+      return send(res, 404, { error: 'Endpoint not found.' })
     }
     if (path.startsWith('/api/admin/') && user.role !== 'admin') return send(res, 403, { error: 'Administrator access is required.' })
     if (path === '/api/admin/operations' && req.method === 'GET') {

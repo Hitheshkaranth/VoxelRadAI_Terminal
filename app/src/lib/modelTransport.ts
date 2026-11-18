@@ -104,7 +104,7 @@ export async function chatStream({
     let finish: string | undefined
     const bad: string[] = []
     const absorb = (p: SseParse) => {
-      if (p.error) throw new Error(`LM Studio error: ${p.error}`)
+      if (p.error) throw new Error(`Model service error: ${p.error}`)
       bad.push(...p.bad)
       if (p.finish) finish = p.finish
       if (p.text) {

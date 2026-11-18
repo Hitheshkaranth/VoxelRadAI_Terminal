@@ -30,6 +30,7 @@ services:
       SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-60}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
     depends_on:
       db: { condition: service_healthy }
     networks: [data, edge]
