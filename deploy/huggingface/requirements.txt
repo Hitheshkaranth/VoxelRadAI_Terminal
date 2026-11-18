@@ -1,4 +1,4 @@
-spaces==0.51.3
+spaces==0.52.1
 gradio==6.32.0
 torch==2.10.0
 torchvision==0.25.0
