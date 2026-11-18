@@ -131,8 +131,15 @@ that") or are later corrected are kept with their audio and the corrected text.
 
 Patient name, ID, referring physician, contact details and full dates are removed and
 study, image and user IDs are replaced with keyed one-way pseudonyms. Only an age band
-and sex are kept. Burned-in text on images is not removed. Records are deleted after
-`TRAINING_RETENTION_DAYS` (default 365). Administrators can list and export them at
+and sex are kept. Burned-in text on images is not removed. Records are deleted from the
+database after `TRAINING_RETENTION_DAYS` (default 365).
+
+On the Space, captured records are also copied every five minutes (and at shutdown) to a
+**private** Hugging Face dataset, `<owner>/VoxelRad-training` by default (override with
+`TRAINING_DATASET_REPO`), using the Space's `HF_TOKEN`. This keeps the data when the
+temporary database is reset. Records are marked synced only after a successful upload, and
+the sync stops if the dataset is not private. Volume (CT/MRI) reads capture every slice with
+findings plus every tenth clean slice. Administrators can list and export them at
 `/api/admin/training/summary`, `/api/admin/training/cases`, `/api/admin/training/images/<sha256>`,
 `/api/admin/training/dictation` and `/api/admin/training/dictation/<id>/audio`.
 Users see what is captured under Settings → Data & storage. Obtain the consent or ethics

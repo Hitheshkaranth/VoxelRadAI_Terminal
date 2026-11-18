@@ -124,6 +124,14 @@ export async function handler(req, res) {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
     if (['POST','PUT','PATCH','DELETE'].includes(req.method) && !allowedOrigin(req.headers.origin, publicOrigin)) return send(res, 403, { error: 'Request origin is not allowed' })
+    // Internal durable-storage sync (Hugging Face Space only). Not proxied publicly; also requires a per-process token.
+    if (path.startsWith('/internal/training/')) {
+      const token = process.env.TRAINING_SYNC_TOKEN
+      if (!token || req.headers['x-sync-token'] !== token) return send(res, 404, { error: 'Endpoint not found.' })
+      if (path === '/internal/training/batch' && req.method === 'GET') return send(res, 200, await training.unsyncedBatch())
+      if (path === '/internal/training/synced' && req.method === 'POST') { await training.markSynced(await body(req, 64 * 1024)); return send(res, 200, { ok: true }) }
+      return send(res, 404, { error: 'Endpoint not found.' })
+    }
     if (await oidc.route(req, res)) return
     if (path === '/api/password-recovery' && req.method === 'POST') {
       const data = await body(req)

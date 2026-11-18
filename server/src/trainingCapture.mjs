@@ -96,6 +96,19 @@ export function createTrainingCapture({ pool, env = process.env }) {
         [event.kind, ref('user', userId), event.language || '', event.transcript || '', event.corrected || '', event.error || '', event.audio ?? null, event.audio ? event.mime : null])
       return true
     },
+    /** Unsynced records with their image or audio bytes, oldest first, for the durable-storage sync. */
+    async unsyncedBatch(limit = 40) {
+      const cases = await pool.query(`SELECT c.id::text,c.kind,c.study_ref,c.image_ref,c.image_sha256,c.modality,c.model,c.payload,c.created_at,i.mime,encode(i.bytes,'base64') AS image_b64
+        FROM training_cases c LEFT JOIN training_images i ON i.sha256=c.image_sha256 WHERE c.synced_at IS NULL ORDER BY c.id LIMIT $1`, [limit])
+      const dictation = await pool.query(`SELECT id::text,kind,user_ref,language,transcript,corrected,error,audio_mime,encode(audio,'base64') AS audio_b64,created_at
+        FROM dictation_events WHERE synced_at IS NULL ORDER BY id LIMIT $1`, [limit])
+      return { cases: cases.rows, dictation: dictation.rows }
+    },
+    async markSynced({ cases = [], dictation = [] }) {
+      const ids = list => (Array.isArray(list) ? list.filter(id => typeof id === 'string' && /^\d{1,18}$/.test(id)).slice(0, 1000) : [])
+      await pool.query('UPDATE training_cases SET synced_at=now() WHERE id = ANY($1::bigint[])', [ids(cases)])
+      await pool.query('UPDATE dictation_events SET synced_at=now() WHERE id = ANY($1::bigint[])', [ids(dictation)])
+    },
     async cleanup() {
       const days = retentionDays(env)
       await pool.query('DELETE FROM training_cases WHERE created_at<now()-make_interval(days=>$1::int)', [days])

@@ -46,3 +46,13 @@ test('capture is on by default and can be switched off', async () => {
   const off = createTrainingCapture({ pool, env: { TRAINING_CAPTURE: 'off' } })
   assert.equal(await off.saveDictation('u', { kind: 'error' }), false); assert.equal(queries.length, 2)
 })
+
+test('sync batches read unsynced rows and mark only numeric IDs', async () => {
+  const queries = []
+  const pool = { query: async (sql, values) => { queries.push({ sql, values }); return { rows: sql.includes('training_cases c') ? [{ id: '1' }] : [] } } }
+  const capture = createTrainingCapture({ pool, env: {} })
+  const batch = await capture.unsyncedBatch(5)
+  assert.deepEqual(batch.cases, [{ id: '1' }]); assert.ok(queries[0].sql.includes('synced_at IS NULL'))
+  await capture.markSynced({ cases: ['1', "2; DROP TABLE x", 3], dictation: ['4'] })
+  assert.deepEqual(queries.at(-2).values, [['1']]); assert.deepEqual(queries.at(-1).values, [['4']])
+})

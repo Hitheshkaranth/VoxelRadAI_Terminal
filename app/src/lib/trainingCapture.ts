@@ -74,6 +74,20 @@ export async function captureSignedReport(study: Study) {
   await reportCorrectedClips(study)
 }
 
+/** Volume slice reads: every slice with findings, plus every 10th clean slice as a negative example.
+ *  The volume title and file name are not sent; the job ID is pseudonymised on the server. */
+export async function captureVolumeSlice(job: { id: string; modality: string; plane: string; count: number }, index: number, dataUrl: string, width: number, height: number, analysis: import('../types').AnalysisResult) {
+  if (!analysis.findings.length && index % 10 !== 0) return
+  if (analysis.truncated || !(await captureEnabled())) return
+  void post('/api/training/cases', {
+    kind: 'analysis', studyId: job.id, imageId: `${job.plane}-${index}`,
+    modality: job.modality, bodyPart: analysis.bodyPart, view: `${job.plane} ${index + 1}/${job.count}`, model: analysis.model, durationMs: analysis.durationMs,
+    impression: analysis.impression,
+    findings: analysis.findings.map((f) => ({ title: f.title, description: f.description, location: f.location, severity: f.severity, confidence: f.confidence, source: f.source, bbox: f.bbox })),
+    image: dataUrl, width, height,
+  })
+}
+
 // ---- Dictation clips --------------------------------------------------------
 interface Clip { studyId: string; section: ReportFieldKey; transcript: string; blob: Blob; language: string }
 const clips: Clip[] = []

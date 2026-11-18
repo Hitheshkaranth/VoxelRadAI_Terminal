@@ -16,6 +16,9 @@ import tempfile
 import time
 import urllib.request
 import uuid
+import base64
+import secrets
+import threading
 
 import gradio as gr
 import httpx
@@ -29,6 +32,9 @@ MODEL_ID = "skanda-v1"
 APP_PORT = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
 READ_TIMEOUT_SECONDS = 180
 children = []
+# Shared only with the local Node API, which hands captured training records to the dataset sync.
+TRAINING_SYNC_TOKEN = secrets.token_urlsafe(32)
+TRAINING_SYNC_SECONDS = int(os.environ.get("TRAINING_SYNC_SECONDS", "300"))
 
 
 def start(command, **kwargs):
@@ -63,7 +69,7 @@ def start_services():
         with tarfile.open(fileobj=io.BytesIO(data), mode="r:xz") as bundle:
             bundle.extractall(tempfile.gettempdir(), filter="data")
     env = {**os.environ, "PATH": f"{node_root / 'bin'}:{os.environ['PATH']}",
-           "NODE_ENV": "production", "PORT": "8080"}
+           "NODE_ENV": "production", "PORT": "8080", "TRAINING_SYNC_TOKEN": TRAINING_SYNC_TOKEN}
     origin = env.get("PUBLIC_ORIGIN") or f"https://{env['SPACE_HOST']}"
     env["PUBLIC_ORIGIN"] = origin
     if env.get("DATABASE_DRIVER") == "neon" and not env.get("DATABASE_URL"):
@@ -133,8 +139,107 @@ def infer(payload: dict, request: gr.Request):
     return {"text": text, "finish": "stop" if finished else "length"}
 
 
+DATASET_CARD = """---
+license: other
+private: true
+tags: [radiology, medical-imaging, model-feedback, de-identified]
+---
+# VoxelRad model-improvement data (private)
+
+Captured automatically by the VoxelRad Space for improving future Skanda models.
+
+- `cases/<date>/*.json`: `analysis` records (AI findings for one image or volume slice) and
+  `signed` records (radiologist accept/dismiss decisions, AI draft and signed report text).
+  `imageSha256` points to `images/<sha256>.<ext>`.
+- `dictation/<date>/*.json`: dictated phrases that failed, returned nothing, were undone or
+  were corrected, with `audio` pointing to the clip in the same folder.
+
+Patient name, ID, referring physician, contact details and full dates are removed; study,
+image and user IDs are keyed one-way pseudonyms; only age band and sex are kept. Text burned
+into image pixels and voices in audio are not removed. Use only under the consent or ethics
+approval that applies to the source data.
+"""
+EXTENSIONS = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "audio/webm": "webm",
+              "audio/ogg": "ogg", "audio/wav": "wav", "audio/mp4": "m4a", "audio/mpeg": "mp3"}
+
+
+def sync_training_once(api, repo_id):
+    """Copy unsynced captured records to the private dataset; mark them synced only after upload."""
+    origin = os.environ.get("PUBLIC_ORIGIN") or f"https://{os.environ.get('SPACE_HOST', 'localhost')}"
+    headers = {"x-sync-token": TRAINING_SYNC_TOKEN, "Origin": origin}
+    total = 0
+    while True:
+        batch = httpx.get("http://127.0.0.1:8080/internal/training/batch", headers=headers, timeout=60).json()
+        if not batch["cases"] and not batch["dictation"]:
+            return total
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for row in batch["cases"]:
+                day, stamp = row["created_at"][:10], row["created_at"].replace(":", "").replace(".", "")[:17]
+                if row.get("image_b64"):
+                    image = root / "images" / f"{row['image_sha256']}.{EXTENSIONS.get(row['mime'], 'bin')}"
+                    image.parent.mkdir(parents=True, exist_ok=True)
+                    image.write_bytes(base64.b64decode(row["image_b64"]))
+                record = {k: row[k] for k in ("kind", "study_ref", "image_ref", "image_sha256", "modality", "model", "payload", "created_at")}
+                target = root / "cases" / day / f"{stamp}-{row['kind']}-{row['id']}-{secrets.token_hex(3)}.json"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(record, indent=1))
+            for row in batch["dictation"]:
+                day, stamp = row["created_at"][:10], row["created_at"].replace(":", "").replace(".", "")[:17]
+                name = f"{stamp}-{row['kind']}-{row['id']}-{secrets.token_hex(3)}"
+                folder_path = root / "dictation" / day
+                folder_path.mkdir(parents=True, exist_ok=True)
+                record = {k: row[k] for k in ("kind", "user_ref", "language", "transcript", "corrected", "error", "created_at")}
+                if row.get("audio_b64"):
+                    audio = f"{name}.{EXTENSIONS.get(row['audio_mime'], 'bin')}"
+                    (folder_path / audio).write_bytes(base64.b64decode(row["audio_b64"]))
+                    record["audio"] = audio
+                (folder_path / f"{name}.json").write_text(json.dumps(record, indent=1))
+            api.upload_folder(repo_id=repo_id, repo_type="dataset", folder_path=folder,
+                              commit_message=f"Add {len(batch['cases'])} cases and {len(batch['dictation'])} dictation events")
+        httpx.post("http://127.0.0.1:8080/internal/training/synced", headers=headers, timeout=60,
+                   json={"cases": [r["id"] for r in batch["cases"]], "dictation": [r["id"] for r in batch["dictation"]]}).raise_for_status()
+        total += len(batch["cases"]) + len(batch["dictation"])
+
+
+def start_training_sync():
+    """Durable copy of captured data: the Space database may be temporary, the private dataset is not."""
+    token = os.environ.get("HF_TOKEN")
+    if not token or os.environ.get("TRAINING_CAPTURE", "on").lower() in {"off", "false", "0", "no"}:
+        print("Training data sync disabled.", flush=True)
+        return
+    from huggingface_hub import HfApi
+    api = HfApi(token=token)
+    repo_id = os.environ.get("TRAINING_DATASET_REPO") or f"{api.whoami()['name']}/VoxelRad-training"
+    api.create_repo(repo_id, repo_type="dataset", private=True, exist_ok=True)
+    if not api.file_exists(repo_id, "README.md", repo_type="dataset"):
+        api.upload_file(path_or_fileobj=DATASET_CARD.encode(), path_in_repo="README.md", repo_id=repo_id, repo_type="dataset",
+                        commit_message="Describe the VoxelRad model-improvement dataset")
+    if api.repo_info(repo_id, repo_type="dataset").private is not True:
+        print("Training dataset is not private; sync stopped.", flush=True)
+        return
+
+    def loop():
+        while True:
+            time.sleep(TRAINING_SYNC_SECONDS)
+            try:
+                synced = sync_training_once(api, repo_id)
+                if synced:
+                    print(f"Training sync: {synced} records copied to {repo_id}", flush=True)
+            except Exception as error:  # Keep retrying; records stay unsynced until an upload succeeds.
+                print(f"Training sync failed: {type(error).__name__}", flush=True)
+
+    threading.Thread(target=loop, name="training-sync", daemon=True).start()
+    atexit.register(lambda: sync_training_once(api, repo_id))
+    print(f"Training data sync to private dataset {repo_id} every {TRAINING_SYNC_SECONDS} s.", flush=True)
+
+
 # Register the GPU function before any slow downloads so ZeroGPU detects it at startup.
 start_services()
+try:
+    start_training_sync()
+except Exception as error:
+    print(f"Training data sync not started: {type(error).__name__}", flush=True)
 model_path = snapshot_download(
     os.environ.get("MODEL_REPO", "hitheshkaranth/Skanda-V1"),
     revision=os.environ["MODEL_REVISION"],

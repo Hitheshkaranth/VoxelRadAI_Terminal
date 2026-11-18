@@ -137,3 +137,56 @@ class FacadeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TrainingSyncTests(unittest.TestCase):
+    """The dataset sync uploads images, audio and records, then marks them synced only after upload."""
+
+    def setUp(self):
+        import base64, secrets, tempfile
+        tree = ast.parse(Path(__file__).with_name("space_app.py").read_text())
+        keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name == "sync_training_once")
+                or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "EXTENSIONS" for t in n.targets))]
+        self.ns = {"httpx": httpx, "os": os, "json": json, "base64": base64, "secrets": secrets, "tempfile": tempfile,
+                   "Path": Path, "TRAINING_SYNC_TOKEN": "tok"}
+        exec(compile(ast.Module(body=keep, type_ignores=[]), "space_app.py", "exec"), self.ns)
+
+    def test_uploads_then_marks_synced(self):
+        import base64
+        batches = [{"cases": [{"id": "7", "kind": "analysis", "study_ref": "s", "image_ref": "i", "image_sha256": "a" * 64, "modality": "X-ray",
+                               "model": "skanda-v1", "payload": {"findings": []}, "created_at": "2026-11-19T10:00:00.000Z", "mime": "image/jpeg",
+                               "image_b64": base64.b64encode(b"jpegbytes").decode()}],
+                    "dictation": [{"id": "3", "kind": "undone", "user_ref": "u", "language": "en-IN", "transcript": "plural effusion", "corrected": "",
+                                   "error": "", "audio_mime": "audio/webm", "audio_b64": base64.b64encode(b"webm").decode(),
+                                   "created_at": "2026-11-19T10:00:01.000Z"}]},
+                   {"cases": [], "dictation": []}]
+        uploaded, marked = [], []
+
+        class Api:
+            def upload_folder(self, repo_id, repo_type, folder_path, commit_message):
+                uploaded.append(sorted(str(p.relative_to(folder_path)) for p in Path(folder_path).rglob("*") if p.is_file()))
+                self_test.assertEqual((repo_id, repo_type), ("me/VoxelRad-training", "dataset"))
+        self_test = self
+        get = lambda url, headers, timeout: SimpleNamespace(json=lambda: batches.pop(0))
+        def post(url, headers, timeout, json):
+            self.assertEqual(headers["x-sync-token"], "tok"); self.assertTrue(uploaded, "marked before upload")
+            marked.append(json); return SimpleNamespace(raise_for_status=lambda: None)
+        with patch.object(httpx, "get", get), patch.object(httpx, "post", post):
+            total = self.ns["sync_training_once"](Api(), "me/VoxelRad-training")
+        self.assertEqual(total, 2)
+        files = uploaded[0]
+        self.assertIn("images/" + "a" * 64 + ".jpg", files)
+        self.assertTrue(any(f.startswith("cases/2026-11-19/") and f.endswith(".json") for f in files))
+        self.assertTrue(any(f.startswith("dictation/2026-11-19/") and f.endswith(".webm") for f in files))
+        self.assertEqual(marked, [{"cases": ["7"], "dictation": ["3"]}])
+
+    def test_failed_upload_leaves_records_unsynced(self):
+        batches = [{"cases": [{"id": "1", "kind": "signed", "study_ref": "s", "image_ref": None, "image_sha256": None, "modality": "", "model": "",
+                               "payload": {}, "created_at": "2026-11-19T10:00:00.000Z", "mime": None, "image_b64": None}], "dictation": []}]
+        class Api:
+            def upload_folder(self, **kwargs): raise RuntimeError("hub down")
+        get = lambda url, headers, timeout: SimpleNamespace(json=lambda: batches.pop(0))
+        post = lambda *a, **k: self.fail("must not mark synced after a failed upload")
+        with patch.object(httpx, "get", get), patch.object(httpx, "post", post):
+            with self.assertRaises(RuntimeError):
+                self.ns["sync_training_once"](Api(), "me/VoxelRad-training")

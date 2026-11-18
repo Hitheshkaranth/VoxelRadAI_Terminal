@@ -10,6 +10,7 @@ import { reviewAllSlices, volumeCoverage, type SliceRead } from './volumeAnalysi
 import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type VolumeFindingGroup, type VolumeFindingReview, type VolumeDraftReport } from './volumeReview'
 import type { PatientInfo, Settings } from '../types'
 import { uid } from '../store'
+import { captureVolumeSlice } from './trainingCapture'
 
 export interface VolumeJobSnapshot { center: number; width: number; model: string; settings: Settings; acquisition?: VolumeAcquisition }
 export interface VolumeJob {
@@ -148,7 +149,10 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
           image: { id: uid(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: job.modality === 'MRI' ? 'MR' : job.modality },
           onProgress: (text) => { if (current() && Date.now() - lastProgress >= 200) { lastProgress = Date.now(); patch({ progress: `Slice ${index + 1}/${job.count} · ${text}` }) } },
         })
-        return validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis, { sequence: job.snapshot.acquisition?.sequence })
+        const validated = validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis, { sequence: job.snapshot.acquisition?.sequence })
+        // Model-improvement capture of the slice exactly as the reader saw it (best-effort, never blocks the review).
+        void captureVolumeSlice(job, index, canvas.toDataURL('image/jpeg', 0.92), canvas.width, canvas.height, validated)
+        return validated
       },
     })
     if (current()) {
