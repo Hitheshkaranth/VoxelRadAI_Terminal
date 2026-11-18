@@ -70,8 +70,15 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
       insertText: (text) => {
         if (readOnly) return
         placeCaretAtEndIfOutside()
+        // Text before the caret, measured with a range so it works when the caret sits between elements.
         const selection = window.getSelection()
-        const before = selection?.anchorNode?.textContent?.slice(0, selection.anchorOffset) ?? ''
+        let before = ''
+        if (selection?.rangeCount && ref.current) {
+          const range = document.createRange()
+          range.selectNodeContents(ref.current)
+          range.setEnd(selection.getRangeAt(0).startContainer, selection.getRangeAt(0).startOffset)
+          before = range.toString()
+        }
         const spaced = before && !/\s$/.test(before) && !/^[.,:;]/.test(text) ? ` ${text}` : text
         run('insertText', spaced)
         lastInserted.current = spaced
@@ -125,7 +132,8 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
       <div className="rp-sec-head">
         {icon}
         <span id={labelId}>{label}</span>
-        {!readOnly ? (
+      </div>
+      {!readOnly && active ? (
         <div className="rte-toolbar" role="toolbar" aria-label={`${label} formatting`}>
           {tool('Bold (⌘B)', <Bold size={14} />, () => run('bold'))}
           {tool('Italic (⌘I)', <Italic size={14} />, () => run('italic'))}
@@ -136,7 +144,6 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
           {tool('Clear formatting', <RemoveFormatting size={14} />, () => { run('removeFormat'); run('formatBlock', '<p>') })}
         </div>
       ) : null}
-      </div>
       <div
         ref={ref}
         className="rp-sec-text rte-body"

@@ -562,12 +562,9 @@
 }
 
 /* ---- Rich-text section editor --------------------------------------------- */
-.rte .rp-sec-head { min-height: 26px; }
-.rte .rp-sec-head > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Formatting controls appear only on the section being edited. visibility (not display) keeps the
-   layout fixed, so focus moving away never shifts the panel under the pointer. */
-.rte-toolbar { display: flex; gap: 2px; margin-left: auto; visibility: hidden; }
-.rte:focus-within .rte-toolbar { visibility: visible; }
+/* Formatting controls show on the last-focused section only. That changes when another section is
+   focused, never when focus moves to a button elsewhere, so clicks never land on a shifting layout. */
+.rte-toolbar { display: flex; flex-wrap: wrap; gap: 2px; margin: -4px 0 0 -6px; }
 .rte-tool {
   display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
   border: 0; border-radius: 3px; background: transparent; color: var(--label-2); cursor: pointer;
