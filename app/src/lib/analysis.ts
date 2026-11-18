@@ -1,4 +1,5 @@
 // Store-bound orchestration the UI calls: read → cross-check → optional second reader, and report drafting.
+import { captureAnalysis } from './trainingCapture'
 import { create } from 'zustand'
 import { toast } from '../components/shell/toastStore'
 import { useApp } from '../store'
@@ -99,6 +100,11 @@ async function runStudyImage(studyId: string, imageId: string, controller: Abort
     }
     if (!current()) return
     useApp.getState().setImageAnalysis(studyId, imageId, result)
+    {
+      const saved = useApp.getState().studies.find((s) => s.id === studyId)
+      const savedImage = saved?.images.find((i) => i.id === imageId)
+      if (saved && savedImage) void captureAnalysis(saved, savedImage)
+    }
     notify(studyId, imageId, `${image.name}: analysis complete`, 'success')
   } catch (err) {
     if (!current()) return
@@ -314,6 +320,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
       sourceKey,
       edited: false,
       previous,
+      aiDraft: { technique: fields.technique, comparison: fields.comparison, findings: fields.findings, impression: fields.impression, recommendations },
     })
     useReportJob.setState({ running: false, progressText: undefined, error: undefined })
   } catch (err) {

@@ -90,7 +90,7 @@ export async function dictationAvailable(): Promise<boolean> {
 
 interface Options {
   language: string
-  onEvent: (event: DictationEvent) => void
+  onEvent: (event: DictationEvent, clip: Blob) => void
   onState: (state: DictationState, detail?: string) => void
   onLevel?: (level: number) => void
 }
@@ -193,7 +193,7 @@ export class Dictation {
       try {
         const transcript = await transcribeClip(blob, this.options.language, this.abort.signal)
         const event = parseUtterance(transcript)
-        if (event && !this.abort.signal.aborted) this.options.onEvent(event)
+        if (event && !this.abort.signal.aborted) this.options.onEvent(event, blob)
       } catch (error) {
         if (!this.abort.signal.aborted) this.options.onState('error', error instanceof Error ? error.message : 'Dictation failed.')
       } finally {

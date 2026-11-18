@@ -14,6 +14,7 @@ import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
+import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback } from './trainingCapture.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -111,9 +112,10 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 })
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
+const training = createTrainingCapture({ pool })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
-  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'")])
+  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
 }
 export async function handler(req, res) {
   const requestId = operations.begin(res)
@@ -231,8 +233,25 @@ export async function handler(req, res) {
     }
     if (path === '/api/speech/transcribe' && req.method === 'POST') {
       if (await rateLimit(`speech:${user.id}`, 400)) return send(res, 429, { error: 'Dictation limit reached. Try again in 15 minutes.' }, { 'Retry-After': '900' })
-      const result = await transcribe(parseSpeechRequest(await body(req, STT_BODY_LIMIT)), { apiKey: process.env.SARVAM_API_KEY, ...(process.env.SARVAM_STT_URL ? { endpoint: process.env.SARVAM_STT_URL } : {}) })
+      const clip = parseSpeechRequest(await body(req, STT_BODY_LIMIT))
+      // Failed and empty transcriptions are kept (with audio) for improving recognition.
+      const keep = (kind, error = '') => training.saveDictation(user.id, { kind, language: clip.language, error, audio: clip.audio, mime: clip.mime }).catch(() => {})
+      let result
+      try { result = await transcribe(clip, { apiKey: process.env.SARVAM_API_KEY, ...(process.env.SARVAM_STT_URL ? { endpoint: process.env.SARVAM_STT_URL } : {}) }) }
+      catch (error) { if (error.status !== 503) await keep('error', error.message); throw error }
+      if (!result.transcript) await keep('empty')
       return send(res, 200, result)
+    }
+    if (path === '/api/training/status' && req.method === 'GET') return send(res, 200, { enabled: training.enabled() })
+    if (path === '/api/training/cases' && req.method === 'POST') {
+      if (await rateLimit(`training:${user.id}`, 2000)) return send(res, 429, { error: 'Too many capture requests.' })
+      const saved = await training.saveCase(parseCase(await body(req, TRAINING_BODY_LIMIT)))
+      return send(res, saved ? 201 : 200, { saved })
+    }
+    if (path === '/api/training/dictation' && req.method === 'POST') {
+      if (await rateLimit(`training-dictation:${user.id}`, 400)) return send(res, 429, { error: 'Too many capture requests.' })
+      const saved = await training.saveDictation(user.id, parseDictationFeedback(await body(req, DICTATION_FEEDBACK_LIMIT)))
+      return send(res, saved ? 201 : 200, { saved })
     }
     if (path === '/api/speech/status' && req.method === 'GET') return send(res, 200, { configured: Boolean(process.env.SARVAM_API_KEY), provider: 'sarvam' })
     if (path === '/api/report-templates' && req.method === 'GET') {
@@ -353,6 +372,39 @@ export async function handler(req, res) {
         await client.query('INSERT INTO audit_events(actor_id,event_type,subject_id) VALUES ($1,$2,$3)',[user.id,passwordHash ? 'user.password_reset' : data.disabled ? 'user.disabled' : 'user.enabled',target])
         await client.query('COMMIT'); return send(res,200,{user:result.rows[0]})
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+    }
+    if (path === '/api/admin/training/summary' && req.method === 'GET') {
+      const [cases, dictation, images] = await Promise.all([
+        pool.query("SELECT kind,modality,count(*)::int AS n FROM training_cases GROUP BY kind,modality ORDER BY kind,modality"),
+        pool.query("SELECT kind,count(*)::int AS n,count(audio)::int AS with_audio FROM dictation_events GROUP BY kind ORDER BY kind"),
+        pool.query("SELECT count(*)::int AS n,coalesce(sum(octet_length(bytes)),0)::bigint AS bytes FROM training_images"),
+      ])
+      return send(res, 200, { enabled: training.enabled(), cases: cases.rows, dictation: dictation.rows, images: images.rows[0] })
+    }
+    if (path === '/api/admin/training/cases' && req.method === 'GET') {
+      let limit, offset
+      try { ({ limit, offset } = pagination(new URL(req.url, 'http://internal').searchParams)) } catch (error) { return send(res, 400, { error: error.message }) }
+      const result = await pool.query('SELECT id,kind,study_ref AS "studyRef",image_ref AS "imageRef",image_sha256 AS "imageSha256",modality,model,payload,created_at AS "createdAt" FROM training_cases ORDER BY created_at,id LIMIT $1 OFFSET $2', [limit + 1, offset])
+      if (offset === 0) await audit(user.id, 'training.exported')
+      return send(res, 200, { records: result.rows.slice(0, limit), nextOffset: result.rows.length > limit ? offset + limit : null })
+    }
+    const trainingImage = path.match(/^\/api\/admin\/training\/images\/([a-f0-9]{64})$/)
+    if (trainingImage && req.method === 'GET') {
+      const result = await pool.query('SELECT mime,bytes FROM training_images WHERE sha256=$1', [trainingImage[1]])
+      if (!result.rows[0]) return send(res, 404, { error: 'Image not found.' })
+      res.writeHead(200, { 'Content-Type': result.rows[0].mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); return res.end(result.rows[0].bytes)
+    }
+    if (path === '/api/admin/training/dictation' && req.method === 'GET') {
+      let limit, offset
+      try { ({ limit, offset } = pagination(new URL(req.url, 'http://internal').searchParams)) } catch (error) { return send(res, 400, { error: error.message }) }
+      const result = await pool.query('SELECT id,kind,user_ref AS "userRef",language,transcript,corrected,error,audio IS NOT NULL AS "hasAudio",audio_mime AS "audioMime",created_at AS "createdAt" FROM dictation_events ORDER BY created_at,id LIMIT $1 OFFSET $2', [limit + 1, offset])
+      return send(res, 200, { records: result.rows.slice(0, limit), nextOffset: result.rows.length > limit ? offset + limit : null })
+    }
+    const dictationAudio = path.match(/^\/api\/admin\/training\/dictation\/(\d{1,18})\/audio$/)
+    if (dictationAudio && req.method === 'GET') {
+      const result = await pool.query('SELECT audio,audio_mime FROM dictation_events WHERE id=$1 AND audio IS NOT NULL', [dictationAudio[1]])
+      if (!result.rows[0]) return send(res, 404, { error: 'Audio not found.' })
+      res.writeHead(200, { 'Content-Type': result.rows[0].audio_mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); return res.end(result.rows[0].audio)
     }
     if (path === '/api/admin/metrics' && req.method === 'GET') {
       const [users, studies, shares, events] = await Promise.all([

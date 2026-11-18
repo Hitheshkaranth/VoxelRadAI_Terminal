@@ -120,3 +120,20 @@ Hands-free dictation listens continuously, sends each phrase after a pause (Sarv
 REST limit is 30 seconds per request) and understands voice commands: "next section",
 "previous section", "go to impression", "new line", "bullet point", "numbered list",
 "scratch that" and "stop dictation". Signing always requires a click.
+
+## Model-improvement capture
+
+On by default (`TRAINING_CAPTURE=on`). For each analysed image the server keeps a
+de-identified JPEG (pixels only, long side at most 2048 px) with the AI findings; at
+sign-off it keeps the radiologist's accept/dismiss decisions and the AI draft beside the
+signed report text. Dictation phrases that fail, return nothing, are undone ("scratch
+that") or are later corrected are kept with their audio and the corrected text.
+
+Patient name, ID, referring physician, contact details and full dates are removed and
+study, image and user IDs are replaced with keyed one-way pseudonyms. Only an age band
+and sex are kept. Burned-in text on images is not removed. Records are deleted after
+`TRAINING_RETENTION_DAYS` (default 365). Administrators can list and export them at
+`/api/admin/training/summary`, `/api/admin/training/cases`, `/api/admin/training/images/<sha256>`,
+`/api/admin/training/dictation` and `/api/admin/training/dictation/<id>/audio`.
+Users see what is captured under Settings → Data & storage. Obtain the consent or ethics
+approval your jurisdiction requires before using captured data for training.

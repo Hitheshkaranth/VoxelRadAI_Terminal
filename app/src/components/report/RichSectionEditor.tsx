@@ -23,6 +23,7 @@ const run = (command: string, value?: string) => document.execCommand(command, f
 export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, plain, readOnly, placeholder, onChange }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const lastEmitted = useRef<string | null>(null)
+  const lastInserted = useRef('')
   const labelId = useId()
   const active = useSectionEditors((s) => s.active === sectionKey)
   const value = html ?? plainToHtml(plain)
@@ -73,13 +74,23 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
         const before = selection?.anchorNode?.textContent?.slice(0, selection.anchorOffset) ?? ''
         const spaced = before && !/\s$/.test(before) && !/^[.,:;]/.test(text) ? ` ${text}` : text
         run('insertText', spaced)
+        lastInserted.current = spaced
         emit()
       },
       exec: (command) => {
         if (readOnly) return
         placeCaretAtEndIfOutside()
         if (command === 'newline') run('insertParagraph')
-        if (command === 'undo') run('undo')
+        if (command === 'undo') {
+          // Remove exactly the last dictated phrase. The browser's own undo can merge several phrases.
+          const inserted = lastInserted.current
+          const selection = window.getSelection()
+          lastInserted.current = ''
+          if (!inserted || !selection) return
+          for (let i = 0; i < inserted.length; i++) selection.modify('extend', 'backward', 'character')
+          if (selection.toString().replace(/\s+/g, ' ') === inserted.replace(/\s+/g, ' ')) run('delete')
+          else selection.collapseToEnd()
+        }
         if (command === 'bullet') run('insertUnorderedList')
         if (command === 'numbered') run('insertOrderedList')
         emit()

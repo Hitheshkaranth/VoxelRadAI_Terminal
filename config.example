@@ -14,3 +14,10 @@ SESSION_IDLE_MINUTES=60
 # Hands-free report dictation (Sarvam AI speech-to-text, model saaras:v4). Leave empty to disable.
 # The key stays on the server; browsers send audio to /api/speech/transcribe, which forwards it to Sarvam.
 SARVAM_API_KEY=
+# Model-improvement capture: de-identified analysed images, AI findings with reviewer decisions,
+# AI draft vs signed report text, and failed/undone/corrected dictation clips (with audio).
+# On by default; set TRAINING_CAPTURE=off to disable. Records are deleted after the retention period.
+TRAINING_CAPTURE=on
+TRAINING_RETENTION_DAYS=365
+# Optional secret for one-way study/image/user pseudonyms in captured records.
+TRAINING_PSEUDONYM_SECRET=

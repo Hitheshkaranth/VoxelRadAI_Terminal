@@ -42,6 +42,7 @@ import { toast } from '../shell/toastStore'
 import { PrintReport } from './PrintReport'
 import { ShareStudySheet } from './ShareStudySheet'
 import { RichSectionEditor } from './RichSectionEditor'
+import { captureSignedReport } from '../../lib/trainingCapture'
 import { DictationBar } from './DictationBar'
 import { TemplatesSheet } from './TemplatesSheet'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
@@ -277,6 +278,9 @@ export function ReportPanel() {
       // Signing accepts the current draft; there is nothing left to undo back to.
       previous: undefined,
     })
+    // Ground truth for model improvement: reviewer decisions and the AI draft beside the signed text.
+    const signedStudy = useApp.getState().studies.find((s) => s.id === study.id)
+    if (signedStudy) void captureSignedReport(signedStudy)
   }, [study, report, setReport, accountSigner])
 
   const onSign = useCallback(() => {
@@ -571,7 +575,7 @@ export function ReportPanel() {
         </label>
         <ShellButton type="button" className="btn btn-sm" onClick={() => setTemplatesOpen(true)}>Manage</ShellButton>
       </section>
-      <DictationBar disabled={signed} labels={sectionLabels} />
+      <DictationBar disabled={signed} labels={sectionLabels} studyId={study.id} />
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)

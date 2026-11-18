@@ -6,6 +6,8 @@ import { toast } from '../shell/toastStore'
 import { Dictation, dictationAvailable, type DictationEvent, type DictationState } from '../../lib/dictation'
 import { REPORT_FIELD_KEYS, type ReportFieldKey } from '../../types'
 import { useSectionEditors } from '../../lib/sectionEditors'
+import { rememberClip, reportUndoneClip } from '../../lib/trainingCapture'
+import { useApp } from '../../store'
 
 const LANGUAGES = [
   { code: 'en-IN', label: 'English (India)' },
@@ -29,7 +31,7 @@ const STATE_LABEL: Record<DictationState, string> = {
   error: 'Dictation error',
 }
 
-export function DictationBar({ disabled, labels }: { disabled: boolean; labels: Record<ReportFieldKey, string> }) {
+export function DictationBar({ disabled, labels, studyId }: { disabled: boolean; labels: Record<ReportFieldKey, string>; studyId: string }) {
   const [available, setAvailable] = useState<boolean | null>(null)
   const [state, setState] = useState<DictationState>('idle')
   const [on, setOn] = useState(false)
@@ -54,11 +56,12 @@ export function DictationBar({ disabled, labels }: { disabled: boolean; labels: 
     useSectionEditors.getState().editors[key]?.focus()
   }
 
-  const onEvent = (event: DictationEvent) => {
+  const onEvent = (event: DictationEvent, clip: Blob) => {
     const editors = useSectionEditors.getState().editors
     if (event.kind === 'text') {
       const key = target()
       editors[key]?.insertText(event.text)
+      rememberClip({ studyId, section: key, transcript: event.text, blob: clip, language })
       setLast(event.text)
       return
     }
@@ -81,6 +84,7 @@ export function DictationBar({ disabled, labels }: { disabled: boolean; labels: 
         focusSection(command.section)
         break
       default:
+        if (command.kind === 'undo') reportUndoneClip(useApp.getState().studies.find((s) => s.id === studyId))
         editors[target()]?.exec(command.kind)
     }
     setLast(`Command: ${command.kind === 'goto' ? `go to ${labels[command.section]}` : command.kind}`)
@@ -163,7 +167,7 @@ export function DictationBar({ disabled, labels }: { disabled: boolean; labels: 
             <li><b>“scratch that”</b> to undo the last insertion</li>
             <li><b>“stop dictation”</b> to turn the microphone off</li>
           </ul>
-          <p>“Full stop”, “comma” and “colon” become punctuation. Audio is sent through this server to Sarvam AI for transcription; nothing is recorded or kept by VoxelRad. Signing always needs a click.</p>
+          <p>“Full stop”, “comma” and “colon” become punctuation. Audio is sent through this server to Sarvam AI for transcription. To improve recognition, VoxelRad keeps the audio and text of phrases that fail, are undone or are corrected, with patient identifiers removed. Signing always needs a click.</p>
         </div>
       ) : null}
     </section>

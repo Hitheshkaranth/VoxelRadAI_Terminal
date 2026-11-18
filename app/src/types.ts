@@ -211,6 +211,8 @@ export interface ReportDraft {
   previous?: Omit<ReportDraft, 'previous'>
   /** Sanitized rich-text HTML per section. The plain-text field above stays the source for checks and exports. */
   rich?: Partial<Record<ReportFieldKey, string>>
+  /** Section text exactly as drafted (AI or findings draft), kept to compare with the signed report. */
+  aiDraft?: Partial<Record<ReportFieldKey, string>>
   /** Report template chosen for this report; falls back to the user's default template. */
   templateId?: string
 }
