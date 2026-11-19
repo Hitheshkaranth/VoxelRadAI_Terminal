@@ -1,0 +1,25 @@
+/* Guideline helper popover and critical-result communication log. */
+.gh-popover { z-index: 180; width: min(360px, calc(100vw - 24px)); max-height: min(560px, var(--radix-popover-content-available-height)); overflow: auto; background: var(--bg-elevated); color: var(--label); border: 1px solid var(--separator-strong); border-radius: 12px; padding: 12px; box-shadow: 0 12px 32px #0003; font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+.gh-popover h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.gh-popover label { display: flex; flex-direction: column; gap: 4px; color: var(--label-2); }
+.gh-popover :is(input:not([type="checkbox"]), select) { color: var(--label); background: var(--bg-control); border: 1px solid var(--separator-strong); border-radius: 6px; min-height: 32px; padding: 0 8px; font: inherit; }
+.gh-popover .gh-check { flex-direction: row; align-items: center; gap: 6px; color: var(--label); }
+.gh-foci { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.gh-foci legend { color: var(--label-2); margin-bottom: 4px; }
+.gh-note { margin: 0; color: var(--label-2); line-height: 1.4; }
+.gh-error { margin: 0; color: var(--red, #c0392b); }
+.gh-result { border-top: 0.5px solid var(--separator); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.gh-sentence { margin: 0; font-weight: 600; line-height: 1.4; }
+.gh-notes { margin: 0; padding-left: 16px; color: var(--label-2); line-height: 1.4; }
+.gh-cite { margin: 0; color: var(--label-3); font-size: 11px; line-height: 1.4; }
+.gh-trigger { align-self: flex-start; }
+
+.cc-card { display: flex; flex-direction: column; gap: var(--sp-2); }
+.cc-hint { margin: 0; font-size: var(--text-footnote); color: var(--label-2); line-height: 1.4; }
+.cc-pending { margin: 0; font-size: var(--text-footnote); color: var(--red, #c0392b); font-weight: 600; }
+.cc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: var(--text-footnote); }
+.cc-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cc-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cc-form label { display: flex; flex-direction: column; gap: 3px; font-size: var(--text-caption); color: var(--label-2); }
+.cc-form .cc-wide { grid-column: 1 / -1; }
+.cc-form .input { min-height: 32px; }

@@ -50,6 +50,7 @@ export function validateTransferredStudy(value: unknown): Study {
     if (report.previous !== undefined && !reportValid(report.previous)) return fail()
     if (report.signOverrides !== undefined && !strings(report.signOverrides)) return fail()
     if (report.amendments !== undefined && (!Array.isArray(report.amendments) || !report.amendments.every((item) => object(item) && finite(item.signedAt) && finite(item.unlockedAt) && typeof item.by === 'string'))) return fail()
+    if (report.criticalComms !== undefined && (!Array.isArray(report.criticalComms) || !report.criticalComms.every((item) => object(item) && hasStrings(item, ['id', 'finding', 'communicatedTo', 'role', 'method', 'by']) && finite(item.at)))) return fail()
     if (report.patientSnapshot !== undefined && (!object(report.patientSnapshot) || !hasStrings(report.patientSnapshot, ['name', 'patientId', 'age', 'sex', 'studyDate', 'referringPhysician', 'indication', 'clinicalHistory']))) return fail()
     if (!validReportHistory(report)) return fail()
   }

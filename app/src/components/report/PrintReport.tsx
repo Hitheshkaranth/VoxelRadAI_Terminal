@@ -15,6 +15,7 @@ import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportT
 import type { ReportFieldKey } from '../../types'
 import { TemplateHeader } from './TemplateHeader'
 import { addendumHeading, correctionNote, currentAddenda } from '../../lib/reportVersions'
+import { criticalCommLine } from '../../lib/reportQa'
 import './print.css'
 
 interface PrintReportProps {
@@ -435,6 +436,14 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                   </table>
                 </section>
               )}
+
+              {report?.criticalComms?.length ? (
+                <Section title="Critical result communication">
+                  <ul className="rp-amendments">
+                    {report.criticalComms.map((c) => <li key={c.id}>{criticalCommLine(c)}</li>)}
+                  </ul>
+                </Section>
+              ) : null}
 
               {amendments.length > 0 && (
                 <Section title="Amendments">

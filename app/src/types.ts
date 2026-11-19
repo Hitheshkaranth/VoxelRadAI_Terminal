@@ -223,6 +223,22 @@ export interface ReportDraft {
   addenda?: ReportAddendum[]
   /** Set while a signed report is being corrected into a new version. */
   correction?: { of: number; startedAt: number; by: string }
+  /** Log of critical results communicated to the care team (who, how, when). */
+  criticalComms?: CriticalComm[]
+}
+
+export type CriticalCommMethod = 'phone' | 'in person' | 'message' | 'other'
+
+export interface CriticalComm {
+  id: string
+  finding: string
+  communicatedTo: string
+  role: string
+  method: CriticalCommMethod
+  /** Epoch ms when the result was communicated. */
+  at: number
+  /** Who communicated it. */
+  by: string
 }
 
 /** One signed state of a report, frozen at sign-off. */

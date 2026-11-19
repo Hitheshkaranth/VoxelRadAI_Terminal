@@ -4,6 +4,7 @@
 import type { AnalysisResult, Finding, PatientInfo, ReportAddendum, ReportDraft, ReportVersion, Study } from '../types'
 import { isExcluded, isUnconfirmed } from './classifier.ts'
 import { addendumHeading, correctionNote, currentAddenda } from './reportVersions.ts'
+import { criticalCommLine } from './reportQa.ts'
 
 export const DISCLAIMER =
   'AI-generated decision support; must be verified by a qualified radiologist. Not a diagnosis.'
@@ -39,6 +40,7 @@ export interface ReportExport {
   /** Every signed version, oldest first; earlier ones are superseded. */
   versions: ReportVersion[]
   addenda: ReportAddendum[]
+  criticalComms: { finding: string; communicatedTo: string; role: string; method: string; at: string; by: string }[]
 }
 
 export interface StudyExport {
@@ -163,6 +165,9 @@ function reportExport(r: ReportDraft, anonymise: boolean): ReportExport {
     signOverrides: r.signOverrides ?? [],
     versions: (r.versions ?? []).map((v) => ({ ...v, ...(v.patientSnapshot && anonymise ? { patientSnapshot: anonymisePatient(v.patientSnapshot) } : {}) })),
     addenda: r.addenda ?? [],
+    criticalComms: (r.criticalComms ?? []).map((c) => ({
+      finding: c.finding, communicatedTo: anonymise ? '' : c.communicatedTo, role: c.role, method: c.method, at: ISO(c.at), by: anonymise ? '' : c.by,
+    })),
   }
 }
 
@@ -280,6 +285,14 @@ export function reportToPlainText(study: Study, settings: { institution: string 
       out.push(`${findingLine(row)} [dismissed by reviewer — not in report]`)
       out.push(`   Reason: ${exclusionReason(row.finding)}`)
     }
+    out.push('')
+  }
+
+  const comms = r?.criticalComms ?? []
+  if (comms.length) {
+    out.push('Critical result communication')
+    out.push('-----------------------------')
+    for (const c of comms) out.push('- ' + criticalCommLine(c))
     out.push('')
   }
 
