@@ -16,6 +16,7 @@ import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTempl
 import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
 import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback, warnIfUnkeyed } from './trainingCapture.mjs'
+import { createModelProxy } from './modelProxy.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -116,6 +117,7 @@ const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
 warnIfUnkeyed()
 const examLibrary = createExamLibrary({ pool, body, send })
+const modelProxy = createModelProxy({ pool, body, send })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
   await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
@@ -222,6 +224,7 @@ export async function handler(req, res) {
       return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
     }
     if (!user) return send(res, 401, { error: 'Sign in to continue.' })
+    if (await modelProxy.handle(req, res, path, user)) return
     if (await objectStorage.handle({ req, res, path, user })) return
     if (await pacs.handle(req, res, user, { audit })) return
     if (path === '/api/account/password' && req.method === 'POST') {

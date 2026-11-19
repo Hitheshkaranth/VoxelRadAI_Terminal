@@ -2,7 +2,7 @@ import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useEffect, useRef, useState } from 'react'
 import { ThemeSwitch } from './ThemeSwitch'
-import { Boxes, CheckCheck, ChevronRight, ClipboardList, Pencil, Plus, Scan, Search, Settings, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Boxes, CheckCheck, ChevronRight, ClipboardList, Clock, Pencil, Plus, Scan, Search, Settings, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
 import { track } from '@vercel/analytics'
@@ -11,7 +11,9 @@ import { cancelImages } from '../../lib/analysis'
 import { findingCounts, worstSeverity } from '../../lib/classifier'
 import { countLabel, useShell } from './shellState'
 import { toast } from './toastStore'
-import { filterWorklist, needsReview, studyPriority, workflowLabel, type WorklistFilter, type WorklistSort } from '../../lib/worklist'
+import { activeFacetCount, filterWorklist, formatAge, hasUrgentCandidate, OVERDUE_CHOICES, studyPriority, studyStatus as readingStatus, turnaround, workflowLabel, worklistModalities, type WorklistFilter, type WorklistSort, type WorklistUrgency } from '../../lib/worklist'
+import { stepStudy, useWorklist } from './worklistNav'
+import { isTypingTarget } from '../viewer/readingControls'
 import { SampleStudies } from './SampleStudies'
 import { volumeSourceKind } from '../../lib/volumeIdentity'
 import './shell.css'
@@ -25,18 +27,29 @@ export function Sidebar() {
   const volume = useShell((s) => s.volumeSource)
   const connection = useApp((s) => s.connection)
 
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<WorklistFilter>('all')
-  const [sort, setSort] = useState<WorklistSort>('recent')
+  const query = useWorklist((s) => s.query)
+  const setQuery = useWorklist((s) => s.setQuery)
+  const prefs = useWorklist((s) => s.prefs)
+  const setPrefs = useWorklist((s) => s.setPrefs)
+  const { filter, sort } = prefs
+  const setFilter = (next: WorklistFilter) => setPrefs({ filter: next })
+  const [filtersOpen, setFiltersOpen] = useState(() => activeFacetCount(prefs) > 0)
+  const now = useNow()
+  const overdueMs = prefs.overdueHours * 3600000
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
   const openSettings = () => useApp.getState().openSheet('settings')
 
-  const sorted = filterWorklist(studies, query, filter, sort)
-  const reviewCount = studies.filter(needsReview).length
-  const signedCount = studies.filter((s) => s.report?.signed).length
+  const sorted = filterWorklist(studies, query, filter, sort, prefs)
+  // Pill counts respect the other facets so each number matches what the pill would show.
+  const faceted = filterWorklist(studies, query, 'all', sort, prefs)
+  const countOf = (status: WorklistFilter) => status === 'all' ? faceted.length : faceted.filter((s) => readingStatus(s) === status).length
+  const modalities = worklistModalities(studies)
+  const facetCount = activeFacetCount(prefs)
+  const clearFacets = () => setPrefs({ modality: '', urgency: '', from: '', to: '' })
+  useStudyStepKeys()
 
   const newStudy = () => {
     useShell.getState().closeVolume()
@@ -73,36 +86,62 @@ export function Sidebar() {
           {query && <ShellButton className="wl-clear" aria-label="Clear study search" onClick={() => setQuery('')}><X /></ShellButton>}
         </div>
       </div>
-      <div className="wl-filters" role="group" aria-label="Filter studies">
+      <div className="wl-filters" role="group" aria-label="Filter studies by reading status">
         {([
-          ['all', 'All', studies.length], ['review', 'Review', reviewCount], ['signed', 'Signed', signedCount],
-        ] as const).map(([key, label, count]) => (
-          <ShellButton key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} title={key === 'review' ? 'Analyzed studies awaiting a signed report' : undefined}>
-            {label}<span>{count}</span>
+          ['all', 'All', 'Every study'], ['unread', 'Unread', 'Not analyzed yet'], ['review', 'Review', 'Analyzed, no report drafted'],
+          ['draft', 'Draft', 'Report drafted, not signed'], ['signed', 'Signed', 'Signed reports'],
+        ] as const).map(([key, label, hint]) => (
+          <ShellButton key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} title={hint}>
+            {label}<span>{countOf(key)}</span>
           </ShellButton>
         ))}
       </div>
       <div className="wl-list-heading">
         <span aria-live="polite">{sorted.length} {sorted.length === 1 ? 'study' : 'studies'}</span>
-        <select aria-label="Sort studies" value={sort} onChange={(e) => setSort(e.target.value as WorklistSort)}>
+        <ShellButton type="button" className="wl-facet-toggle" aria-expanded={filtersOpen} aria-controls="wl-facets" onClick={() => setFiltersOpen((v) => !v)}>
+          <SlidersHorizontal aria-hidden="true" />Filters{facetCount > 0 && <span>{facetCount}</span>}
+        </ShellButton>
+        <select aria-label="Sort studies" value={sort} onChange={(e) => setPrefs({ sort: e.target.value as WorklistSort })}>
           <option value="recent">Recently updated</option><option value="priority">AI priority first</option>
         </select>
       </div>
+      {filtersOpen && <div className="wl-facets" id="wl-facets" role="group" aria-label="More study filters">
+        <label>Modality
+          <select value={prefs.modality} onChange={(e) => setPrefs({ modality: e.target.value })}>
+            <option value="">Any</option>
+            {[...new Set([...modalities, ...(prefs.modality ? [prefs.modality] : [])])].map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </label>
+        <label>AI urgency
+          <select value={prefs.urgency} onChange={(e) => setPrefs({ urgency: e.target.value as WorklistUrgency })}>
+            <option value="">Any</option><option value="urgent">Urgent</option><option value="priority">Priority</option><option value="routine">Routine</option>
+          </select>
+        </label>
+        <label>From<input type="date" value={prefs.from} max={prefs.to || undefined} onChange={(e) => setPrefs({ from: e.target.value })} /></label>
+        <label>To<input type="date" value={prefs.to} min={prefs.from || undefined} onChange={(e) => setPrefs({ to: e.target.value })} /></label>
+        <label>Flag waiting over
+          <select value={prefs.overdueHours} onChange={(e) => setPrefs({ overdueHours: Number(e.target.value) })}>
+            {OVERDUE_CHOICES.map((h) => <option key={h} value={h}>{h === 0 ? 'Off' : `${h} h`}</option>)}
+          </select>
+        </label>
+        {facetCount > 0 && <ShellButton type="button" className="btn btn-sm" onClick={clearFacets}>Clear filters</ShellButton>}
+        <p className="wl-facet-hint">Dates use the study date, or the day the study was added. <kbd>N</kbd> / <kbd>Shift</kbd>+<kbd>N</kbd> open the next or previous study in this list.</p>
+      </div>}
       <div className="sh-studies scroll">
         {sorted.length === 0 ? (
           <div className="wl-empty">
             {filter === 'signed' ? <CheckCheck /> : <ClipboardList />}
-            <strong>{!studies.length ? (volume ? 'No image studies' : 'No studies') : query ? 'No matching studies' : filter === 'signed' ? 'No signed reports yet' : 'No studies awaiting review'}</strong>
-            <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : filter === 'signed' ? 'Signed reports will appear here after review.' : 'Analyzed, unsigned studies appear in this queue.'}</p>
-            {!studies.length ? <ShellButton className="btn btn-primary" onClick={newStudy}><Plus /> Create study</ShellButton> : (query || filter !== 'all') && <ShellButton className="btn" onClick={() => { setQuery(''); setFilter('all') }}>Show all studies</ShellButton>}
+            <strong>{!studies.length ? (volume ? 'No image studies' : 'No studies') : query || facetCount ? 'No matching studies' : EMPTY_TITLE[filter]}</strong>
+            <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : facetCount ? 'Clear or widen the modality, urgency or date filters.' : EMPTY_HINT[filter]}</p>
+            {!studies.length ? <ShellButton className="btn btn-primary" onClick={newStudy}><Plus /> Create study</ShellButton> : (query || filter !== 'all' || facetCount > 0) && <ShellButton className="btn" onClick={() => { setQuery(''); setFilter('all'); clearFacets() }}>Show all studies</ShellButton>}
           </div>
         ) : (
           <GroupBlock label={sort === 'priority' ? 'Ordered by model urgency' : 'Most recently updated'} items={sorted} activeId={volume ? null : activeStudyId}
             editingId={editingId} setEditingId={setEditingId} editTitle={editTitle} setEditTitle={setEditTitle}
-            confirmId={confirmId} setConfirmId={setConfirmId} />
+            confirmId={confirmId} setConfirmId={setConfirmId} now={now} overdueMs={overdueMs} />
         )}
       </div>
-      <SampleStudies onOpen={() => { setQuery(''); setFilter('all') }} />
+      <SampleStudies onOpen={() => { setQuery(''); setFilter('all'); clearFacets() }} />
       <div className="wl-storage-note">Stored in this browser</div>
 
       <SidebarFooter connection={connection} onOpenSettings={openSettings} />
@@ -119,6 +158,8 @@ function GroupBlock({
   setEditTitle,
   confirmId,
   setConfirmId,
+  now,
+  overdueMs,
 }: {
   label: string
   items: Study[]
@@ -129,6 +170,8 @@ function GroupBlock({
   setEditTitle: (v: string) => void
   confirmId: string | null
   setConfirmId: (v: string | null) => void
+  now: number
+  overdueMs: number
 }) {
   if (!items.length) return null
   return (
@@ -136,7 +179,7 @@ function GroupBlock({
 
       {items.map((s) => (
         <StudyRow key={s.id} study={s} activeStudyId={activeId} editingId={editingId} setEditingId={setEditingId}
-          editTitle={editTitle} setEditTitle={setEditTitle} confirmId={confirmId} setConfirmId={setConfirmId} />
+          editTitle={editTitle} setEditTitle={setEditTitle} confirmId={confirmId} setConfirmId={setConfirmId} now={now} overdueMs={overdueMs} />
       ))}
     </section>
   )
@@ -151,6 +194,8 @@ function StudyRow({
   setEditTitle,
   confirmId,
   setConfirmId,
+  now,
+  overdueMs,
 }: {
   study: Study
   activeStudyId: string | null
@@ -160,8 +205,12 @@ function StudyRow({
   setEditTitle: (v: string) => void
   confirmId: string | null
   setConfirmId: (v: string | null) => void
+  now: number
+  overdueMs: number
 }) {
   const name = study.patient.name || study.title
+  const wait = turnaround(study, now, overdueMs)
+  const urgent = hasUrgentCandidate(study)
   const status = studyStatus(study.images)
   const priority = studyPriority(study)
   const workflow = workflowLabel(study)
@@ -211,18 +260,26 @@ function StudyRow({
       </div>
     )
   return (
-    <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}`}>
+    <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}${wait?.overdue ? ' wl-study--overdue' : ''}`}>
       <ShellButton type="button" className="wl-open-study"
         aria-current={active ? 'true' : undefined}
         onClick={() => { useShell.getState().closeVolume(); useApp.getState().selectStudy(study.id); useShell.getState().setMobileView('viewer') }}>
       <StatusDot sev={status.sev} analyzing={status.analyzing} read={status.read} />
       <span className="sh-row-main">
-        <span className="wl-study-top"><span className="sh-row-title">{name}</span><ChevronRight aria-hidden="true" /></span>
+        <span className="wl-study-top">
+          <span className="sh-row-title">{name}</span>
+          {urgent && <span className="wl-critical" title="The model marked at least one finding urgent. Candidate only: confirm on review."><AlertTriangle aria-hidden="true" />Urgent</span>}
+          <ChevronRight aria-hidden="true" />
+        </span>
         <span className="wl-patient-id">{study.patient.patientId || 'Patient ID not entered'}</span>
         <span className="sh-row-sub"><Subline study={study} status={status} /></span>
         <span className="wl-study-status">
           <span className="wl-workflow" data-state={study.report?.signed ? 'signed' : status.analyzing ? 'analyzing' : 'pending'}>{workflow}</span>
-          {priority > 0 && <span className="wl-priority" data-priority={priority}>AI {priority === 2 ? 'urgent' : 'priority'}</span>}
+          {priority === 1 && <span className="wl-priority" data-priority={priority}>AI priority</span>}
+          {wait && <span className="wl-age" data-overdue={wait.overdue || undefined}
+            title={`Waiting ${formatAge(wait.sinceCreated)} since the study was added${wait.sinceAnalysis !== undefined ? `, ${formatAge(wait.sinceAnalysis)} since the last AI read` : ''}${wait.overdue ? '. Over the waiting threshold.' : '.'}`}>
+            <Clock aria-hidden="true" />{formatAge(wait.sinceCreated)}{wait.sinceAnalysis !== undefined && <> · read {formatAge(wait.sinceAnalysis)} ago</>}
+          </span>}
         </span>
       </span>
       </ShellButton>
@@ -298,6 +355,35 @@ function SidebarFooter({ connection, onOpenSettings }: { connection: ConnectionS
       </ShellButton>
     </div>
   )
+}
+
+const EMPTY_TITLE: Record<WorklistFilter, string> = { all: 'No studies', unread: 'No unread studies', review: 'No studies awaiting review', draft: 'No draft reports', signed: 'No signed reports yet' }
+const EMPTY_HINT: Record<WorklistFilter, string> = {
+  all: 'Create a study, add images, then review the findings.',
+  unread: 'Studies with images that have not been analyzed appear here.',
+  review: 'Analyzed studies without a drafted report appear in this queue.',
+  draft: 'Drafted, unsigned reports appear here.',
+  signed: 'Signed reports will appear here after review.',
+}
+
+/** Minute clock for waiting times; one timer per sidebar, not per row. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id) }, [])
+  return now
+}
+
+/** N / Shift+N walk the visible worklist; ignored while typing or with browser modifiers. */
+function useStudyStepKeys() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyN' || e.metaKey || e.ctrlKey || e.altKey || e.repeat || isTypingTarget(e.target)) return
+      if (!stepStudy(e.shiftKey ? -1 : 1)) toast(e.shiftKey ? 'Already at the first study in this list.' : 'No more studies in this list.', 'info')
+      e.preventDefault()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 }
 
 function fmtDate(ts: number): string {

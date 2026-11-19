@@ -81,3 +81,31 @@
 .wl-sidebar .wl-study:focus-within .sh-row-actions { opacity: 1; }
 /* The row's click target is a ShellButton, whose default size class fixes it at 32px; let it grow with the study details. */
 .wl-sidebar .wl-open-study { height: auto; white-space: normal; align-items: flex-start; }
+
+/* Five reading-state pills, waiting time and the extra filter panel. */
+.wl-filters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.wl-filters button { flex-direction: column; gap: 1px; padding: 2px 0; font-size: 10px; }
+.wl-facet-toggle { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; border: 0; background: none; color: var(--label-2); font-size: 10px; padding: 4px 2px; cursor: pointer; }
+.wl-facet-toggle svg { width: 12px; height: 12px; }
+.wl-facet-toggle[aria-expanded='true'] { color: var(--accent); }
+.wl-facet-toggle span { min-width: 14px; border-radius: 7px; background: var(--accent); color: var(--accent-fg); font-size: 9px; line-height: 14px; text-align: center; }
+.wl-facets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 10px 16px 12px; border-bottom: 1px solid var(--separator); background: var(--bg-grouped); }
+.wl-facets label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 10px; color: var(--label-2); }
+.wl-facets select, .wl-facets input { min-width: 0; height: 28px; border: 1px solid var(--separator); border-radius: 5px; background: var(--bg-content); color: var(--label); font-size: 11px; padding: 0 6px; }
+.wl-facets .btn { align-self: end; }
+.wl-facet-hint { grid-column: 1 / -1; font-size: 10px; line-height: 1.5; color: var(--label-2); }
+.wl-facet-hint kbd { font-family: var(--font-mono); font-size: 9px; border: 1px solid var(--separator); border-radius: 3px; padding: 0 3px; }
+.wl-critical { display: inline-flex; align-items: center; gap: 3px; flex: none; border-radius: 4px; padding: 1px 5px; background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); font-size: 9px; font-weight: 600; }
+.wl-study-top .wl-critical svg { width: 11px; height: 11px; color: var(--red); }
+.wl-age { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.wl-age svg { width: 10px; height: 10px; }
+.wl-age[data-overdue] { color: var(--orange); font-weight: 600; }
+.wl-sidebar .wl-study.wl-study--overdue { box-shadow: inset 2px 0 0 var(--orange); }
+@media (max-width: 1023px) {
+  .wl-filters { gap: 4px; }
+  .wl-filters button { font-size: 12px; }
+  .wl-facet-toggle { min-height: 36px; font-size: 12px; }
+  .wl-facets select, .wl-facets input { height: 40px; font-size: 14px; }
+  .wl-facets label { font-size: 12px; }
+  .wl-critical, .wl-age { font-size: 11px; }
+}

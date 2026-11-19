@@ -42,6 +42,7 @@ import { PrintReport } from './PrintReport'
 import { ShareStudySheet } from './ShareStudySheet'
 import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
+import { offerNextStudy } from '../shell/worklistNav'
 import { DictationBar } from './DictationBar'
 import { TemplatesSheet } from './TemplatesSheet'
 import { ReportHistory, SignedReportActions } from './ReportIntegrity'
@@ -303,6 +304,8 @@ export function ReportPanel() {
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
     setChecklist(null)
+    // Before setReport: signing bumps updatedAt and would move this study in the worklist order.
+    offerNextStudy(study.id)
     // Each sign-off appends an immutable version (text, patient snapshot, overrides) to the report history.
     setReport(study.id, signPatch(report, { signedAt: Date.now(), signedBy: accountSigner ?? report.radiologist.trim(), patient: study.patient, overrides }))
     // Ground truth for model improvement: reviewer decisions and the AI draft beside the signed text.

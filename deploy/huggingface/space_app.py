@@ -17,6 +17,8 @@ import time
 import urllib.request
 import uuid
 import base64
+import hmac
+import re
 import secrets
 import threading
 
@@ -384,10 +386,33 @@ reader = Skanda(model_path)
 app = gr.routes.App()
 
 
+# A trusted VoxelRad deployment (voxelradai.com on Vercel) may call inference with this shared secret
+# instead of a Space session. Unset means the bridge is off. Bridged reads use the owner's quota.
+BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET", "")
+if BRIDGE_SECRET and len(BRIDGE_SECRET) < 32:
+    print("BRIDGE_SECRET is shorter than 32 characters; bridge disabled.", flush=True)
+    BRIDGE_SECRET = ""
+
+
+def bridge_caller(request):
+    """The bridge identity when the request carries the shared secret, else None. Constant-time compare."""
+    supplied = request.headers.get("x-voxelrad-bridge", "")
+    if not BRIDGE_SECRET or not supplied or not hmac.compare_digest(supplied.encode(), BRIDGE_SECRET.encode()):
+        return None
+    # Pseudonym from the calling site, for logs only; it never grants anything.
+    pseudonym = request.headers.get("x-voxelrad-user", "")
+    return {"role": "bridge", "email": "", "bridge": True,
+            "pseudonym": pseudonym if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", pseudonym) else "unknown"}
+
+
 @app.middleware("http")
 async def authenticate_inference(request: Request, call_next):
     path = request.url.path
     if path.startswith("/lmstudio/") or (path.startswith("/gradio_api/") and path != "/gradio_api/startup-events"):
+        bridged = bridge_caller(request)
+        if bridged:
+            request.state.user = bridged
+            return await call_next(request)
         async with httpx.AsyncClient() as client:
             result = await client.get("http://127.0.0.1:8080/api/session",
                                       headers={"cookie": request.headers.get("cookie", "")})
@@ -446,15 +471,20 @@ async def completion(request: Request):
     user = request.state.user
     owner_email = os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
     owner_token = os.environ.get("HF_TOKEN", "")
-    owner_quota = bool(owner_email and owner_token and user.get("role") == "admin"
-                       and user.get("email", "").lower() == owner_email)
+    bridged = bool(user.get("bridge"))
+    owner_quota = bool(owner_token and (bridged or (owner_email and user.get("role") == "admin"
+                                                    and user.get("email", "").lower() == owner_email)))
+    # The read and its result stream pass this middleware again, so the bridge header must travel with them.
+    bridge_header = {"X-VoxelRad-Bridge": BRIDGE_SECRET} if bridged else {}
+    caller = f"bridge ({user['pseudonym']})" if bridged else "space session"
+    print(f"Skanda read requested by {caller}, {'owner' if owner_quota else 'visitor'} quota", flush=True)
     if owner_quota:
         # Go through HF's public gateway so it signs the PRO token's quota
         # identity. Passing Authorization only to localhost cannot do that.
         # Never forward the anonymous visitor token, Host, or Origin here.
         base = "https://hitheshkaranth-voxelrad.hf.space/gradio_api/call/read"
         headers = {"Authorization": "Bearer " + owner_token,
-                   "Cookie": request.headers.get("cookie", "")}
+                   "Cookie": request.headers.get("cookie", ""), **bridge_header}
     async with httpx.AsyncClient(timeout=600) as client:
         queued = await client.post(base, headers=headers, json={"data": [payload]})
         if not queued.is_success:
@@ -467,7 +497,7 @@ async def completion(request: Request):
         try:
             async with asyncio.timeout(READ_TIMEOUT_SECONDS):
                 async with httpx.AsyncClient(timeout=600) as client:
-                    async with client.stream("GET", f"http://127.0.0.1:{APP_PORT}/gradio_api/call/read/{event_id}", headers={"cookie": request.headers.get("cookie", ""), "host": request.headers.get("host", "localhost")}) as events:
+                    async with client.stream("GET", f"http://127.0.0.1:{APP_PORT}/gradio_api/call/read/{event_id}", headers={"cookie": request.headers.get("cookie", ""), "host": request.headers.get("host", "localhost"), **bridge_header}) as events:
                         events.raise_for_status()
                         event = ""
                         async for line in events.aiter_lines():
