@@ -452,6 +452,25 @@
   color: #3c3c43;
 }
 .rp-thumb { max-width: 100%; }
+/* Addenda print after the signature: the signed sections above them stay exactly as signed. */
+.rp-addendum {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px dashed #c7c7cc;
+  break-inside: avoid;
+}
+.rp-addendum-head {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--text-footnote);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1c1c1e;
+}
+.rp-correction-note {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-footnote);
+  color: #3c3c43;
+}
 
 @media print {
   @page {

@@ -44,7 +44,7 @@ export function PatientSheet() {
   // Patient details feed the report: say what an edit does to an existing draft or a signed report.
   const report = study.report
   const reportNote = report?.signed
-    ? 'This study has a signed report. It keeps the patient details recorded at signing; changes here apply only if the report is unlocked and signed again.'
+    ? 'This study has a signed report. It keeps the patient details recorded at signing; changes here apply only to a corrected version once it is signed.'
     : report
       ? 'A report has been drafted. Changing the indication, age or sex marks the draft out of date until it is regenerated.'
       : null

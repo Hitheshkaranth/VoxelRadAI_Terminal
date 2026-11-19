@@ -8,10 +8,44 @@ const measurement = value => object(value) && typeof value.id === 'string' && va
 const gridSize = value => value === undefined || Number.isInteger(value) && value > 0 && value <= 65535
 const measuring = value => gridSize(value.sourceRows) && gridSize(value.sourceColumns) && (value.pixelSpacing === undefined || object(value.pixelSpacing) && ['row','col'].every(key => finite(value.pixelSpacing[key]) && value.pixelSpacing[key] > 0 && value.pixelSpacing[key] <= 10) && ['pixel','imager'].includes(value.pixelSpacing.source)) && (value.measurements === undefined || Array.isArray(value.measurements) && value.measurements.length <= 50 && value.measurements.every(measurement))
 const patient = value => textFields(value,['name','patientId','age','sex','studyDate','referringPhysician','indication','clinicalHistory']) && ['','Male','Female','Other'].includes(value.sex)
-const report = value => textFields(value,['technique','comparison','findings','impression','recommendations','radiologist']) && typeof value.signed === 'boolean' && typeof value.generated === 'boolean' && finite(value.updatedAt) && (!value.patientSnapshot || patient(value.patientSnapshot)) && (!value.signOverrides || stringArray(value.signOverrides)) && (!value.amendments || Array.isArray(value.amendments) && value.amendments.every(a => object(a) && finite(a.signedAt) && finite(a.unlockedAt) && typeof a.by === 'string'))
+const sectionKeys = ['technique','comparison','findings','impression','recommendations']
+const int = value => Number.isInteger(value)
+const version = (value,index) => object(value) && value.version === index + 1 && finite(value.signedAt) && typeof value.signedBy === 'string' && textFields(value.sections,sectionKeys) && (value.rich === undefined || object(value.rich) && Object.values(value.rich).every(html => typeof html === 'string')) && (value.patientSnapshot === undefined || patient(value.patientSnapshot)) && (value.signOverrides === undefined || stringArray(value.signOverrides)) && (value.corrects === undefined || int(value.corrects) && value.corrects >= 1 && value.corrects <= index)
+const addendum = value => object(value) && typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 64 && typeof value.text === 'string' && value.text.length <= 20000 && finite(value.createdAt) && typeof value.by === 'string' && (value.signedAt === undefined || finite(value.signedAt)) && (value.version === undefined || int(value.version))
+// A signed report's current text must be its latest signed version: signed text changes only through a new version.
+const reportHistory = value => (value.versions === undefined || Array.isArray(value.versions) && value.versions.length <= 100 && value.versions.every(version)) && (value.addenda === undefined || Array.isArray(value.addenda) && value.addenda.length <= 200 && value.addenda.every(addendum) && new Set(value.addenda.map(a => a.id)).size === value.addenda.length) && (value.correction === undefined || object(value.correction) && int(value.correction.of) && finite(value.correction.startedAt) && typeof value.correction.by === 'string') && (!value.signed || !value.versions?.length || sectionKeys.every(key => value[key] === value.versions[value.versions.length - 1].sections[key]))
+const report = value => textFields(value,['technique','comparison','findings','impression','recommendations','radiologist']) && typeof value.signed === 'boolean' && typeof value.generated === 'boolean' && finite(value.updatedAt) && (!value.patientSnapshot || patient(value.patientSnapshot)) && (!value.signOverrides || stringArray(value.signOverrides)) && (!value.amendments || Array.isArray(value.amendments) && value.amendments.every(a => object(a) && finite(a.signedAt) && finite(a.unlockedAt) && typeof a.by === 'string')) && reportHistory(value)
 const finding = value => textFields(value,['id','title','description','severity','location']) && ['critical','significant','moderate','minor','normal'].includes(value.severity) && finite(value.confidence) && (!value.bbox || object(value.bbox) && ['x','y','w','h'].every(key => finite(value.bbox[key]))) && (!value.validationIssues || stringArray(value.validationIssues))
 const analysis = value => textFields(value,['modality','bodyPart','view','imageQuality','impression','urgency','rawText','model']) && Array.isArray(value.findings) && value.findings.every(finding) && ['pertinentNegatives','recommendations','differential'].every(key => stringArray(value[key])) && finite(value.durationMs) && finite(value.createdAt)
 const image = value => textFields(value,['id','name','mime','dataUrl','status']) && /^data:image\/(?:png|jpeg|webp|gif|bmp);base64,[A-Za-z0-9+/\r\n]*={0,2}$/.test(value.dataUrl) && finite(value.width) && value.width > 0 && finite(value.height) && value.height > 0 && finite(value.addedAt) && ['idle','analyzing','done','error'].includes(value.status) && dicomSource(value) && measuring(value) && (!value.analysis || analysis(value.analysis))
 export function validStudy(value) {
   return textFields(value,['id','title']) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.id) && patient(value.patient) && finite(value.createdAt) && finite(value.updatedAt) && Array.isArray(value.images) && value.images.length <= 500 && value.images.every(image) && (!value.report || report(value.report))
+}
+
+// Order-insensitive deep equality: jsonb does not keep the key order the client sent.
+const same = (a,b) => {
+  if (a === b) return true
+  if (Array.isArray(a) || Array.isArray(b)) return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item,i) => same(item,b[i]))
+  if (!object(a) || !object(b)) return false
+  const keys = Object.keys(a).filter(key => a[key] !== undefined)
+  return keys.length === Object.keys(b).filter(key => b[key] !== undefined).length && keys.every(key => same(a[key],b[key]))
+}
+/** Saved signed versions and signed addenda are append-only: a write may add to them, never drop or alter one. */
+export function preservesSignedHistory(previous,next) {
+  const before = Array.isArray(previous?.versions) ? previous.versions : [], after = Array.isArray(next?.versions) ? next.versions : []
+  if (after.length < before.length || !before.every((item,i) => same(item,after[i]))) return false
+  const kept = new Map((Array.isArray(next?.addenda) ? next.addenda : []).map(a => [a.id,a]))
+  return (Array.isArray(previous?.addenda) ? previous.addenda : []).filter(a => a?.signedAt !== undefined).every(a => same(a,kept.get(a.id)))
+}
+/** X-Study-Revision: absent = unconditional write (older clients), "new" = expect no server copy, n = expect revision n. null = malformed. */
+export function expectedRevision(header) {
+  if (header === undefined) return undefined
+  if (header === 'new') return 'new'
+  return /^[1-9][0-9]{0,8}$/.test(header) ? Number(header) : null
+}
+/** Why a study write must be refused (409), or null. `existing` is the saved row ({revision, report}) or null. */
+export function studyWriteConflict(existing,incoming,expected) {
+  if (existing && (expected === 'new' || typeof expected === 'number' && expected !== existing.revision)) return { code: 'stale', error: 'The server copy of this study changed since this browser last saved or opened it. Open the server copy to see the newer version, or choose to overwrite it.' }
+  if (existing && !preservesSignedHistory(existing.report,incoming.report)) return { code: 'signed-history', error: 'Signed report versions and signed addenda on the server cannot be removed or changed. Add an addendum or correct the report instead.' }
+  return null
 }

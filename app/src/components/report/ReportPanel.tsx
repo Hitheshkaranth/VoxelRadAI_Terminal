@@ -22,7 +22,6 @@ import {
   ShieldCheck,
   Stethoscope,
   Undo2,
-  Unlock,
 } from 'lucide-react'
 import { useActiveStudy, useApp } from '../../store'
 import { SERVER_MODE, useSession } from '../../lib/session'
@@ -45,6 +44,8 @@ import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
 import { DictationBar } from './DictationBar'
 import { TemplatesSheet } from './TemplatesSheet'
+import { ReportHistory, SignedReportActions } from './ReportIntegrity'
+import { signPatch } from '../../lib/reportVersions'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
 import './report.css'
 
@@ -233,7 +234,6 @@ export function ReportPanel() {
   const openSheet = useApp((s) => s.openSheet)
 
   const [confirmRegen, setConfirmRegen] = useState(false)
-  const [confirmUnlock, setConfirmUnlock] = useState(false)
   const [checklist, setChecklist] = useState<string[] | null>(null)
   const [copied, setCopied] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -267,17 +267,8 @@ export function ReportPanel() {
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
     setChecklist(null)
-    setReport(study.id, {
-      signed: true,
-      // Record what was signed past so the override stays visible on the signed report.
-      signOverrides: overrides.length ? overrides : undefined,
-      signedAt: Date.now(),
-      radiologist: accountSigner ?? report.radiologist.trim(),
-      // Freeze the patient header: later edits to patient details must not change a signed report.
-      patientSnapshot: { ...study.patient },
-      // Signing accepts the current draft; there is nothing left to undo back to.
-      previous: undefined,
-    })
+    // Each sign-off appends an immutable version (text, patient snapshot, overrides) to the report history.
+    setReport(study.id, signPatch(report, { signedAt: Date.now(), signedBy: accountSigner ?? report.radiologist.trim(), patient: study.patient, overrides }))
     // Ground truth for model improvement: reviewer decisions and the AI draft beside the signed text.
     const signedStudy = useApp.getState().studies.find((s) => s.id === study.id)
     if (signedStudy) void captureSignedReport(signedStudy)
@@ -290,13 +281,6 @@ export function ReportPanel() {
     else sign()
   }, [study, report, stale, sign])
 
-  const onUnlock = useCallback(() => {
-    if (!study || !report) return
-    setConfirmUnlock(false)
-    const amendment = { signedAt: report.signedAt ?? 0, unlockedAt: Date.now(), by: accountSigner ?? report.radiologist }
-    setReport(study.id, { signed: false, signedAt: undefined, signOverrides: undefined, amendments: [...(report.amendments ?? []), amendment] })
-  }, [study, report, setReport, accountSigner])
-
   const onRegenerate = useCallback(() => {
     if (!study) return
     setConfirmRegen(false)
@@ -306,7 +290,8 @@ export function ReportPanel() {
 
   const onUndoRegenerate = useCallback(() => {
     if (!study || !report?.previous) return
-    setReport(study.id, { ...report.previous, previous: undefined })
+    // Undo restores draft text only; signed history recorded since the snapshot stays.
+    setReport(study.id, { ...report.previous, previous: undefined, versions: report.versions, addenda: report.addenda, correction: report.correction, amendments: report.amendments })
   }, [study, report, setReport])
 
   const plain = useMemo(() => (study ? reportToPlainText(study, settings) : ''), [study, settings])
@@ -339,7 +324,6 @@ export function ReportPanel() {
   if (prevStudy !== studyKey) {
     setPrevStudy(studyKey)
     setConfirmRegen(false)
-    setConfirmUnlock(false)
     setChecklist(null)
     setCopied(false)
     setPreviewOpen(false)
@@ -435,7 +419,6 @@ export function ReportPanel() {
   const patient = reportPatient(study)
   const patientChangedSinceSign = signed && !!report.patientSnapshot && !samePatient(report.patientSnapshot, study.patient)
   const updatedLabel = report.updatedAt ? new Date(report.updatedAt).toLocaleString() : ''
-  const amendments = report.amendments ?? []
   const completedSections = REPORT_FIELDS.filter((field) => report[field.key].trim()).length
   const reviewFindings = study.images.flatMap((img) => img.analysis?.findings ?? []).filter((f) => f.severity !== 'normal')
   const reviewedFindings = reviewFindings.filter((f) => !!f.review).length
@@ -478,7 +461,7 @@ export function ReportPanel() {
         </div>
         {patientChangedSinceSign ? (
           <div className="rp-patient-note">
-            Patient details were changed after signing. The signed report keeps the details shown here; unlock to amend.
+            Patient details were changed after signing. The signed report keeps the details shown here; add an addendum or correct the report to change it.
           </div>
         ) : null}
       </section>
@@ -530,28 +513,8 @@ export function ReportPanel() {
                 <span className="rp-seal-date">Signed past: {report.signOverrides.join('; ')}</span>
               ) : null}
             </div>
-            {!confirmUnlock ? (
-              <ShellButton type="button" className="btn btn-plain btn-sm" onClick={() => setConfirmUnlock(true)}>
-                <Unlock size={14} /> Unlock
-              </ShellButton>
-            ) : null}
           </div>
-          {confirmUnlock ? (
-            <div className="rp-confirm">
-              <span className="rp-confirm-text">
-                Unlock this signed report for amendment? It becomes an editable draft again and the unlock is recorded in
-                the amendment history.
-              </span>
-              <div className="rp-confirm-actions">
-                <ShellButton type="button" className="btn btn-sm" onClick={() => setConfirmUnlock(false)}>
-                  Cancel
-                </ShellButton>
-                <ShellButton type="button" className="btn btn-destructive btn-sm" onClick={onUnlock}>
-                  Unlock
-                </ShellButton>
-              </div>
-            </div>
-          ) : null}
+          <SignedReportActions studyId={study.id} report={report} by={accountSigner ?? report.radiologist} />
         </section>
       ) : null}
 
@@ -665,19 +628,7 @@ export function ReportPanel() {
         </section>
       ) : null}
 
-      {amendments.length ? (
-        <section className="rp-card rp-amend">
-          <div className="rp-sec-head">Amendment history</div>
-          <ul className="rp-amend-list">
-            {amendments.map((a, i) => (
-              <li key={i}>
-                Signed {new Date(a.signedAt).toLocaleString()}, unlocked {new Date(a.unlockedAt).toLocaleString()} by{' '}
-                {a.by || '—'}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ReportHistory report={report} labels={sectionLabels} />
 
       <section className="rp-card rp-export">
         <h2 className="rp-export-title">Export & share</h2>

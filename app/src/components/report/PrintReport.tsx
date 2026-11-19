@@ -14,6 +14,7 @@ import { cssString, sanitizeReportHtml } from '../../lib/richText'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
 import type { ReportFieldKey } from '../../types'
 import { TemplateHeader } from './TemplateHeader'
+import { addendumHeading, correctionNote, currentAddenda } from '../../lib/reportVersions'
 import './print.css'
 
 interface PrintReportProps {
@@ -228,6 +229,8 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   }, [])
 
   const amendments = report?.amendments ?? []
+  const addenda = currentAddenda(report)
+  const corrected = correctionNote(report)
 
   const examLine = [exam.modality, exam.bodyPart, ...exam.views].filter(Boolean).join(' · ')
   const accession = ACCESSION(study.id)
@@ -449,6 +452,14 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
               <div className="rp-signature">
                 <Signature signedName={report?.radiologist ?? ''} signedAt={report?.signedAt} isSigned={!!report?.signed} />
               </div>
+              {corrected ? <p className="rp-correction-note">{corrected}</p> : null}
+
+              {addenda.map((a) => (
+                <section key={a.id} className="rp-addendum">
+                  <h3 className="rp-addendum-head">{addendumHeading(a)}</h3>
+                  <TextBlock value={a.text} />
+                </section>
+              ))}
 
               <footer className="rp-footer">
                 {template?.footer.text.trim() ? <span className="rp-footer-template rp-screen-only">{template.footer.text}</span> : null}
