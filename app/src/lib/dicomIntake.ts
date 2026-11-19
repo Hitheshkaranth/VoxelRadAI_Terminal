@@ -2,7 +2,7 @@ import dicomParser from 'dicom-parser'
 import { dicomPixelsToGray } from './dicomPixels.ts'
 
 /** First value of a (possibly multi-valued, backslash-separated) numeric string element. */
-function readNum(ds: dicomParser.DataSet, tag: string): number | undefined {
+export function readNum(ds: dicomParser.DataSet, tag: string): number | undefined {
   const s = ds.string(tag)
   if (s == null) return undefined
   const n = parseFloat(s.split('\\')[0])
@@ -25,9 +25,9 @@ function readSpacing(ds: dicomParser.DataSet): { row: number; col: number; sourc
 }
 
 const IMPLICIT_LE = '1.2.840.10008.1.2'
-const UNCOMPRESSED = new Set([IMPLICIT_LE, '1.2.840.10008.1.2.1', '1.2.840.10008.1.2.2'])
+export const UNCOMPRESSED = new Set([IMPLICIT_LE, '1.2.840.10008.1.2.1', '1.2.840.10008.1.2.2'])
 
-function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
+export function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
   try {
     return dicomParser.parseDicom(bytes)
   } catch {
@@ -43,13 +43,26 @@ function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
 /** Burned In Annotation (0028,0301). Only an explicit YES marks text in the pixels; an absent tag is read as NO, as DICOM viewers do. */
 export const burnedIn = (ds: { string: (tag: string) => string | undefined }) => (ds.string('x00280301') ?? '').trim().toUpperCase() === 'YES'
 
+/** No codec is bundled, so point the user at the two lossless ways round it rather than a dead end. */
+export function compressedDicomMessage(transferSyntax: string): string {
+  return `Compressed DICOM (transfer syntax ${transferSyntax || 'encapsulated'}) is not supported. Export the images as uncompressed DICOM (Explicit VR Little Endian), or retrieve them through Orthanc/DICOMweb with transcoding to an uncompressed transfer syntax.`
+}
+
+/** Pixel Padding Value / Range Limit share the pixel sign (US or SS), so read them with the pixel representation. */
+export function readPadding(ds: dicomParser.DataSet, signed: boolean): { paddingValue?: number; paddingRangeLimit?: number } {
+  const read = (tag: string) => ds.elements[tag]?.length === 2 ? (signed ? ds.int16(tag) : ds.uint16(tag)) : undefined
+  const paddingValue = read('x00280120')
+  const paddingRangeLimit = paddingValue == null ? undefined : read('x00280121')
+  return { ...(paddingValue != null ? { paddingValue } : {}), ...(paddingRangeLimit != null ? { paddingRangeLimit } : {}) }
+}
+
 /** Parse once, then decode any frame of a supported monochrome image stack. */
 export function createDicomFrameDecoder(bytes: Uint8Array) {
   const ds = parseDicomBytes(bytes)
   const transferSyntax = (ds.string('x00020010') ?? '').trim()
   const pixelEl = ds.elements['x7fe00010']
   if (pixelEl?.encapsulatedPixelData || (transferSyntax && !UNCOMPRESSED.has(transferSyntax))) {
-    throw new Error(`Compressed DICOM (transfer syntax ${transferSyntax || 'encapsulated'}) is not supported; export as uncompressed DICOM or PNG.`)
+    throw new Error(compressedDicomMessage(transferSyntax))
   }
   if (!pixelEl || pixelEl.dataOffset == null || !pixelEl.length) throw new Error('The DICOM file has no usable pixel data.')
 
@@ -81,12 +94,14 @@ export function createDicomFrameDecoder(bytes: Uint8Array) {
   if (!Number.isSafeInteger(frameIndex) || frameIndex < 0 || frameIndex >= frames) throw new Error('DICOM frame index is outside the source stack.')
   const raw = new Uint8Array(ds.byteArray.buffer, ds.byteArray.byteOffset + start + frameIndex * frameBytes, frameBytes)
 
+  const signed = ds.uint16('x00280103') === 1
   const gray = dicomPixelsToGray(raw, {
     rows,
     cols,
     bitsAllocated,
     bitsStored,
-    pixelRepresentation: ds.uint16('x00280103') === 1 ? 1 : 0,
+    pixelRepresentation: signed ? 1 : 0,
+    ...readPadding(ds, signed),
     bigEndian: ds.byteArrayParser === dicomParser.bigEndianByteArrayParser,
     slope: readNum(ds, 'x00281053') ?? 1,
     intercept: readNum(ds, 'x00281052') ?? 0,
