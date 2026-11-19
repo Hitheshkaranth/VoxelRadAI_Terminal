@@ -9,7 +9,7 @@
   ],
   "functions": {
     "api/index.mjs": {
-      "maxDuration": 60,
+      "maxDuration": 300,
       "includeFiles": "server/migrations/**"
     }
   },
@@ -87,7 +87,7 @@
     },
     {
       "source": "/lmstudio/:path*",
-      "destination": "/api/index?__route=unconfigured-model"
+      "destination": "/api/index?__route=lmstudio/:path*"
     },
     {
       "source": "/txrv/:path*",

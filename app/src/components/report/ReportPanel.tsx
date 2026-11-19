@@ -43,6 +43,7 @@ import { PrintReport } from './PrintReport'
 import { ShareStudySheet } from './ShareStudySheet'
 import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
+import { offerNextStudy } from '../shell/worklistNav'
 import { DictationBar } from './DictationBar'
 import { TemplatesSheet } from './TemplatesSheet'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
@@ -267,6 +268,8 @@ export function ReportPanel() {
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
     setChecklist(null)
+    // Before setReport: signing bumps updatedAt and would move this study in the worklist order.
+    offerNextStudy(study.id)
     setReport(study.id, {
       signed: true,
       // Record what was signed past so the override stays visible on the signed report.

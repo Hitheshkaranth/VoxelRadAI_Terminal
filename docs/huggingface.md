@@ -33,7 +33,9 @@ because the existing React application provides the pages.
 Set these Space secrets:
 
 - `HF_TOKEN`: permission to read the private model repository; also authenticates
-  inference quota for the bootstrap administrator only.
+  inference quota for the bootstrap administrator and for bridged reads.
+- `BRIDGE_SECRET` (optional): lets voxelradai.com send reads to this Space. See
+  [Bridge for voxelradai.com](#bridge-for-voxelradaicom-vercel).
 - `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`: initial administrator.
 - `SARVAM_API_KEY` (optional): enables hands-free report dictation. Audio is sent from
   the API to Sarvam AI's speech-to-text service (`saaras:v4`); the key never reaches
@@ -98,6 +100,35 @@ events so abandoned reads cannot accumulate. PRO-authenticated queue submission
 uses HF's gateway; result streaming stays on loopback. Administrator-only
 `/lmstudio/status` (`status.py --queue`) reports pending/active counts and queue
 worker task names without exposing images, prompts or credentials.
+
+### Bridge for voxelradai.com (Vercel)
+
+The Vercel deployment has no GPU. It can send Skanda V1 reads to this Space through a
+shared secret instead of a Space sign-in:
+
+1. Generate a secret of at least 32 characters, for example `openssl rand -base64 48`.
+2. In the Space settings, add it as the secret `BRIDGE_SECRET` and make sure `HF_TOKEN`
+   belongs to the PRO owner account. Restart the Space.
+3. Configure the Vercel side as described in [vercel.md](vercel.md#hosted-skanda-v1-reads-through-the-space).
+
+Requests to `/lmstudio/*` and `/gradio_api/*` that carry `X-VoxelRad-Bridge: <secret>`
+(compared in constant time) skip the Space session check. With the header absent or
+wrong, nothing changes: callers still need a Space session. Bridged reads always use
+the owner `HF_TOKEN` quota path above, and the header travels with the gateway
+submission and the loopback result stream. The calling site adds
+`X-VoxelRad-User`, a keyed pseudonym of its account id; the Space only writes it to the
+log (`Skanda read requested by bridge (u-…), owner quota`). It never receives emails,
+names or session cookies from the site. Leaving `BRIDGE_SECRET` unset (or shorter than
+32 characters) turns the bridge off.
+
+Quota caveat: every voxelradai.com user shares the owner's ZeroGPU PRO quota. Each
+read reserves about 90 quota seconds whatever the image, so a few hundred reads can
+use a day's allowance. Whole-volume jobs send one read per sampled slice and are
+expensive; one CT volume can cost as much as dozens of radiograph reads. The site
+caps reads per user per UTC day (`MODEL_DAILY_READS`), but the cap is per user, not
+per site, so watch the quota page on Hugging Face. When the quota runs out, every
+bridged read fails with a quota message until it resets. Rotate the secret on both
+sides if it leaks.
 
 ## Publish
 
