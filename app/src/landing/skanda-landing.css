@@ -907,5 +907,7 @@
 
 /* Docs — the main nav gained Pricing and Docs; keep nine links on one line down to the 960px menu breakpoint. */
 .sk-nav[data-scrolled=true] .sk-nav-inner{width:min(1080px,100% - 32px)}
-@media (max-width:1240px){.sk-nav nav{gap:16px}.sk-nav nav a{font-size:14px}}
+@media (max-width:1240px){.sk-nav .sk-serving{display:none}.sk-nav nav{gap:16px}.sk-nav nav a{font-size:14px}}
 @media (max-width:1100px){.sk-nav .sk-serving{display:none}.sk-nav nav{gap:13px}.sk-nav nav a{font-size:13.5px}}
+
+.sk-nav .sk-serving{white-space:nowrap}
