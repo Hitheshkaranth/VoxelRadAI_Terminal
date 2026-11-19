@@ -1,5 +1,6 @@
 import { ScanButton } from './ScanButton'
 import { Hand, Maximize, Minus, Plus, SlidersHorizontal } from 'lucide-react'
+import { volumeWindowPresets } from '../../lib/volumeWindows'
 
 type DisplayWindow = { center: number; width: number }
 export interface VolumeDisplayControlsProps {
@@ -7,6 +8,8 @@ export interface VolumeDisplayControlsProps {
   width: number
   range: [number, number]
   initialWindow?: DisplayWindow
+  /** Percentile window for non-CT volumes, computed from the voxel data. */
+  autoWindow?: DisplayWindow | null
   modality: string
   activeTool: 'pan' | 'window'
   onToolChange: (tool: 'pan' | 'window') => void
@@ -17,20 +20,9 @@ export interface VolumeDisplayControlsProps {
   onZoomOut: () => void
 }
 
-export function VolumeDisplayControls({ center, width, range, initialWindow, modality, activeTool, onToolChange, onWindowChange, onFit, onFitContent, onZoomIn, onZoomOut }: VolumeDisplayControlsProps) {
+export function VolumeDisplayControls({ center, width, range, initialWindow, autoWindow, modality, activeTool, onToolChange, onWindowChange, onFit, onFitContent, onZoomIn, onZoomOut }: VolumeDisplayControlsProps) {
   const fullRange = { center: (range[0] + range[1]) / 2, width: Math.max(1, range[1] - range[0]) }
-  const presets = modality.toUpperCase() === 'CT'
-    ? [
-        { name: 'Narrow display (100/40)', center: 40, width: 100 },
-        { name: 'Medium display (400/40)', center: 40, width: 400 },
-        { name: 'Wide display (2000/500)', center: 500, width: 2000 },
-        { name: 'Full range', ...fullRange },
-      ]
-    : [
-        { name: 'Full range', ...fullRange },
-        { name: 'Medium display (50% range)', center: fullRange.center, width: Math.max(1, fullRange.width * .5) },
-        { name: 'Narrow display (25% range)', center: fullRange.center, width: Math.max(1, fullRange.width * .25) },
-      ]
+  const presets = volumeWindowPresets(modality, range, autoWindow)
   const selected = presets.find((preset) => preset.center === center && preset.width === width)?.name ?? 'Custom'
   const changeNumber = (key: 'center' | 'width', value: string) => {
     if (!value.trim()) return
@@ -58,7 +50,7 @@ export function VolumeDisplayControls({ center, width, range, initialWindow, mod
           if (preset) onWindowChange({ center: preset.center, width: preset.width })
         }}>
           <option value="Custom" disabled>Custom</option>
-          {presets.map((preset) => <option key={preset.name} value={preset.name}>{preset.name}</option>)}
+          {presets.map((preset, i) => <option key={preset.name} value={preset.name}>{i < 9 ? `${i + 1} · ` : ''}{preset.name}</option>)}
         </select>
       </label>
       <label>Width <input type="number" aria-label="Display window" min={1} step="any" value={width} onChange={(event) => changeNumber('width', event.target.value)} /></label>
@@ -66,6 +58,6 @@ export function VolumeDisplayControls({ center, width, range, initialWindow, mod
       <ScanButton type="button" className="btn btn-sm" onClick={() => onWindowChange(initialWindow ?? fullRange)}>Reset window</ScanButton>
     </div>
     <span className="volume-calibration-note">{modality.toUpperCase() === 'CT' ? 'Calibration unknown · Values are not verified HU' : 'Uncalibrated display values'}</span>
-    <span className="volume-display-note">Display values{activeTool === 'window' ? ' · Drag left/right for width, up/down for level' : ' · Shift-drag or right-drag to window'}</span>
+    <span className="volume-display-note">Display values{activeTool === 'window' ? ' · Drag left/right for width, up/down for level' : ' · Shift-drag or right-drag to window'} · Keys 1–{Math.min(9, presets.length)} pick a preset</span>
   </div>
 }

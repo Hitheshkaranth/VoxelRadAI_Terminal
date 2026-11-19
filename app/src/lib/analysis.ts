@@ -10,6 +10,7 @@ import { analysisEligibility, isCrossSectional } from './modality'
 import { augment, mairaHealth } from './maira'
 import { analyzeImage, generateReport, reencodeForClassifier } from './medgemma'
 import { findingsReport } from './findingsReport'
+import { priorStudies } from './priors'
 
 const controllers = new Map<string, AbortController>()
 const lastProgress = new Map<string, number>()
@@ -280,7 +281,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
   if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   if (!study) return
-  if (study.report?.signed) { toast('Unlock the signed report before replacing its draft.', 'info'); return }
+  if (study.report?.signed) { toast('This report is signed. Use Correct report to start a new version.', 'info'); return }
 
   cancelReport()
   const controller = new AbortController()
@@ -292,7 +293,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
   try {
     const settings = useApp.getState().settings
     let draftMethod = method
-    const fields = method === 'findings' ? findingsReport(study) : await generateReport({
+    const fields = method === 'findings' ? findingsReport(study, priorStudies(study, useApp.getState().studies)) : await generateReport({
       study,
       settings,
       signal: controller.signal,
@@ -301,7 +302,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
       if (controller.signal.aborted || !/quota|GPU limit|illegal duration/i.test(errorMessage(error))) throw error
       draftMethod = 'findings'
       toast('Model quota unavailable. Created a draft from existing findings.', 'info')
-      return findingsReport(study)
+      return findingsReport(study, priorStudies(study, useApp.getState().studies))
     })
     if (reportController !== controller || controller.signal.aborted) return
     if (useApp.getState().studies.find((s) => s.id === studyId)?.report?.signed) return

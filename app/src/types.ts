@@ -143,6 +143,12 @@ export interface StudyImage {
   /** Actual DICOM source identities for grouping/traceability, never inferred from filenames. */
   sourceSeriesUid?: string
   sourceSopInstanceUid?: string
+  /** DICOM Burned In Annotation (0028,0301): true = YES, false = explicit NO. Absent when the tag is missing or
+   *  unreadable, and for raster imports: the status is unknown and pixels are never shared for training. */
+  burnedInAnnotation?: boolean
+  /** Verbatim Burned In Annotation value as read at import ('YES' / 'NO'). Training capture sends pixels only for an
+   *  explicit 'NO'; images imported before this field existed (absent) are treated as unknown. */
+  burnedInTag?: 'YES' | 'NO'
   /** Original pixel grid, before the display downscale. */
   sourceRows?: number
   sourceColumns?: number
@@ -215,6 +221,51 @@ export interface ReportDraft {
   aiDraft?: Partial<Record<ReportFieldKey, string>>
   /** Report template chosen for this report; falls back to the user's default template. */
   templateId?: string
+  /** Every signed state, appended at each sign-off and never edited or removed (the server refuses that). */
+  versions?: ReportVersion[]
+  /** Text added to a signed report without changing it. */
+  addenda?: ReportAddendum[]
+  /** Set while a signed report is being corrected into a new version. */
+  correction?: { of: number; startedAt: number; by: string }
+  /** Log of critical results communicated to the care team (who, how, when). */
+  criticalComms?: CriticalComm[]
+}
+
+export type CriticalCommMethod = 'phone' | 'in person' | 'message' | 'other'
+
+export interface CriticalComm {
+  id: string
+  finding: string
+  communicatedTo: string
+  role: string
+  method: CriticalCommMethod
+  /** Epoch ms when the result was communicated. */
+  at: number
+  /** Who communicated it. */
+  by: string
+}
+
+/** One signed state of a report, frozen at sign-off. */
+export interface ReportVersion {
+  version: number
+  signedAt: number
+  signedBy: string
+  sections: Record<ReportFieldKey, string>
+  rich?: Partial<Record<ReportFieldKey, string>>
+  patientSnapshot?: PatientInfo
+  signOverrides?: string[]
+  /** Version this one corrects (signed after "Correct report"). */
+  corrects?: number
+}
+
+export interface ReportAddendum {
+  id: string
+  text: string
+  createdAt: number
+  by: string
+  signedAt?: number
+  /** Signed version the addendum was added to. */
+  version?: number
 }
 
 export interface Study {
@@ -225,6 +276,9 @@ export interface Study {
   report?: ReportDraft
   createdAt: number
   updatedAt: number
+  /** Server revision this copy was last loaded from or saved as. Sent with the next save so a stale copy (another tab,
+   *  a re-imported older file) is refused instead of overwriting newer server text. Absent = never on the server. */
+  serverRevision?: number
 }
 
 export interface Settings {

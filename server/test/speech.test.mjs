@@ -22,3 +22,14 @@ test('reports missing configuration and provider errors', async () => {
   await assert.rejects(transcribe(parseSpeechRequest({ audio, mime: 'audio/webm' }), { apiKey: 'k', fetchImpl: async () => new Response('{}', { status: 429 }) }), e => e.status === 429)
   await assert.rejects(transcribe(parseSpeechRequest({ audio, mime: 'audio/webm' }), { apiKey: 'k', fetchImpl: async () => new Response('{}', { status: 500 }) }), e => e.status === 502)
 })
+test('passes the user vocabulary as extra keyterms, deduplicated and bounded', async () => {
+  const clip = parseSpeechRequest({ audio, mime: 'audio/webm', keyterms: ['Bosniak', 'pneumothorax', ' Bosniak ', '<script>', 42, 'x'.repeat(80), 'T2 FLAIR'] })
+  assert.deepEqual(clip.keyterms, ['Bosniak', 'T2 FLAIR'])
+  assert.throws(() => parseSpeechRequest({ audio, mime: 'audio/webm', keyterms: 'Bosniak' }), /Keyterms/)
+  assert.ok(parseSpeechRequest({ audio, mime: 'audio/webm', keyterms: Array.from({ length: 100 }, (_, i) => `term${i}`) }).keyterms.length <= 50)
+  let sent
+  const fetchImpl = async (_url, init) => { sent = JSON.parse(init.body.get('keyterms')); return new Response(JSON.stringify({ transcript: 'ok' }), { status: 200 }) }
+  await transcribe(clip, { apiKey: 'k', fetchImpl })
+  assert.equal(sent[0], 'Bosniak')
+  assert.ok(sent.includes('pneumothorax') && sent.length <= 50)
+})

@@ -5,12 +5,17 @@ import { pauseVolumeJob } from '../../lib/volumeJobs'
 import { ThinkingOrb } from 'thinking-orbs'
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useId, type CSSProperties } from 'react'
-import { ChevronLeft, ChevronRight, Minus, Plus, X, Play, Pause, SlidersHorizontal, PanelsTopLeft, PanelRight, Box, Maximize } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minus, Plus, X, Play, Pause, SlidersHorizontal, PanelsTopLeft, PanelRight, Box, Maximize, Ruler } from 'lucide-react'
 import { clampSliceIndex, clampZoom } from './displayAdjustments'
 import { ThemeSwitch } from '../shell/ThemeSwitch'
-import { decodeNrrd, getSliceGeometry, renderSlice, type Volume, type VolumePlane, type Vec3 } from '../../lib/volume'
+import { decodeNrrd, getSliceGeometry, renderSlice, OBLIQUE_TOLERANCE, type Volume, type VolumePlane, type Vec3 } from '../../lib/volume'
+import { renderSlab, slabCaption, type SlabSettings } from '../../lib/volumeSlab'
+import { percentileWindow, volumeWindowPresets } from '../../lib/volumeWindows'
+import { MAX_VOLUME_MEASUREMENTS, readoutText, voxelReadout, type SlicePoint, type VolumeMeasurement, type VolumeMeasurementKind } from '../../lib/volumeMeasure'
+import { wheelSteps } from '../../lib/viewerInput'
+import { VolumeMeasureOverlay, VolumeMeasurePanel, VolumeSlabControls } from './VolumeMeasureTools'
 import { VOLUME_SAMPLES, type VolumeSource } from '../../lib/volumeSources'
-import { useApp } from '../../store'
+import { uid, useApp } from '../../store'
 import { validateVolumeAnalysis } from '../../lib/volumeValidation'
 import { skandaSliceInput } from '../../lib/skandaSlice'
 import { sourceEdgeCoverage } from '../../lib/volumeCoverage'
@@ -94,6 +99,17 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
   const [viewingEvidence, setViewingEvidence] = useState(false)
   const overlaysVisible = showRegions && !heldOverlays
   const keyActions = useRef<(key: string) => void>(() => {})
+  // Manual measurements belong to this volume; each records its plane and slice.
+  const [measureTool, setMeasureTool] = useState<VolumeMeasurementKind | null>(null)
+  const [measureStore, setMeasureStore] = useState<{ volume: Volume | null; list: VolumeMeasurement[] }>({ volume: null, list: [] })
+  const measurements = measureStore.volume === volume ? measureStore.list : []
+  const setMeasurements = (next: VolumeMeasurement[] | ((list: VolumeMeasurement[]) => VolumeMeasurement[])) =>
+    setMeasureStore((store) => { const list = store.volume === volume ? store.list : []; return { volume, list: typeof next === 'function' ? next(list) : next } })
+  const [draftMeasure, setDraftMeasure] = useState<VolumeMeasurement | null>(null)
+  const measureDrag = useRef<{ id: number; a: SlicePoint; x: number; y: number } | null>(null)
+  const [slab, setSlab] = useState<SlabSettings>({ mode: 'none', thicknessMm: 10 })
+  const readoutRef = useRef<HTMLSpanElement>(null)
+  const wheelRemainder = useRef(0)
 
   const [size, setSize] = useState({ w: 1, h: 1 })
   const stage = useRef<HTMLDivElement>(null)
@@ -104,15 +120,19 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
   const findingSlices = useMemo(() => sliceReads.filter((r) => r.analysis?.findings.some((f) => f.severity !== 'normal' && f.review !== 'dismissed')).map((r) => r.index).sort((a,b)=>a-b), [sliceReads])
   const count = geometry?.count ?? 1
   const sliceIndex = bound(index, count - 1)
-  const sliceData = useMemo(() => volume ? renderSlice(volume, plane, sliceIndex, { center: level, width }) : null, [volume, plane, sliceIndex, level, width])
+  const baseSlice = useMemo(() => volume ? renderSlice(volume, plane, sliceIndex, { center: level, width }) : null, [volume, plane, sliceIndex, level, width])
+  // Slab projections change the displayed image only; analysis input (sliceTexture) stays the acquired slice.
+  const sliceData = useMemo(() => volume && baseSlice && slab.mode !== 'none' ? renderSlab(volume, plane, sliceIndex, { center: level, width }, slab) : baseSlice, [volume, baseSlice, plane, sliceIndex, level, width, slab])
+  const autoWindow = useMemo(() => volume && source.modality.toUpperCase() !== 'CT' ? percentileWindow(volume.data) : null, [volume, source.modality])
+  const windowPresets = useMemo(() => volume ? volumeWindowPresets(source.modality, volume.range, autoWindow) : [], [volume, source.modality, autoWindow])
   const sourceCoverage = useMemo(() => volume ? sourceEdgeCoverage(volume, plane, sliceIndex) : null, [volume, plane, sliceIndex])
   const sliceTexture = useMemo(() => {
-    if (!sliceData) return undefined
+    if (!baseSlice) return undefined
     const image = document.createElement('canvas')
-    image.width = sliceData.width; image.height = sliceData.height
-    image.getContext('2d')?.putImageData(new ImageData(new Uint8ClampedArray(sliceData.pixels), sliceData.width, sliceData.height), 0, 0)
-    return { url: image.toDataURL('image/png'), columnAxis: sliceData.columnAxis, rowAxis: sliceData.rowAxis, flipColumn: sliceData.flipColumn, flipRow: sliceData.flipRow }
-  }, [sliceData])
+    image.width = baseSlice.width; image.height = baseSlice.height
+    image.getContext('2d')?.putImageData(new ImageData(new Uint8ClampedArray(baseSlice.pixels), baseSlice.width, baseSlice.height), 0, 0)
+    return { url: image.toDataURL('image/png'), columnAxis: baseSlice.columnAxis, rowAxis: baseSlice.rowAxis, flipColumn: baseSlice.flipColumn, flipRow: baseSlice.flipRow }
+  }, [baseSlice])
   const fit = () => { setCine(false); setZoom(1); setPan({ x: 0, y: 0 }) }
   const saveAcquisition = async (acquisition: VolumeAcquisition) => {
     const identity = volume ? `${await volumeFingerprint(volume)}:${source.modality.toUpperCase()}` : null
@@ -176,7 +196,12 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
       event.preventDefault()
       setCine(false)
       if (event.ctrlKey || event.metaKey) setZoom((z) => Math.max(.5, Math.min(8, z * Math.exp(-event.deltaY * .005))))
-      else if (Math.abs(event.deltaY) > 0) setIndex((i) => bound(i + Math.sign(event.deltaY), count - 1))
+      else {
+        // Accumulate so a trackpad steps in proportion to distance while a mouse notch steps exactly once.
+        const { steps, remainder } = wheelSteps(wheelRemainder.current, event.deltaY, event.deltaMode)
+        wheelRemainder.current = remainder
+        if (steps) setIndex((i) => bound(i + steps, count - 1))
+      }
     }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
@@ -209,6 +234,10 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
     setCine(false); setSelectedRegion(region.id); setAnchor(regionAnchor(volume, region)); fit(); useShell.getState().setMobileView('viewer')
   }
   const crosshair = volume ? slicePointFromVoxel(volume, plane, anchor) : null
+  const oblique = volume?.directions.some((direction) => Math.max(...direction.map(Math.abs)) < OBLIQUE_TOLERANCE)
+  const physicalW = geometry ? geometry.width * geometry.pixelSpacing[0] : 1
+  const physicalH = geometry ? geometry.height * geometry.pixelSpacing[1] : 1
+  const scale = Math.min(Math.max(1, size.w - 40) / physicalW, Math.max(1, size.h - 128) / physicalH)
   const fitContent = () => {
     setCine(false)
     if (!sliceData) return
@@ -253,6 +282,9 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
     else if (key === 'm') { setCine(false); setMultiPlane((v) => !v) }
     else if (key === 'h') setShowRegions((v) => !v)
     else if (key === '?') setShortcutsOpen((v) => !v)
+    else if (key === 'l' || key === 'e') { setCine(false); setMeasureTool((tool) => { const next = key === 'l' ? 'length' : 'ellipse'; return tool === next ? null : next }); setMultiPlane(false) }
+    else if (key === 'escape') { measureDrag.current = null; setDraftMeasure(null); setMeasureTool(null) }
+    else if (/^[1-9]$/.test(key)) { const preset = windowPresets[Number(key) - 1]; if (preset) { setCine(false); setLevel(preset.center); setWidth(preset.width) } }
   } })
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -261,17 +293,25 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
       if (event.altKey || useShell.getState().mobileView !== 'viewer') return
       if (event.key === ' ' && event.target instanceof HTMLElement && event.target.closest('button,summary,[role="button"]')) return
       const key = event.key.toLowerCase()
-      if ([' ', 'f', 'w', 'p', 'm', 'h', '?'].includes(key)) { event.preventDefault(); keyActions.current(key) }
+      if (key === 'escape') { keyActions.current(key); return }
+      if ([' ', 'f', 'w', 'p', 'm', 'h', '?', 'l', 'e', '1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(key)) { event.preventDefault(); keyActions.current(key) }
     }
     const up = (event: KeyboardEvent) => { if (event.key === 'Alt') setHeldOverlays(false) }
     const blur = () => { setHeldOverlays(false); setCine(false) }
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur)
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur) }
   }, [])
-  const oblique = volume?.directions.some((direction) => Math.max(...direction.map(Math.abs)) < .9999)
-  const physicalW = geometry ? geometry.width * geometry.pixelSpacing[0] : 1
-  const physicalH = geometry ? geometry.height * geometry.pixelSpacing[1] : 1
-  const scale = Math.min(Math.max(1, size.w - 40) / physicalW, Math.max(1, size.h - 128) / physicalH)
+  const slicePointAt = (clientX: number, clientY: number): SlicePoint | null => {
+    const rect = canvas.current?.getBoundingClientRect()
+    return rect && rect.width > 0 && rect.height > 0 ? { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height } : null
+  }
+  const clampPoint = (p: SlicePoint): SlicePoint => ({ x: Math.max(0, Math.min(1, p.x)), y: Math.max(0, Math.min(1, p.y)) })
+  const showReadout = (clientX: number, clientY: number) => {
+    const el = readoutRef.current, point = slicePointAt(clientX, clientY)
+    if (!el) return
+    el.textContent = volume && point ? readoutText(voxelReadout(volume, plane, sliceIndex, point), source.modality) : ''
+    el.hidden = !el.textContent
+  }
 
   return <section className={`volume-workspace${readingMode ? ' volume-reading-mode' : ''}`} style={{ '--volume-panel-width': `${panelWidth}px`, '--volume-spatial-height': `${spatialHeight}px` } as CSSProperties} aria-label="Volume viewer" data-review-open={showReviewPanel}>
     <header className="volume-header scan-header">
@@ -293,6 +333,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
             <ScanButton className="btn btn-sm" aria-label={multiPlane ? 'Single plane' : 'Three planes'} aria-pressed={multiPlane} onClick={() => { setCine(false); setMultiPlane(v => !v) }}><PanelsTopLeft size={16} /><span>{multiPlane ? 'Single plane' : 'Three planes'}</span></ScanButton>
             <ScanButton className="btn btn-sm" aria-label="Toggle 3D locator" aria-pressed={showLocator} onClick={() => setShowLocator(v => !v)}><Box size={16} /><span>3D</span></ScanButton>
             <VolumeAcquisitionEditor source={source} onSave={saveAcquisition} />
+            <Popover><PopoverTrigger asChild><ScanButton aria-label="Measure" aria-pressed={!!measureTool}><Ruler size={16} /><span>Measure{measurements.length ? ` (${measurements.length})` : ''}</span></ScanButton></PopoverTrigger><PopoverContent align="end" className="scan-popover"><VolumeMeasurePanel volume={volume} modality={source.modality} tool={measureTool} onTool={(tool) => { setCine(false); setMeasureTool(tool); if (tool) setMultiPlane(false) }} measurements={measurements} onChange={setMeasurements} onSelect={(m) => navigate(m.plane, m.index)} /></PopoverContent></Popover>
             <Popover><PopoverTrigger asChild><ScanButton aria-label="More scan tools"><SlidersHorizontal size={16} /><span>Tools</span></ScanButton></PopoverTrigger><PopoverContent align="end" className="scan-popover">
               <ScanButton className="btn btn-sm" aria-pressed={readingMode} onClick={() => setReadingMode(v => !v)}>{readingMode ? 'Show volume details' : 'Hide volume details'}</ScanButton>
               <ScanButton className="btn btn-sm" aria-expanded={shortcutsOpen} onClick={() => setShortcutsOpen(v => !v)}>Keyboard shortcuts</ScanButton>
@@ -301,19 +342,27 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
               {viewingEvidence && <ScanButton className="btn btn-sm" onClick={returnToReport}>Return to report</ScanButton>}
             </PopoverContent></Popover>
           </div>
-          {multiPlane ? <VolumeMultiplanar activePlane={plane} volume={volume} anchor={anchor} center={level} width={width} zoom={zoom} onAnchorChange={setAnchor} onInteraction={() => setCine(false)} selectedRegion={selectedRegion} onRegionSelect={chooseRegion} onMaximize={(p) => { setMultiPlane(false); selectPlane(p) }} regions={regions} showOverlays={overlaysVisible} overlayOpacity={overlayOpacity} /> : <div ref={stage} className="volume-stage" tabIndex={0} aria-label={`${title(plane)} slice ${sliceIndex + 1} of ${count}`}
+          {multiPlane ? <VolumeMultiplanar activePlane={plane} slab={slab} modality={source.modality} volume={volume} anchor={anchor} center={level} width={width} zoom={zoom} onAnchorChange={setAnchor} onInteraction={() => setCine(false)} selectedRegion={selectedRegion} onRegionSelect={chooseRegion} onMaximize={(p) => { setMultiPlane(false); selectPlane(p) }} regions={regions} showOverlays={overlaysVisible} overlayOpacity={overlayOpacity} /> : <div ref={stage} className="volume-stage" tabIndex={0} aria-label={`${title(plane)} slice ${sliceIndex + 1} of ${count}`}
             onKeyDown={(event) => { if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); setIndex((i) => bound(i + 1, count - 1)) } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); setIndex((i) => bound(i - 1, count - 1)) } }}
             onContextMenu={(event) => event.preventDefault()}
-            onPointerDown={(event) => { setCine(false); if (event.button !== 0 && event.button !== 2) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, pan, mode: event.button === 2 || event.shiftKey ? 'window' : activeTool, center: level, width } }}
-            onPointerMove={(event) => { const d = drag.current; if (d?.id !== event.pointerId) return; if (d.mode === 'window') { const sensitivity = Math.max(1, d.width / 200); setWidth(Math.max(1, Math.round(d.width + (event.clientX - d.x) * sensitivity))); setLevel(Math.round(d.center + (event.clientY - d.y) * sensitivity)) } else setPan({ x: d.pan.x + event.clientX - d.x, y: d.pan.y + event.clientY - d.y }) }}
-            onPointerUp={(event) => { const d = drag.current; if (d?.mode === 'pan' && Math.hypot(event.clientX - d.x, event.clientY - d.y) < 5 && canvas.current && volume) { const rect = canvas.current.getBoundingClientRect(); setAnchor(voxelFromSlicePoint(volume, plane, sliceIndex, { x: (event.clientX-rect.left)/rect.width, y: (event.clientY-rect.top)/rect.height })) } drag.current = null }} onPointerCancel={() => { drag.current = null }} onLostPointerCapture={() => { drag.current = null }} onDoubleClick={fit}>
+            data-measuring={measureTool ?? undefined}
+            onPointerDown={(event) => { setCine(false); if (event.button !== 0 && event.button !== 2) return
+              if (measureTool && event.button === 0 && !event.shiftKey) { const a = slicePointAt(event.clientX, event.clientY); if (!a || a.x < 0 || a.x > 1 || a.y < 0 || a.y > 1) return; event.currentTarget.setPointerCapture(event.pointerId); measureDrag.current = { id: event.pointerId, a, x: event.clientX, y: event.clientY }; setDraftMeasure({ id: 'draft', kind: measureTool, plane, index: sliceIndex, a, b: a }); return } event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, pan, mode: event.button === 2 || event.shiftKey ? 'window' : activeTool, center: level, width } }}
+            onPointerMove={(event) => { const md = measureDrag.current; if (md?.id === event.pointerId) { const b = slicePointAt(event.clientX, event.clientY); if (b) setDraftMeasure((m) => m && { ...m, b: clampPoint(b) }); showReadout(event.clientX, event.clientY); return }
+              const d = drag.current; if (!d) showReadout(event.clientX, event.clientY); if (d?.id !== event.pointerId) return; if (d.mode === 'window') { const sensitivity = Math.max(1, d.width / 200); setWidth(Math.max(1, Math.round(d.width + (event.clientX - d.x) * sensitivity))); setLevel(Math.round(d.center + (event.clientY - d.y) * sensitivity)) } else setPan({ x: d.pan.x + event.clientX - d.x, y: d.pan.y + event.clientY - d.y }) }}
+            onPointerLeave={() => { if (readoutRef.current) readoutRef.current.hidden = true }}
+            onPointerUp={(event) => { const md = measureDrag.current; if (md?.id === event.pointerId) { measureDrag.current = null; const b = slicePointAt(event.clientX, event.clientY); if (b && measureTool && Math.hypot(event.clientX - md.x, event.clientY - md.y) >= 4) { const m: VolumeMeasurement = { id: uid(), kind: measureTool, plane, index: sliceIndex, a: md.a, b: clampPoint(b) }; setMeasurements((list) => [...list, m].slice(-MAX_VOLUME_MEASUREMENTS)) } setDraftMeasure(null); return }
+              const d = drag.current; if (d?.mode === 'pan' && Math.hypot(event.clientX - d.x, event.clientY - d.y) < 5 && canvas.current && volume) { const rect = canvas.current.getBoundingClientRect(); setAnchor(voxelFromSlicePoint(volume, plane, sliceIndex, { x: (event.clientX-rect.left)/rect.width, y: (event.clientY-rect.top)/rect.height })) } drag.current = null }} onPointerCancel={() => { drag.current = null; measureDrag.current = null; setDraftMeasure(null) }} onLostPointerCapture={() => { drag.current = null }} onDoubleClick={() => { if (!measureTool) fit() }}>
             <canvas className="volume-full-image" ref={canvas} aria-label={`${source.modality} ${plane} image, slice ${sliceIndex + 1}`} role="img" style={{ width: physicalW * scale, height: physicalH * scale, transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})` }} />
             {overlaysVisible && crosshair && <svg className="volume-crosshair" opacity={overlayOpacity} viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ width: physicalW * scale, height: physicalH * scale, transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})` }} aria-label="Shared anatomical position"><line x1={crosshair.x*1000} x2={crosshair.x*1000} y1="0" y2="1000" /><line x1="0" x2="1000" y1={crosshair.y*1000} y2={crosshair.y*1000} /></svg>}
             {overlaysVisible && <svg className="volume-region-overlay" opacity={overlayOpacity} viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ width: physicalW * scale, height: physicalH * scale, transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})` }} aria-label="Finding bounding regions">
               {regions.map((region, number) => { const b = regionOnSlice(volume!, plane, sliceIndex, region); return b && <g key={region.id} data-selected={selectedRegion === region.id} role="button" tabIndex={0} aria-label={`Finding ${number + 1}: ${region.title}`} onPointerDown={(e) => e.stopPropagation()} onClick={() => chooseRegion(region)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); chooseRegion(region) } }}><title>{region.title}</title><rect x={b.x*1000} y={b.y*1000} width={b.w*1000} height={b.h*1000} /><text x={b.x*1000+4} y={Math.max(18,b.y*1000-8)}>{number+1}</text></g> })}
             </svg>}
             <span className="volume-orientation volume-top">{geometry.labels.top}</span><span className="volume-orientation volume-bottom">{geometry.labels.bottom}</span><span className="volume-orientation volume-left">{geometry.labels.left}</span><span className="volume-orientation volume-right">{geometry.labels.right}</span>
-            <span className="volume-image-caption">{title(plane)}{oblique ? ' · acquired oblique plane' : ''} · {sliceIndex + 1}/{count}</span>
+            {(measurements.length > 0 || draftMeasure) && <VolumeMeasureOverlay volume={volume} plane={plane} index={sliceIndex} measurements={measurements} draft={draftMeasure} width={physicalW * scale} height={physicalH * scale} zoom={zoom} style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})` }} />}
+            <span className="volume-image-caption">{title(plane)}{oblique ? ' · acquired oblique plane' : ''} · {sliceIndex + 1}/{count}{slabCaption(sliceData)}</span>
+            {measureTool && <span className="vw-measure-hint volume-measure-hint" role="status">{measureTool === 'length' ? 'Length' : 'Ellipse ROI'}: drag across the structure · Esc to stop · Shift-drag to window</span>}
+            <span ref={readoutRef} className="volume-value-readout" hidden aria-live="off" />
           </div>
           }
           {!multiPlane && sourceCoverage && <div className="volume-source-note" role="note"><strong>Uniform area in source image</strong><span>The {sourceCoverage.edge} edge contains {sourceCoverage.rows} of {sourceCoverage.totalRows} constant-value rows. {zoom === 1 && pan.x === 0 && pan.y === 0 ? 'Full image extent is shown; this is not a display crop.' : 'Source pixels are retained; the current view is zoomed or panned.'}</span></div>}
@@ -328,7 +377,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
 
 
           </div>
-          <Popover open={toolsOpen} onOpenChange={setToolsOpen}><PopoverTrigger asChild><ScanButton className="scan-display-trigger"><SlidersHorizontal size={16} /><span>Display</span></ScanButton></PopoverTrigger><PopoverContent side="top" align="end" className="scan-display-popover"><div className="volume-cine-controls"><label>Playback speed <select aria-label="Playback speed" value={cineSpeed} onChange={e => setCineSpeed(Number(e.target.value))}>{[1,3,5,10].map(fps => <option key={fps} value={fps}>{fps} fps</option>)}</select></label></div><VolumeDisplayControls center={level} width={width} range={volume.range} modality={source.modality} initialWindow={source.initialWindow} activeTool={activeTool} onToolChange={(tool) => { setCine(false); setActiveTool(tool) }} onWindowChange={(window) => { setCine(false); setLevel(window.center); setWidth(window.width) }} onFit={fit} onFitContent={multiPlane ? undefined : fitContent} onZoomIn={() => { setCine(false); setZoom((z) => clampZoom(z * 1.25)) }} onZoomOut={() => { setCine(false); setZoom((z) => clampZoom(z / 1.25)) }} /></PopoverContent></Popover>
+          <Popover open={toolsOpen} onOpenChange={setToolsOpen}><PopoverTrigger asChild><ScanButton className="scan-display-trigger"><SlidersHorizontal size={16} /><span>Display</span></ScanButton></PopoverTrigger><PopoverContent side="top" align="end" className="scan-display-popover"><div className="volume-cine-controls"><label>Playback speed <select aria-label="Playback speed" value={cineSpeed} onChange={e => setCineSpeed(Number(e.target.value))}>{[1,3,5,10].map(fps => <option key={fps} value={fps}>{fps} fps</option>)}</select></label></div><VolumeSlabControls slab={slab} onChange={(next) => { setCine(false); setSlab(next) }} sliceSpacing={geometry.sliceSpacing} /><VolumeDisplayControls center={level} width={width} range={volume.range} modality={source.modality} initialWindow={source.initialWindow} autoWindow={autoWindow} activeTool={activeTool} onToolChange={(tool) => { setCine(false); setActiveTool(tool) }} onWindowChange={(window) => { setCine(false); setLevel(window.center); setWidth(window.width) }} onFit={fit} onFitContent={multiPlane ? undefined : fitContent} onZoomIn={() => { setCine(false); setZoom((z) => clampZoom(z * 1.25)) }} onZoomOut={() => { setCine(false); setZoom((z) => clampZoom(z / 1.25)) }} /></PopoverContent></Popover>
           </div>
         </div>
         <div className="volume-panel-divider" role="separator" aria-label="Resize findings panel" aria-orientation="vertical" aria-valuemin={280} aria-valuemax={600} aria-valuenow={panelWidth} tabIndex={0} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); panelDrag.current={x:e.clientX,width:panelWidth} }} onPointerMove={(e) => { if(panelDrag.current)setPanelWidth(Math.max(280,Math.min(600,panelDrag.current.width+panelDrag.current.x-e.clientX))) }} onPointerUp={() => {panelDrag.current=null}} onPointerCancel={() => {panelDrag.current=null}} onKeyDown={(e) => { if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setPanelWidth((v)=>Math.max(280,Math.min(600,v+(e.key==='ArrowLeft'?20:-20))))} }} />

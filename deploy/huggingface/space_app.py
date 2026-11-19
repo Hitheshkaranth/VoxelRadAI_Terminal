@@ -17,6 +17,8 @@ import time
 import urllib.request
 import uuid
 import base64
+import hmac
+import re
 import secrets
 import threading
 
@@ -58,9 +60,79 @@ STATE_BACKUP_SECONDS = int(os.environ.get("STATE_BACKUP_SECONDS", "300"))
 STATE_FILE = "skanda.sql.gz"
 # Training data has its own dataset sync; leave it out of the state backup.
 STATE_EXCLUDED_DATA = ("training_cases", "training_images", "dictation_events")
+# Sign-in sessions are left out too, so a session revoked after the last backup (sign-out, password change,
+# disabled account) cannot come back on restore. STATE_BACKUP_SESSIONS=on keeps logins across restarts instead.
+SESSION_TABLES = ("sessions",)
+OFF = {"off", "false", "0", "no", ""}
 
 
-def start_state_backup(pg_bin, url, restore):
+def state_excluded_tables(env=os.environ):
+    keep_sessions = env.get("STATE_BACKUP_SESSIONS", "off").lower() not in OFF
+    return STATE_EXCLUDED_DATA + (() if keep_sessions else SESSION_TABLES)
+
+
+def state_dump_args(pg_bin, url, env=os.environ):
+    args = [str(pg_bin / "pg_dump"), "--no-owner", "--no-privileges", "-d", url]
+    for table in state_excluded_tables(env):
+        args += ["--exclude-table-data", table]
+    return args
+
+
+def state_digest(dump):
+    """Hash without comments and the per-dump random restrict keys, so an unchanged database is not uploaded again."""
+    return hashlib.sha256(b"\n".join(l for l in dump.splitlines() if not l.startswith((b"--", b"\\restrict", b"\\unrestrict")))).hexdigest()
+
+
+def restore_state(pg_bin, url, fetch, run=subprocess.run, env=os.environ):
+    """Load the backup into an empty database. Returns ("restored", digest), ("none", None) or ("failed", None).
+
+    fetch() returns the SQL bytes, or None when no backup exists yet. The restore runs in one transaction,
+    so a failure leaves the database empty rather than half-restored."""
+    try:
+        sql = fetch()
+    except Exception as error:
+        print(f"State restore failed: {type(error).__name__}.", flush=True)
+        return "failed", None
+    if sql is None:
+        print("No state backup yet; starting empty.", flush=True)
+        return "none", None
+    result = run([str(pg_bin / "psql"), "-q", "--single-transaction", "-v", "ON_ERROR_STOP=1", "-d", url], input=sql, capture_output=True)
+    if result.returncode != 0:
+        print(f"State restore failed (exit {result.returncode}).", flush=True)
+        return "failed", None
+    if "sessions" in state_excluded_tables(env):
+        # Older backups included sessions; drop them so a revoked session cannot return.
+        run([str(pg_bin / "psql"), "-q", "-d", url, "-c", "DELETE FROM sessions"], capture_output=True)
+    print("Restored accounts and saved data from backup.", flush=True)
+    # Start from the restored state so the first backup loop does not re-upload (or overwrite) it unchanged.
+    return "restored", state_digest(sql)
+
+
+RESTORE_FAILED_MARKER = ".restore-failed"
+
+
+def backups_allowed(status, env=os.environ, marker=None):
+    """After a failed restore the dataset still holds the last good backup; never overwrite it with an empty database.
+
+    The pause is persisted as `marker` (a file next to the database) so it survives a process restart: on restart the
+    database already exists, no restore is attempted (status "existing"), and without the marker the empty database
+    would be backed up over the good copy. STATE_BACKUP_ALLOW_FRESH=1 lifts the pause and clears the marker."""
+    if status == "failed" and marker is not None:
+        try:
+            marker.write_text("State restore failed; backups paused until STATE_BACKUP_ALLOW_FRESH=1.\n")
+        except OSError as error:
+            print(f"Could not record the paused backup state: {type(error).__name__}.", flush=True)
+    paused = status == "failed" or (marker is not None and marker.exists())
+    if not paused:
+        return True
+    if env.get("STATE_BACKUP_ALLOW_FRESH", "").lower() in OFF:
+        return False
+    if marker is not None:
+        marker.unlink(missing_ok=True)
+    return True
+
+
+def start_state_backup(pg_bin, url, restore, marker=None):
     """Restore the local database from a private dataset at startup, then back it up when it changes."""
     token = os.environ.get("HF_TOKEN")
     if not token or os.environ.get("STATE_BACKUP", "on").lower() in {"off", "false", "0", "no"}:
@@ -79,27 +151,25 @@ def start_state_backup(pg_bin, url, restore):
         print(f"State backup unavailable: {type(error).__name__}", flush=True)
         return False
 
-    if restore:
+    def fetch():
         try:
             path = hf_hub_download(repo_id, STATE_FILE, repo_type="dataset", token=token, force_download=True)
-            sql = gzip.decompress(Path(path).read_bytes())
-            result = subprocess.run([str(pg_bin / "psql"), "-q", "-v", "ON_ERROR_STOP=1", "-d", url], input=sql, capture_output=True)
-            print("Restored accounts and saved data from backup." if result.returncode == 0
-                  else f"State restore failed (exit {result.returncode}); starting empty.", flush=True)
         except EntryNotFoundError:
-            print("No state backup yet; starting empty.", flush=True)
-        except Exception as error:
-            print(f"State restore failed: {type(error).__name__}; starting empty.", flush=True)
+            return None
+        return gzip.decompress(Path(path).read_bytes())
 
-    last = {"digest": None}
+    status, digest = restore_state(pg_bin, url, fetch) if restore else ("existing", None)
+    if status == "restored" and marker is not None:
+        marker.unlink(missing_ok=True)
+    if not backups_allowed(status, marker=marker):
+        print("State backups paused so the last good backup is not overwritten. Fix the restore, or set "
+              "STATE_BACKUP_ALLOW_FRESH=1 to start a fresh database and replace the backup.", flush=True)
+        return False
+    last = {"digest": digest}
 
     def backup():
-        args = [str(pg_bin / "pg_dump"), "--no-owner", "--no-privileges", "-d", url]
-        for table in STATE_EXCLUDED_DATA:
-            args += ["--exclude-table-data", table]
-        dump = subprocess.run(args, capture_output=True, check=True).stdout
-        # Hash without comments and the per-dump random restrict keys, so an unchanged database is not uploaded again.
-        digest = hashlib.sha256(b"\n".join(l for l in dump.splitlines() if not l.startswith((b"--", b"\\restrict", b"\\unrestrict")))).hexdigest()
+        dump = subprocess.run(state_dump_args(pg_bin, url), capture_output=True, check=True).stdout
+        digest = state_digest(dump)
         if digest == last["digest"]:
             return False
         api.upload_file(path_or_fileobj=gzip.compress(dump), path_in_repo=STATE_FILE, repo_id=repo_id,
@@ -171,8 +241,8 @@ def start_services():
         else:
             raise RuntimeError("PostgreSQL did not become ready")
         env["DATABASE_URL"] = "postgresql://skanda@127.0.0.1/skanda"
-        # Accounts, sessions, templates and saved studies survive restarts through a private backup.
-        if start_state_backup(pg_bin, env["DATABASE_URL"], restore=created):
+        # Accounts, templates and saved studies survive restarts through a private backup (sessions only if opted in).
+        if start_state_backup(pg_bin, env["DATABASE_URL"], restore=created, marker=pg_dir / RESTORE_FAILED_MARKER):
             print("Using local PostgreSQL with a private Hugging Face backup.", flush=True)
         else:
             print("Using ephemeral PostgreSQL: server-saved data is lost on Space restart.", flush=True)
@@ -283,7 +353,9 @@ def sync_training_once(api, repo_id):
 def start_training_sync():
     """Durable copy of captured data: the Space database may be temporary, the private dataset is not."""
     token = os.environ.get("HF_TOKEN")
-    if not token or os.environ.get("TRAINING_CAPTURE", "on").lower() in {"off", "false", "0", "no"}:
+    # Mirrors the API: capture is opt-in and needs a private pseudonym key.
+    if (not token or os.environ.get("TRAINING_CAPTURE", "off").lower() not in {"on", "true", "1", "yes"}
+            or not os.environ.get("TRAINING_PSEUDONYM_SECRET", "").strip()):
         print("Training data sync disabled.", flush=True)
         return
     from huggingface_hub import HfApi
@@ -333,10 +405,50 @@ reader = Skanda(model_path)
 app = gr.routes.App()
 
 
+# A trusted VoxelRad deployment (voxelradai.com on Vercel) may call inference with this shared secret
+# instead of a Space session. Unset means the bridge is off. Bridged reads use the owner's quota.
+BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET", "")
+if BRIDGE_SECRET and len(BRIDGE_SECRET) < 32:
+    print("BRIDGE_SECRET is shorter than 32 characters; bridge disabled.", flush=True)
+    BRIDGE_SECRET = ""
+
+
+# Authenticates this Space's own owner-quota submissions when they come back in through HF's public gateway.
+# Random per process: unlike BRIDGE_SECRET it is useless anywhere else, so it may travel upstream.
+GATEWAY_NONCE = secrets.token_urlsafe(32)
+
+
+def owner_gateway_base(env=os.environ):
+    """Public queue URL of THIS Space (SPACE_HOST, set by HF), or OWNER_GATEWAY_HOST when given. The owner HF_TOKEN
+    goes there, so only an *.hf.space host is accepted; anything else disables the owner-quota path (None)."""
+    host = (env.get("OWNER_GATEWAY_HOST") or env.get("SPACE_HOST") or "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,94}[a-z0-9])?\.hf\.space", host):
+        return None
+    return f"https://{host}/gradio_api/call/read"
+
+
+def bridge_caller(request):
+    """The bridge identity when the request carries the shared secret, else None. Constant-time compare."""
+    supplied = request.headers.get("x-voxelrad-bridge", "")
+    if not BRIDGE_SECRET or not supplied or not hmac.compare_digest(supplied.encode(), BRIDGE_SECRET.encode()):
+        return None
+    # Pseudonym from the calling site, for logs only; it never grants anything.
+    pseudonym = request.headers.get("x-voxelrad-user", "")
+    return {"role": "bridge", "email": "", "bridge": True,
+            "pseudonym": pseudonym if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", pseudonym) else "unknown"}
+
+
 @app.middleware("http")
 async def authenticate_inference(request: Request, call_next):
     path = request.url.path
     if path.startswith("/lmstudio/") or (path.startswith("/gradio_api/") and path != "/gradio_api/startup-events"):
+        bridged = bridge_caller(request)
+        gateway = request.headers.get("x-voxelrad-gateway", "")
+        if not bridged and path.startswith("/gradio_api/") and gateway and hmac.compare_digest(gateway.encode(), GATEWAY_NONCE.encode()):
+            bridged = {"role": "bridge", "email": "", "bridge": True, "pseudonym": "gateway"}
+        if bridged:
+            request.state.user = bridged
+            return await call_next(request)
         async with httpx.AsyncClient() as client:
             result = await client.get("http://127.0.0.1:8080/api/session",
                                       headers={"cookie": request.headers.get("cookie", "")})
@@ -395,15 +507,22 @@ async def completion(request: Request):
     user = request.state.user
     owner_email = os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
     owner_token = os.environ.get("HF_TOKEN", "")
-    owner_quota = bool(owner_email and owner_token and user.get("role") == "admin"
-                       and user.get("email", "").lower() == owner_email)
+    bridged = bool(user.get("bridge"))
+    gateway_base = owner_gateway_base()
+    owner_quota = bool(owner_token and gateway_base and (bridged or (owner_email and user.get("role") == "admin"
+                                                                     and user.get("email", "").lower() == owner_email)))
+    # The read and its result stream pass this middleware again. A bridged caller has no session cookie, so they carry
+    # the per-process gateway nonce instead; the long-lived BRIDGE_SECRET is never sent anywhere, least of all upstream.
+    bridge_header = {"X-VoxelRad-Gateway": GATEWAY_NONCE} if bridged else {}
+    caller = f"bridge ({user['pseudonym']})" if bridged else "space session"
+    print(f"Skanda read requested by {caller}, {'owner' if owner_quota else 'visitor'} quota", flush=True)
     if owner_quota:
         # Go through HF's public gateway so it signs the PRO token's quota
         # identity. Passing Authorization only to localhost cannot do that.
         # Never forward the anonymous visitor token, Host, or Origin here.
-        base = "https://hitheshkaranth-voxelrad.hf.space/gradio_api/call/read"
+        base = gateway_base
         headers = {"Authorization": "Bearer " + owner_token,
-                   "Cookie": request.headers.get("cookie", "")}
+                   "Cookie": request.headers.get("cookie", ""), **bridge_header}
     async with httpx.AsyncClient(timeout=600) as client:
         queued = await client.post(base, headers=headers, json={"data": [payload]})
         if not queued.is_success:
@@ -416,7 +535,7 @@ async def completion(request: Request):
         try:
             async with asyncio.timeout(READ_TIMEOUT_SECONDS):
                 async with httpx.AsyncClient(timeout=600) as client:
-                    async with client.stream("GET", f"http://127.0.0.1:{APP_PORT}/gradio_api/call/read/{event_id}", headers={"cookie": request.headers.get("cookie", ""), "host": request.headers.get("host", "localhost")}) as events:
+                    async with client.stream("GET", f"http://127.0.0.1:{APP_PORT}/gradio_api/call/read/{event_id}", headers={"cookie": request.headers.get("cookie", ""), "host": request.headers.get("host", "localhost"), **bridge_header}) as events:
                         events.raise_for_status()
                         event = ""
                         async for line in events.aiter_lines():

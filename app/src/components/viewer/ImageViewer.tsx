@@ -3,8 +3,8 @@ import { ThinkingOrb } from 'thinking-orbs'
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, Flame, Layers, Maximize, RotateCcw, Ruler, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
+import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, FileInput, Flame, FlipHorizontal2, FlipVertical2, Layers, Maximize, RotateCcw, RotateCw, Ruler, Search, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Finding, Heatmap, ImageMeasurement, MeasurePoint, OverlayStyle, ViewerState } from '../../types'
 import { uid, useActiveImage, useActiveStudy, useApp } from '../../store'
 import { MAX_MEASUREMENTS, clampPoint, measurementText, pointsFor, spacingNote } from '../../lib/measure'
@@ -15,6 +15,8 @@ import { pinchTransform, touchGeometry, type PinchAnchor, type TouchPoint } from
 import { maskAlphaUrl } from '../../lib/maskOverlay'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
+import { DEFAULT_ORIENTATION, imageToScreen, isDefaultOrientation, orientationTransform, orientedSize, rotateBy, screenToImage, seriesSiblings, wheelSteps, type ImageOrientation } from '../../lib/viewerInput'
+import { insertIntoReport, insertResultLabel } from '../../lib/reportInsert'
 import './viewer.css'
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -37,7 +39,7 @@ const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
   { id: 'fill', label: 'Fill', hint: 'Filled outline (opacity below)' },
 ]
 /** Clicks on these never start a pan or window-level drag. */
-const UI = '.vw-toolbox, .vw-measure-panel, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
+const UI = '.vw-loupe, .vw-toolbox, .vw-measure-panel, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || !!t.closest('[role="dialog"], input, textarea, select, [contenteditable="true"]'))
@@ -66,6 +68,14 @@ export function ImageViewer() {
   const [draft, setDraft] = useState<MeasurePoint[]>([])
   const [cursor, setCursor] = useState<MeasurePoint | null>(null)
   const press = useRef<null | { pointerId: number; x: number; y: number; point: MeasurePoint }>(null)
+  // Flip/rotate is display only and follows the series, so stepping through a series keeps it.
+  const seriesKey = image ? image.sourceSeriesUid ?? image.id : ''
+  const [orient, setOrient] = useState<{ key: string; o: ImageOrientation }>({ key: '', o: DEFAULT_ORIENTATION })
+  const orientation = orient.key === seriesKey ? orient.o : DEFAULT_ORIENTATION
+  const setOrientation = (next: ImageOrientation) => setOrient({ key: seriesKey, o: next })
+  const [loupe, setLoupe] = useState(false)
+  const [loupeAt, setLoupeAt] = useState<null | { x: number; y: number; point: MeasurePoint }>(null)
+  const wheelRemainder = useRef(0)
 
   const cancelGesture = useCallback(() => {
     const ids = [...touches.current.keys()]
@@ -108,7 +118,8 @@ export function ImageViewer() {
   }, [cancelGesture])
 
   // Reserve the top context/tool docks and bottom navigation at fit, so controls do not cover source pixels.
-  const fit = image && stage.w ? Math.min(Math.max(1, stage.w - 32) / image.width, Math.max(1, stage.h - 224) / image.height) : 1
+  const oriented = image ? orientedSize(orientation, image.width, image.height) : { w: 1, h: 1 }
+  const fit = image && stage.w ? Math.min(Math.max(1, stage.w - 32) / oriented.w, Math.max(1, stage.h - 224) / oriented.h) : 1
   const scale = fit * viewer.zoom
   const dispW = image ? image.width * scale : 0
   const dispH = image ? image.height * scale : 0
@@ -125,6 +136,19 @@ export function ImageViewer() {
   )
 
   const onWheel = (e: ReactWheelEvent) => {
+    // Several images of one series: the wheel steps through them like volume slices; Ctrl/⌘ (and pinch) zooms.
+    const siblings = study && image && !e.ctrlKey && !e.metaKey ? seriesSiblings(study.images, image.id) : []
+    if (siblings.length > 1) {
+      const { steps, remainder } = wheelSteps(wheelRemainder.current, e.deltaY, e.deltaMode)
+      wheelRemainder.current = remainder
+      const next = siblings[clamp(siblings.indexOf(image!.id) + steps, 0, siblings.length - 1)]
+      if (steps && next !== image!.id) {
+        const v = useApp.getState().viewer
+        selectImage(next)
+        setViewer({ zoom: v.zoom, panX: v.panX, panY: v.panY, brightness: v.brightness, contrast: v.contrast, invert: v.invert })
+      }
+      return
+    }
     const rect = stageRef.current!.getBoundingClientRect()
     const px = e.clientX - rect.left - rect.width / 2
     const py = e.clientY - rect.top - rect.height / 2
@@ -145,9 +169,20 @@ export function ImageViewer() {
     const rect = e.currentTarget.getBoundingClientRect()
     return { x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 }
   }
-  const imagePoint = (clientX: number, clientY: number): MeasurePoint | null => {
+  /** Client point to normalised image coordinates, undoing flip/rotation; may fall outside 0..1. */
+  const rawImagePoint = (clientX: number, clientY: number): MeasurePoint | null => {
     const rect = canvasRef.current?.getBoundingClientRect()
-    return rect && rect.width && rect.height ? clampPoint((clientX - rect.left) / rect.width, (clientY - rect.top) / rect.height) : null
+    if (!rect || !rect.width || !rect.height || !dispW || !dispH) return null
+    return screenToImage(orientation, clientX - rect.left - rect.width / 2, clientY - rect.top - rect.height / 2, dispW, dispH)
+  }
+  const imagePoint = (clientX: number, clientY: number): MeasurePoint | null => {
+    const point = rawImagePoint(clientX, clientY)
+    return point && clampPoint(point.x, point.y)
+  }
+  const moveLoupe = (e: ReactPointerEvent) => {
+    if (!loupe || e.pointerType === 'touch') return
+    const point = rawImagePoint(e.clientX, e.clientY), rect = stageRef.current?.getBoundingClientRect()
+    setLoupeAt(point && rect && point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1 ? { x: e.clientX - rect.left, y: e.clientY - rect.top, point } : null)
   }
   const saveMeasurement = (points: MeasurePoint[]) => {
     if (!study || !image || !measureTool) return
@@ -196,6 +231,7 @@ export function ImageViewer() {
     drag.current = { pointerId: e.pointerId, mode: wl ? 'wl' : 'pan', x: e.clientX, y: e.clientY, v: useApp.getState().viewer }
   }
   const onPointerMove = (e: ReactPointerEvent) => {
+    moveLoupe(e)
     if (measureTool && (press.current?.pointerId === e.pointerId || (!press.current && e.pointerType !== 'touch' && draft.length))) {
       const point = imagePoint(e.clientX, e.clientY)
       if (point) setCursor(point)
@@ -287,6 +323,7 @@ export function ImageViewer() {
           break
         case 'r':
           resetViewer()
+          setOrient({ key: '', o: DEFAULT_ORIENTATION })
           break
         case 'l':
         case 'g': {
@@ -334,18 +371,13 @@ export function ImageViewer() {
       return
     }
     if (!f.bbox || !(f.bbox.w > 0) || !(f.bbox.h > 0)) return
-    const z = clamp(
-      Math.min((stage.w * FOCUS_FILL) / (f.bbox.w * image.width * fit), (stage.h * FOCUS_FILL) / (f.bbox.h * image.height * fit)),
-      1,
-      FOCUS_MAX_ZOOM,
-    )
+    const box = orientedSize(orientation, f.bbox.w * image.width * fit, f.bbox.h * image.height * fit)
+    const z = clamp(Math.min((stage.w * FOCUS_FILL) / box.w, (stage.h * FOCUS_FILL) / box.h), 1, FOCUS_MAX_ZOOM)
     focused.current = true
     animate()
-    setViewer({
-      zoom: z,
-      panX: -(f.bbox.x + f.bbox.w / 2 - 0.5) * image.width * fit * z,
-      panY: -(f.bbox.y + f.bbox.h / 2 - 0.5) * image.height * fit * z,
-    })
+    // The box centre on screen, after any flip/rotation, at zoom 1.
+    const centre = imageToScreen(orientation, f.bbox.x + f.bbox.w / 2, f.bbox.y + f.bbox.h / 2, image.width * fit, image.height * fit)
+    setViewer({ zoom: z, panX: -centre.x * z, panY: -centre.y * z })
     // Only a change of selection should move the view, not every resize or analysis update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
@@ -383,8 +415,8 @@ export function ImageViewer() {
   const toggleHidden = (id: string) =>
     setViewer({ hiddenFindings: hidden.has(id) ? viewer.hiddenFindings.filter((x) => x !== id) : [...viewer.hiddenFindings, id] })
   const dragCompare = (e: ReactPointerEvent) => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (rect && rect.width) setViewer({ comparePos: clamp((e.clientX - rect.left) / rect.width, 0, 1) })
+    const point = rawImagePoint(e.clientX, e.clientY)
+    if (point) setViewer({ comparePos: clamp(point.x, 0, 1) })
   }
 
   return (
@@ -397,7 +429,7 @@ export function ImageViewer() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={cancelGesture}
-      onPointerLeave={(e) => { if (e.pointerType !== 'touch' && !press.current) setCursor(null) }}
+      onPointerLeave={(e) => { setLoupeAt(null); if (e.pointerType !== 'touch' && !press.current) setCursor(null) }}
       onLostPointerCapture={(e) => {
         // Normal pointerup already removes the pointer. An unexpected capture
         // loss ends the entire gesture, including any remaining touch contact.
@@ -418,11 +450,14 @@ export function ImageViewer() {
       <div
         ref={canvasRef}
         className={`vw-canvas${animating ? ' vw-anim' : ''}`}
+        data-oriented={!isDefaultOrientation(orientation) || undefined}
         style={{
           width: dispW,
           height: dispH,
-          transform: `translate(calc(-50% + ${viewer.panX}px), calc(-50% + ${viewer.panY}px))`,
-        }}
+          transform: `translate(calc(-50% + ${viewer.panX}px), calc(-50% + ${viewer.panY}px)) ${orientationTransform(orientation)}`,
+          // Inverse of the display orientation, so labels drawn on the film stay upright and unmirrored.
+          '--vw-unorient': `scale(${orientation.flipH ? -1 : 1}, ${orientation.flipV ? -1 : 1}) rotate(${-orientation.rotate}deg)`,
+        } as CSSProperties}
       >
         <img
           className="vw-src"
@@ -530,6 +565,9 @@ export function ImageViewer() {
           {' · Esc to stop · Shift-drag to pan'}
         </div>
       )}
+
+      {loupe && loupeAt && <Loupe src={image.dataUrl} at={loupeAt} width={dispW} height={dispH} orientation={orientation} filter={`brightness(${viewer.brightness}%) contrast(${viewer.contrast}%)${viewer.invert ? ' invert(1)' : ''}`} />}
+      {!isDefaultOrientation(orientation) && <div className="vw-orientation-tag" role="status">Display {[orientation.rotate ? `rotated ${orientation.rotate}°` : '', orientation.flipH ? 'flipped horizontally' : '', orientation.flipV ? 'flipped vertically' : ''].filter(Boolean).join(', ')}</div>}
 
       <div className="vw-info" style={{ top: 'var(--sp-3)', left: 'var(--sp-3)' }}>
         <span className="vw-name">{p.name || 'Unnamed patient'}</span>
@@ -681,8 +719,36 @@ export function ImageViewer() {
         >
           <Ruler strokeWidth={1.75} />
         </ScanButton>
+        <ScanButton className="vw-tool" aria-label="Magnifier loupe" title="Magnifier loupe: hover to magnify" aria-pressed={loupe} onClick={() => { setLoupe(!loupe); setLoupeAt(null) }}>
+          <Search strokeWidth={1.75} />
+        </ScanButton>
         <span className="vw-sep" />
-        <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view (R)" onClick={resetViewer}>
+        {/* Flip and rotate are occasional: one toolbar slot, the choices in the shared scan popover.
+            Lucide's FlipVertical2 glyph is the mirror about a vertical axis (a left-right flip), so it marks "horizontally". */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ScanButton className="vw-tool" aria-label="Orientation: flip and rotate" title="Flip and rotate (display only)" aria-pressed={!isDefaultOrientation(orientation)}>
+              <FlipVertical2 strokeWidth={1.75} />
+            </ScanButton>
+          </PopoverTrigger>
+          <PopoverContent align="center" className="scan-popover vw-orientation-popover" aria-label="Orientation">
+            <ScanButton className="btn btn-sm" aria-pressed={orientation.flipH} onClick={() => setOrientation({ ...orientation, flipH: !orientation.flipH })}>
+              <FlipVertical2 size={16} aria-hidden="true" /><span>Flip horizontally</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" aria-pressed={orientation.flipV} onClick={() => setOrientation({ ...orientation, flipV: !orientation.flipV })}>
+              <FlipHorizontal2 size={16} aria-hidden="true" /><span>Flip vertically</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" onClick={() => { setOrientation(rotateBy(orientation, 90)); setViewer({ panX: 0, panY: 0 }) }}>
+              <RotateCw size={16} aria-hidden="true" /><span>Rotate 90° clockwise</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" disabled={isDefaultOrientation(orientation)} onClick={() => { setOrientation(DEFAULT_ORIENTATION); setViewer({ panX: 0, panY: 0 }) }}>
+              <RotateCcw size={16} aria-hidden="true" /><span>Original orientation</span>
+            </ScanButton>
+            <small>Display only. The source image is unchanged.</small>
+          </PopoverContent>
+        </Popover>
+        <span className="vw-sep" />
+        <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view, flip and rotation (R)" onClick={() => { resetViewer(); setOrientation(DEFAULT_ORIENTATION) }}>
           <RotateCcw strokeWidth={1.75} />
         </ScanButton>
       </div>
@@ -690,6 +756,7 @@ export function ImageViewer() {
       {measureOpen && (
         <MeasurePanel
           image={image}
+          imageLabel={`image ${study.images.findIndex((item) => item.id === image.id) + 1}`}
           tool={measureTool}
           onTool={setMeasureTool}
           shown={showMeasurements}
@@ -905,8 +972,9 @@ function MeasureLayer({ image, width, height, measurements, draft, draftKind }: 
   )
 }
 
-function MeasurePanel({ image, tool, onTool, shown, onShown, onChange, onClose }: {
+function MeasurePanel({ image, imageLabel, tool, onTool, shown, onShown, onChange, onClose }: {
   image: MeasureImage
+  imageLabel: string
   tool: ImageMeasurement['kind'] | null
   onTool: (tool: ImageMeasurement['kind'] | null) => void
   shown: boolean
@@ -915,6 +983,9 @@ function MeasurePanel({ image, tool, onTool, shown, onShown, onChange, onClose }
   onClose: () => void
 }) {
   const list = image.measurements ?? []
+  const [status, setStatus] = useState('')
+  const insert = async (text: string) => setStatus(insertResultLabel(await insertIntoReport(text)))
+  const reportText = (m: ImageMeasurement) => `${m.kind === 'angle' ? 'Angle ' : ''}${measurementText(image, m)} (${imageLabel})`
   return (
     <div className="vw-layers-panel vw-measure-panel" role="dialog" aria-label="Measurements" onPointerDown={(e) => e.stopPropagation()}>
       <div className="vw-lp-row">
@@ -932,6 +1003,9 @@ function MeasurePanel({ image, tool, onTool, shown, onShown, onChange, onClose }
             <li key={m.id} className="vw-lp-item">
               <span className="vw-lp-n">{i + 1}</span>
               <span className="vw-lp-t">{m.kind === 'length' ? 'Length' : 'Angle'} <strong>{measurementText(image, m)}</strong></span>
+              <ScanButton className="vw-measure-delete" aria-label={`Insert measurement ${i + 1} into report`} title="Insert into report" onClick={() => void insert(reportText(m))}>
+                <FileInput size={14} aria-hidden="true" />
+              </ScanButton>
               <ScanButton className="vw-measure-delete" aria-label={`Delete measurement ${i + 1}`} title="Delete" onClick={() => onChange(list.filter((x) => x.id !== m.id))}>
                 <Trash2 size={14} aria-hidden="true" />
               </ScanButton>
@@ -939,11 +1013,26 @@ function MeasurePanel({ image, tool, onTool, shown, onShown, onChange, onClose }
           ))}
         </ol>
       ) : <p className="vw-lp-note">No measurements on this image yet.</p>}
+      {status && <p className="vw-lp-note" role="status">{status}</p>}
       <div className="vw-lp-row vw-measure-actions">
         <label className="vw-measure-show"><input type="checkbox" checked={shown} onChange={(e) => onShown(e.target.checked)} /> Show on image</label>
+        <ScanButton className="btn btn-sm" disabled={!list.length} onClick={() => void insert(list.map(reportText).join('; '))}>Insert all</ScanButton>
         <ScanButton className="btn btn-sm" disabled={!list.length} onClick={() => onChange([])}>Clear all</ScanButton>
         <ScanButton className="btn btn-sm" onClick={onClose}>Done</ScanButton>
       </div>
+    </div>
+  )
+}
+
+const LOUPE_SIZE = 168
+const LOUPE_ZOOM = 2.5
+
+/** Magnified copy of the displayed film around the pointer, with the same flip/rotation and display filter. */
+function Loupe({ src, at, width, height, orientation, filter }: { src: string; at: { x: number; y: number; point: MeasurePoint }; width: number; height: number; orientation: ImageOrientation; filter: string }) {
+  const w = width * LOUPE_ZOOM, h = height * LOUPE_ZOOM, px = at.point.x * w, py = at.point.y * h
+  return (
+    <div className="vw-loupe" aria-hidden="true" style={{ left: at.x - LOUPE_SIZE / 2, top: at.y - LOUPE_SIZE / 2, width: LOUPE_SIZE, height: LOUPE_SIZE }}>
+      <img src={src} alt="" draggable={false} style={{ width: w, height: h, left: LOUPE_SIZE / 2 - px, top: LOUPE_SIZE / 2 - py, transformOrigin: `${px}px ${py}px`, transform: orientationTransform(orientation), filter }} />
     </div>
   )
 }

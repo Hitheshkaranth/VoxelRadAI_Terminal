@@ -5,7 +5,7 @@ import { hydrate, useActiveStudy, useApp } from './store'
 import { DEMO_MODE } from './lib/session'
 import { checkNow } from './lib/connection'
 import { runAnalysisForStudy } from './lib/analysis'
-import { extractImagesFromClipboard } from './lib/imageIntake'
+import { extractImagesFromClipboard, readDroppedItems } from './lib/imageIntake'
 import { addFilesToActiveStudy } from './lib/upload'
 import { ClinicalContext } from './components/shell/ClinicalContext'
 import { MobileNavigation, MobileHeader } from './components/shell/MobileNavigation'
@@ -118,8 +118,8 @@ function useGlobalUpload() {
       setDragging(false)
       if (!hasFiles(e)) return
       e.preventDefault()
-      const files = Array.from(e.dataTransfer!.files)
-      routeDroppedFiles(files)
+      // readDroppedItems also walks dropped folders (DICOM series exports).
+      void readDroppedItems(e.dataTransfer!).then(routeDroppedFiles)
     }
     // Capture phase so nested drop targets can't swallow the event and leave the overlay stuck.
     const reset = () => {

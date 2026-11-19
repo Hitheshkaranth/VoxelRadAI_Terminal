@@ -77,6 +77,9 @@ function pngDataUrl(rgb: (i: number) => [number, number, number], width: number,
 
 const unit = (v: number, lo: number, hi: number) => Math.round(255 * Math.min(1, Math.max(0, (v - lo) / (hi - lo || 1))))
 
+/** Body part sent to Skanda. The volume title is often a file or patient name, so it is never sent in its place. */
+export const skandaBodyPart = (source: { bodyPart?: string }) => source.bodyPart?.trim() || 'Unknown'
+
 /** Skanda input for one slice, or null with a reason when Skanda was not trained for it. */
 export function skandaSliceInput(volume: Volume, plane: VolumePlane, index: number,
   source: { modality: string; title: string; bodyPart?: string; sequence?: string; intensityIsHU?: boolean },
@@ -87,7 +90,7 @@ export function skandaSliceInput(volume: Volume, plane: VolumePlane, index: numb
   if (modality === 'ct' && source.intensityIsHU !== true) return { input: null, reason: 'Confirm that the source CT voxels are calibrated Hounsfield units in Acquisition details before using Skanda. Display window settings cannot establish HU calibration.' }
   const { values, width, height, pixelSpacing } = sliceValues(volume, plane, index)
   const limitations: string[] = []
-  const body = source.bodyPart || source.title
+  const body = skandaBodyPart(source)
   if (modality === 'ct') {
     const hu = new Int16Array(width * height)
     for (let i = 0; i < hu.length; i++) hu[i] = Math.max(-32768, Math.min(32767, Math.round(values[i])))

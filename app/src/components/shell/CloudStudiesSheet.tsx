@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useActiveStudy, useApp, persistedStudies } from '../../store'
 import { SERVER_MODE } from '../../lib/session'
 import { validateTransferredStudy } from '../../lib/studyTransfer'
+import { StudyConflictError, saveStudyToServer, withServerRevision } from '../../lib/studySync'
+import { toast } from './toastStore'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
 import './admin.css'
@@ -23,6 +25,8 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('')
   const [attempt, setAttempt] = useState(0)
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null)
+  // Set after a stale-save conflict: the user may explicitly replace the newer server copy.
+  const [conflict, setConflict] = useState<string | null>(null)
   const mounted = useRef(false)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => {
@@ -38,16 +42,21 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
   }, [attempt, offset])
   const refreshSaved = () => { setLoading(true); setMessage(''); setAttempt((value) => value + 1) }
   const showPage = (next: number) => { setLoading(true); setMessage(''); setConfirmRestore(null); setOffset(next) }
-  const save = async () => {
+  const save = async (overwrite = false) => {
     if (!active || busy) return
-    setBusy(true); setMessage('')
+    setBusy(true); setMessage(''); setConflict(null)
     try {
       const payload = JSON.stringify(persistedStudies([active])[0])
       if (new Blob([payload]).size > studyLimitMb * 1024 * 1024) throw new Error(`This study exceeds the ${studyLimitMb} MB server limit. Keep it local or use your approved imaging archive.`)
-      const response = await fetch('/api/studies', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: payload })
-      if (!response.ok) throw new Error(response.status === 401 ? 'Your session expired. Sign in again.' : 'The study could not be saved. Check the server and try again.')
+      await saveStudyToServer(active, { body: payload, overwrite })
       refreshSaved()
-    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'The study could not be saved.') }
+    } catch (reason) {
+      if (reason instanceof StudyConflictError) {
+        toast(reason.message, 'error')
+        if (reason.code === 'stale') setConflict(active.id)
+      }
+      setMessage(reason instanceof Error ? reason.message : 'The study could not be saved.')
+    }
     finally { setBusy(false) }
   }
   const restore = async (entry: SavedStudy) => {
@@ -60,7 +69,8 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
       const response = await fetch(`/api/studies/${encodeURIComponent(entry.id)}`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       if (!response.ok) throw new Error(response.status === 401 ? 'Your session expired. Sign in again.' : 'This study could not be restored. Refresh the list and try again.')
       const data = await response.json()
-      const study = validateTransferredStudy(data.study)
+      // The local copy now matches this server revision; later saves from this copy are checked against it.
+      const study = withServerRevision(validateTransferredStudy(data.study), data.revision)
       if (study.id !== entry.id) throw new Error('The server returned a different study. Nothing was restored.')
       if (!mounted.current) return
       useApp.setState((state) => ({ studies: [study, ...state.studies.filter((item) => item.id !== study.id)] }))
@@ -74,6 +84,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
       {active && <p className="admin-note cloud-current-title">{active.title || 'Untitled study'}</p>}
       <p className="admin-note">Saving sends this study's patient details, scans, findings and report to your configured VoxelRad AI server. It updates an existing server copy of the same study. Other studies and open volumes are not uploaded.</p>
       <ShellButton className="btn btn-primary" disabled={!active || busy || active.images.some((image) => image.status === 'analyzing')} onClick={() => { void save() }}>{busy ? 'Saving...' : 'Save current study'}</ShellButton>
+      {conflict && active?.id === conflict && <p className="admin-note">Overwriting replaces the newer server copy with this browser's copy. Signed report versions on the server are still kept. <ShellButton className="btn btn-destructive" disabled={busy} onClick={() => { void save(true) }}>Overwrite server copy</ShellButton></p>}
       {!active && <p className="admin-note">Select an image study to save.</p>}
       <h3 className="admin-heading">Your server copies</h3>
       <ShellButton className="btn" disabled={loading} onClick={refreshSaved}>Refresh saved studies</ShellButton>

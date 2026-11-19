@@ -1,8 +1,10 @@
 // OWNER: Agent 4 (Report). Pure helpers for exporting the study as plain text / JSON,
 // shared by ReportPanel and PrintReport. No React, no store binding.
 // Imported by scripts/test-report.ts under node strip-types: runtime imports need an explicit .ts extension.
-import type { AnalysisResult, Finding, PatientInfo, ReportDraft, Study } from '../types'
+import type { AnalysisResult, Finding, PatientInfo, ReportAddendum, ReportDraft, ReportVersion, Study } from '../types'
 import { isExcluded, isUnconfirmed } from './classifier.ts'
+import { addendumHeading, correctionNote, currentAddenda } from './reportVersions.ts'
+import { criticalCommLine } from './reportQa.ts'
 
 export const DISCLAIMER =
   'AI-generated decision support; must be verified by a qualified radiologist. Not a diagnosis.'
@@ -35,6 +37,10 @@ export interface ReportExport {
   patientSnapshot: PatientInfo | null
   amendments: { signedAt: string; unlockedAt: string; by: string }[]
   signOverrides: string[]
+  /** Every signed version, oldest first; earlier ones are superseded. */
+  versions: ReportVersion[]
+  addenda: ReportAddendum[]
+  criticalComms: { finding: string; communicatedTo: string; role: string; method: string; at: string; by: string }[]
 }
 
 export interface StudyExport {
@@ -157,6 +163,11 @@ function reportExport(r: ReportDraft, anonymise: boolean): ReportExport {
     patientSnapshot: snapshot,
     amendments: (r.amendments ?? []).map((a) => ({ signedAt: ISO(a.signedAt), unlockedAt: ISO(a.unlockedAt), by: a.by })),
     signOverrides: r.signOverrides ?? [],
+    versions: (r.versions ?? []).map((v) => ({ ...v, ...(v.patientSnapshot && anonymise ? { patientSnapshot: anonymisePatient(v.patientSnapshot) } : {}) })),
+    addenda: r.addenda ?? [],
+    criticalComms: (r.criticalComms ?? []).map((c) => ({
+      finding: c.finding, communicatedTo: anonymise ? '' : c.communicatedTo, role: c.role, method: c.method, at: ISO(c.at), by: anonymise ? '' : c.by,
+    })),
   }
 }
 
@@ -231,6 +242,7 @@ export function reportToPlainText(study: Study, settings: { institution: string 
   out.push('Report date: ' + new Date().toLocaleDateString())
   if (r?.signed && r.signedAt) out.push('Signed: ' + new Date(r.signedAt).toLocaleString())
   if (r?.signed && r.signOverrides?.length) out.push('Signed past unresolved items: ' + r.signOverrides.join(' '))
+  if (correctionNote(r)) out.push(correctionNote(r))
   out.push('')
 
   out.push('Patient:        ' + dash(p.name))
@@ -276,8 +288,22 @@ export function reportToPlainText(study: Study, settings: { institution: string 
     out.push('')
   }
 
+  const comms = r?.criticalComms ?? []
+  if (comms.length) {
+    out.push('Critical result communication')
+    out.push('-----------------------------')
+    for (const c of comms) out.push('- ' + criticalCommLine(c))
+    out.push('')
+  }
+
   out.push('Radiologist:    ' + dash(r?.radiologist))
   if (r) out.push('Status:         ' + (r.signed ? 'Signed report' : 'Unsigned AI-assisted preliminary draft'))
+  // Addenda follow the signed text; the signed sections above are never rewritten.
+  for (const a of currentAddenda(r)) {
+    out.push('')
+    out.push(addendumHeading(a))
+    out.push(a.text)
+  }
   const amendments = r?.amendments ?? []
   if (amendments.length) {
     out.push('')

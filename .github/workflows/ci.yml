@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix app
+      - run: npm ci --prefix server
+      # Server tests use fake pools and local mock upstreams; no Postgres service is needed.
+      - name: Server tests
+        run: npm test --prefix server
+      - name: App tests
+        run: npm test --prefix app
+      - name: App lint
+        run: npm run lint --prefix app
+      - name: App build
+        run: npm run build --prefix app
+
+  space:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # The Space tests load route functions from space_app.py by AST; they need only FastAPI and httpx, no GPU or Gradio.
+      - run: pip install fastapi httpx
+      - name: Space tests
+        working-directory: deploy/huggingface
+        run: python -m unittest test_space -v

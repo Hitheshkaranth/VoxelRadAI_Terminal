@@ -33,7 +33,9 @@ because the existing React application provides the pages.
 Set these Space secrets:
 
 - `HF_TOKEN`: permission to read the private model repository; also authenticates
-  inference quota for the bootstrap administrator only.
+  inference quota for the bootstrap administrator and for bridged reads.
+- `BRIDGE_SECRET` (optional): lets voxelradai.com send reads to this Space. See
+  [Bridge for voxelradai.com](#bridge-for-voxelradaicom-vercel).
 - `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`: initial administrator.
 - `SARVAM_API_KEY` (optional): enables hands-free report dictation. Audio is sent from
   the API to Sarvam AI's speech-to-text service (`saaras:v4`); the key never reaches
@@ -41,11 +43,19 @@ Set these Space secrets:
 - `DATABASE_URL` (recommended): an external PostgreSQL database for durable accounts
   and saved studies. Without it, a loopback PostgreSQL instance is initialized in
   `/tmp` and backed up every five minutes (and at shutdown) to the private dataset
-  `<owner>/VoxelRad-state`, then restored at the next start. Accounts, sign-in
-  sessions, templates and server-saved studies therefore survive restarts; changes
-  made in the last few minutes before an abrupt stop can be lost. Set
-  `STATE_BACKUP=off` to disable the backup. The backup contains account password
-  hashes and any server-saved study data, so keep the dataset private.
+  `<owner>/VoxelRad-state`, then restored at the next start. Accounts, templates and
+  server-saved studies therefore survive restarts; changes made in the last few
+  minutes before an abrupt stop can be lost. Sign-in sessions are not backed up, so a
+  session revoked after the last backup cannot return and users sign in again after a
+  restart; set `STATE_BACKUP_SESSIONS=on` to keep logins across restarts and accept
+  that risk. The restore runs in a single transaction. If it fails (as opposed to no
+  backup existing yet), the Space starts with an empty database and **does not upload
+  backups**, so the last good backup is not overwritten. The pause is recorded in
+  `/tmp/skanda-postgres/.restore-failed`, so it also survives a process restart (when the
+  database already exists and no restore is attempted); fix the cause, or set
+  `STATE_BACKUP_ALLOW_FRESH=1` to start fresh, clear the marker and replace the backup. Set `STATE_BACKUP=off`
+  to disable the backup. The backup contains account password hashes and any
+  server-saved study data, so keep the dataset private.
   Browser-local studies retain their existing browser storage behavior.
 
 ### Connect Neon PostgreSQL
@@ -99,6 +109,39 @@ uses HF's gateway; result streaming stays on loopback. Administrator-only
 `/lmstudio/status` (`status.py --queue`) reports pending/active counts and queue
 worker task names without exposing images, prompts or credentials.
 
+### Bridge for voxelradai.com (Vercel)
+
+The Vercel deployment has no GPU. It can send Skanda V1 reads to this Space through a
+shared secret instead of a Space sign-in:
+
+1. Generate a secret of at least 32 characters, for example `openssl rand -base64 48`.
+2. In the Space settings, add it as the secret `BRIDGE_SECRET` and make sure `HF_TOKEN`
+   belongs to the PRO owner account. Restart the Space.
+3. Configure the Vercel side as described in [vercel.md](vercel.md#hosted-skanda-v1-reads-through-the-space).
+
+Requests to `/lmstudio/*` and `/gradio_api/*` that carry `X-VoxelRad-Bridge: <secret>`
+(compared in constant time) skip the Space session check. With the header absent or
+wrong, nothing changes: callers still need a Space session. Bridged reads always use
+the owner `HF_TOKEN` quota path above. The secret itself is never forwarded: the gateway
+submission and the loopback result stream carry a random per-process token
+(`X-VoxelRad-Gateway`, accepted only on `/gradio_api/*`) instead. The gateway is this Space's
+own public host, taken from `SPACE_HOST` (set by Hugging Face); set `OWNER_GATEWAY_HOST` to
+override it. Only `*.hf.space` hosts are accepted, because the owner `HF_TOKEN` is sent there;
+with no valid host, reads fall back to the visitor quota path. The calling site adds
+`X-VoxelRad-User`, a keyed pseudonym of its account id; the Space only writes it to the
+log (`Skanda read requested by bridge (u-…), owner quota`). It never receives emails,
+names or session cookies from the site. Leaving `BRIDGE_SECRET` unset (or shorter than
+32 characters) turns the bridge off.
+
+Quota caveat: every voxelradai.com user shares the owner's ZeroGPU PRO quota. Each
+read reserves about 90 quota seconds whatever the image, so a few hundred reads can
+use a day's allowance. Whole-volume jobs send one read per sampled slice and are
+expensive; one CT volume can cost as much as dozens of radiograph reads. The site
+caps reads per user per UTC day (`MODEL_DAILY_READS`), but the cap is per user, not
+per site, so watch the quota page on Hugging Face. When the quota runs out, every
+bridged read fails with a quota message until it resets. Rotate the secret on both
+sides if it leaks.
+
 ## Publish
 
 Install `huggingface_hub` and authenticate with `hf auth login`. Build the web
@@ -128,15 +171,30 @@ REST limit is 30 seconds per request) and understands voice commands: "next sect
 
 ## Model-improvement capture
 
-On by default (`TRAINING_CAPTURE=on`). For each analysed image the server keeps a
-de-identified JPEG (pixels only, long side at most 2048 px) with the AI findings; at
+Off by default. It runs only when the operator sets `TRAINING_CAPTURE=on` **and** a private
+`TRAINING_PSEUDONYM_SECRET` (a long random value; without it capture stays off and the server
+logs why), **and** the signed-in user has turned on "Share de-identified cases" under
+Settings → Data & storage. Users can withdraw at any time; that stops future capture, and
+records already kept stay until the retention period ends. Captures for a server study are
+accepted only from its owner, and pseudonyms include the user ID so one account cannot attach
+records to another's.
+
+For each analysed image the server keeps a de-identified JPEG (pixels only, long side at most
+2048 px) with the AI findings. Pixels are kept only for DICOM images whose Burned In Annotation
+(0028,0301) is explicitly NO. Images where it is YES, where the tag is missing (common for
+ultrasound, secondary captures, XA, endoscopy, microscopy and CR/DX screenshots, so a missing tag
+is treated as unknown, not as NO), and PNG/JPEG uploads are captured as text only. Slices of NRRD
+volumes are kept as read; slices of volumes built from a DICOM series only when every slice
+declares NO. At
 sign-off it keeps the radiologist's accept/dismiss decisions and the AI draft beside the
 signed report text. Dictation phrases that fail, return nothing, are undone ("scratch
 that") or are later corrected are kept with their audio and the corrected text.
 
 Patient name, ID, referring physician, contact details and full dates are removed and
 study, image and user IDs are replaced with keyed one-way pseudonyms. Only an age band
-and sex are kept. Burned-in text on images is not removed. Records are deleted from the
+and sex are kept. Free text is also scrubbed of labelled names ("Patient:", "Name:"), MRN-like
+tokens, phone numbers, Aadhaar-like 12-digit numbers and PIN codes after address words. Burned-in
+text is not removed from images that are sent. Records are deleted from the
 database after `TRAINING_RETENTION_DAYS` (default 365).
 
 On the Space, captured records are also copied every five minutes (and at shutdown) to a

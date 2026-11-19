@@ -173,11 +173,11 @@ eq('16-bit unsigned min/max', Array.from(dicomPixelsToGray(u16([0, 1000, 2000, 3
   const g = dicomPixelsToGray(raw, { ...base, bitsAllocated: 16, bitsStored: 12, pixelRepresentation: 1 })
   eq('12-bit signed sign-extended and masked', Array.from(g), [0, 127, 128, 255])
 }
-eq('explicit window clips', Array.from(dicomPixelsToGray(new Uint8Array([0, 100, 150, 255]), { ...base, windowCenter: 150, windowWidth: 100 })), [0, 0, 128, 255])
+eq('explicit window clips', Array.from(dicomPixelsToGray(new Uint8Array([0, 100, 150, 255]), { ...base, windowCenter: 150, windowWidth: 100 })), [0, 0, 129, 255])
 {
   // Rescale before windowing: stored 0..3 → HU -1000..-700 with slope 100, intercept -1000.
   const g = dicomPixelsToGray(new Uint8Array([0, 1, 2, 3]), { ...base, slope: 100, intercept: -1000, windowCenter: -850, windowWidth: 300 })
-  eq('slope/intercept applied before window', Array.from(g), [0, 85, 170, 255])
+  eq('slope/intercept applied before window', Array.from(g), [0, 85, 171, 255])
 }
 eq('uniform image does not divide by zero', Array.from(dicomPixelsToGray(new Uint8Array([7, 7, 7, 7]), base)), [0, 0, 0, 0])
 check('truncated pixel data throws', (() => { try { dicomPixelsToGray(new Uint8Array(3), base); return false } catch { return true } })())

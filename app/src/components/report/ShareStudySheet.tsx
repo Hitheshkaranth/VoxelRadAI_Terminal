@@ -7,6 +7,8 @@ import { shareReportText, studyShareHtml } from '../../lib/studyShare'
 import { SERVER_MODE, useSession } from '../../lib/session'
 import { createHostedShare, listHostedShares, revokeHostedShare, type HostedShare, type CreatedShare } from '../../lib/serverShare'
 import { Sheet } from '../shell/Sheet'
+import { toast } from '../shell/toastStore'
+import { StudyConflictError } from '../../lib/studySync'
 import './shareStudy.css'
 
 export function ShareStudySheet({ study, institution, onClose }: { study: Study; institution: string; onClose: () => void }) {
@@ -53,7 +55,10 @@ export function ShareStudySheet({ study, institution, onClose }: { study: Study;
       const link = await createHostedShare(study, { expiresInHours, includeIdentity, includeImages })
       setCreated(link); setMessage('Link created. Copy it now; it cannot be retrieved after closing this sheet.')
       refreshHistory()
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Link creation failed. Check link history before retrying.') }
+    } catch (error) {
+      if (error instanceof StudyConflictError) toast(error.message, 'error')
+      setMessage(error instanceof Error ? error.message : 'Link creation failed. Check link history before retrying.')
+    }
     finally { inFlight.current = false; setBusy(false) }
   }
   const revoke = async (id: string) => {

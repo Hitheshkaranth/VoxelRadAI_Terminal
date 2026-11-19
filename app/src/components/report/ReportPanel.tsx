@@ -22,7 +22,6 @@ import {
   ShieldCheck,
   Stethoscope,
   Undo2,
-  Unlock,
 } from 'lucide-react'
 import { useActiveStudy, useApp } from '../../store'
 import { SERVER_MODE, useSession } from '../../lib/session'
@@ -43,9 +42,19 @@ import { PrintReport } from './PrintReport'
 import { ShareStudySheet } from './ShareStudySheet'
 import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
+import { offerNextStudy } from '../shell/worklistNav'
 import { DictationBar } from './DictationBar'
+import { undoRegenerate } from '../../lib/reportUndo'
 import { TemplatesSheet } from './TemplatesSheet'
+import { ReportHistory, SignedReportActions } from './ReportIntegrity'
+import { signPatch } from '../../lib/reportVersions'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import { reportQa, uncommunicatedCritical } from '../../lib/reportQa'
+import { GuidelineHelper } from './GuidelineHelper'
+import { CriticalCommsForm } from './CriticalCommsForm'
+import { ExamLibrarySheet, ExamTemplatePicker } from './ExamTemplates'
+import { fieldLabel, mergeTemplateSections, unresolvedFields, type ExamTemplate } from '../../lib/examTemplates'
+import { plainToHtml } from '../../lib/richText'
 import './report.css'
 
 const REPORT_FIELDS: { key: ReportFieldKey; label: string; icon: ReactNode; emphasis?: boolean }[] = [
@@ -167,6 +176,11 @@ function signChecklist(study: Study, report: ReportDraft, stale: boolean): strin
   const empty = REPORT_FIELDS.filter((f) => !report[f.key].trim()).map((f) => f.label)
   if (empty.length) items.push(`Empty section${empty.length === 1 ? '' : 's'}: ${empty.join(', ')}.`)
   if (stale) items.push('The draft is out of date: images, reviews or patient details changed since drafting.')
+  // Text QA: laterality, sex-specific anatomy, impression coverage, lesion size, critical comms, dictation leftovers.
+  items.push(...reportQa(study, report).map((issue) => issue.message))
+  const fields = unresolvedFields(report)
+  if (fields.length)
+    items.push(`${plural(fields.length, 'template field')} not filled in: ${fields.slice(0, 3).map((f) => `[${fieldLabel(f.field)}]`).join(', ')}${fields.length > 3 ? ', …' : ''}.`)
   return items
 }
 
@@ -233,7 +247,6 @@ export function ReportPanel() {
   const openSheet = useApp((s) => s.openSheet)
 
   const [confirmRegen, setConfirmRegen] = useState(false)
-  const [confirmUnlock, setConfirmUnlock] = useState(false)
   const [checklist, setChecklist] = useState<string[] | null>(null)
   const [copied, setCopied] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -263,21 +276,39 @@ export function ReportPanel() {
   const loadTemplates = useTemplates((s) => s.load)
   useEffect(() => { if (!templatesLoaded) void loadTemplates() }, [templatesLoaded, loadTemplates])
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [examPickerOpen, setExamPickerOpen] = useState(false)
+  const [examLibraryOpen, setExamLibraryOpen] = useState(false)
+
+  // Replace overwrites the sections the template fills; insert appends its text and keeps existing formatting.
+  const applyExamTemplate = useCallback((template: ExamTemplate, mode: 'replace' | 'insert') => {
+    if (!study) return
+    const merged = mergeTemplateSections(report ?? {}, template, mode)
+    const patch: Partial<ReportDraft> = { ...merged, edited: true }
+    if (mode === 'insert' && report) {
+      const rich = { ...report.rich }
+      for (const key of Object.keys(merged) as ReportFieldKey[]) {
+        rich[key] = report[key].trim() ? (report.rich?.[key] ?? plainToHtml(report[key])) + plainToHtml(template.sections[key] ?? '') : plainToHtml(merged[key] ?? '')
+      }
+      patch.rich = rich
+    }
+    setReport(study.id, patch)
+    toast(`Applied “${template.name}”. Tab or F2 moves between [fields].`, 'success')
+  }, [study, report, setReport])
+  const examSheets = study ? (
+    <>
+      <ExamTemplatePicker open={examPickerOpen} onClose={() => setExamPickerOpen(false)} study={study} current={report ?? {}}
+        onApply={applyExamTemplate} onManage={() => setExamLibraryOpen(true)} />
+      <ExamLibrarySheet open={examLibraryOpen} onClose={() => setExamLibraryOpen(false)} />
+    </>
+  ) : null
 
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
     setChecklist(null)
-    setReport(study.id, {
-      signed: true,
-      // Record what was signed past so the override stays visible on the signed report.
-      signOverrides: overrides.length ? overrides : undefined,
-      signedAt: Date.now(),
-      radiologist: accountSigner ?? report.radiologist.trim(),
-      // Freeze the patient header: later edits to patient details must not change a signed report.
-      patientSnapshot: { ...study.patient },
-      // Signing accepts the current draft; there is nothing left to undo back to.
-      previous: undefined,
-    })
+    // Before setReport: signing bumps updatedAt and would move this study in the worklist order.
+    offerNextStudy(study.id)
+    // Each sign-off appends an immutable version (text, patient snapshot, overrides) to the report history.
+    setReport(study.id, signPatch(report, { signedAt: Date.now(), signedBy: accountSigner ?? report.radiologist.trim(), patient: study.patient, overrides }))
     // Ground truth for model improvement: reviewer decisions and the AI draft beside the signed text.
     const signedStudy = useApp.getState().studies.find((s) => s.id === study.id)
     if (signedStudy) void captureSignedReport(signedStudy)
@@ -290,13 +321,6 @@ export function ReportPanel() {
     else sign()
   }, [study, report, stale, sign])
 
-  const onUnlock = useCallback(() => {
-    if (!study || !report) return
-    setConfirmUnlock(false)
-    const amendment = { signedAt: report.signedAt ?? 0, unlockedAt: Date.now(), by: accountSigner ?? report.radiologist }
-    setReport(study.id, { signed: false, signedAt: undefined, signOverrides: undefined, amendments: [...(report.amendments ?? []), amendment] })
-  }, [study, report, setReport, accountSigner])
-
   const onRegenerate = useCallback(() => {
     if (!study) return
     setConfirmRegen(false)
@@ -305,8 +329,10 @@ export function ReportPanel() {
   }, [study])
 
   const onUndoRegenerate = useCallback(() => {
-    if (!study || !report?.previous) return
-    setReport(study.id, { ...report.previous, previous: undefined })
+    const restored = study && report ? undoRegenerate(report) : null
+    if (!study || !restored) return
+    // Undo restores draft text only; history recorded since the snapshot (versions, addenda, critical comms) stays.
+    setReport(study.id, restored)
   }, [study, report, setReport])
 
   const plain = useMemo(() => (study ? reportToPlainText(study, settings) : ''), [study, settings])
@@ -339,7 +365,6 @@ export function ReportPanel() {
   if (prevStudy !== studyKey) {
     setPrevStudy(studyKey)
     setConfirmRegen(false)
-    setConfirmUnlock(false)
     setChecklist(null)
     setCopied(false)
     setPreviewOpen(false)
@@ -376,7 +401,9 @@ export function ReportPanel() {
             context into a structured, signable report.
           </div>
           <div className="rp-empty-count">{analyzedCount} of {totalCount} images analyzed</div>
+          <ShellButton type="button" className="btn btn-sm" onClick={() => setExamPickerOpen(true)}>Start from exam template</ShellButton>
         </div>
+        {examSheets}
       </div>
     )
   }
@@ -423,10 +450,11 @@ export function ReportPanel() {
               <ShellButton type="button" className="btn btn-destructive" onClick={cancelReport}>
                 Cancel
               </ShellButton>
-            ) : null}
+            ) : <ShellButton type="button" className="btn" onClick={() => setExamPickerOpen(true)}>Exam template</ShellButton>}
           </div>
         </div>
         <div className="rp-disclaimer">{DISCLAIMER_LINE}</div>
+        {examSheets}
       </div>
     )
   }
@@ -435,7 +463,6 @@ export function ReportPanel() {
   const patient = reportPatient(study)
   const patientChangedSinceSign = signed && !!report.patientSnapshot && !samePatient(report.patientSnapshot, study.patient)
   const updatedLabel = report.updatedAt ? new Date(report.updatedAt).toLocaleString() : ''
-  const amendments = report.amendments ?? []
   const completedSections = REPORT_FIELDS.filter((field) => report[field.key].trim()).length
   const reviewFindings = study.images.flatMap((img) => img.analysis?.findings ?? []).filter((f) => f.severity !== 'normal')
   const reviewedFindings = reviewFindings.filter((f) => !!f.review).length
@@ -478,7 +505,7 @@ export function ReportPanel() {
         </div>
         {patientChangedSinceSign ? (
           <div className="rp-patient-note">
-            Patient details were changed after signing. The signed report keeps the details shown here; unlock to amend.
+            Patient details were changed after signing. The signed report keeps the details shown here; add an addendum or correct the report to change it.
           </div>
         ) : null}
       </section>
@@ -527,31 +554,11 @@ export function ReportPanel() {
               <span className="rp-seal-name">Signed by {report.radiologist || 'radiologist'}</span>
               <span className="rp-seal-date">{report.signedAt ? new Date(report.signedAt).toLocaleString() : '—'}</span>
               {report.signOverrides?.length ? (
-                <span className="rp-seal-date">Signed past: {report.signOverrides.join('; ')}</span>
+                <span className="rp-seal-date">Signed past unresolved items: {report.signOverrides.join(' ')}</span>
               ) : null}
             </div>
-            {!confirmUnlock ? (
-              <ShellButton type="button" className="btn btn-plain btn-sm" onClick={() => setConfirmUnlock(true)}>
-                <Unlock size={14} /> Unlock
-              </ShellButton>
-            ) : null}
           </div>
-          {confirmUnlock ? (
-            <div className="rp-confirm">
-              <span className="rp-confirm-text">
-                Unlock this signed report for amendment? It becomes an editable draft again and the unlock is recorded in
-                the amendment history.
-              </span>
-              <div className="rp-confirm-actions">
-                <ShellButton type="button" className="btn btn-sm" onClick={() => setConfirmUnlock(false)}>
-                  Cancel
-                </ShellButton>
-                <ShellButton type="button" className="btn btn-destructive btn-sm" onClick={onUnlock}>
-                  Unlock
-                </ShellButton>
-              </div>
-            </div>
-          ) : null}
+          <SignedReportActions studyId={study.id} report={report} by={accountSigner ?? report.radiologist} />
         </section>
       ) : null}
 
@@ -575,7 +582,14 @@ export function ReportPanel() {
         </label>
         <ShellButton type="button" className="btn btn-sm" onClick={() => setTemplatesOpen(true)}>Manage</ShellButton>
       </section>
-      <DictationBar disabled={signed} labels={sectionLabels} studyId={study.id} />
+      {!signed ? (
+        <section className="rp-card exam-pick" aria-label="Exam template">
+          <ShellButton type="button" className="btn btn-sm" onClick={() => setExamPickerOpen(true)}>Apply exam template</ShellButton>
+          <ShellButton type="button" className="btn btn-sm btn-plain" onClick={() => setExamLibraryOpen(true)}>Templates &amp; macros</ShellButton>
+          <span className="exam-pick-hint">Type .name + Space for a macro · Tab / F2 next field</span>
+        </section>
+      ) : null}
+      {!signed ? <DictationBar key={study.id} disabled={signed} labels={sectionLabels} studyId={study.id} /> : null}
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)
@@ -608,8 +622,21 @@ export function ReportPanel() {
             placeholder={`Add ${sectionLabels[field.key].toLowerCase()}… or dictate`}
             onChange={onFieldChange(field.key)}
           />
+          {field.key === 'recommendations' && !signed ? (
+            <GuidelineHelper onInsert={(sentence) => setReport(study.id, {
+              recommendations: report.recommendations.trim() ? `${report.recommendations.trimEnd()}\n${sentence}` : sentence, edited: true,
+            })} />
+          ) : null}
         </div>
       ))}
+
+      <CriticalCommsForm
+        comms={report.criticalComms ?? []}
+        pending={uncommunicatedCritical(study, report)}
+        defaultBy={accountSigner ?? report.radiologist}
+        report={{ ...report, signed }}
+        onChange={(criticalComms) => setReport(study.id, { criticalComms })}
+      />
 
       {!signed ? (
         <section className="rp-card rp-signoff">
@@ -665,19 +692,7 @@ export function ReportPanel() {
         </section>
       ) : null}
 
-      {amendments.length ? (
-        <section className="rp-card rp-amend">
-          <div className="rp-sec-head">Amendment history</div>
-          <ul className="rp-amend-list">
-            {amendments.map((a, i) => (
-              <li key={i}>
-                Signed {new Date(a.signedAt).toLocaleString()}, unlocked {new Date(a.unlockedAt).toLocaleString()} by{' '}
-                {a.by || '—'}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ReportHistory report={report} labels={sectionLabels} />
 
       <section className="rp-card rp-export">
         <h2 className="rp-export-title">Export & share</h2>
@@ -735,6 +750,7 @@ export function ReportPanel() {
         <PrintReport study={study} settings={settings} onClose={() => setPreviewOpen(false)} />
       ) : null}
       <TemplatesSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} institution={settings.institution} />
+      {examSheets}
       {shareOpen ? <ShareStudySheet key={study.id} study={study} institution={settings.institution} onClose={() => setShareOpen(false)} /> : null}
     </div>
   )

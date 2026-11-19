@@ -1,5 +1,6 @@
 import type { Study } from '../types.ts'
 import { MAX_MEASUREMENTS, validMeasurement } from './measure.ts'
+import { validReportHistory } from './reportVersions.ts'
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -17,6 +18,7 @@ export function validateTransferredStudy(value: unknown): Study {
     if (image.sourceFrameCount !== undefined && (!Number.isSafeInteger(image.sourceFrameCount) || (image.sourceFrameCount as number) < 1 || (image.sourceFrameCount as number) > 500)) return fail()
     if (image.sourceFrameIndex !== undefined && (!Number.isSafeInteger(image.sourceFrameIndex) || (image.sourceFrameIndex as number) < 0 || image.sourceFrameCount === undefined || (image.sourceFrameIndex as number) >= (image.sourceFrameCount as number))) return fail()
     if (!['sourceSeriesUid', 'sourceSopInstanceUid'].every(key => image[key] === undefined || typeof image[key] === 'string' && (image[key] as string).length <= 64 && /^\d+(?:\.\d+)*$/.test(image[key] as string))) return fail()
+    if (image.burnedInAnnotation !== undefined && typeof image.burnedInAnnotation !== 'boolean') return fail()
     if (!['sourceRows', 'sourceColumns'].every((key) => image[key] === undefined || (Number.isSafeInteger(image[key]) && (image[key] as number) > 0 && (image[key] as number) <= 65535))) return fail()
     if (image.pixelSpacing !== undefined && (!object(image.pixelSpacing) || !['row', 'col'].every((key) => { const v = (image.pixelSpacing as Record<string, unknown>)[key]; return finite(v) && (v as number) > 0 && (v as number) <= 10 }) || !['pixel', 'imager'].includes(image.pixelSpacing.source as string))) return fail()
     if (image.measurements !== undefined && (!Array.isArray(image.measurements) || image.measurements.length > MAX_MEASUREMENTS || !image.measurements.every(validMeasurement))) return fail()
@@ -48,7 +50,9 @@ export function validateTransferredStudy(value: unknown): Study {
     if (report.previous !== undefined && !reportValid(report.previous)) return fail()
     if (report.signOverrides !== undefined && !strings(report.signOverrides)) return fail()
     if (report.amendments !== undefined && (!Array.isArray(report.amendments) || !report.amendments.every((item) => object(item) && finite(item.signedAt) && finite(item.unlockedAt) && typeof item.by === 'string'))) return fail()
+    if (report.criticalComms !== undefined && (!Array.isArray(report.criticalComms) || !report.criticalComms.every((item) => object(item) && hasStrings(item, ['id', 'finding', 'communicatedTo', 'role', 'method', 'by']) && finite(item.at)))) return fail()
     if (report.patientSnapshot !== undefined && (!object(report.patientSnapshot) || !hasStrings(report.patientSnapshot, ['name', 'patientId', 'age', 'sex', 'studyDate', 'referringPhysician', 'indication', 'clinicalHistory']))) return fail()
+    if (!validReportHistory(report)) return fail()
   }
   const study = structuredClone(value) as unknown as Study
   study.images = study.images.map((image) => image.status === 'analyzing' ? { ...image, status: 'idle', stage: undefined, progressText: undefined, analysisStartedAt: undefined } : image)

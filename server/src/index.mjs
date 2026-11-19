@@ -4,7 +4,7 @@ import pg from 'pg'
 import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword, needsRehash } from './security.mjs'
 import { sharedDocument } from './share.mjs'
 import { migrate } from './migrate.mjs'
-import { validStudy } from './studyValidation.mjs'
+import { expectedRevision, validStudy, writeStudy } from './studyValidation.mjs'
 import { pagination } from './pagination.mjs'
 import { createOperations } from './operations.mjs'
 import { createOidcRoutes } from './oidc.mjs'
@@ -13,8 +13,10 @@ import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
+import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
-import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback } from './trainingCapture.mjs'
+import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback, warnIfUnkeyed } from './trainingCapture.mjs'
+import { createModelProxy } from './modelProxy.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -113,6 +115,9 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
+warnIfUnkeyed()
+const examLibrary = createExamLibrary({ pool, body, send })
+const modelProxy = createModelProxy({ pool, body, send })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
   await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
@@ -219,6 +224,7 @@ export async function handler(req, res) {
       return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, 0) })
     }
     if (!user) return send(res, 401, { error: 'Sign in to continue.' })
+    if (await modelProxy.handle(req, res, path, user)) return
     if (await objectStorage.handle({ req, res, path, user })) return
     if (await pacs.handle(req, res, user, { audit })) return
     if (path === '/api/account/password' && req.method === 'POST') {
@@ -250,10 +256,24 @@ export async function handler(req, res) {
       if (!result.transcript) await keep('empty')
       return send(res, 200, result)
     }
-    if (path === '/api/training/status' && req.method === 'GET') return send(res, 200, { enabled: training.enabled() })
+    // Capture needs the operator switch and this user's own consent; status reports both separately.
+    if (path === '/api/training/status' && req.method === 'GET') return send(res, 200, { enabled: await training.enabledFor(user.id), serverEnabled: training.enabled() })
+    if (path === '/api/training/consent' && req.method === 'GET') return send(res, 200, { ...await training.consent(user.id), serverEnabled: training.enabled() })
+    if (path === '/api/training/consent' && req.method === 'PUT') {
+      const data = await body(req, 1024)
+      if (typeof data.consent !== 'boolean') return send(res, 400, { error: 'Send consent as true or false.' })
+      const result = await training.setConsent(user.id, data.consent)
+      await audit(user.id, data.consent ? 'training.consent_given' : 'training.consent_withdrawn')
+      return send(res, 200, { ...result, serverEnabled: training.enabled() })
+    }
     if (path === '/api/training/cases' && req.method === 'POST') {
       if (await rateLimit(`training:${user.id}`, 2000)) return send(res, 429, { error: 'Too many capture requests.' })
-      const saved = await training.saveCase(parseCase(await body(req, TRAINING_BODY_LIMIT)))
+      const data = await body(req, TRAINING_BODY_LIMIT)
+      if (!await training.enabledFor(user.id)) return send(res, 200, { saved: false })
+      const parsed = parseCase(data, user.id)
+      // Server studies only take captures from their owner; browser-local IDs are keyed per user in parseCase.
+      if (!await training.studyAllowed(user.id, data.studyId)) return send(res, 404, { error: 'Study not found.' })
+      const saved = await training.saveCase(parsed, user.id)
       return send(res, saved ? 201 : 200, { saved })
     }
     if (path === '/api/training/dictation' && req.method === 'POST') {
@@ -262,6 +282,7 @@ export async function handler(req, res) {
       return send(res, saved ? 201 : 200, { saved })
     }
     if (path === '/api/speech/status' && req.method === 'GET') return send(res, 200, { configured: Boolean(process.env.SARVAM_API_KEY), provider: 'sarvam' })
+    if (await examLibrary.route(req, res, user, path)) return
     if (path === '/api/report-templates' && req.method === 'GET') {
       const result = await pool.query('SELECT id,name,content,is_default AS "isDefault",updated_at AS "updatedAt" FROM report_templates WHERE owner_id=$1 ORDER BY is_default DESC,updated_at DESC', [user.id])
       return send(res, 200, { templates: result.rows.map(({ content, ...row }) => ({ ...row, ...content })) })
@@ -459,15 +480,21 @@ export async function handler(req, res) {
       const params = new URL(req.url,'http://internal').searchParams
       let limit,offset
       try { ({limit,offset}=pagination(params)) } catch(error) { return send(res,400,{error:error.message}) }
-      const [result,count] = await Promise.all([pool.query('SELECT id,payload->>\'title\' AS title,image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",updated_at AS "updatedAt" FROM studies WHERE owner_id=$1 ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3', [user.id,limit,offset]),pool.query('SELECT count(*)::int AS total FROM studies WHERE owner_id=$1',[user.id])])
+      const [result,count] = await Promise.all([pool.query('SELECT id,payload->>\'title\' AS title,image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",revision,updated_at AS "updatedAt" FROM studies WHERE owner_id=$1 ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3', [user.id,limit,offset]),pool.query('SELECT count(*)::int AS total FROM studies WHERE owner_id=$1',[user.id])])
       return send(res, 200, { studies: result.rows, total:count.rows[0].total })
     }
     if (path === '/api/studies' && req.method === 'POST') {
       const data = await body(req, (process.env.VERCEL ? 4 : 25) * 1024 * 1024)
       if (!validStudy(data)) return send(res, 400, { error: 'The study has invalid patient, image, analysis or report fields. Export a valid Skanda study and retry.' })
-      const result = await pool.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,image_count=EXCLUDED.image_count,has_report=EXCLUDED.has_report,report_signed=EXCLUDED.report_signed,updated_at=now() WHERE studies.owner_id=$2 RETURNING id', [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed])
-      if (!result.rowCount) return send(res, 404, { error: 'Study not found.' })
-      await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id })
+      const expected = expectedRevision(req.headers['x-study-revision'])
+      if (expected === null) return send(res, 400, { error: 'X-Study-Revision must be "new" or a positive integer.' })
+      // Lock the row so the revision check and the write cannot interleave with another save.
+      const client = await pool.connect()
+      let outcome
+      try { outcome = await writeStudy(client, user.id, data, expected) } finally { client.release() }
+      if (outcome.status !== 200) return send(res, outcome.status, outcome.body)
+      const { revision } = outcome.body
+      await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id, revision })
     }
     const shareMatch = path.match(/^\/api\/studies\/([a-f0-9-]+)\/shares$/i)
     if (shareMatch && UUID.test(shareMatch[1]) && ['GET','POST'].includes(req.method)) {
@@ -494,8 +521,8 @@ export async function handler(req, res) {
     if (path.startsWith('/api/studies/') && req.method === 'GET') {
       const id = path.slice('/api/studies/'.length)
       if (!UUID.test(id)) return send(res,400,{error:'Invalid study ID.'})
-      const result = await pool.query('SELECT payload FROM studies WHERE id=$1 AND owner_id=$2',[id,user.id])
-      return result.rows[0] ? send(res,200,{study:result.rows[0].payload}) : send(res,404,{error:'Study not found.'})
+      const result = await pool.query('SELECT payload,revision FROM studies WHERE id=$1 AND owner_id=$2',[id,user.id])
+      return result.rows[0] ? send(res,200,{study:result.rows[0].payload,revision:result.rows[0].revision}) : send(res,404,{error:'Study not found.'})
     }
     if (path.startsWith('/api/studies/') && req.method === 'DELETE') {
       const id = path.slice('/api/studies/'.length)

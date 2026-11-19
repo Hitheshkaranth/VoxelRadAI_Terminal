@@ -1,4 +1,4 @@
-// Model-improvement capture (server accounts only). Sends de-identified copies of analysed images,
+// Model-improvement capture (server accounts only, after the user opts in under Settings). Sends de-identified copies of analysed images,
 // AI findings with the radiologist's decisions, AI draft vs signed report text, and dictation clips
 // that were undone or corrected. Patient fields never leave the browser; known identifiers are also
 // removed from free text. Capture failures never interrupt reading or reporting.
@@ -6,6 +6,7 @@ import { SERVER_MODE } from './session'
 import type { Finding, ReportFieldKey, Study, StudyImage } from '../types'
 import { REPORT_FIELD_KEYS } from '../types'
 import { ageBand, redactKnownIdentifiers } from './deidentify'
+import { parseConsent, pixelsAllowed, redactVolumeText, volumePixelsAllowed, type TrainingConsent } from './trainingPrivacy'
 
 let enabledPromise: Promise<boolean> | null = null
 export function captureEnabled(): Promise<boolean> {
@@ -14,6 +15,22 @@ export function captureEnabled(): Promise<boolean> {
     .then(async (r) => r.ok && (await r.json()).enabled === true)
     .catch(() => false)
   return enabledPromise
+}
+
+const jsonInit = (method: string, body?: unknown): RequestInit => ({ method, credentials: 'same-origin', cache: 'no-store',
+  headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
+
+export async function readTrainingConsent(): Promise<TrainingConsent> {
+  const r = await fetch('/api/training/consent', jsonInit('GET'))
+  if (!r.ok) throw new Error('Could not read your data-sharing choice.')
+  return parseConsent(await r.json())
+}
+
+export async function saveTrainingConsent(consent: boolean): Promise<TrainingConsent> {
+  const r = await fetch('/api/training/consent', jsonInit('PUT', { consent }))
+  if (!r.ok) throw new Error('Could not save your data-sharing choice. Try again.')
+  enabledPromise = null  // re-check before the next capture
+  return parseConsent(await r.json())
 }
 
 const post = (path: string, body: unknown) =>
@@ -46,7 +63,9 @@ const findingRecord = (f: Finding, study: Study) => ({
 export async function captureAnalysis(study: Study, image: StudyImage) {
   if (!image.analysis || !(await captureEnabled())) return
   const a = image.analysis
-  const pixels = await deidentifiedImage(image)
+  // Burned-in text cannot be removed reliably: only images whose DICOM tag says NO send pixels. YES, a missing tag
+  // (unknown) and raster uploads go as text only.
+  const pixels = pixelsAllowed(image) ? await deidentifiedImage(image) : null
   void post('/api/training/cases', {
     kind: 'analysis', studyId: study.id, imageId: image.id,
     modality: a.modality, bodyPart: a.bodyPart, view: a.view, model: a.model, durationMs: a.durationMs,
@@ -75,16 +94,19 @@ export async function captureSignedReport(study: Study) {
 }
 
 /** Volume slice reads: every slice with findings, plus every 10th clean slice as a negative example.
- *  The volume title and file name are not sent; the job ID is pseudonymised on the server. */
-export async function captureVolumeSlice(job: { id: string; modality: string; plane: string; count: number }, index: number, dataUrl: string, width: number, height: number, analysis: import('../types').AnalysisResult) {
+ *  The volume title and file name are not sent; the job ID is pseudonymised on the server. Consent is checked
+ *  (captureEnabled) before anything is sent; a DICOM-derived volume without an explicit Burned In Annotation = NO
+ *  on every slice sends findings text only. */
+export async function captureVolumeSlice(job: { id: string; title: string; modality: string; plane: string; count: number; fromDicom?: boolean; burnedInAnnotation?: boolean }, index: number, dataUrl: string, width: number, height: number, analysis: import('../types').AnalysisResult) {
   if (!analysis.findings.length && index % 10 !== 0) return
   if (analysis.truncated || !(await captureEnabled())) return
+  const pixels = volumePixelsAllowed(job)
   void post('/api/training/cases', {
     kind: 'analysis', studyId: job.id, imageId: `${job.plane}-${index}`,
     modality: job.modality, bodyPart: analysis.bodyPart, view: `${job.plane} ${index + 1}/${job.count}`, model: analysis.model, durationMs: analysis.durationMs,
-    impression: analysis.impression,
-    findings: analysis.findings.map((f) => ({ title: f.title, description: f.description, location: f.location, severity: f.severity, confidence: f.confidence, source: f.source, bbox: f.bbox })),
-    image: dataUrl, width, height,
+    impression: redactVolumeText(analysis.impression ?? '', job.title),
+    findings: analysis.findings.map((f) => ({ title: redactVolumeText(f.title ?? '', job.title), description: redactVolumeText(f.description ?? '', job.title), location: f.location, severity: f.severity, confidence: f.confidence, source: f.source, bbox: f.bbox })),
+    ...(pixels ? { image: dataUrl, width, height } : {}),
   })
 }
 

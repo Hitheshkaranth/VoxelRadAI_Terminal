@@ -1,0 +1,51 @@
+/* Volume measurements share the 2D film's measurement ink (viewer.css .vw-measure) so both readers look like one tool. */
+.volume-measure-overlay { position: absolute; top: 50%; left: 50%; pointer-events: none; overflow: visible; transform-origin: center; }
+.volume-measure-overlay line, .volume-measure-overlay ellipse { fill: none; stroke: #ffd24a; stroke-width: 1.75; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.9)); }
+.volume-measure-overlay ellipse { fill: rgba(255, 210, 74, 0.08); }
+.volume-measure-overlay circle { fill: #111; stroke: #ffd24a; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.volume-measure-overlay text { fill: #fff4c7; font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: rgba(0, 0, 0, 0.8); stroke-width: 2.5px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.volume-measure-draft line, .volume-measure-draft ellipse { stroke-dasharray: 5 4; }
+.volume-stage[data-measuring] { cursor: crosshair; }
+/* The measuring hint reuses the 2D pill, placed below the plane's top orientation label. */
+.volume-stage .volume-measure-hint { top: 96px; z-index: 5; }
+
+/* Value under the cursor: a quiet corner readout above the bottom dock, clear of the caption and orientation labels. */
+.volume-value-readout { position: absolute; right: 16px; bottom: 72px; z-index: 3; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 11px / 1.3 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--scan-muted, #d7dde6); background: var(--scan-surface, #070809c9); border-radius: var(--radius-sm); padding: 4px 8px; pointer-events: none; }
+.volume-value-readout[hidden] { display: none; }
+@media (hover: none) { .volume-value-readout { display: none; } }
+.volume-plane-readout { margin-left: 6px; color: var(--label-2); font: 10px var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Measure popover: tool choice, list, actions. */
+.scan-popover:has(.volume-measure-panel) { width: min(340px, calc(100vw - 24px)); }
+.volume-measure-panel { display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+.volume-measure-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: var(--radius-md); background: var(--bg-grouped); }
+.volume-measure-tools .btn { justify-content: center; border: 0; background: transparent; color: var(--label-2); box-shadow: none; }
+.volume-measure-tools .btn:hover { color: var(--label); }
+.volume-measure-tools [aria-checked='true'] { background: var(--bg-elevated); color: var(--label); box-shadow: 0 1px 3px #0002; }
+.volume-measure-note { margin: 0; color: var(--label-2); font-size: 11px; line-height: 1.45; }
+.volume-measure-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 6px 0 0; list-style: none; max-height: 220px; overflow: auto; border-top: 1px solid var(--separator); }
+.volume-measure-list li { display: flex; align-items: flex-start; gap: 2px; }
+.volume-measure-list .icon-btn { flex: none; width: 30px; height: 30px; color: var(--label-2); }
+.volume-measure-list .icon-btn:hover { color: var(--label); background: var(--bg-control); }
+.scan-popover .volume-measure-item { flex: 1; min-width: 0; height: auto; min-height: 30px; justify-content: flex-start; gap: 6px; padding: 6px; border: 0; border-radius: var(--radius-sm); background: transparent; box-shadow: none; color: var(--label); text-align: left; white-space: normal; font-size: 12px; font-weight: 400; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.scan-popover .volume-measure-item:hover { background: var(--bg-control); }
+.volume-measure-item > span { color: var(--label-2); }
+.volume-measure-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding-top: 8px; border-top: 1px solid var(--separator); }
+@media (pointer: coarse) {
+  .volume-measure-list .icon-btn, .scan-popover .volume-measure-item { min-width: 40px; min-height: 40px; }
+  .volume-measure-tools .btn, .volume-measure-actions .btn { min-height: 40px; }
+}
+
+/* Slab projection: grouped like the playback row above it in the Display popover. */
+.volume-slab-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 0; border-bottom: 1px solid var(--separator); font-size: 12px; color: var(--label-2); }
+.volume-slab-controls label { display: flex; align-items: center; gap: 6px; }
+.volume-slab-controls input[type='number'] { width: 64px; padding-inline: 8px; font-variant-numeric: tabular-nums; }
+.volume-slab-controls input:disabled { opacity: 0.5; }
+.volume-slab-controls small { flex-basis: 100%; color: var(--label-2); font-size: 11px; line-height: 1.4; }
+
+@media (max-width: 1023px) {
+  .volume-stage .volume-measure-hint { top: auto; bottom: 132px; }
+}
+@media (max-width: 767px) {
+  .volume-stage .volume-measure-hint { white-space: normal; text-align: center; line-height: 1.35; border-radius: var(--radius-md); }
+}

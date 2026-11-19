@@ -5,12 +5,14 @@ import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent }
 import { FileImage, Loader2, Paperclip } from 'lucide-react'
 import { filesToStudyImages, pickImageFiles, readDroppedItems } from '../../lib/imageIntake'
 import { useApp } from '../../store'
-import { routeDroppedFiles } from '../shell/shellState'
+import { openDicomSeriesVolume, routeDroppedFiles } from '../shell/shellState'
+import { mayContainDicomSeries } from '../../lib/dicomSeries'
 import './viewer.css'
 
 export function Dropzone({ studyId }: { studyId: string }) {
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [series, setSeries] = useState(false)
   const [error, setError] = useState('')
   const [added, setAdded] = useState(0)
 
@@ -20,11 +22,17 @@ export function Dropzone({ studyId }: { studyId: string }) {
 
   const processFiles = useCallback(
     async (files: File[]) => {
-      const images = files.filter((f) => f.size > 0)
+      let images = files.filter((f) => f.size > 0)
       if (!images.length) return
       setBusy(true)
       setError('')
       try {
+        // A CT/MR series opens as a volume; whatever is left (X-rays, other files) continues as images.
+        if (mayContainDicomSeries(images)) {
+          setSeries(true)
+          images = (await openDicomSeriesVolume(images)).rest
+          if (!images.length) return
+        }
         const imgs = await filesToStudyImages(images)
         addImages(studyId, imgs)
         setAdded(imgs.length)
@@ -32,6 +40,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
         setBusy(false)
+        setSeries(false)
       }
     },
     [addImages, studyId],
@@ -66,8 +75,8 @@ export function Dropzone({ studyId }: { studyId: string }) {
         <div className="vw-drop">
           <div className="vw-drop-progress">
             <Loader2 />
-            <div className="vw-title">Processing images…</div>
-            <div className="vw-sub">Decoding and preparing each frame.</div>
+            <div className="vw-title">{series ? 'Building volume from DICOM series…' : 'Processing images…'}</div>
+            <div className="vw-sub">{series ? 'Sorting slices by patient position and reading geometry.' : 'Decoding and preparing each frame.'}</div>
           </div>
         </div>
       </div>
@@ -125,7 +134,7 @@ export function Dropzone({ studyId }: { studyId: string }) {
             </div>
             <div className="vw-title">Add images</div>
             <div className="vw-sub">
-              Drag and drop PNG, JPEG or DICOM files here, paste from the clipboard, or
+              Drag and drop PNG, JPEG or DICOM files (or a CT/MR series folder) here, paste from the clipboard, or
             </div>
             <ScanButton
               type="button"

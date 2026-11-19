@@ -122,7 +122,7 @@
 .scan-content .volume-source-note { position: absolute; left: 12px; bottom: 70px; max-width: 360px; border-radius: 6px; border: 0; background: #202225; color: #b7bbc1; padding: 6px 10px; font-size: 10px; z-index: 3; }
 .scan-content .volume-source-note strong { color: #f1f2f3; }
 .scan-content .volume-footnote { display: none; }
-.scan-content .volume-shortcut-help { position: absolute; top: 108px; left: 16px; z-index: 10; max-width: 500px; padding: 16px; background: var(--bg-elevated); border-radius: 10px; }
+.scan-content .volume-shortcut-help { position: absolute; top: 108px; left: 16px; z-index: 10; width: min(660px, calc(100% - 32px)); max-height: calc(100% - 200px); overflow: auto; padding: 14px 16px; background: var(--bg-elevated); border: 1px solid var(--separator-strong); border-radius: 12px; box-shadow: 0 12px 32px #0003; }
 .scan-content .volume-label-navigation { flex-wrap: wrap; padding: 10px; font-size: 11px; }
 .scan-content .volume-label-navigation > * { flex-shrink: 1; }
 .scan-content .volume-label-navigation button { white-space: normal; text-align: left; }
@@ -215,3 +215,7 @@
 .scan-overlay-bottom input[type='range'] { accent-color: var(--scan-ink); }
 /* Narrow screens: keep the plane caption left of the centred orientation label instead of running under it. */
 @media (max-width: 767px) { .scan-content .volume-stage .volume-image-caption { max-width: calc(50% - 28px); white-space: normal; line-height: 1.35; } }
+/* Scan popovers (Tools, Orientation, Measure) keep touch-sized rows on coarse pointers. */
+@media (pointer: coarse) { .scan-popover > button { min-height: 44px; } }
+/* Load and error messages sit on the dark scan canvas in both themes. */
+.scan-content .volume-message { color: var(--scan-ink); }

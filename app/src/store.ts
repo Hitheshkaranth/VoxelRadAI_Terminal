@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { readThemePreference, saveThemePreference } from './lib/theme'
 import { workspaceGet as idbGet, workspaceSet as idbSet } from './lib/workspaceStorage'
 import { toast } from './components/shell/toastStore'
+import { setServerRevisionListener } from './lib/studySync'
 import type {
   ImageMeasurement,
   AnalysisResult,
@@ -355,7 +356,7 @@ const stripStudy = (s: Study): Study => {
 // A study whose only change is transient fields keeps updatedAt from touch(); ignore updatedAt when comparing.
 const sameStudy = (a: Study, b: Study) => {
   if (a === b) return true
-  if (a.id !== b.id || a.title !== b.title || a.patient !== b.patient || a.report !== b.report) return false
+  if (a.id !== b.id || a.title !== b.title || a.patient !== b.patient || a.report !== b.report || a.serverRevision !== b.serverRevision) return false
   if (a.images.length !== b.images.length) return false
   return a.images.every((im, k) => sameImage(im, b.images[k]))
 }
@@ -448,3 +449,11 @@ export async function storageInfo(): Promise<{ usage: number; quota: number; per
     return null
   }
 }
+
+// A successful server save stamps the study with the revision it now matches; that copy's revision (not a
+// browser-wide map) is what the next save sends. updatedAt is untouched: nothing the reader edited changed.
+setServerRevisionListener((studyId, revision) => {
+  useApp.setState((state) => state.studies.some((s) => s.id === studyId && s.serverRevision !== revision)
+    ? { studies: state.studies.map((s) => s.id === studyId ? { ...s, serverRevision: revision } : s) }
+    : {})
+})

@@ -55,7 +55,7 @@ async function decodeStandardImage(file: File): Promise<StudyImage> {
   return img
 }
 
-async function isDicomFile(file: File): Promise<boolean> {
+export async function isDicomFile(file: File): Promise<boolean> {
   const name = file.name.toLowerCase()
   if (name.endsWith('.dcm') || name.endsWith('.dicom')) return true
   if (file.type === 'application/dicom') return true
@@ -147,6 +147,14 @@ export async function filesToStudyImages(files: File[]): Promise<IntakeResult> {
 /** Read every file out of a drag-and-drop DataTransfer (falls back to items when files is empty). */
 export async function readDroppedItems(dataTransfer: DataTransfer): Promise<File[]> {
   const files: File[] = []
+  // A dropped folder (a typical DICOM series export) arrives as a directory entry; walk it. Entries must be
+  // taken synchronously, before the first await, or the browser empties the DataTransfer.
+  const directories = Array.from(dataTransfer.items ?? []).map((item) => item.kind === 'file' ? item.webkitGetAsEntry?.() : null).filter((entry): entry is FileSystemDirectoryEntry => !!entry?.isDirectory)
+  if (directories.length) {
+    const loose = Array.from(dataTransfer.files ?? []).filter((file) => !directories.some((directory) => directory.name === file.name))
+    for (const directory of directories) files.push(...await readDirectory(directory))
+    return [...loose, ...files]
+  }
   if (dataTransfer.files) {
     for (let i = 0; i < dataTransfer.files.length; i++) {
       if (dataTransfer.files[i]) files.push(dataTransfer.files[i])
@@ -158,6 +166,28 @@ export async function readDroppedItems(dataTransfer: DataTransfer): Promise<File
       if (item.kind === 'file') {
         const f = item.getAsFile()
         if (f) files.push(f)
+      }
+    }
+  }
+  return files
+}
+
+const MAX_FOLDER_FILES = 4000
+
+/** Every file under a dropped directory (hidden files skipped), capped so a whole drive cannot be dropped. */
+async function readDirectory(root: FileSystemDirectoryEntry): Promise<File[]> {
+  const files: File[] = []
+  const pending: FileSystemDirectoryEntry[] = [root]
+  while (pending.length && files.length < MAX_FOLDER_FILES) {
+    const reader = pending.shift()!.createReader()
+    // readEntries returns batches (about 100 in Chrome) until it yields an empty array.
+    for (;;) {
+      const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => reader.readEntries(resolve, reject))
+      if (!batch.length) break
+      for (const entry of batch) {
+        if (entry.name.startsWith('.')) continue
+        if (entry.isDirectory) pending.push(entry as FileSystemDirectoryEntry)
+        else if (files.length < MAX_FOLDER_FILES) files.push(await new Promise<File>((resolve, reject) => (entry as FileSystemFileEntry).file(resolve, reject)))
       }
     }
   }

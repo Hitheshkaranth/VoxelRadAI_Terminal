@@ -6,6 +6,9 @@ import { useApp } from '../../store'
 import { runAnalysis } from '../../lib/analysis'
 import { addFilesToActiveStudy } from '../../lib/upload'
 import { uid } from '../../store'
+import { mayContainDicomSeries } from '../../lib/dicomSeries'
+import { splitDicomSeries } from '../../lib/dicomSeriesIntake'
+import { toast } from './toastStore'
 
 export type MobileView = 'studies' | 'viewer' | 'findings' | 'report'
 
@@ -71,10 +74,35 @@ export function countLabel(active: number, flagged: number): string {
 /** One routing rule for dropped files, wherever they land: an .nrrd opens as a volume; images join the active study. */
 export function routeDroppedFiles(files: File[]): void {
   const volumeFile = files.find((file) => file.name.toLowerCase().endsWith('.nrrd'))
+  // A CT/MR DICOM series opens as a volume; X-rays and loose images keep the per-image path.
+  if (!volumeFile && mayContainDicomSeries(files)) {
+    void openDicomSeriesVolume(files).then(({ opened, rest }) => {
+      if (!rest.length) return
+      if (!opened) useShell.getState().closeVolume()
+      void addFilesToActiveStudy(rest)
+    })
+    return
+  }
   const images = files.filter((file) => file !== volumeFile)
   if (images.length) {
     if (!volumeFile) useShell.getState().closeVolume()
     void addFilesToActiveStudy(images)
   }
   if (volumeFile) useShell.getState().openVolume({ id: uid(), title: volumeFile.name, modality: 'Volume', file: volumeFile })
+}
+
+/** Open the largest CT/MR series among `files` as a volume; resolves with the files left for 2D intake. */
+export async function openDicomSeriesVolume(files: File[]): Promise<{ opened: boolean; rest: File[] }> {
+  try {
+    const split = await splitDicomSeries(files)
+    if (split.source) {
+      useShell.getState().openVolume(split.source)
+      toast(`Opened ${split.source.title} as a volume.`, 'success')
+    }
+    for (const warning of split.warnings) toast(warning, 'info')
+    return { opened: !!split.source, rest: split.rest }
+  } catch (error) {
+    toast(`Could not open the DICOM series as a volume: ${error instanceof Error ? error.message : String(error)}`, 'error')
+    return { opened: false, rest: files }
+  }
 }
