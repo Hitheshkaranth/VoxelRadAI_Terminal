@@ -6,7 +6,8 @@ import { decodeDicomFrame } from '../src/lib/dicomIntake.ts'
 let checks = 0
 for (const [filename, modality, rows, cols, levels] of [
   ['CT_small.dcm', 'CT', 128, 128, 241],
-  ['MR_small.dcm', 'MR', 64, 64, 203],
+  // MR_small carries a VOI window; the PS3.3 linear VOI formula yields one more distinct grey level.
+  ['MR_small.dcm', 'MR', 64, 64, 204],
 ] as const) {
   const bytes = readFileSync(new URL(`./fixtures/dicom/${filename}`, import.meta.url))
   const decoded = decodeDicomFrame(bytes)

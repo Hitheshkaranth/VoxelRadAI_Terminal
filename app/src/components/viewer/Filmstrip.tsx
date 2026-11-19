@@ -11,7 +11,8 @@ import { cancelImages } from '../../lib/analysis'
 import { findingCounts, worstSeverity } from '../../lib/classifier'
 import { useActiveStudy, useApp } from '../../store'
 import { toast } from '../shell/toastStore'
-import { countLabel } from '../shell/shellState'
+import { countLabel, openDicomSeriesVolume } from '../shell/shellState'
+import { mayContainDicomSeries } from '../../lib/dicomSeries'
 import './viewer.css'
 
 /** Dot colour + accessible name, from the same helpers the inspector uses. */
@@ -39,7 +40,8 @@ export function Filmstrip() {
     if (!files.length) return
     setBusy(true)
     try {
-      await addFilesToActiveStudy(files)
+      // A CT/MR series opens as a volume rather than hundreds of flat films.
+      await addFilesToActiveStudy(mayContainDicomSeries(files) ? (await openDicomSeriesVolume(files)).rest : files)
     } finally {
       setBusy(false)
     }
