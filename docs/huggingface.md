@@ -50,8 +50,10 @@ Set these Space secrets:
   restart; set `STATE_BACKUP_SESSIONS=on` to keep logins across restarts and accept
   that risk. The restore runs in a single transaction. If it fails (as opposed to no
   backup existing yet), the Space starts with an empty database and **does not upload
-  backups**, so the last good backup is not overwritten; fix the cause, or set
-  `STATE_BACKUP_ALLOW_FRESH=1` to start fresh and replace it. Set `STATE_BACKUP=off`
+  backups**, so the last good backup is not overwritten. The pause is recorded in
+  `/tmp/skanda-postgres/.restore-failed`, so it also survives a process restart (when the
+  database already exists and no restore is attempted); fix the cause, or set
+  `STATE_BACKUP_ALLOW_FRESH=1` to start fresh, clear the marker and replace the backup. Set `STATE_BACKUP=off`
   to disable the backup. The backup contains account password hashes and any
   server-saved study data, so keep the dataset private.
   Browser-local studies retain their existing browser storage behavior.
@@ -120,8 +122,12 @@ shared secret instead of a Space sign-in:
 Requests to `/lmstudio/*` and `/gradio_api/*` that carry `X-VoxelRad-Bridge: <secret>`
 (compared in constant time) skip the Space session check. With the header absent or
 wrong, nothing changes: callers still need a Space session. Bridged reads always use
-the owner `HF_TOKEN` quota path above, and the header travels with the gateway
-submission and the loopback result stream. The calling site adds
+the owner `HF_TOKEN` quota path above. The secret itself is never forwarded: the gateway
+submission and the loopback result stream carry a random per-process token
+(`X-VoxelRad-Gateway`, accepted only on `/gradio_api/*`) instead. The gateway is this Space's
+own public host, taken from `SPACE_HOST` (set by Hugging Face); set `OWNER_GATEWAY_HOST` to
+override it. Only `*.hf.space` hosts are accepted, because the owner `HF_TOKEN` is sent there;
+with no valid host, reads fall back to the visitor quota path. The calling site adds
 `X-VoxelRad-User`, a keyed pseudonym of its account id; the Space only writes it to the
 log (`Skanda read requested by bridge (u-…), owner quota`). It never receives emails,
 names or session cookies from the site. Leaving `BRIDGE_SECRET` unset (or shorter than
@@ -174,8 +180,12 @@ accepted only from its owner, and pseudonyms include the user ID so one account 
 records to another's.
 
 For each analysed image the server keeps a de-identified JPEG (pixels only, long side at most
-2048 px) with the AI findings. Images whose DICOM Burned In Annotation (0028,0301) is YES, and
-PNG/JPEG uploads (whose burned-in text status is unknown), are captured as text only; at
+2048 px) with the AI findings. Pixels are kept only for DICOM images whose Burned In Annotation
+(0028,0301) is explicitly NO. Images where it is YES, where the tag is missing (common for
+ultrasound, secondary captures, XA, endoscopy, microscopy and CR/DX screenshots, so a missing tag
+is treated as unknown, not as NO), and PNG/JPEG uploads are captured as text only. Slices of NRRD
+volumes are kept as read; slices of volumes built from a DICOM series only when every slice
+declares NO. At
 sign-off it keeps the radiologist's accept/dismiss decisions and the AI draft beside the
 signed report text. Dictation phrases that fail, return nothing, are undone ("scratch
 that") or are later corrected are kept with their audio and the corrected text.

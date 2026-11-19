@@ -4,7 +4,7 @@ import pg from 'pg'
 import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword, needsRehash } from './security.mjs'
 import { sharedDocument } from './share.mjs'
 import { migrate } from './migrate.mjs'
-import { expectedRevision, studyWriteConflict, validStudy } from './studyValidation.mjs'
+import { expectedRevision, validStudy, writeStudy } from './studyValidation.mjs'
 import { pagination } from './pagination.mjs'
 import { createOperations } from './operations.mjs'
 import { createOidcRoutes } from './oidc.mjs'
@@ -490,19 +490,10 @@ export async function handler(req, res) {
       if (expected === null) return send(res, 400, { error: 'X-Study-Revision must be "new" or a positive integer.' })
       // Lock the row so the revision check and the write cannot interleave with another save.
       const client = await pool.connect()
-      let revision
-      try {
-        await client.query('BEGIN')
-        const current = (await client.query("SELECT owner_id,revision,payload->'report' AS report FROM studies WHERE id=$1 FOR UPDATE", [data.id])).rows[0]
-        if (current && current.owner_id !== user.id) { await client.query('ROLLBACK'); return send(res, 404, { error: 'Study not found.' }) }
-        const conflict = studyWriteConflict(current ? { revision: current.revision, report: current.report } : null, data, expected)
-        if (conflict) { await client.query('ROLLBACK'); return send(res, 409, { ...conflict, revision: current.revision }) }
-        const values = [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed]
-        const result = current
-          ? await client.query('UPDATE studies SET payload=$3,image_count=$4,has_report=$5,report_signed=$6,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING revision', values)
-          : await client.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) RETURNING revision', values)
-        await client.query('COMMIT'); revision = result.rows[0].revision
-      } catch(error) { await client.query('ROLLBACK').catch(() => {}); throw error } finally { client.release() }
+      let outcome
+      try { outcome = await writeStudy(client, user.id, data, expected) } finally { client.release() }
+      if (outcome.status !== 200) return send(res, outcome.status, outcome.body)
+      const { revision } = outcome.body
       await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id, revision })
     }
     const shareMatch = path.match(/^\/api\/studies\/([a-f0-9-]+)\/shares$/i)

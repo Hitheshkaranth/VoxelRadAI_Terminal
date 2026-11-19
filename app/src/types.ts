@@ -143,8 +143,12 @@ export interface StudyImage {
   /** Actual DICOM source identities for grouping/traceability, never inferred from filenames. */
   sourceSeriesUid?: string
   sourceSopInstanceUid?: string
-  /** DICOM Burned In Annotation (0028,0301) is YES. Absent for raster imports, whose status is unknown. */
+  /** DICOM Burned In Annotation (0028,0301): true = YES, false = explicit NO. Absent when the tag is missing or
+   *  unreadable, and for raster imports: the status is unknown and pixels are never shared for training. */
   burnedInAnnotation?: boolean
+  /** Verbatim Burned In Annotation value as read at import ('YES' / 'NO'). Training capture sends pixels only for an
+   *  explicit 'NO'; images imported before this field existed (absent) are treated as unknown. */
+  burnedInTag?: 'YES' | 'NO'
   /** Original pixel grid, before the display downscale. */
   sourceRows?: number
   sourceColumns?: number
@@ -272,6 +276,9 @@ export interface Study {
   report?: ReportDraft
   createdAt: number
   updatedAt: number
+  /** Server revision this copy was last loaded from or saved as. Sent with the next save so a stale copy (another tab,
+   *  a re-imported older file) is refused instead of overwriting newer server text. Absent = never on the server. */
+  serverRevision?: number
 }
 
 export interface Settings {

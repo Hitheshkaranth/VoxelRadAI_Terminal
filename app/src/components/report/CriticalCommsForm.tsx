@@ -1,10 +1,11 @@
 // Critical result communication log: who was told, in what role, how and when. Entries can be added after signing
-// (communication often follows the report) but only removed while the report is unsigned.
+// (communication often follows the report) but only removed while the report is unsigned, and during a correction
+// only if they were logged after the latest signed version.
 import { useState } from 'react'
 import { PhoneCall, X } from 'lucide-react'
 import { ShellButton } from '../shell/ShellButton'
-import type { CriticalComm, CriticalCommMethod } from '../../types'
-import { criticalCommLine } from '../../lib/reportQa'
+import type { CriticalComm, CriticalCommMethod, ReportDraft } from '../../types'
+import { commRemovable, criticalCommLine, type LoggedComm } from '../../lib/reportQa'
 import './guidelineHelper.css'
 
 const METHODS: CriticalCommMethod[] = ['phone', 'in person', 'message', 'other']
@@ -15,12 +16,13 @@ function localInput(ms: number): string {
   return d.toISOString().slice(0, 16)
 }
 
-export function CriticalCommsForm({ comms, pending, defaultBy, signed, onChange }: {
+export function CriticalCommsForm({ comms, pending, defaultBy, report, onChange }: {
   comms: CriticalComm[]
   /** Critical results found in the report with no matching log entry. */
   pending: string[]
   defaultBy: string
-  signed: boolean
+  /** Sign-off state and version history: decides which entries can still be removed. */
+  report: Pick<ReportDraft, 'signed' | 'versions' | 'signedAt'>
   onChange: (comms: CriticalComm[]) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -39,7 +41,8 @@ export function CriticalCommsForm({ comms, pending, defaultBy, signed, onChange 
   const valid = finding.trim() && to.trim() && Number.isFinite(when)
   const save = () => {
     if (!valid) return
-    onChange([...comms, { id: crypto.randomUUID(), finding: finding.trim(), communicatedTo: to.trim(), role: role.trim(), method, at: when, by: by.trim() }])
+    const entry: LoggedComm = { id: crypto.randomUUID(), finding: finding.trim(), communicatedTo: to.trim(), role: role.trim(), method, at: when, by: by.trim(), loggedAt: Date.now() }
+    onChange([...comms, entry])
     setOpen(false); setFinding(''); setTo(''); setRole('')
   }
 
@@ -52,7 +55,7 @@ export function CriticalCommsForm({ comms, pending, defaultBy, signed, onChange 
           {comms.map((c) => (
             <li key={c.id}>
               <span>{criticalCommLine(c)}</span>
-              {!signed ? <ShellButton type="button" className="btn btn-plain btn-sm" aria-label={`Remove entry for ${c.finding}`}
+              {commRemovable(c, report) ? <ShellButton type="button" className="btn btn-plain btn-sm" aria-label={`Remove entry for ${c.finding}`}
                 onClick={() => onChange(comms.filter((x) => x.id !== c.id))}><X size={12} /></ShellButton> : null}
             </li>
           ))}

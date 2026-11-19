@@ -15,7 +15,11 @@ export interface VolumeMeasurement {
   a: SlicePoint
   b: SlicePoint
 }
-export interface RoiStats { mean: number; sd: number; min: number; max: number; count: number; areaMm2: number; widthMm: number; heightMm: number }
+/** `count` is the voxels measured; `excluded` the padding voxels inside the ROI that were left out (outside the
+ *  scanned field of view, e.g. the CT bore edge), so they never pull the mean or minimum down. */
+export interface RoiStats { mean: number; sd: number; min: number; max: number; count: number; excluded: number; areaMm2: number; widthMm: number; heightMm: number }
+/** A volume may mark padding voxels with a sentinel value (DICOM series with Pixel Padding Value). */
+type MeasuredVolume = Volume & { paddingValue?: number }
 
 const strides = (volume: Volume) => [1, volume.dimensions[0], volume.dimensions[0] * volume.dimensions[1]]
 
@@ -48,13 +52,14 @@ export function sliceLengthMm(volume: Volume, plane: VolumePlane, a: SlicePoint,
 }
 
 /** Statistics over pixels whose centres fall inside the ellipse inscribed in the a–b box, on the source slice. */
-export function ellipseStats(volume: Volume, plane: VolumePlane, index: number, a: SlicePoint, b: SlicePoint): RoiStats | null {
+export function ellipseStats(volume: MeasuredVolume, plane: VolumePlane, index: number, a: SlicePoint, b: SlicePoint): RoiStats | null {
   const g = getSliceGeometry(volume, plane)
   const x0 = Math.min(a.x, b.x) * g.width, x1 = Math.max(a.x, b.x) * g.width
   const y0 = Math.min(a.y, b.y) * g.height, y1 = Math.max(a.y, b.y) * g.height
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2
   const widthMm = (x1 - x0) * g.pixelSpacing[0], heightMm = (y1 - y0) * g.pixelSpacing[1]
-  let count = 0, sum = 0, squares = 0, min = Infinity, max = -Infinity
+  const padding = Number.isFinite(volume.paddingValue) ? volume.paddingValue : undefined
+  let count = 0, excluded = 0, sum = 0, squares = 0, min = Infinity, max = -Infinity
   if (rx > 0 && ry > 0) {
     for (let row = Math.max(0, Math.floor(y0)); row < Math.min(g.height, Math.ceil(y1)); row++) {
       for (let column = Math.max(0, Math.floor(x0)); column < Math.min(g.width, Math.ceil(x1)); column++) {
@@ -62,6 +67,7 @@ export function ellipseStats(volume: Volume, plane: VolumePlane, index: number, 
         if (nx * nx + ny * ny > 1) continue
         const value = sampleDisplayed(volume, g, index, column, row)
         if (value === null) continue
+        if (value === padding) { excluded++; continue }
         count++; sum += value; squares += value * value
         if (value < min) min = value
         if (value > max) max = value
@@ -72,7 +78,7 @@ export function ellipseStats(volume: Volume, plane: VolumePlane, index: number, 
   const mean = sum / count
   // Population SD of the sampled pixels; guards tiny negative variance from floating-point error.
   const sd = Math.sqrt(Math.max(0, squares / count - mean * mean))
-  return { mean, sd, min, max, count, areaMm2: Math.PI * (widthMm / 2) * (heightMm / 2), widthMm, heightMm }
+  return { mean, sd, min, max, count, excluded, areaMm2: Math.PI * (widthMm / 2) * (heightMm / 2), widthMm, heightMm }
 }
 
 const cm = (mm: number) => (mm / 10).toFixed(1)
@@ -81,12 +87,13 @@ const fixed = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
 export const valueUnit = (modality: string) => modality.toUpperCase() === 'CT' ? 'HU (unverified)' : 'units (uncalibrated)'
 
 /** Plain text for the report, e.g. "1.2 cm (axial 34)" or "1.2 x 0.8 cm ROI, mean 34.0 … (axial 34)". */
-export function volumeMeasurementText(volume: Volume, m: VolumeMeasurement, modality: string): string {
+export function volumeMeasurementText(volume: MeasuredVolume, m: VolumeMeasurement, modality: string): string {
   const where = `(${m.plane} ${m.index + 1})`
   if (m.kind === 'length') return `${cm(sliceLengthMm(volume, m.plane, m.a, m.b))} cm ${where}`
   const stats = ellipseStats(volume, m.plane, m.index, m.a, m.b)
   if (!stats) return `Empty ROI ${where}`
-  return `${cm(stats.widthMm)} x ${cm(stats.heightMm)} cm ROI, mean ${fixed(stats.mean)}, SD ${fixed(stats.sd)}, min ${fixed(stats.min)}, max ${fixed(stats.max)} ${valueUnit(modality)}, area ${(stats.areaMm2 / 100).toFixed(2)} cm² ${where}`
+  const outside = stats.excluded ? `, ${stats.excluded} padding voxel${stats.excluded === 1 ? '' : 's'} outside the scan excluded` : ''
+  return `${cm(stats.widthMm)} x ${cm(stats.heightMm)} cm ROI, mean ${fixed(stats.mean)}, SD ${fixed(stats.sd)}, min ${fixed(stats.min)}, max ${fixed(stats.max)} ${valueUnit(modality)}${outside}, area ${(stats.areaMm2 / 100).toFixed(2)} cm² ${where}`
 }
 
 /** Measurements drawn on this plane and slice only; others stay listed but are not drawn. */

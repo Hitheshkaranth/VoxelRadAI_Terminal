@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { addendumPatch, correctionNote, correctionPatch, currentAddenda, signPatch, signedVersions, validReportHistory, versionHistory } from '../src/lib/reportVersions.ts'
 import { reportToPlainText, studyToJson } from '../src/lib/reportExport.ts'
 import { validateTransferredStudy } from '../src/lib/studyTransfer.ts'
-import { StudyConflictError, knownRevision, rememberRevision, saveStudyToServer } from '../src/lib/studySync.ts'
+import { StudyConflictError, knownRevision, saveStudyToServer, setServerRevisionListener, withServerRevision } from '../src/lib/studySync.ts'
 import type { PatientInfo, ReportDraft, Study } from '../src/types.ts'
 
 const patient: PatientInfo = { name: 'Synthetic Patient', patientId: 'SYN-1', age: '50', sex: 'Female', studyDate: '2026-01-01', referringPhysician: '', indication: 'Cough', clinicalHistory: '' }
@@ -78,33 +78,64 @@ assert.equal(validReportHistory({ versions: [{ ...v1, version: 2 }] }), false, '
 assert.equal(validReportHistory({ addenda: [{ id: '', text: 'x', createdAt: 1, by: '' }] }), false)
 assert.throws(() => validateTransferredStudy({ ...study, report: { ...signed2, versions: [{ version: 1 }] } }))
 
-// Revision-checked save: the header names the last seen revision; 409 surfaces as a conflict error.
+// Revision-checked save: the header names the revision of THIS copy of the study; 409 surfaces as a conflict error.
 const store = new Map<string, string>()
-Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v) } } })
+Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v) }, removeItem: (k: string) => { store.delete(k) } } })
 const originalFetch = globalThis.fetch
+const stamped: [string, number][] = []
+setServerRevisionListener((id, revision) => { stamped.push([id, revision]) })
 try {
   const headers: (string | undefined)[] = []
   let reply: Response = new Response(JSON.stringify({ id: study.id, revision: 1 }))
   globalThis.fetch = (async (_path: string, init?: RequestInit) => { headers.push((init?.headers as Record<string, string>)['X-Study-Revision']); return reply }) as typeof fetch
-  assert.equal(knownRevision(study.id), undefined)
+  assert.equal(knownRevision(study), undefined)
   assert.equal(await saveStudyToServer(study), 1)
   assert.equal(headers[0], 'new', 'first save expects no server copy')
-  assert.equal(knownRevision(study.id), 1)
+  assert.deepEqual(stamped.at(-1), [study.id, 1], 'a successful save stamps the study copy with its new revision')
+  let copy = withServerRevision(study, 1)
+  assert.equal(knownRevision(copy), 1)
   reply = new Response(JSON.stringify({ id: study.id, revision: 2 }))
-  await saveStudyToServer(study)
+  await saveStudyToServer(copy)
   assert.equal(headers[1], '1')
+  copy = withServerRevision(copy, 2)
   reply = new Response(JSON.stringify({ code: 'stale', error: 'Server copy changed.', revision: 5 }), { status: 409 })
-  await assert.rejects(saveStudyToServer(study), (e: unknown) => e instanceof StudyConflictError && e.code === 'stale' && e.message === 'Server copy changed.')
-  assert.equal(knownRevision(study.id), 2, 'a refused save keeps the last good revision')
+  await assert.rejects(saveStudyToServer(copy), (e: unknown) => e instanceof StudyConflictError && e.code === 'stale' && e.message === 'Server copy changed.')
+  assert.deepEqual(stamped.at(-1), [study.id, 2], 'a refused save does not stamp a revision')
   reply = new Response(JSON.stringify({ code: 'signed-history', error: 'x' }), { status: 409 })
-  await assert.rejects(saveStudyToServer(study), (e: unknown) => e instanceof StudyConflictError && e.code === 'signed-history')
+  await assert.rejects(saveStudyToServer(copy), (e: unknown) => e instanceof StudyConflictError && e.code === 'signed-history')
   reply = new Response(JSON.stringify({ revision: 6 }))
-  await saveStudyToServer(study, { overwrite: true })
+  await saveStudyToServer(copy, { overwrite: true })
   assert.equal(headers[headers.length - 1], undefined, 'explicit overwrite skips the revision check')
-  assert.equal(knownRevision(study.id), 6)
-  rememberRevision(study.id, 'junk')
-  assert.equal(knownRevision(study.id), 6)
+  assert.deepEqual(stamped.at(-1), [study.id, 6])
+  assert.equal(withServerRevision(copy, 'junk').serverRevision, undefined, 'an unusable revision is not kept')
+
+  // Two tabs opened the same server revision 3. Tab A saves (server -> 4). Tab B still holds revision 3 and must
+  // send 3, not the 4 that tab A saw: the revision lives on each tab's copy, not in shared browser storage.
+  const tabA = withServerRevision(study, 3), tabB = withServerRevision(study, 3)
+  reply = new Response(JSON.stringify({ revision: 4 }))
+  await saveStudyToServer(tabA)
+  assert.equal(headers.at(-1), '3')
+  reply = new Response(JSON.stringify({ code: 'stale', error: 'Server copy changed.' }), { status: 409 })
+  await assert.rejects(saveStudyToServer(tabB), (e: unknown) => e instanceof StudyConflictError && e.code === 'stale')
+  assert.equal(headers.at(-1), '3', 'tab B sends its own (older) revision and is refused')
+  // A re-imported older file carries the revision it was exported at, so it conflicts too.
+  const reimported = withServerRevision(study, 2)
+  await assert.rejects(saveStudyToServer(reimported))
+  assert.equal(headers.at(-1), '2')
+
+  // Migration: a study saved before serverRevision existed falls back to the legacy browser map once; after a
+  // successful save the study carries its own revision and the legacy entry is dropped.
+  const legacyStudy = { ...study, id: '00000000-0000-4000-8000-000000000001' }
+  store.set('voxelrad.studyRevisions', JSON.stringify({ [legacyStudy.id]: 7, other: 9 }))
+  assert.equal(knownRevision(legacyStudy), 7)
+  assert.equal(knownRevision(withServerRevision(legacyStudy, 8)), 8, 'the study field wins over the legacy map')
+  reply = new Response(JSON.stringify({ revision: 8 }))
+  await saveStudyToServer(legacyStudy)
+  assert.equal(headers.at(-1), '7')
+  assert.deepEqual(JSON.parse(store.get('voxelrad.studyRevisions')!), { other: 9 }, 'legacy entry read once, then dropped')
+  assert.equal(knownRevision(legacyStudy), undefined)
 } finally {
   globalThis.fetch = originalFetch
+  setServerRevisionListener(undefined)
 }
 console.log('report versions: ok')

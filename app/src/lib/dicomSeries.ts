@@ -1,7 +1,7 @@
 // DICOM CT/MR series → scalar Volume (the same shape decodeNrrd produces). DOM-free so Node can test it
 // and a Web Worker can run it. Geometry is DICOM patient LPS, which is also the Volume convention.
 import dicomParser from 'dicom-parser'
-import { compressedDicomMessage, parseDicomBytes, parseSpacing, readNum, readPadding, UNCOMPRESSED } from './dicomIntake.ts'
+import { burnedInTag, compressedDicomMessage, parseDicomBytes, parseSpacing, readNum, readPadding, UNCOMPRESSED } from './dicomIntake.ts'
 import { isPaddingValue } from './dicomPixels.ts'
 import { voxelToWorld, type Vec3, type Volume } from './volume.ts'
 import type { VolumeAcquisition } from './volumeAcquisition.ts'
@@ -44,6 +44,8 @@ export interface DicomSliceHeader {
   signed: boolean
   bigEndian: boolean
   photometric: string
+  /** Burned In Annotation (0028,0301) when explicitly YES or NO; undefined when the tag is missing (unknown). */
+  burnedInTag?: 'YES' | 'NO'
   /** Set to the transfer syntax when the pixel data is compressed (no codec is bundled). */
   compressed?: string
   /** Uncompressed single-frame pixel bytes (a view, not a copy). */
@@ -76,6 +78,7 @@ export function readDicomSlice(bytes: Uint8Array, index = 0): DicomSliceHeader {
   const slopeValue = readNum(ds, 'x00281053')
   const interceptValue = readNum(ds, 'x00281052')
   const uid = text(ds, 'x0020000e')
+  const burned = burnedInTag(ds)
   let pixels: Uint8Array | undefined
   if (!compressed && pixelEl?.dataOffset != null && pixelEl.length && pixelEl.length !== 0xffffffff && rows && cols) {
     const needed = rows * cols * (bitsAllocated / 8)
@@ -107,6 +110,7 @@ export function readDicomSlice(bytes: Uint8Array, index = 0): DicomSliceHeader {
     signed,
     bigEndian: ds.byteArrayParser === dicomParser.bigEndianByteArrayParser,
     photometric: text(ds, 'x00280004') || 'MONOCHROME2',
+    ...(burned ? { burnedInTag: burned } : {}),
     ...(compressed ? { compressed } : {}),
     ...(pixels ? { pixels } : {}),
   }
@@ -147,7 +151,7 @@ const median = (values: number[]) => { const sorted = [...values].sort((a, b) =>
 const round = (value: number, digits = 2) => Number(value.toFixed(digits))
 
 export interface DicomVolumeResult {
-  volume: Volume
+  volume: PaddedVolume
   title: string
   modality: 'CT' | 'MRI'
   /** WindowCenter/Width from the middle slice, already in rescaled (real-value) units. */
@@ -157,6 +161,21 @@ export interface DicomVolumeResult {
   /** Input indexes of the slices that made up the volume, in stacking order. */
   used: number[]
   seriesUid?: string
+  /** Series Burned In Annotation: true if any slice says YES, false only if every slice says NO, else undefined
+   *  (unknown). Training capture sends slice pixels only for false. */
+  burnedInAnnotation?: boolean
+  /** Sentinel stored in padding voxels (one below the lowest real value), when the series has padding. ROI statistics
+   *  skip voxels holding it; it is also written to the NRRD hand-off as `voxelrad_padding:=<value>`. */
+  paddingValue?: number
+}
+
+/** A Volume that may carry a padding sentinel (see DicomVolumeResult.paddingValue). */
+export type PaddedVolume = Volume & { paddingValue?: number }
+
+/** Series-level Burned In Annotation from per-slice tags (see DicomVolumeResult.burnedInAnnotation). */
+export function seriesBurnedIn(slices: Pick<DicomSliceHeader, 'burnedInTag'>[]): boolean | undefined {
+  if (slices.some((slice) => slice.burnedInTag === 'YES')) return true
+  return slices.length > 0 && slices.every((slice) => slice.burnedInTag === 'NO') ? false : undefined
 }
 
 /** Stored (pre-rescale) value of pixel i, honouring bits stored, sign and byte order. */
@@ -231,24 +250,27 @@ export function buildDicomVolume(series: DicomSliceHeader[]): DicomVolumeResult 
   let min = Infinity
   let max = -Infinity
   let fractional = false
+  let padded = false
   for (const { slice } of sorted) {
     const read = storedReader(slice)
     if (!Number.isInteger(slice.slope) || !Number.isInteger(slice.intercept)) fractional = true
     for (let i = 0; i < plane; i++) {
       const stored = read(i)
-      if (isPaddingValue(stored, slice.paddingValue, slice.paddingRangeLimit)) continue
+      if (isPaddingValue(stored, slice.paddingValue, slice.paddingRangeLimit)) { padded = true; continue }
       const value = stored * slice.slope + slice.intercept
       if (value < min) min = value
       if (value > max) max = value
     }
   }
   if (!Number.isFinite(min)) throw new Error('Every voxel in the series is marked as padding.')
-  const fill = Math.round(min)
-  const wide = Math.round(min) < -32768 || Math.round(max) > 32767
+  // Padding becomes a sentinel one below the lowest real value: it still renders as the darkest value, but ROI
+  // statistics can tell it apart from real tissue (filling with the real minimum pulled bore-edge ROIs down).
+  const fill = padded ? Math.round(min) - 1 : Math.round(min)
+  const wide = fill < -32768 || Math.round(max) > 32767
   const data = wide ? new Int32Array(voxels) : new Int16Array(voxels)
   if (fractional) warnings.push('Rescale slope/intercept produce fractional values; intensities are rounded to whole numbers.')
 
-  // Pass 2: rescale per slice (slopes can differ slice to slice), padding becomes the lowest real value.
+  // Pass 2: rescale per slice (slopes can differ slice to slice), padding becomes the sentinel.
   sorted.forEach(({ slice }, z) => {
     const read = storedReader(slice)
     const offset = z * plane
@@ -263,7 +285,8 @@ export function buildDicomVolume(series: DicomSliceHeader[]): DicomVolumeResult 
   const voxelSpacing: Vec3 = [spacing.col, spacing.row, sliceSpacing]
   const geometry = { origin, directions, spacing: voxelSpacing }
   const corners = Array.from({ length: 8 }, (_, corner) => voxelToWorld(geometry, dimensions.map((size, axis) => corner & (1 << axis) ? size - 1 : 0) as Vec3))
-  const volume: Volume = {
+  const volume: PaddedVolume = {
+    ...(padded ? { paddingValue: fill } : {}),
     data, dimensions, origin, directions, spacing: voxelSpacing, space: 'LPS', range: [fill, Math.round(max)],
     worldBounds: {
       min: [0, 1, 2].map((axis) => Math.min(...corners.map((point) => point[axis]))) as Vec3,
@@ -285,18 +308,22 @@ export function buildDicomVolume(series: DicomSliceHeader[]): DicomVolumeResult 
     title: first.seriesDescription || `${modality} series · ${count} slices`,
     used: sorted.map(({ slice }) => slice.index),
     seriesUid: first.seriesUid,
+    burnedInAnnotation: seriesBurnedIn(stack),
+    ...(padded ? { paddingValue: fill } : {}),
   }
 }
 
 /** Raw little-endian NRRD for a Volume, so the existing NRRD-based viewer, storage and analysis reuse it unchanged. */
-export function volumeToNrrd(volume: Volume): Uint8Array {
+export function volumeToNrrd(volume: PaddedVolume): Uint8Array {
   const type = volume.data instanceof Int16Array ? 'int16' : volume.data instanceof Int32Array ? 'int32' : volume.data instanceof Uint16Array ? 'uint16'
     : volume.data instanceof Uint32Array ? 'uint32' : volume.data instanceof Int8Array ? 'int8' : 'uint8'
   const vector = (v: number[]) => `(${v.map((x) => String(x)).join(',')})`
   const header = [
     'NRRD0004', `type: ${type}`, 'dimension: 3', 'space: left-posterior-superior', `sizes: ${volume.dimensions.join(' ')}`,
     `space directions: ${volume.directions.map((direction, axis) => vector(direction.map((x) => x * volume.spacing[axis]))).join(' ')}`,
-    'kinds: domain domain domain', 'endian: little', 'encoding: raw', `space origin: ${vector(volume.origin)}`, 'space units: "mm" "mm" "mm"', '', '',
+    'kinds: domain domain domain', 'endian: little', 'encoding: raw', `space origin: ${vector(volume.origin)}`, 'space units: "mm" "mm" "mm"',
+    // NRRD key/value line (":="): readers that do not know it skip it; decodeNrrd can surface it as Volume.paddingValue.
+    ...(Number.isSafeInteger(volume.paddingValue) ? [`voxelrad_padding:=${volume.paddingValue}`] : []), '', '',
   ].join('\n')
   const head = new TextEncoder().encode(header)
   const body = new Uint8Array(volume.data.buffer, volume.data.byteOffset, volume.data.byteLength)

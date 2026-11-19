@@ -100,8 +100,11 @@ export interface LungRadsInput {
   sizeMm: number
   /** Part-solid only: mean diameter of the solid component, mm. */
   solidMm?: number
-  /** Baseline screen, new on this screen, or growing (>1.5 mm increase within 12 months). */
-  status: 'baseline' | 'new' | 'growing'
+  /**
+   * Baseline screen, new on this screen, growing (>1.5 mm increase within 12 months), or stable / decreased at the
+   * follow-up LDCT that its prior category called for (6 months for category 3, 3 months for category 4A).
+   */
+  status: 'baseline' | 'new' | 'growing' | 'stable'
   /** Solid, smooth, oval/lentiform/triangular juxtapleural (perifissural) nodule. */
   juxtapleural?: boolean
 }
@@ -116,6 +119,7 @@ const LUNG_RADS_MANAGEMENT: Record<string, string> = {
 /** Lung-RADS v2022 category for one nodule on screening LDCT (the most suspicious nodule sets the exam category). */
 export function lungRads(input: LungRadsInput): GuidelineResult {
   const size = finite(input.sizeMm, 'Nodule size')
+  if (input.status === 'stable') return lungRadsStable(input)
   let category: '2' | '3' | '4A' | '4B'
   if (input.type === 'solid') {
     if (input.juxtapleural && input.status !== 'growing' && size < 10) category = '2'
@@ -146,6 +150,35 @@ export function lungRads(input: LungRadsInput): GuidelineResult {
   }
 }
 
+/**
+ * Lung-RADS v2022 stepped management for a nodule stable (or decreased) at its follow-up LDCT:
+ *  - a category 3 lesion stable or decreased at the 6-month follow-up becomes category 2;
+ *  - a category 4A lesion stable or decreased at the 3-month follow-up becomes category 3 (not 2: v2022 steps down
+ *    one category at a time; the later 6-month stable scan then reaches 2);
+ *  - category 2 findings stay 2 (non-solid ≥30 mm stable or slowly growing is explicitly category 2).
+ * The prior category is taken as the baseline category for the current size. Category 4B is not downgraded on
+ * stability alone (v2022 downgrades 4B only when proven benign after diagnostic work-up), so it stays 4B: the
+ * conservative choice. Airway nodules are excluded from the 4A step-down and are not modelled here.
+ */
+function lungRadsStable(input: LungRadsInput): GuidelineResult {
+  const prior = lungRads({ ...input, status: 'baseline' }).category!.replace('Lung-RADS ', '') as '2' | '3' | '4A' | '4B'
+  const category = prior === '3' ? '2' : prior === '4A' ? '3' : prior
+  const notes = [
+    'Applies to lung cancer screening LDCT only; incidental nodules follow Fleischner.',
+    'Stable means unchanged or decreased at the follow-up LDCT its prior category called for (6 months for category 3, 3 months for category 4A). Stepped management lowers one category per stable follow-up.',
+    'The prior category is assumed to be the baseline category for this size; use the category actually assigned on the prior exam if it differs.',
+  ]
+  if (prior === '4B') notes.push('Category 4B is not downgraded for stability alone; it becomes category 2 only when proven benign after diagnostic work-up.')
+  if (prior === '4A') notes.push('Airway nodules are excluded from the 4A step-down.')
+  return {
+    category: `Lung-RADS ${category}`,
+    recommendation: LUNG_RADS_MANAGEMENT[category],
+    notes,
+    citation: CITATIONS.lungRads,
+    source: 'ACR Lung-RADS v2022',
+  }
+}
+
 // ---- ACR TI-RADS 2017 -------------------------------------------------------------------------------------
 
 export const TIRADS_FEATURES = {
@@ -167,6 +200,8 @@ export interface TiradsInput {
 
 export function tiradsPoints(input: TiradsInput): number {
   const f = TIRADS_FEATURES
+  // ACR TI-RADS: a spongiform nodule is TR1 (0 points) and no points are added for the other features.
+  if (input.composition === 'spongiform') return 0
   return f.composition[input.composition] + f.echogenicity[input.echogenicity] + f.shape[input.shape] + f.margin[input.margin] +
     [...new Set(input.foci)].reduce((sum, focus) => sum + f.foci[focus], 0)
 }

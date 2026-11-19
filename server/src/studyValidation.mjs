@@ -13,7 +13,14 @@ const int = value => Number.isInteger(value)
 const version = (value,index) => object(value) && value.version === index + 1 && finite(value.signedAt) && typeof value.signedBy === 'string' && textFields(value.sections,sectionKeys) && (value.rich === undefined || object(value.rich) && Object.values(value.rich).every(html => typeof html === 'string')) && (value.patientSnapshot === undefined || patient(value.patientSnapshot)) && (value.signOverrides === undefined || stringArray(value.signOverrides)) && (value.corrects === undefined || int(value.corrects) && value.corrects >= 1 && value.corrects <= index)
 const addendum = value => object(value) && typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 64 && typeof value.text === 'string' && value.text.length <= 20000 && finite(value.createdAt) && typeof value.by === 'string' && (value.signedAt === undefined || finite(value.signedAt)) && (value.version === undefined || int(value.version))
 // A signed report's current text must be its latest signed version: signed text changes only through a new version.
-const reportHistory = value => (value.versions === undefined || Array.isArray(value.versions) && value.versions.length <= 100 && value.versions.every(version)) && (value.addenda === undefined || Array.isArray(value.addenda) && value.addenda.length <= 200 && value.addenda.every(addendum) && new Set(value.addenda.map(a => a.id)).size === value.addenda.length) && (value.correction === undefined || object(value.correction) && int(value.correction.of) && finite(value.correction.startedAt) && typeof value.correction.by === 'string') && (!value.signed || !value.versions?.length || sectionKeys.every(key => value[key] === value.versions[value.versions.length - 1].sections[key]))
+// That covers the rich HTML too (it is what print and share render): the report's rich must equal the latest
+// version's rich, with a missing rich treated as empty on either side.
+const richOf = value => object(value) ? value : {}
+const signedMatchesLatest = value => {
+  const latest = value.versions[value.versions.length - 1]
+  return sectionKeys.every(key => value[key] === latest.sections[key]) && same(richOf(value.rich),richOf(latest.rich))
+}
+const reportHistory = value => (value.versions === undefined || Array.isArray(value.versions) && value.versions.length <= 100 && value.versions.every(version)) && (value.addenda === undefined || Array.isArray(value.addenda) && value.addenda.length <= 200 && value.addenda.every(addendum) && new Set(value.addenda.map(a => a.id)).size === value.addenda.length) && (value.correction === undefined || object(value.correction) && int(value.correction.of) && finite(value.correction.startedAt) && typeof value.correction.by === 'string') && (!value.signed || !value.versions?.length || signedMatchesLatest(value)) && (value.rich === undefined || object(value.rich) && Object.values(value.rich).every(html => html === undefined || typeof html === 'string'))
 const report = value => textFields(value,['technique','comparison','findings','impression','recommendations','radiologist']) && typeof value.signed === 'boolean' && typeof value.generated === 'boolean' && finite(value.updatedAt) && (!value.patientSnapshot || patient(value.patientSnapshot)) && (!value.signOverrides || stringArray(value.signOverrides)) && (!value.amendments || Array.isArray(value.amendments) && value.amendments.every(a => object(a) && finite(a.signedAt) && finite(a.unlockedAt) && typeof a.by === 'string')) && reportHistory(value)
 const finding = value => textFields(value,['id','title','description','severity','location']) && ['critical','significant','moderate','minor','normal'].includes(value.severity) && finite(value.confidence) && (!value.bbox || object(value.bbox) && ['x','y','w','h'].every(key => finite(value.bbox[key]))) && (!value.validationIssues || stringArray(value.validationIssues))
 const analysis = value => textFields(value,['modality','bodyPart','view','imageQuality','impression','urgency','rawText','model']) && Array.isArray(value.findings) && value.findings.every(finding) && ['pertinentNegatives','recommendations','differential'].every(key => stringArray(value[key])) && finite(value.durationMs) && finite(value.createdAt)
@@ -43,9 +50,33 @@ export function expectedRevision(header) {
   if (header === 'new') return 'new'
   return /^[1-9][0-9]{0,8}$/.test(header) ? Number(header) : null
 }
+const STALE = { code: 'stale', error: 'The server copy of this study changed since this browser last saved or opened it. Open the server copy to see the newer version, or choose to overwrite it.' }
+/** Revision-checked study write inside one transaction on `client` (a pg client). Returns { status, body }.
+ *  Two first-time saves of the same new study can race past the empty row lock; the loser's INSERT hits the
+ *  primary key, so it inserts with ON CONFLICT DO NOTHING and reports the conflict as a stale 409, never a 500. */
+export async function writeStudy(client,userId,data,expected) {
+  await client.query('BEGIN')
+  try {
+    const current = (await client.query("SELECT owner_id,revision,payload->'report' AS report FROM studies WHERE id=$1 FOR UPDATE", [data.id])).rows[0]
+    if (current && current.owner_id !== userId) { await client.query('ROLLBACK'); return { status: 404, body: { error: 'Study not found.' } } }
+    const conflict = studyWriteConflict(current ? { revision: current.revision, report: current.report } : null, data, expected)
+    if (conflict) { await client.query('ROLLBACK'); return { status: 409, body: { ...conflict, revision: current.revision } } }
+    const values = [data.id,userId,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed]
+    const result = current
+      ? await client.query('UPDATE studies SET payload=$3,image_count=$4,has_report=$5,report_signed=$6,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING revision', values)
+      : await client.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING RETURNING revision', values)
+    if (!result.rows[0]) { await client.query('ROLLBACK'); return { status: 409, body: STALE } }
+    await client.query('COMMIT')
+    return { status: 200, body: { id: data.id, revision: result.rows[0].revision } }
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    if (error?.code === '23505') return { status: 409, body: STALE }
+    throw error
+  }
+}
 /** Why a study write must be refused (409), or null. `existing` is the saved row ({revision, report}) or null. */
 export function studyWriteConflict(existing,incoming,expected) {
-  if (existing && (expected === 'new' || typeof expected === 'number' && expected !== existing.revision)) return { code: 'stale', error: 'The server copy of this study changed since this browser last saved or opened it. Open the server copy to see the newer version, or choose to overwrite it.' }
+  if (existing && (expected === 'new' || typeof expected === 'number' && expected !== existing.revision)) return STALE
   if (existing && !preservesSignedHistory(existing.report,incoming.report)) return { code: 'signed-history', error: 'Signed report versions and signed addenda on the server cannot be removed or changed. Add an addendum or correct the report instead.' }
   return null
 }

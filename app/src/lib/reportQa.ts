@@ -12,8 +12,9 @@ export function sentences(text: string): string[] {
   return text.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean)
 }
 
-const NEGATION = /\b(no|not|without|negative for|free of|resolved|resolution of|rule out|ruled out|to exclude|excluded|evaluate for|assess for|no evidence of|absence of)\b/i
-const RESOLVED_AFTER = /^\W*(has |have )?(resolved|no longer (seen|visible|present))\b/i
+const NEGATION = /\b(no|not|without|negative for|free of|resolved|resolution of|rule out|ruled out|to rule out|to exclude|excluded|evaluate for|evaluation for|evaluated for|assess for|assessment for|no evidence of|absence of)\b/i
+// Denial after the term: "pneumothorax has resolved", "is no longer visible", "midline shift is absent", "PE negative".
+const RESOLVED_AFTER = /^\W*((is|are|was|were|has|have)( been| now)? )?(resolved|no longer\b|absent|negative|not (seen|visible|present|identified|demonstrated))/i
 
 /** True when the match at `index` is denied in its clause ("No pneumothorax", "pneumothorax has resolved"). */
 export function negatedAt(sentence: string, index: number, length: number): boolean {
@@ -38,7 +39,8 @@ export const CRITICAL_RESULTS: { label: string; match: RegExp }[] = [
   { label: 'Aortic dissection', match: /\b(aortic dissection|dissection of the (thoracic |abdominal )?aorta|intramural ha?ematoma)\b/i },
   { label: 'Ruptured aneurysm', match: /\b(ruptured (abdominal )?(aortic )?aneurysm|aneurysm(al)? rupture|aortic rupture)\b/i },
   { label: 'Pulmonary embolism', match: /\b(pulmonary (arterial |artery )?(embolism|embolus|emboli|thromboembolism)|saddle embol(us|ism))\b/i },
-  { label: 'Pulmonary embolism', match: /\bPE\b/ },
+  // Bare "PE" only as a finding: not "PE protocol CT", "PE study" or "CT PE".
+  { label: 'Pulmonary embolism', match: /(?<!\bCT\s?)\bPE\b(?!\s*(protocol|study|studies|CT|CTA|scan|exam|examination|imaging|phase)\b)/ },
   { label: 'Brain herniation or midline shift', match: /\b((uncal|subfalcine|tonsillar|transtentorial|cerebral|brain) herniation|midline shift)\b/i },
   { label: 'Acute infarct or vessel occlusion', match: /\b(large vessel occlusion|acute (cerebral |territorial |cerebellar )?infarct(ion)?|hyperdense (mca|vessel) sign)\b/i },
   { label: 'Spinal cord compression', match: /\b((spinal )?cord compression|cauda equina compression)\b/i },
@@ -96,6 +98,27 @@ export function uncommunicatedCritical(study: Study, report: ReportDraft | undef
   return [...labels].filter((label) => label && !covered(label, comms))
 }
 
+/** A log entry with the time it was entered in the app (not the communication time, which the reader can edit). */
+export type LoggedComm = CriticalComm & { loggedAt?: number }
+
+/** Latest sign-off time of the report, from its version history or its own signedAt. */
+export function latestSignedAt(report: Pick<ReportDraft, 'versions' | 'signedAt'>): number | null {
+  const times = [...(report.versions ?? []).map((v) => v.signedAt), report.signedAt ?? Number.NaN].filter(Number.isFinite)
+  return times.length ? Math.max(...times) : null
+}
+
+/**
+ * Whether a critical-communication entry may be removed. Never on a signed report; during a correction only entries
+ * logged after the latest signed version, so communication recorded on a signed version stays in the record.
+ * Entries without a logged time (logged before this was tracked) are kept once any version has been signed.
+ */
+export function commRemovable(comm: LoggedComm, report: Pick<ReportDraft, 'signed' | 'versions' | 'signedAt'>): boolean {
+  if (report.signed) return false
+  const signedAt = latestSignedAt(report)
+  if (signedAt == null) return true
+  return typeof comm.loggedAt === 'number' && comm.loggedAt > signedAt
+}
+
 /** One log entry as a line for text exports and print. */
 export function criticalCommLine(c: CriticalComm): string {
   const how = c.method === 'in person' ? 'in person' : c.method === 'other' ? 'by other means' : `by ${c.method}`
@@ -135,18 +158,25 @@ function sideIn(text: string): string {
   return both ? 'bilateral' : /\bleft\b/i.test(text) ? 'left' : /\bright\b/i.test(text) ? 'right' : ''
 }
 
-/** entity → sides it is affirmatively described on. The clause's side wins ("right effusion and left nodule");
- * a clause without one takes the sentence's ("Nodule, left upper lobe."); both sides or "bilateral" count as both. */
+/** entity → sides it is affirmatively described on. The clause's side wins ("right effusion and left nodule").
+ * A comma part without one takes the sentence's ("Nodule, left upper lobe."). Parts joined by "and"/"with" are
+ * separate findings: one without its own side takes no side when a sibling has one, so "Left lower lobe pneumonia
+ * with small effusion" gives the effusion no side. Both sides or "bilateral" count as both. */
 function sidesOf(text: string): SideMap {
   const map: SideMap = new Map()
   for (const sentence of sentences(text)) {
     const sentenceSide = sideIn(sentence)
-    for (const clause of sentence.split(/[,;]|\band\b/i)) {
-      const side = sideIn(clause) || sentenceSide
-      if (!side) continue
-      for (const [name, pattern] of ENTITIES) {
-        if (!affirmed(clause, pattern)) continue
-        map.set(name, (map.get(name) ?? new Set()).add(side))
+    for (const part of sentence.split(/[,;]/)) {
+      const clauses = part.split(/\band\b|\bwith\b/i)
+      const siblingHasSide = clauses.some((clause) => sideIn(clause))
+      const partSide = sideIn(part) || sentenceSide
+      for (const clause of clauses) {
+        const side = sideIn(clause) || (siblingHasSide ? '' : partSide)
+        if (!side) continue
+        for (const [name, pattern] of ENTITIES) {
+          if (!affirmed(clause, pattern)) continue
+          map.set(name, (map.get(name) ?? new Set()).add(side))
+        }
       }
     }
   }

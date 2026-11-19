@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useActiveStudy, useApp, persistedStudies } from '../../store'
 import { SERVER_MODE } from '../../lib/session'
 import { validateTransferredStudy } from '../../lib/studyTransfer'
-import { StudyConflictError, rememberRevision, saveStudyToServer } from '../../lib/studySync'
+import { StudyConflictError, saveStudyToServer, withServerRevision } from '../../lib/studySync'
 import { toast } from './toastStore'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
@@ -69,11 +69,10 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
       const response = await fetch(`/api/studies/${encodeURIComponent(entry.id)}`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       if (!response.ok) throw new Error(response.status === 401 ? 'Your session expired. Sign in again.' : 'This study could not be restored. Refresh the list and try again.')
       const data = await response.json()
-      const study = validateTransferredStudy(data.study)
+      // The local copy now matches this server revision; later saves from this copy are checked against it.
+      const study = withServerRevision(validateTransferredStudy(data.study), data.revision)
       if (study.id !== entry.id) throw new Error('The server returned a different study. Nothing was restored.')
       if (!mounted.current) return
-      // The local copy now matches this server revision; later saves are checked against it.
-      rememberRevision(study.id, data.revision)
       useApp.setState((state) => ({ studies: [study, ...state.studies.filter((item) => item.id !== study.id)] }))
       useApp.getState().selectStudy(study.id); useShell.getState().closeVolume(); useShell.getState().setMobileView('viewer'); setConfirmRestore(null); onClose()
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'This study could not be restored.') }

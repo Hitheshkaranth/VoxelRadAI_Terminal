@@ -148,7 +148,7 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
         ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       },
       insertText: (text) => {
-        if (readOnly) return
+        if (readOnly || !ref.current) return false
         placeCaretAtEndIfOutside()
         // Text before the caret, measured with a range so it works when the caret sits between elements.
         const selection = window.getSelection()
@@ -163,6 +163,7 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
         run('insertText', spaced)
         lastInserted.current = spaced
         emit()
+        return true
       },
       exec: (command) => {
         if (readOnly) return

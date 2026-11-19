@@ -20,6 +20,10 @@ assert.deepEqual(lateralityIssues('Right lower lobe consolidation and left pleur
 assert.equal(lateralityIssues('Right lower lobe consolidation and left pleural effusion.', 'Left lower lobe consolidation.').length, 1)
 assert.deepEqual(lateralityIssues('No left pneumothorax. Right pneumothorax.', 'Right pneumothorax.'), [], 'negated mentions carry no side')
 assert.deepEqual(lateralityIssues('Pneumothorax.', 'Left pneumothorax.'), [], 'no side in findings: nothing to contradict')
+assert.deepEqual(lateralityIssues('Left lower lobe consolidation. Small right pleural effusion.', 'Left lower lobe pneumonia with small effusion.'), [],
+  'a "with" clause without its own side does not take the sentence side')
+assert.equal(lateralityIssues('Left lower lobe consolidation. Small right pleural effusion.', 'Left lower lobe pneumonia with small left effusion.').length, 1)
+assert.equal(lateralityIssues('Right pneumothorax.', 'Pneumothorax, left apex.').length, 1, 'a comma part still takes the sentence side')
 assert.equal(lateralityIssues('Acute subdural haematoma, left frontal convexity.', '1. Acute subdural haematoma, right frontal convexity.').length, 1,
   'the sentence side applies to a clause without one')
 
@@ -56,6 +60,16 @@ assert.deepEqual(criticalMentions('Acute subdural haematoma with 6 mm midline sh
 assert.deepEqual(criticalMentions('Saddle PE.'), ['Pulmonary embolism'])
 assert.deepEqual(criticalMentions('Type, pelvis and recipe pe.'), [], 'lower-case pe is not an abbreviation')
 assert.deepEqual(criticalMentions('Rule out aortic dissection.'), [])
+// Post-negation, indications and narrowed bare PE are not affirmed critical findings.
+assert.deepEqual(criticalMentions('The previously seen pneumothorax is no longer visible.'), [])
+assert.deepEqual(criticalMentions('Evaluation for PE negative.'), [])
+assert.deepEqual(criticalMentions('PE protocol CT.'), [])
+assert.deepEqual(criticalMentions('Midline shift is absent.'), [])
+assert.deepEqual(criticalMentions('Pneumothorax was not seen.'), [])
+assert.deepEqual(criticalMentions('CT to exclude pulmonary embolism.'), [])
+assert.deepEqual(criticalMentions('Indication: CT PE.'), [])
+assert.deepEqual(criticalMentions('Acute PE in the right lower lobe.'), ['Pulmonary embolism'])
+assert.deepEqual(criticalMentions('Pulmonary embolus in the left lower lobe artery.'), ['Pulmonary embolism'])
 assert.deepEqual(criticalMentions('SAH in the basal cisterns.'), ['Intracranial haemorrhage'])
 
 const report = (patch: Partial<ReportDraft>): ReportDraft => ({

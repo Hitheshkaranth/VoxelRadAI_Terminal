@@ -4,7 +4,8 @@ import type { ReportFieldKey } from '../types'
 
 export interface SectionEditorHandle {
   focus: () => void
-  insertText: (text: string) => void
+  /** Insert at the caret; false when nothing was inserted (the section is read-only, e.g. signed). */
+  insertText: (text: string) => boolean
   exec: (command: 'newline' | 'undo' | 'bullet' | 'numbered') => void
   /** Select the next (or previous) template field; false when the section has none. */
   nextField?: (direction?: 1 | -1) => boolean

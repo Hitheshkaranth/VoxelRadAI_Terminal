@@ -40,8 +40,24 @@ export function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
   }
 }
 
-/** Burned In Annotation (0028,0301). Only an explicit YES marks text in the pixels; an absent tag is read as NO, as DICOM viewers do. */
-export const burnedIn = (ds: { string: (tag: string) => string | undefined }) => (ds.string('x00280301') ?? '').trim().toUpperCase() === 'YES'
+/** Burned In Annotation (0028,0301): 'YES', 'NO', or undefined when the tag is missing or holds anything else.
+ *  A missing tag is UNKNOWN, not NO: ultrasound, secondary captures (SC/OT), XA, endoscopy, slide microscopy and
+ *  CR/DX screenshots routinely carry burned-in names and dates without declaring it. */
+export function burnedInTag(ds: { string: (tag: string) => string | undefined }): 'YES' | 'NO' | undefined {
+  const value = (ds.string('x00280301') ?? '').trim().toUpperCase()
+  return value === 'YES' || value === 'NO' ? value : undefined
+}
+/** true = YES, false = explicit NO, undefined = unknown (tag missing). Only an explicit NO lets pixels be shared. */
+export const burnedIn = (ds: { string: (tag: string) => string | undefined }): boolean | undefined => {
+  const tag = burnedInTag(ds)
+  return tag === undefined ? undefined : tag === 'YES'
+}
+
+/** Image fields for the burned-in status; both are omitted when the tag is missing (status unknown). */
+function burnedInFields(ds: dicomParser.DataSet): { burnedInAnnotation?: boolean; burnedInTag?: 'YES' | 'NO' } {
+  const tag = burnedInTag(ds)
+  return tag ? { burnedInAnnotation: tag === 'YES', burnedInTag: tag } : {}
+}
 
 /** No codec is bundled, so point the user at the two lossless ways round it rather than a dead end. */
 export function compressedDicomMessage(transferSyntax: string): string {
@@ -110,7 +126,7 @@ export function createDicomFrameDecoder(bytes: Uint8Array) {
     mono1: photo === 'MONOCHROME1',
   })
   const uid = (tag: string) => { const value = ds.string(tag)?.trim(); return value && value.length <= 64 && /^\d+(?:\.\d+)*$/.test(value) ? value : undefined }
-  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018'), burnedInAnnotation: burnedIn(ds), sourceRows: rows, sourceColumns: cols, ...(spacing ? { pixelSpacing: spacing } : {}) }
+  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018'), ...burnedInFields(ds), sourceRows: rows, sourceColumns: cols, ...(spacing ? { pixelSpacing: spacing } : {}) }
   } }
 }
 

@@ -6,7 +6,7 @@ import { SERVER_MODE } from './session'
 import type { Finding, ReportFieldKey, Study, StudyImage } from '../types'
 import { REPORT_FIELD_KEYS } from '../types'
 import { ageBand, redactKnownIdentifiers } from './deidentify'
-import { parseConsent, pixelsAllowed, redactVolumeText, type TrainingConsent } from './trainingPrivacy'
+import { parseConsent, pixelsAllowed, redactVolumeText, volumePixelsAllowed, type TrainingConsent } from './trainingPrivacy'
 
 let enabledPromise: Promise<boolean> | null = null
 export function captureEnabled(): Promise<boolean> {
@@ -63,7 +63,8 @@ const findingRecord = (f: Finding, study: Study) => ({
 export async function captureAnalysis(study: Study, image: StudyImage) {
   if (!image.analysis || !(await captureEnabled())) return
   const a = image.analysis
-  // Burned-in text cannot be removed reliably, so those images (and rasters of unknown status) go as text only.
+  // Burned-in text cannot be removed reliably: only images whose DICOM tag says NO send pixels. YES, a missing tag
+  // (unknown) and raster uploads go as text only.
   const pixels = pixelsAllowed(image) ? await deidentifiedImage(image) : null
   void post('/api/training/cases', {
     kind: 'analysis', studyId: study.id, imageId: image.id,
@@ -93,16 +94,19 @@ export async function captureSignedReport(study: Study) {
 }
 
 /** Volume slice reads: every slice with findings, plus every 10th clean slice as a negative example.
- *  The volume title and file name are not sent; the job ID is pseudonymised on the server. */
-export async function captureVolumeSlice(job: { id: string; title: string; modality: string; plane: string; count: number }, index: number, dataUrl: string, width: number, height: number, analysis: import('../types').AnalysisResult) {
+ *  The volume title and file name are not sent; the job ID is pseudonymised on the server. Consent is checked
+ *  (captureEnabled) before anything is sent; a DICOM-derived volume without an explicit Burned In Annotation = NO
+ *  on every slice sends findings text only. */
+export async function captureVolumeSlice(job: { id: string; title: string; modality: string; plane: string; count: number; fromDicom?: boolean; burnedInAnnotation?: boolean }, index: number, dataUrl: string, width: number, height: number, analysis: import('../types').AnalysisResult) {
   if (!analysis.findings.length && index % 10 !== 0) return
   if (analysis.truncated || !(await captureEnabled())) return
+  const pixels = volumePixelsAllowed(job)
   void post('/api/training/cases', {
     kind: 'analysis', studyId: job.id, imageId: `${job.plane}-${index}`,
     modality: job.modality, bodyPart: analysis.bodyPart, view: `${job.plane} ${index + 1}/${job.count}`, model: analysis.model, durationMs: analysis.durationMs,
     impression: redactVolumeText(analysis.impression ?? '', job.title),
     findings: analysis.findings.map((f) => ({ title: redactVolumeText(f.title ?? '', job.title), description: redactVolumeText(f.description ?? '', job.title), location: f.location, severity: f.severity, confidence: f.confidence, source: f.source, bbox: f.bbox })),
-    image: dataUrl, width, height,
+    ...(pixels ? { image: dataUrl, width, height } : {}),
   })
 }
 

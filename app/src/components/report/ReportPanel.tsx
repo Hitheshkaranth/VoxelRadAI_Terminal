@@ -44,6 +44,7 @@ import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
 import { offerNextStudy } from '../shell/worklistNav'
 import { DictationBar } from './DictationBar'
+import { undoRegenerate } from '../../lib/reportUndo'
 import { TemplatesSheet } from './TemplatesSheet'
 import { ReportHistory, SignedReportActions } from './ReportIntegrity'
 import { signPatch } from '../../lib/reportVersions'
@@ -328,9 +329,10 @@ export function ReportPanel() {
   }, [study])
 
   const onUndoRegenerate = useCallback(() => {
-    if (!study || !report?.previous) return
-    // Undo restores draft text only; signed history recorded since the snapshot stays.
-    setReport(study.id, { ...report.previous, previous: undefined, versions: report.versions, addenda: report.addenda, correction: report.correction, amendments: report.amendments })
+    const restored = study && report ? undoRegenerate(report) : null
+    if (!study || !restored) return
+    // Undo restores draft text only; history recorded since the snapshot (versions, addenda, critical comms) stays.
+    setReport(study.id, restored)
   }, [study, report, setReport])
 
   const plain = useMemo(() => (study ? reportToPlainText(study, settings) : ''), [study, settings])
@@ -587,7 +589,7 @@ export function ReportPanel() {
           <span className="exam-pick-hint">Type .name + Space for a macro · Tab / F2 next field</span>
         </section>
       ) : null}
-      <DictationBar disabled={signed} labels={sectionLabels} studyId={study.id} />
+      <DictationBar key={study.id} disabled={signed} labels={sectionLabels} studyId={study.id} />
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)
@@ -632,7 +634,7 @@ export function ReportPanel() {
         comms={report.criticalComms ?? []}
         pending={uncommunicatedCritical(study, report)}
         defaultBy={accountSigner ?? report.radiologist}
-        signed={signed}
+        report={{ ...report, signed }}
         onChange={(criticalComms) => setReport(study.id, { criticalComms })}
       />
 

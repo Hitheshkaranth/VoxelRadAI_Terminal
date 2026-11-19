@@ -51,8 +51,8 @@ export function TrainingConsent() {
         />
       </div>
       <div className="sh-about-sub">
-        When on, this server keeps: a copy of each analysed image (only DICOM images that do not declare burned-in text;
-        PNG and JPEG uploads send text only), sampled CT/MRI slices the model read, the AI findings with your accept and
+        When on, this server keeps: a copy of each analysed image (only DICOM images that explicitly declare no burned-in text;
+        a missing declaration, PNG and JPEG uploads send text only), sampled CT/MRI slices the model read, the AI findings with your accept and
         dismiss decisions, the AI draft beside your signed report, and dictation phrases that fail, are undone or are
         corrected, with their audio. Patient name, ID, referring physician, contact details, ID-like numbers and full
         dates are removed from text; only an age band and sex are kept. Text or other identifiers inside image pixels

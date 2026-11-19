@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { buildDicomVolume, dicomBuffersToVolume, groupDicomSeries, mayContainDicomSeries, readDicomSlice, volumeToNrrd } from '../src/lib/dicomSeries.ts'
+import { buildDicomVolume, dicomBuffersToVolume, groupDicomSeries, mayContainDicomSeries, readDicomSlice, seriesBurnedIn, volumeToNrrd } from '../src/lib/dicomSeries.ts'
 import { createDicomFrameDecoder } from '../src/lib/dicomIntake.ts'
+import { ellipseStats, volumeMeasurementText } from '../src/lib/volumeMeasure.ts'
 import { dicomPixelsToGray, isPaddingValue, linearVoi } from '../src/lib/dicomPixels.ts'
 import { decodeNrrd, getSliceGeometry } from '../src/lib/volume.ts'
 
@@ -34,7 +35,7 @@ function compressedSlice(z: number) {
 }
 interface SliceOptions {
   position: number[]; orientation?: number[]; rows?: number; cols?: number; series?: string; modality?: string; description?: string
-  slope?: string; intercept?: string; padding?: number; values: (i: number) => number; frames?: string
+  slope?: string; intercept?: string; padding?: number; values: (i: number) => number; frames?: string; burnedIn?: string
 }
 function slice(o: SliceOptions) {
   const rows = o.rows ?? 4, cols = o.cols ?? 3
@@ -53,6 +54,7 @@ function slice(o: SliceOptions) {
     element(0x0028, 0x0030, text('0.7\\0.8')),
     element(0x0028, 0x0100, us(16)), element(0x0028, 0x0101, us(16)), element(0x0028, 0x0103, us(1)),
     ...(o.padding != null ? [element(0x0028, 0x0120, ss(o.padding))] : []),
+    ...(o.burnedIn != null ? [element(0x0028, 0x0301, text(o.burnedIn))] : []),
     element(0x0028, 0x1050, text('40')), element(0x0028, 0x1051, text('400')),
     element(0x0028, 0x1052, text(o.intercept ?? '-1024')), element(0x0028, 0x1053, text(o.slope ?? '1')),
     element(0x7fe0, 0x0010, pixels),
@@ -76,11 +78,13 @@ assert.deepEqual(volume.spacing, [0.8, 0.7, 2.5])
 assert.deepEqual(volume.origin, [-10, -20, -50])
 assert.deepEqual(volume.directions, [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 assert.ok(volume.data instanceof Int16Array)
-// Sorted along the normal, rescaled to HU; padding filled with the lowest real value (k=0, i=1 → -1023).
-assert.equal(volume.data[0], -1023)
+// Sorted along the normal, rescaled to HU; padding holds a sentinel one below the lowest real value (k=0, i=1 → -1023).
+assert.equal(volume.data[0], -1024)
+assert.equal(built.paddingValue, -1024)
+assert.equal(volume.paddingValue, -1024)
 assert.equal(volume.data[1], 1 - 1024)
 assert.equal(volume.data[5 * 12 + 7], 50 + 7 - 1024)
-assert.deepEqual(volume.range, [-1023, 90 + 11 - 1024])
+assert.deepEqual(volume.range, [-1024, 90 + 11 - 1024])
 assert.deepEqual(built.used, [2, 4, 6, 0, 8, 5, 9, 1, 7, 3])
 assert.deepEqual(built.window, { center: 40, width: 400 })
 assert.equal(built.acquisition.intensityIsHU, true)
@@ -180,5 +184,38 @@ assert.equal(linearVoi(240, 40, 400), 255)
 const decoded = createDicomFrameDecoder(slice({ position: [0, 0, 0], padding: -2000, values: (i) => i === 0 ? -2000 : 0 })).decode(0)
 assert.equal(decoded.gray[0], 0)
 assert.throws(() => createDicomFrameDecoder(compressedSlice(0)), /Orthanc/)
+
+// Padding never enters ROI statistics: an ROI straddling the bore edge measures only real voxels and says how many
+// padding voxels it left out. Two left columns of every slice are padding; the rest is uniform 40 HU tissue.
+const bore = Array.from({ length: 10 }, (_, k) => slice({ position: [0, 0, 2.5 * k], padding: -2000, values: (i) => i % 3 === 0 ? -2000 : 1064 }))
+const boreVolume = buildDicomVolume(bore.map((bytes, index) => readDicomSlice(bytes, index)))
+assert.equal(boreVolume.paddingValue, 39, 'sentinel is one below the lowest real value')
+const edge = ellipseStats(boreVolume.volume, 'axial', 4, { x: 0, y: 0 }, { x: 1, y: 1 })!
+assert.equal(edge.mean, 40, 'padding does not pull the mean down')
+assert.equal(edge.min, 40, 'padding does not become the minimum')
+assert.equal(edge.sd, 0)
+assert.ok(edge.excluded > 0 && edge.count > 0)
+assert.match(volumeMeasurementText(boreVolume.volume, { id: 'r', kind: 'ellipse', plane: 'axial', index: 4, a: { x: 0, y: 0 }, b: { x: 1, y: 1 } }, 'CT'), new RegExp(`mean 40, SD 0, min 40, max 40 HU \\(unverified\\), ${edge.excluded} padding voxels outside the scan excluded`))
+assert.equal(ellipseStats({ ...boreVolume.volume, paddingValue: undefined }, 'axial', 4, { x: 0, y: 0 }, { x: 1, y: 1 })!.min, 39, 'without the sentinel the padding would have been measured')
+assert.equal(ellipseStats(boreVolume.volume, 'axial', 4, { x: 0, y: 0 }, { x: 0.3, y: 0.3 }), null, 'an ROI only on padding is empty')
+// The sentinel travels with the NRRD hand-off as a key/value line that today's reader skips harmlessly.
+const paddedNrrd = new TextDecoder().decode(volumeToNrrd(boreVolume.volume).subarray(0, 600))
+assert.match(paddedNrrd, /\nvoxelrad_padding:=39\n/)
+assert.deepEqual([...(await decodeNrrd(volumeToNrrd(boreVolume.volume).slice().buffer)).data], [...boreVolume.volume.data])
+// No padding in the series: no sentinel, and the range is the real range.
+const unpadded = buildDicomVolume(Array.from({ length: 10 }, (_, k) => slice({ position: [0, 0, 2.5 * k], values: () => 1064 })).map((bytes, index) => readDicomSlice(bytes, index)))
+assert.equal(unpadded.paddingValue, undefined)
+assert.deepEqual(unpadded.volume.range, [40, 40])
+assert.doesNotMatch(new TextDecoder().decode(volumeToNrrd(unpadded.volume).subarray(0, 600)), /voxelrad_padding/)
+
+// Burned In Annotation per series: YES anywhere = burned in; NO on every slice = clean; a missing tag = unknown.
+const series = (tags: (string | undefined)[]) => buildDicomVolume(tags.map((burnedIn, k) => readDicomSlice(slice({ position: [0, 0, 2.5 * k], values: () => 0, burnedIn }), k)))
+assert.equal(readDicomSlice(slice({ position: [0, 0, 0], values: () => 0, burnedIn: 'NO' })).burnedInTag, 'NO')
+assert.equal(readDicomSlice(slice({ position: [0, 0, 0], values: () => 0 })).burnedInTag, undefined)
+assert.equal(series(Array(10).fill('NO')).burnedInAnnotation, false)
+assert.equal(series([...Array(9).fill('NO'), 'YES']).burnedInAnnotation, true)
+assert.equal(series([...Array(9).fill('NO'), undefined]).burnedInAnnotation, undefined, 'one slice without the tag makes the series unknown')
+assert.equal(series(Array(10).fill(undefined)).burnedInAnnotation, undefined)
+assert.equal(seriesBurnedIn([]), undefined)
 
 console.log('DICOM series: geometry parsing, normal sort, spacing/gap/tilt warnings, refusals, HU rescale, padding, NRRD hand-off and routing checks passed')

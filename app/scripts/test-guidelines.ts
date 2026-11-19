@@ -61,11 +61,25 @@ assert.match(lungRads({ type: 'solid', sizeMm: 9, status: 'baseline' }).recommen
 assert.match(lungRads({ type: 'solid', sizeMm: 20, status: 'baseline' }).recommendation, /diagnostic chest CT/)
 assert.match(lungRads({ type: 'solid', sizeMm: 3, status: 'baseline' }).recommendation, /LDCT in 12 months/)
 assert.throws(() => lungRads({ type: 'part-solid', sizeMm: 5, solidMm: 6, status: 'baseline' }), /cannot exceed/)
+// Lung-RADS v2022 stepped management for stable nodules: 3 -> 2, 4A -> 3, 4B stays 4B, 2 stays 2.
+assert.equal(lr({ type: 'solid', sizeMm: 7, status: 'stable' }), 'Lung-RADS 2')
+assert.equal(lr({ type: 'solid', sizeMm: 10, status: 'stable' }), 'Lung-RADS 3')
+assert.equal(lr({ type: 'solid', sizeMm: 20, status: 'stable' }), 'Lung-RADS 4B')
+assert.equal(lr({ type: 'solid', sizeMm: 4, status: 'stable' }), 'Lung-RADS 2')
+assert.equal(lr({ type: 'part-solid', sizeMm: 10, solidMm: 5, status: 'stable' }), 'Lung-RADS 2')
+assert.equal(lr({ type: 'part-solid', sizeMm: 10, solidMm: 7, status: 'stable' }), 'Lung-RADS 3')
+assert.equal(lr({ type: 'ground-glass', sizeMm: 35, status: 'stable' }), 'Lung-RADS 2')
+assert.match(lungRads({ type: 'solid', sizeMm: 10, status: 'stable' }).recommendation, /LDCT in 6 months/)
+assert.ok(lungRads({ type: 'solid', sizeMm: 20, status: 'stable' }).notes.some((n) => /not downgraded/.test(n)))
 
 // ACR TI-RADS: points, levels and size thresholds (FNA / follow-up).
 assert.equal(tiradsPoints({ composition: 'solid or almost completely solid', echogenicity: 'hypoechoic', shape: 'wider-than-tall', margin: 'smooth or ill-defined', foci: ['none or large comet-tail artifacts'] }), 4)
 assert.equal(tiradsPoints({ composition: 'solid or almost completely solid', echogenicity: 'very hypoechoic', shape: 'taller-than-wide', margin: 'extra-thyroidal extension', foci: ['macrocalcifications', 'punctate echogenic foci', 'punctate echogenic foci'] }), 15, 'foci add, duplicates count once')
 assert.equal(tiradsPoints({ composition: 'spongiform', echogenicity: 'anechoic', shape: 'wider-than-tall', margin: 'smooth or ill-defined', foci: [] }), 0)
+// Spongiform is TR1 (0 points) whatever the other features.
+const spongiform = tiradsPoints({ composition: 'spongiform', echogenicity: 'hypoechoic', shape: 'taller-than-wide', margin: 'lobulated or irregular', foci: ['punctate echogenic foci'] })
+assert.equal(spongiform, 0)
+assert.match(tirads(spongiform, 3).category!, /TR1/)
 assert.deepEqual([0, 1, 2, 3, 4, 6, 7, 12].map(tiradsLevel), [1, 2, 2, 3, 4, 4, 5, 5])
 assert.equal(tirads(0, 3).recommendation, 'No FNA')
 assert.equal(tirads(2, 5).recommendation, 'No FNA')

@@ -31,7 +31,7 @@ export function GuidelineHelper({ disabled, onInsert }: { disabled?: boolean; on
   const [type, setType] = useState<NoduleType>('solid')
   const [multiple, setMultiple] = useState(false)
   const [highRisk, setHighRisk] = useState(false)
-  const [status, setStatus] = useState<'baseline' | 'new' | 'growing'>('baseline')
+  const [status, setStatus] = useState<'baseline' | 'new' | 'growing' | 'stable'>('baseline')
   const [juxtapleural, setJuxtapleural] = useState(false)
   const [cancer, setCancer] = useState(false)
   const [fat, setFat] = useState(false)
@@ -92,7 +92,7 @@ export function GuidelineHelper({ disabled, onInsert }: { disabled?: boolean; on
         {kind === 'lungRads' ? <>
           {type === 'part-solid' ? <label>Solid component (mm)<input inputMode="decimal" value={solid} onChange={(e) => setSolid(e.target.value)} /></label> : null}
           <label>Status<select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-            <option value="baseline">Baseline</option><option value="new">New</option><option value="growing">Growing</option>
+            <option value="baseline">Baseline</option><option value="new">New</option><option value="growing">Growing</option><option value="stable">Stable at follow-up</option>
           </select></label>
           {type === 'solid' ? check('Juxtapleural, smooth, oval/lentiform/triangular', juxtapleural, setJuxtapleural) : null}
         </> : null}

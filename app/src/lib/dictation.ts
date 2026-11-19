@@ -160,6 +160,15 @@ const END_SILENCE_MS = 900
 const MAX_CLIP_MS = 25000 // Sarvam's REST limit is 30 s per request.
 const MIN_SPEECH_MS = 250
 
+/**
+ * Wrap a dictation event handler so it only runs while the study it was started for is still the active one.
+ * Transcripts that arrive after the reader moved to another study (or closed the report) are dropped, never
+ * written into the other patient's report.
+ */
+export function guardStudy<A extends unknown[]>(studyId: string, currentStudyId: () => string | null, handler: (...args: A) => void) {
+  return (...args: A) => { if (currentStudyId() === studyId) handler(...args) }
+}
+
 /** Continuous listener. Each pause after speech ends one clip; clips are transcribed in order. */
 export class Dictation {
   private stream?: MediaStream
@@ -295,7 +304,8 @@ export class Dictation {
 
   /** Stop listening. The current utterance is still transcribed unless `discard` is set. */
   async stop(discard = false) {
-    if (this.stopped) return
+    // Already stopped but still finishing a clip: a later discard (e.g. the study changed) drops what is in flight.
+    if (this.stopped) { if (discard) this.abort.abort(); return }
     if (this.timer) window.clearInterval(this.timer)
     if (!discard && (this.speechMs >= MIN_SPEECH_MS || (this.manual && this.held && this.speechMs > 0))) this.cutClip()
     this.held = false

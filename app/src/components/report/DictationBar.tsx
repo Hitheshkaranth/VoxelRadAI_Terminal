@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, HelpCircle, BookText, Undo2, X } from 'lucide-react'
 import { ShellButton } from '../shell/ShellButton'
 import { toast } from '../shell/toastStore'
-import { Dictation, dictationAvailable, type DictationEvent, type DictationState } from '../../lib/dictation'
+import { Dictation, dictationAvailable, guardStudy, type DictationEvent, type DictationState } from '../../lib/dictation'
 import { applyVocabulary, loadVocabulary, saveVocabulary, suggestReplacement, upsertVocabulary, vocabularyKeyterms, type VocabularyEntry } from '../../lib/dictationVocabulary'
 import {
   MODE_LABEL, describeHotkey, hotkeyAllowed, hotkeyId, hotkeyMatches, loadDictationMode, loadHotkey, saveDictationMode, saveHotkey,
@@ -63,7 +63,23 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
   const lastText = useRef('')
 
   useEffect(() => { void dictationAvailable().then(setAvailable) }, [])
-  useEffect(() => () => { void dictation.current?.stop(true) }, [])
+  // Every Dictation started for this study, including ones still finishing a clip after "stop".
+  const instances = useRef(new Set<Dictation>())
+  // The study this bar is reporting on; null once it unmounts. Events for any other study are dropped.
+  const liveStudy = useRef<string | null>(studyId)
+  useEffect(() => {
+    liveStudy.current = studyId
+    const started = instances.current
+    return () => {
+      // Study changed or report closed: discard in-flight transcription so it cannot land in another report.
+      liveStudy.current = null
+      for (const instance of started) void instance.stop(true)
+      started.clear()
+      dictation.current = null
+      setOn(false)
+      setHolding(false)
+    }
+  }, [studyId])
   useEffect(() => { if (disabled) void dictation.current?.stop(true) }, [disabled])
   useEffect(() => {
     if (!chip) return
@@ -179,7 +195,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
       mode: manual ? 'manual' : 'auto',
       keyterms: vocabularyKeyterms(vocabRef.current),
       correct: (text) => applyVocabulary(text, vocabRef.current),
-      onEvent: (event, clip) => eventRef.current(event, clip),
+      onEvent: guardStudy(studyId, () => liveStudy.current, (event: DictationEvent, clip: Blob) => eventRef.current(event, clip)),
       onLevel: setLevel,
       onState: (next, detail) => {
         setState(next)
@@ -188,6 +204,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
       },
     })
     dictation.current = instance
+    instances.current.add(instance)
     setOn(true)
     void instance.start()
     return instance
