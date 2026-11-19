@@ -6,6 +6,12 @@ export interface SectionEditorHandle {
   focus: () => void
   insertText: (text: string) => void
   exec: (command: 'newline' | 'undo' | 'bullet' | 'numbered') => void
+  // Optional voice-command hooks; dictation falls back gracefully when an editor does not provide them.
+  nextField?: () => boolean | void
+  prevField?: () => boolean | void
+  insertMacro?: (name: string) => boolean | void
+  deleteLastSentence?: () => void
+  capitaliseLast?: () => void
 }
 
 /** Which section dictation writes into, and a handle per mounted editor. */

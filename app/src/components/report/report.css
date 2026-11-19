@@ -595,6 +595,25 @@
 .dict-help p { margin: 0 0 6px; }
 .dict-help ul { margin: 0 0 6px; padding-left: 18px; }
 @media (prefers-reduced-motion: reduce) { .dict-meter span { transition: none; } }
+.dict-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.dict-tools { display: flex; gap: 2px; }
+.dict-bar.dict-holding { border-color: color-mix(in srgb, var(--green) 55%, var(--separator)); }
+.dict-chip, .dict-suggest { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 4px 4px 10px; border-radius: 8px; background: var(--bg-control); font-size: 12px; color: var(--label-2); }
+.dict-chip { animation: dict-chip-in 160ms ease-out; }
+.dict-chip-text, .dict-suggest > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dict-chip-text { color: var(--label); }
+@keyframes dict-chip-in { from { opacity: 0; transform: translateY(-2px); } }
+.dict-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px; }
+.dict-settings label, .dict-settings > span { display: inline-flex; align-items: center; gap: 6px; }
+.dict-help kbd { padding: 1px 6px; border: 1px solid var(--separator); border-radius: 4px; font: 11px/1.5 ui-monospace, monospace; color: var(--label); }
+.dict-vocab { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.5; }
+.dict-vocab p { margin: 0 0 6px; }
+.dict-vocab-add { display: flex; align-items: center; gap: 6px; }
+.dict-vocab-add .input { flex: 1; min-width: 0; height: 30px; font-size: 12px; }
+.dict-vocab-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 160px; overflow-y: auto; }
+.dict-vocab-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.dict-vocab-list b { color: var(--label); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .dict-chip { animation: none; } }
 
 /* ---- Template picker and manager ------------------------------------------ */
 .tpl-pick { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 8px; padding: 10px 12px; }

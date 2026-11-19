@@ -6,6 +6,24 @@ const LANGUAGES = /^(?:unknown|[a-z]{2,3}-IN)$/
 const KEYTERMS = ['consolidation', 'pleural effusion', 'pneumothorax', 'cardiomegaly', 'atelectasis', 'hilar', 'mediastinum',
   'costophrenic', 'opacity', 'nodule', 'Hounsfield', 'hyperdense', 'hypodense', 'parenchyma', 'ventricles', 'sulci',
   'infarct', 'haemorrhage', 'fracture', 'impression', 'recommendations', 'bilateral', 'unremarkable']
+// The radiologist's own word list is sent as extra hints; cap it so a request stays a sensible size.
+const MAX_KEYTERMS = 50
+const KEYTERM = /^[\p{L}\p{N}][\p{L}\p{N} .'()/-]{0,59}$/u
+
+function parseKeyterms(value) {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw Object.assign(new Error('Keyterms must be a list of words.'), { status: 400 })
+  const seen = new Set(KEYTERMS.map((t) => t.toLowerCase()))
+  const terms = []
+  for (const item of value) {
+    const term = typeof item === 'string' ? item.trim() : ''
+    if (!KEYTERM.test(term) || seen.has(term.toLowerCase())) continue
+    seen.add(term.toLowerCase())
+    terms.push(term)
+    if (terms.length + KEYTERMS.length >= MAX_KEYTERMS) break
+  }
+  return terms
+}
 
 export function parseSpeechRequest(data) {
   const mime = typeof data.mime === 'string' ? data.mime.split(';')[0].trim().toLowerCase() : ''
@@ -15,17 +33,17 @@ export function parseSpeechRequest(data) {
   if (audio.length < 200) throw Object.assign(new Error('Audio is too short.'), { status: 400 })
   const language = data.language === undefined ? 'en-IN' : data.language
   if (typeof language !== 'string' || !LANGUAGES.test(language)) throw Object.assign(new Error('Unsupported language code.'), { status: 400 })
-  return { audio, mime, language }
+  return { audio, mime, language, keyterms: parseKeyterms(data.keyterms) }
 }
 
-export async function transcribe({ audio, mime, language }, { apiKey, fetchImpl = fetch, endpoint = 'https://api.sarvam.ai/speech-to-text' }) {
+export async function transcribe({ audio, mime, language, keyterms = [] }, { apiKey, fetchImpl = fetch, endpoint = 'https://api.sarvam.ai/speech-to-text' }) {
   if (!apiKey) throw Object.assign(new Error('Dictation is not configured. Set SARVAM_API_KEY on the server.'), { status: 503 })
   const form = new FormData()
   form.append('file', new Blob([audio], { type: mime }), `dictation.${mime.split('/')[1]}`)
   form.append('model', 'saaras:v4')
   form.append('mode', 'transcribe')
   form.append('language_code', language)
-  form.append('keyterms', JSON.stringify(KEYTERMS))
+  form.append('keyterms', JSON.stringify([...keyterms, ...KEYTERMS].slice(0, MAX_KEYTERMS)))
   let response
   try {
     response = await fetchImpl(endpoint, { method: 'POST', headers: { 'api-subscription-key': apiKey }, body: form, signal: AbortSignal.timeout(25000) })

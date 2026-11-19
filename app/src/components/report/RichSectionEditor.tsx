@@ -5,6 +5,8 @@ import { Bold, Heading, Italic, List, ListOrdered, RemoveFormatting, Underline }
 import { htmlToPlain, plainToHtml, sanitizeReportHtml } from '../../lib/richText'
 import type { ReportFieldKey } from '../../types'
 import { useSectionEditors, type SectionEditorHandle } from '../../lib/sectionEditors'
+import { capitaliseWords } from '../../lib/dictation'
+import { deleteLastSentence, replaceLastInserted } from './dictationEditing'
 
 interface Props {
   sectionKey: ReportFieldKey
@@ -101,6 +103,18 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
         if (command === 'bullet') run('insertUnorderedList')
         if (command === 'numbered') run('insertOrderedList')
         emit()
+      },
+      deleteLastSentence: () => {
+        if (readOnly || !ref.current) return
+        placeCaretAtEndIfOutside()
+        lastInserted.current = ''
+        if (deleteLastSentence(ref.current)) emit()
+      },
+      capitaliseLast: () => {
+        if (readOnly) return
+        placeCaretAtEndIfOutside()
+        const next = capitaliseWords(lastInserted.current)
+        if (replaceLastInserted(lastInserted.current, next)) { lastInserted.current = next; emit() }
       },
     }
     useSectionEditors.getState().register(sectionKey, handle)
