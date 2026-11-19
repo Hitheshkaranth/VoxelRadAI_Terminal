@@ -13,6 +13,7 @@ import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
+import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
 import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback } from './trainingCapture.mjs'
 
@@ -113,6 +114,7 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
+const examLibrary = createExamLibrary({ pool, body, send })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
   await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
@@ -262,6 +264,7 @@ export async function handler(req, res) {
       return send(res, saved ? 201 : 200, { saved })
     }
     if (path === '/api/speech/status' && req.method === 'GET') return send(res, 200, { configured: Boolean(process.env.SARVAM_API_KEY), provider: 'sarvam' })
+    if (await examLibrary.route(req, res, user, path)) return
     if (path === '/api/report-templates' && req.method === 'GET') {
       const result = await pool.query('SELECT id,name,content,is_default AS "isDefault",updated_at AS "updatedAt" FROM report_templates WHERE owner_id=$1 ORDER BY is_default DESC,updated_at DESC', [user.id])
       return send(res, 200, { templates: result.rows.map(({ content, ...row }) => ({ ...row, ...content })) })
