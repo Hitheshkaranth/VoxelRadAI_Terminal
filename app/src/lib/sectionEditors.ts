@@ -8,8 +8,13 @@ export interface SectionEditorHandle {
   exec: (command: 'newline' | 'undo' | 'bullet' | 'numbered') => void
   /** Select the next (or previous) template field; false when the section has none. */
   nextField?: (direction?: 1 | -1) => boolean
+  /** Select the previous template field; false when the section has none. */
+  prevField?: () => boolean
   /** Insert a macro's text at the caret; false when no macro has that name. */
   insertMacro?: (name: string) => boolean
+  // Optional voice-command hooks; dictation falls back gracefully when an editor does not provide them.
+  deleteLastSentence?: () => void
+  capitaliseLast?: () => void
 }
 
 /** Which section dictation writes into, and a handle per mounted editor. */

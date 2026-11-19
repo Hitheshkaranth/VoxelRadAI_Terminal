@@ -8,6 +8,8 @@ import { useSectionEditors, type SectionEditorHandle } from '../../lib/sectionEd
 import { domFields, fieldRange, highlightFields, moveToField, selectionOffsets, type DomField } from '../../lib/fieldDom'
 import { expandMacro, macroShortcut } from '../../lib/macros'
 import { allMacros, ensureExamLibrary } from '../../lib/examLibrary'
+import { capitaliseWords } from '../../lib/dictation'
+import { deleteLastSentence, replaceLastInserted } from './dictationEditing'
 
 interface Props {
   sectionKey: ReportFieldKey
@@ -203,6 +205,23 @@ export function RichSectionEditor({ sectionKey, label, icon, emphasis, html, pla
         insertWithFields(spaced)
         lastInserted.current = spaced
         return true
+      },
+      prevField: () => {
+        if (!ref.current) return false
+        if (!ref.current.contains(window.getSelection()?.anchorNode ?? null)) ref.current.focus({ preventScroll: true })
+        return !!goToField(-1)
+      },
+      deleteLastSentence: () => {
+        if (readOnly || !ref.current) return
+        placeCaretAtEndIfOutside()
+        lastInserted.current = ''
+        if (deleteLastSentence(ref.current)) emit()
+      },
+      capitaliseLast: () => {
+        if (readOnly) return
+        placeCaretAtEndIfOutside()
+        const next = capitaliseWords(lastInserted.current)
+        if (replaceLastInserted(lastInserted.current, next)) { lastInserted.current = next; emit() }
       },
     }
     useSectionEditors.getState().register(sectionKey, handle)
