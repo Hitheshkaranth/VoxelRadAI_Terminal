@@ -215,6 +215,22 @@ export interface ReportDraft {
   aiDraft?: Partial<Record<ReportFieldKey, string>>
   /** Report template chosen for this report; falls back to the user's default template. */
   templateId?: string
+  /** Log of critical results communicated to the care team (who, how, when). */
+  criticalComms?: CriticalComm[]
+}
+
+export type CriticalCommMethod = 'phone' | 'in person' | 'message' | 'other'
+
+export interface CriticalComm {
+  id: string
+  finding: string
+  communicatedTo: string
+  role: string
+  method: CriticalCommMethod
+  /** Epoch ms when the result was communicated. */
+  at: number
+  /** Who communicated it. */
+  by: string
 }
 
 export interface Study {

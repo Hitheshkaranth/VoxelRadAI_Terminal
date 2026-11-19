@@ -46,6 +46,9 @@ import { captureSignedReport } from '../../lib/trainingCapture'
 import { DictationBar } from './DictationBar'
 import { TemplatesSheet } from './TemplatesSheet'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import { reportQa, uncommunicatedCritical } from '../../lib/reportQa'
+import { GuidelineHelper } from './GuidelineHelper'
+import { CriticalCommsForm } from './CriticalCommsForm'
 import './report.css'
 
 const REPORT_FIELDS: { key: ReportFieldKey; label: string; icon: ReactNode; emphasis?: boolean }[] = [
@@ -167,6 +170,8 @@ function signChecklist(study: Study, report: ReportDraft, stale: boolean): strin
   const empty = REPORT_FIELDS.filter((f) => !report[f.key].trim()).map((f) => f.label)
   if (empty.length) items.push(`Empty section${empty.length === 1 ? '' : 's'}: ${empty.join(', ')}.`)
   if (stale) items.push('The draft is out of date: images, reviews or patient details changed since drafting.')
+  // Text QA: laterality, sex-specific anatomy, impression coverage, lesion size, critical comms, dictation leftovers.
+  items.push(...reportQa(study, report).map((issue) => issue.message))
   return items
 }
 
@@ -608,8 +613,21 @@ export function ReportPanel() {
             placeholder={`Add ${sectionLabels[field.key].toLowerCase()}… or dictate`}
             onChange={onFieldChange(field.key)}
           />
+          {field.key === 'recommendations' && !signed ? (
+            <GuidelineHelper onInsert={(sentence) => setReport(study.id, {
+              recommendations: report.recommendations.trim() ? `${report.recommendations.trimEnd()}\n${sentence}` : sentence, edited: true,
+            })} />
+          ) : null}
         </div>
       ))}
+
+      <CriticalCommsForm
+        comms={report.criticalComms ?? []}
+        pending={uncommunicatedCritical(study, report)}
+        defaultBy={accountSigner ?? report.radiologist}
+        signed={signed}
+        onChange={(criticalComms) => setReport(study.id, { criticalComms })}
+      />
 
       {!signed ? (
         <section className="rp-card rp-signoff">
