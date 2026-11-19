@@ -1,0 +1,20 @@
+.volume-measure-overlay { position: absolute; top: 50%; left: 50%; pointer-events: none; overflow: visible; transform-origin: center; }
+.volume-measure-overlay line, .volume-measure-overlay ellipse { fill: none; stroke: #ffe066; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.volume-measure-overlay ellipse { fill: rgba(255, 224, 102, .08); }
+.volume-measure-overlay circle { fill: #ffe066; }
+.volume-measure-overlay text { fill: #fff3bf; font-family: var(--font-sans); stroke: #141109; stroke-width: 3px; paint-order: stroke; }
+.volume-measure-draft line, .volume-measure-draft ellipse { stroke-dasharray: 4 3; }
+.volume-stage[data-measuring] { cursor: crosshair; }
+.volume-value-readout { position: absolute; bottom: 10px; left: 12px; font: 11px var(--font-mono); color: #d7dde6; background: #070809c9; padding: 3px 5px; pointer-events: none; }
+.volume-plane-readout { color: var(--label-2); font: 10px var(--font-mono); }
+.volume-measure-panel { display: flex; flex-direction: column; gap: 8px; max-width: 360px; font-size: 12px; }
+.volume-measure-tools, .volume-measure-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.volume-measure-tools [aria-checked='true'] { background: var(--accent-soft); color: var(--accent); }
+.volume-measure-note { margin: 0; color: var(--label-2); line-height: 1.45; }
+.volume-measure-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; max-height: 220px; overflow: auto; }
+.volume-measure-list li { display: flex; align-items: center; gap: 2px; }
+.volume-measure-item { flex: 1; min-width: 0; justify-content: flex-start; text-align: left; white-space: normal; height: auto; font-size: 12px; line-height: 1.35; }
+.volume-slab-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 4px 10px; font-size: 12px; }
+.volume-slab-controls label { display: flex; align-items: center; gap: 5px; }
+.volume-slab-controls input[type='number'] { width: 64px; }
+.volume-slab-controls small { flex-basis: 100%; color: var(--label-2); }
