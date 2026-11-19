@@ -1,4 +1,5 @@
 import { ShellButton } from './ShellButton'
+import { modelServiceName, unreachableMessage } from '../../lib/modelTransport'
 import { analysisEligibility } from '../../lib/modality'
 // OWNER: Agent 5. Toolbar — sidebar toggle, editable title, patient chip, Analyze All, connection pill, inspector toggle.
 import { useRef, useState } from 'react'
@@ -109,12 +110,12 @@ function ConnectionPill({ connection }: { connection: ConnectionState }) {
     <ShellButton
       type="button"
       className={`sh-connection-pill ${cls}`}
-      title="Check the LM Studio connection now"
+      title="Check the model connection now"
       aria-label={`${model}: ${label}. Check connection`}
       disabled={connection === 'checking'}
       onClick={() => {
         void checkNow().then((c) => {
-          if (c !== 'online') toast(c === 'model-missing' ? 'LM Studio is up, but the model is not loaded' : 'LM Studio is not reachable', 'error')
+          if (c !== 'online') toast(c === 'model-missing' ? `${modelServiceName()} is up, but the model is not loaded` : unreachableMessage(), 'error')
         })
       }}
     >

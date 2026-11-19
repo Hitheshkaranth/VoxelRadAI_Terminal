@@ -54,6 +54,78 @@ def cleanup():
             child.kill()
 
 
+STATE_BACKUP_SECONDS = int(os.environ.get("STATE_BACKUP_SECONDS", "300"))
+STATE_FILE = "skanda.sql.gz"
+# Training data has its own dataset sync; leave it out of the state backup.
+STATE_EXCLUDED_DATA = ("training_cases", "training_images", "dictation_events")
+
+
+def start_state_backup(pg_bin, url, restore):
+    """Restore the local database from a private dataset at startup, then back it up when it changes."""
+    token = os.environ.get("HF_TOKEN")
+    if not token or os.environ.get("STATE_BACKUP", "on").lower() in {"off", "false", "0", "no"}:
+        return False
+    import gzip
+    from huggingface_hub import HfApi, hf_hub_download
+    from huggingface_hub.utils import EntryNotFoundError
+    try:
+        api = HfApi(token=token)
+        repo_id = os.environ.get("STATE_BACKUP_REPO") or f"{api.whoami()['name']}/VoxelRad-state"
+        api.create_repo(repo_id, repo_type="dataset", private=True, exist_ok=True)
+        if api.repo_info(repo_id, repo_type="dataset").private is not True:
+            print("State backup dataset is not private; backups disabled.", flush=True)
+            return False
+    except Exception as error:
+        print(f"State backup unavailable: {type(error).__name__}", flush=True)
+        return False
+
+    if restore:
+        try:
+            path = hf_hub_download(repo_id, STATE_FILE, repo_type="dataset", token=token, force_download=True)
+            sql = gzip.decompress(Path(path).read_bytes())
+            result = subprocess.run([str(pg_bin / "psql"), "-q", "-v", "ON_ERROR_STOP=1", "-d", url], input=sql, capture_output=True)
+            print("Restored accounts and saved data from backup." if result.returncode == 0
+                  else f"State restore failed (exit {result.returncode}); starting empty.", flush=True)
+        except EntryNotFoundError:
+            print("No state backup yet; starting empty.", flush=True)
+        except Exception as error:
+            print(f"State restore failed: {type(error).__name__}; starting empty.", flush=True)
+
+    last = {"digest": None}
+
+    def backup():
+        args = [str(pg_bin / "pg_dump"), "--no-owner", "--no-privileges", "-d", url]
+        for table in STATE_EXCLUDED_DATA:
+            args += ["--exclude-table-data", table]
+        dump = subprocess.run(args, capture_output=True, check=True).stdout
+        # Hash without comments and the per-dump random restrict keys, so an unchanged database is not uploaded again.
+        digest = hashlib.sha256(b"\n".join(l for l in dump.splitlines() if not l.startswith((b"--", b"\\restrict", b"\\unrestrict")))).hexdigest()
+        if digest == last["digest"]:
+            return False
+        api.upload_file(path_or_fileobj=gzip.compress(dump), path_in_repo=STATE_FILE, repo_id=repo_id,
+                        repo_type="dataset", commit_message="Back up VoxelRad accounts and saved data")
+        last["digest"] = digest
+        return True
+
+    def loop():
+        while True:
+            time.sleep(STATE_BACKUP_SECONDS)
+            try:
+                backup()
+            except Exception as error:
+                print(f"State backup failed: {type(error).__name__}", flush=True)
+
+    threading.Thread(target=loop, name="state-backup", daemon=True).start()
+
+    def final_backup():
+        try:
+            backup()
+        except Exception:
+            pass
+    atexit.register(final_backup)
+    return True
+
+
 def start_services():
     """Install the application's supported Node version; start its unchanged API."""
     version = "v24.11.0"
@@ -86,18 +158,24 @@ def start_services():
             subprocess.run(pg_user + [str(pg_bin / "initdb"), "-D", str(pg_dir), "-U", "skanda", "-A", "trust"], check=True)
         start(pg_user + [str(pg_bin / "postgres"), "-D", str(pg_dir), "-h", "127.0.0.1", "-k", tempfile.gettempdir()])
         import psycopg
+        created = False
         for _ in range(120):
             try:
                 with psycopg.connect("postgresql://skanda@127.0.0.1/postgres", autocommit=True) as db:
                     if not db.execute("SELECT 1 FROM pg_database WHERE datname='skanda'").fetchone():
                         db.execute("CREATE DATABASE skanda")
+                        created = True
                 break
             except psycopg.OperationalError:
                 time.sleep(1)
         else:
             raise RuntimeError("PostgreSQL did not become ready")
         env["DATABASE_URL"] = "postgresql://skanda@127.0.0.1/skanda"
-        print("Using ephemeral PostgreSQL: server-saved data is lost on Space restart.", flush=True)
+        # Accounts, sessions, templates and saved studies survive restarts through a private backup.
+        if start_state_backup(pg_bin, env["DATABASE_URL"], restore=created):
+            print("Using local PostgreSQL with a private Hugging Face backup.", flush=True)
+        else:
+            print("Using ephemeral PostgreSQL: server-saved data is lost on Space restart.", flush=True)
     subprocess.run([str(node_root / "bin/npm"), "ci", "--omit=dev", "--no-audit", "--no-fund"],
                    cwd=ROOT / "server", env=env, check=True)
     api = start([str(node_root / "bin/node"), "src/index.mjs"], cwd=ROOT / "server", env=env)

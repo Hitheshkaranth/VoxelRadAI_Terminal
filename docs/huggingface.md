@@ -40,7 +40,12 @@ Set these Space secrets:
   the browser. Without it the report panel shows dictation as unavailable.
 - `DATABASE_URL` (recommended): an external PostgreSQL database for durable accounts
   and saved studies. Without it, a loopback PostgreSQL instance is initialized in
-  `/tmp`; **accounts and server-saved studies are lost when the Space restarts**.
+  `/tmp` and backed up every five minutes (and at shutdown) to the private dataset
+  `<owner>/VoxelRad-state`, then restored at the next start. Accounts, sign-in
+  sessions, templates and server-saved studies therefore survive restarts; changes
+  made in the last few minutes before an abrupt stop can be lost. Set
+  `STATE_BACKUP=off` to disable the backup. The backup contains account password
+  hashes and any server-saved study data, so keep the dataset private.
   Browser-local studies retain their existing browser storage behavior.
 
 ### Connect Neon PostgreSQL

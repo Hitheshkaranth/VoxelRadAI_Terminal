@@ -1,4 +1,13 @@
-import { DEMO_ANALYSIS_MESSAGE, DEMO_MODE } from './session.ts'
+import { DEMO_ANALYSIS_MESSAGE, DEMO_MODE, SERVER_MODE, readSession, useSession } from './session.ts'
+
+/** What to call the model server in messages: hosted deployments do not use LM Studio. */
+export const modelServiceName = (): string => (SERVER_MODE ? 'The model service' : 'LM Studio')
+/** Message for an unreachable model server, worded for the deployment. */
+export function unreachableMessage(): string {
+  return SERVER_MODE
+    ? 'The model service is not responding. The server may be starting or restarting; wait a minute, then check again.'
+    : 'LM Studio is not reachable. Start its local server, then check again.'
+}
 import type { ConnectionState, Settings } from '../types.ts'
 import { parseSseLines, type SseParse } from './sse.ts'
 
@@ -91,7 +100,7 @@ export async function chatStream({
     } catch (err) {
       if (timedOut) throw stalled()
       if (isAbort(err) || signal?.aborted) throw abortError()
-      throw new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
+      throw new Error(SERVER_MODE ? 'The model service is not reachable. Check your connection and try again.' : `LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
     }
     if (signal?.aborted) throw abortError()
     if (!res.ok) throw new Error(await readErrorBody(res))
@@ -186,7 +195,8 @@ function abortError(): Error {
 export async function checkConnection(settings: Settings): Promise<ConnectionState> {
   if (DEMO_MODE) return 'offline'
   const ac = new AbortController()
-  const timer = setTimeout(() => ac.abort(), 4000)
+  // The hosted check passes through sign-in and a GPU queue front end, which can be slow while the server is busy.
+  const timer = setTimeout(() => ac.abort(), SERVER_MODE ? 15000 : 4000)
   try {
     // The local LM Studio inventory distinguishes loaded models from downloaded files.
     const localStudio = settings.baseUrl.replace(/\/$/, '') === '/lmstudio/v1'
@@ -198,6 +208,11 @@ export async function checkConnection(settings: Settings): Promise<ConnectionSta
     if (localStudio && (res.status === 404 || res.status === 405)) {
       res = await fetch(endpoint(settings, '/models'), { signal: ac.signal })
       studioInventory = false
+    }
+    if (res.status === 401 && SERVER_MODE) {
+      // An ended session, not an unreachable model: confirm it, then show the sign-in screen.
+      void readSession().then((user) => { if (!user) useSession.getState().setUser(null) }).catch(() => {})
+      return 'offline'
     }
     if (!res.ok) return 'offline'
     const data = await res.json().catch(() => null)

@@ -1,4 +1,5 @@
 import { analysisEligibility } from '../../lib/modality'
+import { modelServiceName, unreachableMessage } from '../../lib/modelTransport'
 import { gpuQuota } from '../../lib/gpuQuota'
 // OWNER: Agent 3 (Findings Inspector). Orchestrates the five analysis states.
 import { useCallback, useState } from 'react'
@@ -49,14 +50,14 @@ const blocked = (c: ConnectionState) => c === 'offline' || c === 'model-missing'
 
 function connectionNote(c: ConnectionState, model: string): string {
   return c === 'offline'
-    ? 'LM Studio is not reachable. Start its local server, then check again.'
-    : `Model “${model}” is not loaded in LM Studio. Load it, then check again.`
+    ? unreachableMessage()
+    : `Model “${model}” is not loaded in ${modelServiceName()}. Load it, then check again.`
 }
 
 async function recheck() {
   const c = await checkNow()
   toast(
-    c === 'online' ? 'Connected to LM Studio' : c === 'model-missing' ? 'LM Studio is up, but the model is not loaded' : 'LM Studio is not reachable',
+    c === 'online' ? `Connected to ${modelServiceName() === 'LM Studio' ? 'LM Studio' : 'the model service'}` : c === 'model-missing' ? `${modelServiceName()} is up, but the model is not loaded` : unreachableMessage(),
     c === 'online' ? 'success' : 'error',
   )
 }
@@ -133,7 +134,7 @@ function errorHint(error: string, settings: Settings): string {
   if (/no output for|stopped responding/i.test(error))
     return 'The model did not produce output in time. Check LM Studio for memory errors before retrying; a connected server may still be unable to run the model.'
   if (/fetch|network|ECONN|refused|offline|reach|connect|timed? ?out|50[234]/i.test(error))
-    return `LM Studio did not respond at ${settings.baseUrl}. Check that its local server is running.`
+    return modelServiceName() === 'LM Studio' ? `LM Studio did not respond at ${settings.baseUrl}. Check that its local server is running.` : unreachableMessage()
   if (/model|not found|404|no models? loaded/i.test(error))
     return `Check that “${settings.model}” is loaded in LM Studio (Settings → model name must match exactly).`
   if (/pars|json|schema|truncat|cut off|finish/i.test(error))
