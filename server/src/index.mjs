@@ -17,6 +17,8 @@ import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
 import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback, warnIfUnkeyed } from './trainingCapture.mjs'
 import { createModelProxy } from './modelProxy.mjs'
+import { createApiKeys, createKeyStore } from './apiKeys.mjs'
+import { createPublicApi, createReadStore } from './publicApi.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -118,9 +120,16 @@ const training = createTrainingCapture({ pool })
 warnIfUnkeyed()
 const examLibrary = createExamLibrary({ pool, body, send })
 const modelProxy = createModelProxy({ pool, body, send })
+const apiKeys = createApiKeys({ store: createKeyStore(pool), body, send, audit, confirmAdmin, apiAvailable: () => modelProxy.enabled })
+// Key-authenticated /api/v1 model API. Async reads run after the 202: Vercel keeps the function alive with waitUntil
+// (bounded by maxDuration); the long-running server simply runs them in-process. API reads are never training-captured.
+// Every authenticated /api/v1 request also fails a few stuck reads and drops their images (readStore.sweep); the
+// sampled cleanup below only deletes expired reads.
+const publicApi = createPublicApi({ readStore: createReadStore(pool), body, send, modelProxy, apiKeys, publicOrigin,
+  schedule: task => { const guarded = task.catch(() => {}); if (waitUntil) waitUntil(guarded) } })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
-  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
+  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup(), publicApi.cleanup()])
 }
 export async function handler(req, res) {
   const requestId = operations.begin(res)
@@ -128,6 +137,9 @@ export async function handler(req, res) {
   try {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
+    // Server-to-server API: Bearer API keys only, before the browser Origin check (no cookies are read, so no CSRF).
+    // Keys are accepted nowhere else; every other route below still requires a signed-in session.
+    if (path === '/api/v1' || path.startsWith('/api/v1/')) return await publicApi.handle(req, res, path)
     if (['POST','PUT','PATCH','DELETE'].includes(req.method) && !allowedOrigin(req.headers.origin, publicOrigin)) return send(res, 403, { error: 'Request origin is not allowed' })
     // Internal durable-storage sync (Hugging Face Space only). Not proxied publicly; also requires a per-process token.
     if (path.startsWith('/internal/training/')) {
@@ -324,6 +336,7 @@ export async function handler(req, res) {
       return send(res, 404, { error: 'Endpoint not found.' })
     }
     if (path.startsWith('/api/admin/') && user.role !== 'admin') return send(res, 403, { error: 'Administrator access is required.' })
+    if (await apiKeys.handleAdmin(req, res, path, user)) return
     if (path === '/api/admin/operations' && req.method === 'GET') {
       await pool.query('SELECT 1')
       return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: oidc.enabled, multiTenant: false, volumeStorage: objectStorage.enabled, durableInferenceJobs: false } })

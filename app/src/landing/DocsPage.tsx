@@ -9,11 +9,13 @@ import './skanda-landing.css'
 import './docs.css'
 
 // Every fact on this page is read from the code that serves Skanda V1 today:
-// lib/medgemma.ts + lib/prompts.ts (request), lib/modelTransport.ts + lib/sse.ts (stream), lib/parse.ts + types.ts (result),
-// lib/skandaSlice.ts (CT/MRI input), deploy/huggingface/space_app.py and server/src/modelProxy.mjs (limits and errors).
+// server/src/publicApi.mjs, apiKeys.mjs and webhook.mjs (the /api/v1 contract, keys, limits, errors, async reads, webhooks),
+// server/src/modelProxy.mjs (upstream errors, timeouts, body size), deploy/huggingface/space_app.py (queue, max_tokens),
+// lib/prompts.ts (request), lib/parse.ts + types.ts (result) and lib/skandaSlice.ts (CT/MRI input).
 
 const [secXray, secCt, secMri, secAll] = V1_CONFIRMATORY.secondsPerRead
 const s = (n: number) => `${n.toFixed(1)} s`
+const BASE = 'https://voxelradai.com/api/v1'
 
 const toc = [
   ['overview', 'Overview'],
@@ -21,14 +23,16 @@ const toc = [
   ['endpoints', 'Endpoints'],
   ['request', 'Request body'],
   ['inputs', 'Supported inputs'],
-  ['streaming', 'Streaming'],
-  ['response', 'Response format'],
+  ['responses', 'JSON or streaming'],
+  ['async', 'Async reads'],
+  ['webhooks', 'Webhooks'],
+  ['response', 'Report format'],
   ['errors', 'Errors'],
-  ['limits', 'Limits and latency'],
+  ['limits', 'Limits and capacity'],
   ['examples', 'Code examples'],
   ['integration', 'Reporting integration'],
   ['privacy', 'Data handling'],
-  ['limitations', 'Limitations'],
+  ['limitations', 'Regulatory status'],
 ] as const
 
 // ---------------------------------------------------------------- code blocks
@@ -114,7 +118,6 @@ const json = (v: unknown) => JSON.stringify(v, null, 2).replace(/\[\s+(-?[\d.]+(
 
 const requestBody = json({
   model: 'skanda-v1',
-  stream: true,
   temperature: 0,
   max_tokens: 1024,
   messages: [
@@ -128,7 +131,6 @@ const requestBody = json({
 
 const ctBody = json({
   model: 'skanda-v1',
-  stream: true,
   messages: [
     { role: 'system', content: 'You are Skanda, …' },
     { role: 'user', content: [
@@ -139,6 +141,16 @@ const ctBody = json({
   skanda: { modality: 'ct', body: 'Liver', pixel_spacing: [0.78, 0.78], composite: true, hu: { b64: 'AAD+/wEA…  (int16 little-endian, row-major)', width: 512, height: 512 } },
 })
 
+const modelsExample = json({ object: 'list', data: [{ id: 'skanda-v1', object: 'model', owned_by: 'voxelrad' }] })
+
+const completionExample = json({
+  id: 'chatcmpl-3f9c…',
+  object: 'chat.completion',
+  created: 1763548800,
+  model: 'skanda-v1',
+  choices: [{ index: 0, message: { role: 'assistant', content: '{"modality": "X-ray", "bodyPart": "Chest", "findings": [ … ], "impression": "…"}' }, finish_reason: 'stop' }],
+})
+
 const sseExample = `: queued
 
 : queued
@@ -147,9 +159,123 @@ data: {"id":"chatcmpl-3f9c…","object":"chat.completion.chunk","model":"skanda-
 
 data: [DONE]`
 
-const sseError = `data: {"error":{"message":"ZeroGPU read timed out after 180 seconds without a completed result. The pending request was cancelled. No findings were generated."}}
+const sseError = `data: {"error":{"message":"ZeroGPU read failed or quota exhausted. ZeroGPU read timed out after 180 seconds without a completed result. The pending request was cancelled. No findings were generated."}}
 
 data: [DONE]`
+
+const streamPython = `with requests.post(f"{API}/chat/completions", json={**body, "stream": True}, stream=True,
+                   timeout=(30, 300), headers={"Authorization": f"Bearer {KEY}"}) as r:
+    r.raise_for_status()
+    text, finish = "", None
+    for line in r.iter_lines(decode_unicode=True):
+        if not line or not line.startswith("data:"):
+            continue                          # blank separators and ": queued" heartbeats
+        data = line[5:].strip()
+        if data == "[DONE]":
+            break
+        event = json.loads(data)
+        if "error" in event:                  # errors after the 200 arrive inside the stream
+            raise RuntimeError(event["error"]["message"])
+        choice = event["choices"][0]
+        text += choice["delta"].get("content") or ""
+        finish = choice.get("finish_reason") or finish`
+
+const readQueued = json({
+  id: '5b0e8c1a-…',
+  object: 'read',
+  status: 'queued',
+  model: 'skanda-v1',
+  created_at: '2026-11-19T09:30:00.000Z',
+  started_at: null,
+  finished_at: null,
+  expires_at: '2026-11-20T09:30:00.000Z',
+  poll_url: `${BASE}/reads/5b0e8c1a-…`,
+  result: null,
+  error: null,
+})
+
+const readDone = json({
+  id: '5b0e8c1a-…',
+  object: 'read',
+  status: 'succeeded',
+  model: 'skanda-v1',
+  created_at: '2026-11-19T09:30:00.000Z',
+  started_at: '2026-11-19T09:30:00.412Z',
+  finished_at: '2026-11-19T09:30:41.906Z',
+  expires_at: '2026-11-20T09:30:00.000Z',
+  poll_url: `${BASE}/reads/5b0e8c1a-…`,
+  result: { content: '{"modality": "X-ray", "findings": [ … ], "impression": "…"}', report: { modality: 'X-ray', findings: ['…'], impression: '…' }, finish_reason: 'stop', model: 'skanda-v1' },
+  error: null,
+})
+
+const asyncCurl = `# Submit: the same body as /chat/completions ("stream" is ignored), plus an optional webhook_url.
+curl -si ${BASE}/reads \\
+  -H "Authorization: Bearer $VOXELRAD_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: batch-0007-image-042" \\
+  --data-binary @read.json
+# → 202 Accepted, Location: ${BASE}/reads/{id}
+
+# Poll until status is succeeded, failed or cancelled
+curl -s ${BASE}/reads/$READ_ID -H "Authorization: Bearer $VOXELRAD_API_KEY"
+
+# Cancel a queued or running read
+curl -s -X DELETE ${BASE}/reads/$READ_ID -H "Authorization: Bearer $VOXELRAD_API_KEY"`
+
+const asyncPython = `import os, time, requests
+
+API = "${BASE}"
+HEADERS = {"Authorization": f"Bearer {os.environ['VOXELRAD_API_KEY']}"}
+
+def submit_and_wait(body: dict, idempotency_key: str) -> dict:
+    r = requests.post(f"{API}/reads", json=body, timeout=30,
+                      headers={**HEADERS, "Idempotency-Key": idempotency_key})
+    r.raise_for_status()                      # 202 for a new read, 200 for a replay of the same request
+    read = r.json()
+    while read["status"] in ("queued", "running"):
+        time.sleep(5)
+        read = requests.get(read["poll_url"], headers=HEADERS, timeout=30).json()
+    if read["status"] != "succeeded":
+        raise RuntimeError(read["error"] or read["status"])
+    return read["result"]["report"]           # None when the content was not valid JSON`
+
+const webhookBody = json({ id: '5b0e8c1a-…', status: 'succeeded', result: { content: '…', report: { findings: ['…'] }, finish_reason: 'stop', model: 'skanda-v1' } })
+
+const verifyPython = `import hashlib, hmac, os, time
+
+SECRET = os.environ["VOXELRAD_WEBHOOK_SECRET"]   # whsec_…, shown once when your key was issued
+TOLERANCE = 300                                   # seconds: refuse deliveries signed more than 5 minutes ago
+
+def verify(raw_body: bytes, timestamp: str, signature: str) -> bool:
+    """Check X-VoxelRad-Timestamp and X-VoxelRad-Signature against the raw body, before parsing it."""
+    if not (timestamp or "").isdigit() or abs(time.time() - int(timestamp)) > TOLERANCE:
+        return False
+    signed = timestamp.encode("ascii") + b"." + raw_body
+    expected = "sha256=" + hmac.new(SECRET.encode("utf-8"), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature or "")
+
+# Flask: verify(request.get_data(), request.headers.get("X-VoxelRad-Timestamp"),
+#               request.headers.get("X-VoxelRad-Signature"))`
+
+const verifyNode = `import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const SECRET = process.env.VOXELRAD_WEBHOOK_SECRET   // whsec_…, shown once when your key was issued
+const TOLERANCE_S = 300                               // refuse deliveries signed more than 5 minutes ago
+
+/** Check X-VoxelRad-Timestamp and X-VoxelRad-Signature against the raw body (a Buffer), before parsing it. */
+export function verify(rawBody, timestamp, signature) {
+  if (!/^\\d+$/.test(timestamp ?? '') || Math.abs(Date.now() / 1000 - Number(timestamp)) > TOLERANCE_S) return false
+  const expected = Buffer.from('sha256=' + createHmac('sha256', SECRET).update(\`\${timestamp}.\`).update(rawBody).digest('hex'))
+  const received = Buffer.from(signature ?? '')
+  return received.length === expected.length && timingSafeEqual(received, expected)
+}
+
+// Express: app.post('/voxelrad', express.raw({ type: 'application/json' }), (req, res) => {
+//   if (!verify(req.body, req.get('X-VoxelRad-Timestamp'), req.get('X-VoxelRad-Signature'))) return res.sendStatus(401)
+//   res.sendStatus(204)   // answer fast with a 2xx; do the work after
+// })`
+
+const errorExample = json({ error: { message: 'Daily limit reached: 20 reads per day for this test key. The limit resets at 00:00 UTC.', type: 'rate_limit_error', code: 'daily_limit_reached' } })
 
 const responseExample = json({
   modality: 'X-ray',
@@ -189,22 +315,19 @@ const measuredExample = json({
 const sysPy = SKANDA_SYSTEM_PROMPT.replace(/"/g, '\\"')
 const sysSh = SKANDA_SYSTEM_PROMPT.replace(/"/g, '\\"')
 
-const curlExample = `# Endpoint and key are issued to your organisation on approval.
-export VOXELRAD_API_URL="https://…/v1"     # provided on approval
-export VOXELRAD_API_KEY="…"                # provided on approval
+const curlExample = `export VOXELRAD_API_KEY="vr_test_…"   # issued to your organisation; keep it server-side
 
-# 1. Check the model is available
-curl -s "$VOXELRAD_API_URL/models" -H "Authorization: Bearer $VOXELRAD_API_KEY"
+# 1. Check the key and the model (does not count as a read)
+curl -s ${BASE}/models -H "Authorization: Bearer $VOXELRAD_API_KEY"
 
-# 2. Read one de-identified chest X-ray (PNG or JPEG)
+# 2. Read one de-identified chest X-ray (PNG or JPEG) and print the report JSON
 IMG=$(base64 < chest.png | tr -d '\\n')
-curl -N "$VOXELRAD_API_URL/chat/completions" \\
+curl -s --max-time 300 ${BASE}/chat/completions \\
   -H "Authorization: Bearer $VOXELRAD_API_KEY" \\
   -H "Content-Type: application/json" \\
-  --data-binary @- <<EOF
+  --data-binary @- <<EOF | jq -r '.choices[0].message.content' | jq .
 {
   "model": "skanda-v1",
-  "stream": true,
   "temperature": 0,
   "max_tokens": 1024,
   "messages": [
@@ -219,8 +342,8 @@ EOF`
 
 const pythonExample = `import base64, json, os, requests
 
-URL = os.environ["VOXELRAD_API_URL"]   # provided on approval
-KEY = os.environ["VOXELRAD_API_KEY"]   # provided on approval
+API = "${BASE}"
+KEY = os.environ["VOXELRAD_API_KEY"]   # vr_live_… or vr_test_…
 
 SYSTEM = "${sysPy}"
 PROMPT = "${SKANDA_ANALYSIS_PROMPT}"
@@ -228,7 +351,7 @@ PROMPT = "${SKANDA_ANALYSIS_PROMPT}"
 def read_chest_xray(path: str) -> dict:
     image = base64.b64encode(open(path, "rb").read()).decode()
     body = {
-        "model": "skanda-v1", "stream": True, "temperature": 0, "max_tokens": 1024,
+        "model": "skanda-v1", "temperature": 0, "max_tokens": 1024,
         "messages": [
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": [
@@ -237,37 +360,28 @@ def read_chest_xray(path: str) -> dict:
             ]},
         ],
     }
-    text, finish = "", None
-    with requests.post(f"{URL}/chat/completions", json=body, stream=True, timeout=(30, 300),
-                       headers={"Authorization": f"Bearer {KEY}"}) as r:
-        if r.status_code != 200:
-            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:300]}")
-        for line in r.iter_lines(decode_unicode=True):
-            if not line or not line.startswith("data:"):
-                continue                      # blank separators and ": queued" heartbeats
-            data = line[5:].strip()
-            if data == "[DONE]":
-                break
-            event = json.loads(data)
-            if "error" in event:              # errors after the 200 arrive inside the stream
-                raise RuntimeError(event["error"]["message"])
-            choice = event["choices"][0]
-            text += choice["delta"].get("content") or ""
-            finish = choice.get("finish_reason") or finish
-    if finish == "length":
+    r = requests.post(f"{API}/chat/completions", json=body, timeout=(30, 300),
+                      headers={"Authorization": f"Bearer {KEY}"})
+    if r.status_code != 200:
+        try: error = r.json()["error"]
+        except Exception: error = {"code": None, "message": r.text[:300]}
+        raise RuntimeError(f"HTTP {r.status_code} {error['code']}: {error['message']}")
+    choice = r.json()["choices"][0]
+    if choice["finish_reason"] == "length":
         raise RuntimeError("Output hit max_tokens; the findings may be incomplete.")
-    return json.loads(text)                   # candidate findings for a radiologist to review`
+    return json.loads(choice["message"]["content"])   # candidate findings for a radiologist to review`
 
 const openaiExample = `import base64, json, os
 from openai import OpenAI
 
-client = OpenAI(base_url=os.environ["VOXELRAD_API_URL"],   # provided on approval
-                api_key=os.environ["VOXELRAD_API_KEY"])
+client = OpenAI(base_url="${BASE}",
+                api_key=os.environ["VOXELRAD_API_KEY"],   # vr_live_… or vr_test_…
+                timeout=300,
+                max_retries=0)    # a retried read can count again; handle 429 and Retry-After yourself
 
 image = base64.b64encode(open("chest.png", "rb").read()).decode()
-stream = client.chat.completions.create(
+completion = client.chat.completions.create(
     model="skanda-v1",
-    stream=True,                       # the hosted endpoint always answers with events
     temperature=0,
     max_tokens=1024,
     messages=[
@@ -277,23 +391,27 @@ stream = client.chat.completions.create(
             {"type": "text", "text": "${SKANDA_ANALYSIS_PROMPT}"},
         ]},
     ],
+    # CT or MRI: extra_body={"skanda": {"modality": "ct", ...}}
 )
-text = "".join(chunk.choices[0].delta.content or "" for chunk in stream if chunk.choices)
-report = json.loads(text)`
+choice = completion.choices[0]
+if choice.finish_reason == "length":
+    raise RuntimeError("Output hit max_tokens; the findings may be incomplete.")
+report = json.loads(choice.message.content)`
 
-const jsExample = `const URL = process.env.VOXELRAD_API_URL   // provided on approval
-const KEY = process.env.VOXELRAD_API_KEY   // provided on approval
+const jsExample = `// Server-side only (Node 18+): the API sends no CORS headers, and the key must never reach a browser.
+const API = '${BASE}'
+const KEY = process.env.VOXELRAD_API_KEY   // vr_live_… or vr_test_…
 
 const SYSTEM = ${JSON.stringify(SKANDA_SYSTEM_PROMPT)}
 const PROMPT = ${JSON.stringify(SKANDA_ANALYSIS_PROMPT)}
 
 export async function readChestXray(pngBase64, signal) {
-  const res = await fetch(\`\${URL}/chat/completions\`, {
+  const res = await fetch(\`\${API}/chat/completions\`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json', Authorization: \`Bearer \${KEY}\` },
     body: JSON.stringify({
-      model: 'skanda-v1', stream: true, temperature: 0, max_tokens: 1024,
+      model: 'skanda-v1', temperature: 0, max_tokens: 1024,
       messages: [
         { role: 'system', content: SYSTEM },
         { role: 'user', content: [
@@ -303,35 +421,11 @@ export async function readChestXray(pngBase64, signal) {
       ],
     }),
   })
-  if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}))
-    throw new Error(\`HTTP \${res.status}: \${error ?? res.statusText}\`)
-  }
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = '', text = '', finish
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\\n')
-    buffer = lines.pop()                      // keep the unfinished line
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue // ": queued" heartbeats, blank lines
-      const data = line.slice(5).trim()
-      if (data === '[DONE]') return finishRead(text, finish)
-      const event = JSON.parse(data)
-      if (event.error) throw new Error(event.error.message ?? event.error)
-      text += event.choices[0].delta.content ?? ''
-      finish = event.choices[0].finish_reason ?? finish
-    }
-  }
-  return finishRead(text, finish)
-}
-
-function finishRead(text, finish) {
-  if (finish === 'length') throw new Error('Output hit max_tokens; findings may be incomplete.')
-  return JSON.parse(text)                     // candidate findings for a radiologist to review
+  const body = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(\`HTTP \${res.status} \${body?.error?.code ?? ''}: \${body?.error?.message ?? res.statusText}\`)
+  const choice = body.choices[0]
+  if (choice.finish_reason === 'length') throw new Error('Output hit max_tokens; findings may be incomplete.')
+  return JSON.parse(choice.message.content)   // candidate findings for a radiologist to review
 }`
 
 const bboxExample = `// box_2d is [ymin, xmin, ymax, xmax] on a 0–1000 grid, origin top-left.
@@ -382,13 +476,13 @@ function Toc() {
 const M = ({ children }: { children: ReactNode }) => <code className="sk-ic">{children}</code>
 
 export function DocsPage() {
-  usePageMeta('Developer docs · Connect Skanda V1 to your software · VoxelRad AI', 'How to call Skanda V1 from your own application or reporting software: access by request, the OpenAI-compatible chat completions format, streamed JSON reports with outlines and measurements, errors, limits and data handling.')
+  usePageMeta('Developer docs · Connect Skanda V1 to your software · VoxelRad AI', 'How to call Skanda V1 at voxelradai.com/api/v1 with an organisation API key: OpenAI-compatible chat completions as plain JSON or a stream, async reads with signed webhooks, errors, limits, data handling and regulatory status.')
   return <Shell>
-    <PageHead eyebrow="Docs" title={<>Connect <em>Skanda V1</em></>} lead="Send a de-identified X-ray, CT or MRI image to Skanda V1 from your own application or reporting software, and get back a structured draft: candidate findings with outlines, measurements and an impression, for a radiologist to review before anything reaches a report.">
+    <PageHead eyebrow="Docs" title={<>Connect <em>Skanda V1</em></>} lead="Send a de-identified X-ray, CT or MRI image to Skanda V1 from your own application or reporting software, and get back a structured draft: candidate findings with outlines, measurements and an impression, for a radiologist to review. For research, evaluation and supervised pilots.">
       <div className="sk-docs-access">
         <div>
-          <h2>API access is by request</h2>
-          <p>There are no self-serve keys. Each organisation is reviewed by hand; on approval we issue an endpoint and credentials during onboarding. Examples on this page use <M>$VOXELRAD_API_URL</M> and <M>$VOXELRAD_API_KEY</M> for those values.</p>
+          <h2>API keys are issued by request</h2>
+          <p>There is no self-serve signup. VoxelRad issues keys per organisation after reviewing each request by hand, starting with a sandbox test key. Examples on this page read the key from <M>$VOXELRAD_API_KEY</M>.</p>
         </div>
         <div className="sk-actions sk-actions-left"><Pill href="/#access">Request API access</Pill><Pill href="/demo" tone="ghost">Try the demo</Pill></div>
       </div>
@@ -398,45 +492,61 @@ export function DocsPage() {
       <Toc />
       <article className="sk-docs-body">
         <Section id="overview" title="Overview">
-          <p>Skanda V1 is the model the hosted VoxelRad workspace serves. It speaks the OpenAI-compatible chat completions format: you send one image and a short prompt, and it answers with a single JSON object describing what it sees, where, and how large it is.</p>
+          <p>Skanda V1 is the model the hosted VoxelRad workspace serves. The API at <M>{BASE}</M> speaks the OpenAI-compatible chat completions format: you send one image and a short prompt, and it answers with a single JSON report describing what it sees, where, and how large it is.</p>
           <p>Treat every finding it returns as a <strong>candidate</strong>. In the workspace a radiologist accepts or dismisses each one, and only reviewed findings are drafted into the report. Your integration should keep the same order of events:</p>
           <ol className="sk-steps sk-docs-flow">
             <li><b>A study arrives.</b> Your system de-identifies the image and renders it to PNG or JPEG.</li>
             <li><b>Skanda reads it.</b> One request per image, or per axial slice for CT and MRI.</li>
             <li><b>A radiologist reviews.</b> Candidates appear with their outlines over the source image, clearly marked as AI output.</li>
-            <li><b>Reviewed text enters the report.</b> Accepted findings become draft wording the radiologist edits and signs.</li>
+            <li><b>Only reviewed text is kept.</b> Accepted findings become draft wording the radiologist edits and signs off within your research or pilot protocol.</li>
           </ol>
+          <div className="sk-docs-note"><b>Not a cleared medical device.</b> Skanda has no regulatory clearance (for example from CDSCO in India), so integrations today are for research, evaluation and supervised pilots under a research agreement. See <a className="sk-inline-link" href="#limitations">regulatory status</a>.</div>
         </Section>
 
-        <Section id="access" title="Access and authentication">
-          <p>Access is granted on request, per organisation. Tell us who you are and what you would integrate in the <a className="sk-inline-link" href="/#access">request form</a>; mention that you want API access. If approved, onboarding provides:</p>
+        <Section id="access" title="Access and keys">
+          <p>Keys are issued per organisation, on request. Tell us who you are and what you would integrate in the <a className="sk-inline-link" href="/#access">request form</a> and mention API access. Every request is reviewed by hand; there is no self-serve signup.</p>
+          <Table caption="Key types" head={['Key', 'What it is for']} rows={[
+            r(<M>vr_test_…</M>, <><b>Sandbox.</b> The same Skanda V1 model with a lower cap, by default 20 reads per UTC day. De-identified images only, for building and testing your integration. Not for clinical use.</>),
+            r(<M>vr_live_…</M>, <><b>Evaluation and pilots.</b> By default 200 reads per UTC day, or the limit agreed for your organisation. Still research use: every finding is reviewed by a radiologist.</>),
+          ]} />
+          <p>Send the key as a bearer token on every request. The API reads nothing else: it ignores cookies, checks no <M>Origin</M>, and sends no CORS headers, so call it from your server, never from a browser.</p>
+          <Code label="authorization header" title="Every request" code={`Authorization: Bearer vr_live_…      # or vr_test_…`} />
           <ul className="sk-docs-list">
-            <li><b>A base URL</b> for your organisation, ending in <M>/v1</M>. Use it as <M>$VOXELRAD_API_URL</M>.</li>
-            <li><b>A credential</b> for that endpoint. Use it as <M>$VOXELRAD_API_KEY</M>; keep it server-side and never ship it in a browser bundle.</li>
-            <li><b>Your read allowance</b>, agreed for your use case (see <a className="sk-inline-link" href="#limits">limits</a>).</li>
+            <li><b>Keys are shown once.</b> VoxelRad stores only a hash. If a key is lost or exposed, ask us to revoke it and issue a new one; a revoked key gets <M>401 key_revoked</M>.</li>
+            <li><b>A key opens only this API.</b> It cannot reach studies, sharing, administration or any other part of the VoxelRad app.</li>
+            <li><b>Async reads are shared within an organisation.</b> Any key of the same organisation can fetch or cancel them.</li>
           </ul>
-          <p>The examples send the credential as a bearer token (<M>Authorization: Bearer …</M>). Your onboarding notes confirm the exact header your endpoint expects.</p>
-          <Code label="environment variables" title="Shell" code={'export VOXELRAD_API_URL="https://…/v1"   # provided on approval\nexport VOXELRAD_API_KEY="…"              # provided on approval'} />
+          <Table caption="Response headers" head={['Header', 'Meaning']} rows={[
+            r(<M>X-VoxelRad-Key-Kind</M>, <><M>live</M> or <M>test</M>, on every authenticated response.</>),
+            r(<M>X-VoxelRad-Reads-Left</M>, 'Reads left today for this key, on responses that counted a read.'),
+            r(<M>X-Request-ID</M>, 'Quote it when you contact us about a request.'),
+            r(<M>Cache-Control</M>, <><M>no-store</M>.</>),
+            r(<M>Retry-After</M>, <>On <M>429 daily_limit_reached</M>: seconds until 00:00 UTC, at least 60.</>),
+          ]} />
         </Section>
 
         <Section id="endpoints" title="Endpoints">
+          <p>Base URL <M>{BASE}</M>.</p>
           <div className="sk-docs-endpoints">
-            <div><span className="sk-method">GET</span><M>/v1/models</M><p>Lists the served model. Use it as a health check before a batch of reads.</p></div>
-            <div><span className="sk-method sk-method-post">POST</span><M>/v1/chat/completions</M><p>Reads one image and streams back the JSON report.</p></div>
+            <div><span className="sk-method">GET</span><M>/models</M><p>Lists the served model, live from the GPU service. A health check; it does not count as a read.</p></div>
+            <div><span className="sk-method sk-method-post">POST</span><M>/chat/completions</M><p>Reads one image and returns the report as a <M>chat.completion</M>, or as a stream with <M>stream: true</M>.</p></div>
+            <div><span className="sk-method sk-method-post">POST</span><M>/reads</M><p>Queues the same read and returns <M>202</M> at once. Poll it, or get a signed webhook.</p></div>
+            <div><span className="sk-method">GET</span><M>/reads/{'{id}'}</M><p>Status and result of an async read, for 24 hours after it was submitted.</p></div>
+            <div><span className="sk-method sk-method-delete">DELETE</span><M>/reads/{'{id}'}</M><p>Cancels a queued or running read.</p></div>
           </div>
-          <Code label="GET /v1/models response" title="GET /v1/models · 200" code={json({ data: [{ id: 'skanda-v1', state: 'loaded' }] })} />
+          <Code label="GET /models response" title="GET /models · 200" code={modelsExample} />
         </Section>
 
         <Section id="request" title="Request body">
           <p>A read is one system message and one user message holding the image and the instruction. These are the exact prompts the VoxelRad workspace sends for a chest X-ray; Skanda was trained on them, so keep them unchanged.</p>
-          <Code label="chest X-ray request body" title="POST /v1/chat/completions · chest X-ray" code={requestBody} />
+          <Code label="chest X-ray request body" title="POST /chat/completions · chest X-ray" code={requestBody} />
           <Table caption="Request fields" head={['Field', 'Value']} rows={[
-            r(<M>model</M>, <><M>"skanda-v1"</M>. Any other model name is refused.</>),
-            r(<M>messages</M>, <>System prompt, then a user message with one <M>image_url</M> part (a base64 data URL) and one <M>text</M> part.</>),
-            r(<M>stream</M>, <>Send <M>true</M>. The hosted endpoint always answers with server-sent events (see <a className="sk-inline-link" href="#streaming">streaming</a>).</>),
-            r(<M>temperature</M>, <>Optional, defaults to 0. Use 0 for repeatable reads.</>),
-            r(<M>max_tokens</M>, <>Optional, defaults to 1024 and is capped at 1536. A read that hits it ends with <M>finish_reason: "length"</M>.</>),
-            r(<M>skanda</M>, <>CT and MRI only: modality, body part, pixel spacing and, for CT, raw HU. See <a className="sk-inline-link" href="#inputs">supported inputs</a>.</>),
+            r(<M>model</M>, <>Required: <M>"skanda-v1"</M>. A missing model is <M>400 missing_model</M>; any other name is <M>404 model_not_found</M>.</>),
+            r(<M>messages</M>, <>1 to 64 messages with role <M>system</M>, <M>user</M> or <M>assistant</M>. Content is a string or a list of <M>text</M> and <M>image_url</M> parts; send the image as a base64 <M>data:image/…</M> URL.</>),
+            r(<M>stream</M>, <>Optional, default <M>false</M>: one JSON response. <M>true</M> returns server-sent events (see <a className="sk-inline-link" href="#responses">JSON or streaming</a>).</>),
+            r(<M>temperature</M>, <>Optional, 0 to 2. Use 0 for repeatable reads.</>),
+            r(<M>max_tokens</M>, <>Optional whole number from 1 to 1536, the model service’s cap; a larger value is <M>400 invalid_max_tokens</M>. The default is 1024. A read that hits it ends with <M>finish_reason: "length"</M>.</>),
+            r(<M>skanda</M>, <>CT and MRI only: modality, body part, pixel spacing and, for CT, raw HU. See <a className="sk-inline-link" href="#inputs">supported inputs</a>. Other fields are passed to the model service as they are.</>),
           ]} />
           <details className="sk-docs-more">
             <summary>Full system prompt<ChevronDown size={15} aria-hidden="true" /></summary>
@@ -452,7 +562,7 @@ export function DocsPage() {
             r('Whole volumes', <>Sent slice by slice: one request per axial slice. There is no single-request volume upload.</>),
           ]} />
           <p>For CT and MRI the text prompt names the body region and modality, for example <M>Read this axial slice of an abdomen CT.</M>, followed by the same reply instruction as the X-ray prompt.</p>
-          <Code label="CT slice request body" title="POST /v1/chat/completions · CT slice (abridged)" code={ctBody} />
+          <Code label="CT slice request body" title="POST /chat/completions · CT slice (abridged)" code={ctBody} />
           <Table caption="The skanda field" head={['Key', 'Meaning']} rows={[
             r(<M>modality</M>, <><M>"ct"</M> or <M>"mri"</M>.</>),
             r(<M>body</M>, <>Body part, such as <M>"Liver"</M> or <M>"Brain"</M>. Never a file or patient name.</>),
@@ -463,16 +573,60 @@ export function DocsPage() {
           ]} />
         </Section>
 
-        <Section id="streaming" title="Streaming">
-          <p>Reads queue for a GPU, so the response is a <M>text/event-stream</M>. While the read waits, the stream carries <M>: queued</M> comment lines; ignore them, they keep the connection alive. The whole JSON report then arrives in a single <M>delta.content</M> chunk with its <M>finish_reason</M>, followed by <M>data: [DONE]</M>.</p>
+        <Section id="responses" title="JSON or streaming">
+          <h3>Plain JSON (<M>stream: false</M>, the default)</h3>
+          <p>Recommended for most reporting software. The connection stays open while the read queues for a GPU and runs, then you get one ordinary <M>chat.completion</M>. The report is the JSON string in <M>choices[0].message.content</M>. There is no <M>usage</M> field, because the model service does not report token counts.</p>
+          <Code label="chat.completion response" title="200 · application/json" code={completionExample} />
+          <h3>Streaming (<M>stream: true</M>)</h3>
+          <p>Returns <M>text/event-stream</M>. While the read waits, the stream carries <M>: queued</M> comment lines that keep the connection alive; ignore them. The whole report then arrives in a single <M>delta.content</M> chunk with its <M>finish_reason</M>, followed by <M>data: [DONE]</M>.</p>
           <Code label="successful event stream" title="200 · text/event-stream" code={sseExample} />
-          <p>The hosted endpoint does not return a plain JSON body, even with <M>stream: false</M>. If your client wants one response, read the stream to the end and concatenate the content; the examples below do this in a few lines. Standard OpenAI SDKs work with <M>stream=True</M>.</p>
-          <div className="sk-docs-note"><b>Errors can arrive after the 200.</b> Once the stream has started, a failure is sent as an <M>error</M> event and then <M>[DONE]</M>. Check every event for <M>error</M>, and treat a stream that ends without <M>[DONE]</M> or a finish reason as failed.</div>
+          <div className="sk-docs-note"><b>Errors can arrive after the 200.</b> Once a stream has started, a failure is sent as a <M>data: {'{"error":{"message":…}}'}</M> event and then <M>[DONE]</M>. Check every event for <M>error</M>, and treat a stream that ends without <M>[DONE]</M> or a finish reason as failed. With <M>stream: false</M> the same failures come back as normal HTTP errors.</div>
           <Code label="error inside the stream" title="200 · error event" code={sseError} />
+          <Code label="reading the stream in Python" title="Python · reading the stream" code={streamPython} />
         </Section>
 
-        <Section id="response" title="Response format">
-          <p>The content of the stream is one JSON object. The example below is <strong>illustrative</strong>: modelled on a recorded chest X-ray read, shortened, with the mask data cut.</p>
+        <Section id="async" title="Async reads">
+          <p>For batch work, or when your client cannot hold a connection for minutes, submit the read and collect it later. <M>POST /reads</M> takes the same body as chat completions (<M>stream</M> is ignored) plus an optional <M>webhook_url</M>, counts the read, and returns <M>202</M> with a Read object and a <M>Location</M> header pointing at its <M>poll_url</M>.</p>
+          <Code label="202 Read object" title="POST /reads · 202" code={readQueued} />
+          <p>Poll <M>GET /reads/{'{id}'}</M> every few seconds until <M>status</M> is <M>succeeded</M>, <M>failed</M> or <M>cancelled</M>. A finished read carries <M>result.content</M> (the report string) and <M>result.report</M> (the same report parsed, or <M>null</M> if it was not valid JSON). A failed read carries an <M>error</M> in the same shape as HTTP errors.</p>
+          <Code label="succeeded Read object" title="GET /reads/{id} · 200 · illustrative" code={readDone} />
+          <ul className="sk-docs-list">
+            <li><b>Statuses.</b> <M>queued</M> → <M>running</M> → <M>succeeded</M> or <M>failed</M>; <M>cancelled</M> if you cancel it.</li>
+            <li><b>Time limit.</b> The read itself is cut off at 230 seconds. A read that stays queued or running for more than 10 minutes is marked <M>failed</M> with code <M>interrupted</M> and its images are deleted; submit it again.</li>
+            <li><b>Cancelling.</b> <M>DELETE /reads/{'{id}'}</M> cancels a queued or running read and returns it with <M>status: "cancelled"</M>. A finished read returns <M>409 read_not_cancellable</M>.</li>
+            <li><b>Expiry.</b> A read is available for 24 hours after submission (<M>expires_at</M>), then returns <M>404</M>.</li>
+          </ul>
+          <h3>Idempotency</h3>
+          <p>Send an <M>Idempotency-Key</M> header (1 to 255 visible ASCII characters, your own reference, never a patient identifier) so a retried submit does not queue a second read. Keys are scoped to your API key for 24 hours. The same key with the same body returns the original read with <M>200</M> and <M>Idempotent-Replayed: true</M>; the same key with a different body is <M>422 idempotency_conflict</M>. When two submits race on one key, the second gets the first one’s read back the same way; in the rare case that read cannot be found yet it gets <M>409 idempotency_conflict</M>, so retry it.</p>
+          <CodeTabs label="Async read examples" tabs={[
+            { name: 'curl', code: asyncCurl },
+            { name: 'Python', code: asyncPython },
+          ]} />
+        </Section>
+
+        <Section id="webhooks" title="Webhooks">
+          <p>Add <M>webhook_url</M> to <M>POST /reads</M> and VoxelRad posts the outcome there when the read ends as <M>succeeded</M> or <M>failed</M>. A cancelled read sends no webhook. The URL must be <M>https</M>, at most 2048 characters, without credentials, and resolve only to public addresses. If webhooks are not enabled on the service, or your key was issued before they were and so came without a webhook secret, the request is refused with <M>400 webhooks_not_configured</M>; ask us for a new key to use webhooks.</p>
+          <Code label="webhook body" title="POST {webhook_url} · illustrative" code={webhookBody} />
+          <Table caption="Webhook request headers" head={['Header', 'Value']} rows={[
+            r(<M>Content-Type</M>, <M>application/json</M>),
+            r(<M>User-Agent</M>, <M>VoxelRad-Webhooks/1</M>),
+            r(<M>X-VoxelRad-Timestamp</M>, 'When this attempt was signed, in Unix seconds. Each retry carries a new one.'),
+            r(<M>X-VoxelRad-Signature</M>, <><M>sha256=</M> + the hex HMAC-SHA256 of <M>{'{timestamp}.{raw body}'}</M> (the timestamp header, a dot, then the raw body bytes), keyed with your webhook secret (the whole <M>whsec_…</M> string as UTF-8).</>),
+          ]} />
+          <p>Your webhook secret is shown once, with your key, when webhooks are enabled. Verify the timestamp and signature on the raw body before parsing it, and refuse a timestamp more than 5 minutes from your clock:</p>
+          <CodeTabs label="Webhook signature verification" tabs={[
+            { name: 'Python', code: verifyPython },
+            { name: 'Node', code: verifyNode },
+          ]} />
+          <ul className="sk-docs-list">
+            <li><b>Delivery.</b> Any 2xx counts as delivered. Otherwise it is retried up to three more times after 1, 2 and 4 seconds, with a 10-second timeout each, and no attempt starts later than about 290 seconds after you submitted the read. Redirects are not followed.</li>
+            <li><b>Keep polling as a fallback.</b> Delivery results are not stored, so a webhook that never arrives cannot be replayed. If none arrives, fetch the read.</li>
+            <li><b>Replays.</b> The timestamp is signed, so a captured delivery cannot be replayed once your 5-minute window has passed. Within it, de-duplicate by read <M>id</M>, and confirm with <M>GET /reads/{'{id}'}</M> before acting on a webhook.</li>
+          </ul>
+        </Section>
+
+        <Section id="response" title="Report format">
+          <p>The content of a read is one JSON object. The example below is <strong>illustrative</strong>: modelled on a recorded chest X-ray read, shortened, with the mask data cut.</p>
           <Code label="illustrative report JSON" title="Report JSON · illustrative" code={responseExample} />
           <Table caption="Report fields" head={['Field', 'Meaning']} rows={[
             r(<M>findings</M>, 'Candidate findings, described below. An empty list means nothing abnormal was drawn on this image, not that the whole study is normal.'),
@@ -498,44 +652,50 @@ export function DocsPage() {
         </Section>
 
         <Section id="errors" title="Errors">
-          <p>Before the stream starts, errors are plain HTTP responses with a JSON body <M>{'{ "error": "…" }'}</M>.</p>
-          <Table caption="HTTP errors" head={['Status', 'When', 'What to do']} rows={[
-            r('401', 'Missing, expired or wrong credentials.', 'Check the key. Do not retry blindly.'),
-            r('405', 'Wrong method: GET on chat completions or POST on models.', 'Fix the request.'),
-            r('413', 'The body is too large. The hosted endpoint accepts up to 4 MB per request.', 'Downscale or re-encode the image.'),
-            r('429', <>Your daily read allowance is used up (sent with <M>Retry-After</M> in seconds, resetting at 00:00 UTC), the shared GPU quota is exhausted, or the service is busy.</>, <>Wait for <M>Retry-After</M>, or a minute for “busy”.</>),
-            r('502', 'The gateway could not authenticate with or find the model service.', 'Contact us; this is our configuration.'),
-            r('503', 'The model service is starting, unavailable or its queue is full.', 'Retry after a minute with backoff.'),
-            r('504', 'The read did not start within 60 seconds, usually while the GPU wakes up.', 'Retry after a minute.'),
+          <p>Every error, at every status, has the OpenAI-style shape <M>{'{"error":{"message","type","code"}}'}</M>. Branch on <M>code</M>; show <M>message</M> to people.</p>
+          <Code label="error body" title="429 · application/json" code={errorExample} />
+          <Table caption="HTTP errors" head={['Status', 'Codes', 'What to do']} rows={[
+            r('400', <><M>missing_model</M> <M>invalid_messages</M> <M>invalid_stream</M> <M>invalid_max_tokens</M> <M>invalid_temperature</M> <M>unsupported_parameter</M> <M>invalid_json</M> <M>invalid_webhook_url</M> <M>webhooks_not_configured</M> <M>invalid_idempotency_key</M></>, 'Fix the request; the message names the field.'),
+            r('401', <><M>missing_api_key</M> <M>invalid_api_key</M> <M>key_revoked</M>, sent with <M>WWW-Authenticate: Bearer</M>.</>, 'Check the key. Do not retry.'),
+            r('404', <><M>model_not_found</M> <M>not_found</M></>, <>Use <M>skanda-v1</M>; check the path or read id. Expired reads are <M>not_found</M>.</>),
+            r('405', <><M>method_not_allowed</M>, with an <M>Allow</M> header.</>, 'Fix the method.'),
+            r('409', <><M>read_not_cancellable</M> <M>idempotency_conflict</M></>, 'The read already finished; or retry a racing submit.'),
+            r('413', <M>request_too_large</M>, 'The hosted API accepts up to 4 MB per request. Downscale or re-encode the image.'),
+            r('422', <M>idempotency_conflict</M>, 'This Idempotency-Key was used with a different body. Use a new key.'),
+            r('429', <><M>daily_limit_reached</M> (with <M>Retry-After</M>), <M>upstream_quota_exceeded</M>, <M>upstream_busy</M></>, <>Wait for <M>Retry-After</M>; for the shared GPU quota or “busy”, retry after a minute with backoff.</>),
+            r('502', <><M>upstream_error</M> <M>stream_error</M> <M>upstream_misconfigured</M></>, 'The read failed or the connection dropped; no findings were generated. Misconfigured is ours: contact us.'),
+            r('503', <><M>model_unavailable</M> <M>reads_disabled</M> <M>internal_error</M></>, 'The model service is starting or unavailable. Retry after a minute.'),
+            r('504', <><M>upstream_timeout</M> <M>read_timeout</M></>, 'The read did not start within 60 seconds, or ran past the time limit. Retry after a minute.'),
           ]} />
-          <p>Inside a started stream, an <M>error</M> event reports these:</p>
-          <ul className="sk-docs-list">
-            <li><b>Read timeout.</b> A read without a result after 180 seconds in the GPU queue is cancelled, and no findings are generated.</li>
-            <li><b>Hosting limit.</b> A stream still open after 280 seconds is cancelled.</li>
-            <li><b>Quota or read failure.</b> “ZeroGPU read failed or quota exhausted”, with the upstream detail.</li>
-            <li><b>Dropped connection.</b> The upstream connection ended before the read completed.</li>
-          </ul>
-          <p>If a read returns text that does not parse as JSON, the workspace asks once more with the first reply in context, at temperature 0, for the same read as one valid JSON object. Closing the connection cancels a queued read, so cancel reads you no longer need.</p>
+          <p>If the model service refuses a request for its own reasons, its 4xx status is passed on with code <M>upstream_rejected</M>. Inside a started stream the same failures arrive as an <M>error</M> event: the GPU-queue timeout at 180 seconds, the 280-second hosting limit, a quota failure, or a dropped connection.</p>
+          <p>If a read returns text that does not parse as JSON, the workspace asks once more with the first reply in context, at temperature 0, for the same read as one valid JSON object. Closing the connection cancels a synchronous read that is still queued, so cancel reads you no longer need.</p>
         </Section>
 
-        <Section id="limits" title="Limits and latency">
+        <Section id="limits" title="Limits and capacity">
           <div className="sk-docs-stats" aria-label="Seconds per read on the confirmatory set">
             <div><b>{s(secAll)}</b><span>per read, all 2,584 confirmatory cases</span></div>
             <div><b>{s(secXray)}</b><span>chest X-ray</span></div>
             <div><b>{s(secCt)}</b><span>CT slice</span></div>
             <div><b>{s(secMri)}</b><span>MRI slice</span></div>
           </div>
+          <Table caption="Limits" head={['Limit', 'Value']} rows={[
+            r('Reads per key', <>By default 200 per UTC day for a live key and 20 for a test key, or the limit set for your key. The count resets at 00:00 UTC; over it you get <M>429 daily_limit_reached</M> with <M>Retry-After</M>.</>),
+            r('What counts', <>A read counts when <M>/chat/completions</M> starts it or <M>/reads</M> accepts it. It is given back if the model service never started it, refused it for GPU quota (reported as an HTTP error, with <M>stream: false</M> or on an async read; a quota error inside a <M>stream: true</M> response still counts), or you cancelled it while still queued. Failures during a read, timeouts, dropped connections and cancelling a running read still count. <M>GET /models</M> never counts.</>),
+            r('Request size', '4 MB per request on the hosted API.'),
+            r('Messages', '1 to 64 per request.'),
+            r('Time', 'A synchronous read is cut off at 280 seconds, an async read at 230 seconds. A read that has not started within 60 seconds fails with 504.'),
+          ]} />
           <ul className="sk-docs-list">
             <li><b>Read time</b> above is model time per image on the pre-registered confirmatory set. Queue wait and GPU start-up come on top; a cold start can take a minute.</li>
-            <li><b>One read at a time</b> per GPU worker, with up to eight waiting. Send reads in sequence; parallel requests only queue.</li>
+            <li><b>Shared GPU queue.</b> Hosted reads share one GPU queue: one read at a time per GPU worker, with up to eight waiting. Send reads in sequence; parallel requests only queue. There is no per-key concurrency limit, so pace your own batches.</li>
             <li><b>Volumes add up.</b> A 100-slice CT sent slice by slice is roughly 100 × {s(secCt)} of model time, before queueing.</li>
-            <li><b>Read allowance.</b> The hosted workspace allows 40 reads per user per UTC day by default. API allowances are agreed per organisation at onboarding.</li>
-            <li><b>No uptime commitment.</b> This is a research service on shared GPU capacity, with no service-level agreement.</li>
+            <li><b>Dedicated capacity</b> is available on the Enterprise and on-premise plan; see <a className="sk-inline-link" href="/#pricing">pricing</a>.</li>
+            <li><b>No uptime commitment.</b> The hosted API is a research service on shared GPU capacity, with no service-level agreement.</li>
           </ul>
         </Section>
 
         <Section id="examples" title="Code examples">
-          <p>The same chest X-ray read in each language. Each collects the stream, stops on an error event, and refuses a truncated answer.</p>
+          <p>The same chest X-ray read in each language, with <M>stream: false</M>. The Python and JavaScript examples check the HTTP status, read the error code, and refuse a truncated answer; the curl example only prints the report.</p>
           <CodeTabs label="Code examples" tabs={[
             { name: 'curl', code: curlExample },
             { name: 'Python', code: pythonExample },
@@ -546,25 +706,26 @@ export function DocsPage() {
 
         <Section id="integration" title="Reporting integration">
           <div className="sk-docs-patterns">
-            <div><h3>Call on study arrival</h3><p>When a study lands in your worklist, queue a background read per image or axial slice, so candidates are ready when the radiologist opens it. Keep a reference from each read to its image and slice index, and store the model name with the result.</p></div>
+            <div><h3>Call on study arrival</h3><p>When a study lands in your worklist, submit an async read per image or axial slice, so candidates are ready when the radiologist opens it. Keep a reference from each read to its image and slice index, and store the model name with the result.</p></div>
             <div><h3>Show candidates with outlines</h3><p>Draw <M>mask_png</M> over the source image at the same size, and let the reader toggle it off to see the pixels underneath. Label it as AI output with its severity, and show the measured numbers next to the finding they came from.</p></div>
-            <div><h3>Insert reviewed text only</h3><p>Let the radiologist accept, edit or dismiss each candidate. Draft report wording from accepted findings only, and keep it editable until they sign. Never file model text as a finished report.</p></div>
+            <div><h3>Insert reviewed text only</h3><p>Let the radiologist accept, edit or dismiss each candidate. Draft wording from accepted findings only, and keep it editable until they sign off. Never file model text as a finished report.</p></div>
           </div>
         </Section>
 
         <Section id="privacy" title="Data handling and privacy">
           <ul className="sk-docs-list">
+            <li><b>API reads are not used for model training.</b> The API does not capture images or reports for training. Any model-improvement use would need a separate, signed data agreement with your organisation.</li>
             <li><b>De-identify before sending.</b> Send pixels only: render DICOM to PNG or JPEG so header fields stay behind, and check for names or IDs burned into the image.</li>
-            <li><b>No PHI in prompts.</b> Use the fixed prompts on this page. Do not add names, MRNs, dates of birth or accession numbers to any text field, and do not name images after patients.</li>
-            <li><b>What we receive</b> is what you send: the image, the prompt and the <M>skanda</M> field. The service runs on Vercel and a Hugging Face GPU Space.</li>
-            <li><b>Retention.</b> Agree retention and logging terms for your organisation during onboarding, and see the <a className="sk-inline-link" href="/privacy">privacy notice</a>. Don’t send anything you could not share for research use.</li>
+            <li><b>No PHI in prompts or headers.</b> Use the fixed prompts on this page. Do not put names, MRNs, dates of birth or accession numbers in any text field, <M>Idempotency-Key</M> or webhook URL, and do not name images after patients.</li>
+            <li><b>What is kept.</b> A synchronous read is not stored by the API. An async read keeps its request until it finishes, or for at most 10 minutes if it never does; then the image data is removed and only the model, text prompt, <M>max_tokens</M> and <M>temperature</M> stay with the result, which is no longer available 24 hours after submission and is then deleted by routine cleanup.</li>
+            <li><b>Where it runs.</b> The service runs on Vercel and a Hugging Face GPU Space. Agree retention and logging terms for your organisation when your key is issued, and see the <a className="sk-inline-link" href="/privacy">privacy notice</a>. Don’t send anything you could not share for research use.</li>
           </ul>
         </Section>
 
-        <Section id="limitations" title="Limitations">
+        <Section id="limitations" title="Regulatory status and limitations">
           <div className="sk-docs-note sk-docs-warn">
             <p><b>{MODEL_DISCLAIMER}</b></p>
-            <p>Skanda V1 is review-support software for research and evaluation. Every result needs a qualified radiologist’s review before any clinical use.</p>
+            <p>Skanda is not a cleared medical device. Clinical use requires regulatory clearance, such as from CDSCO in India, and that clearance has not been obtained. Until it is, integrations are for research, evaluation and supervised pilots under a research agreement, and a radiologist reviews every finding.</p>
           </div>
           <ul className="sk-docs-list">
             <li>Chest X-ray outlines: on the confirmatory set, Skanda V1 outlined 23.5% of findings at mask IoU ≥ 0.3.</li>
@@ -577,7 +738,7 @@ export function DocsPage() {
 
         <div className="sk-docs-end">
           <h2>Ready to <em>connect</em>?</h2>
-          <p>Tell us what you would integrate. We reply to every request by email, and send the endpoint and credentials on approval.</p>
+          <p>Tell us what you would integrate. We reply to every request by email, and start approved organisations on a sandbox test key.</p>
           <div className="sk-actions sk-actions-left"><Pill href="/#access">Request API access</Pill><Pill href="/benchmarks" tone="ghost">See benchmarks</Pill></div>
         </div>
       </article>

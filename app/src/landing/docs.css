@@ -75,6 +75,9 @@
 .sk-docs-endpoints .sk-ic{font-size:13.5px;padding:3px 8px}
 .sk-method{display:inline-grid;place-items:center;height:24px;padding:0 9px;border-radius:6px;background:#0f2a1c;color:#7ee0b5;font:600 11px/1 ui-monospace,'SF Mono',Menlo,monospace;letter-spacing:.06em}
 .sk-method-post{background:#06213f;color:var(--sk-blue-2)}
+.sk-method-delete{background:#2a1306;color:var(--sk-amber)}
+.sk-docs-endpoints>div:last-child:nth-child(odd){grid-column:1/-1}
+.sk-docs-section h3 .sk-ic{font-size:.8em}
 .sk-docs-note{display:block;padding:18px 20px;border:1px solid #2b6fd666;border-radius:12px;background:#050d18;color:#d6d6d6;font-size:14.5px;line-height:1.65}
 .sk-docs-note b{color:#fff;font-weight:600}
 .sk-docs-note p{font-size:14.5px}

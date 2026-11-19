@@ -2,36 +2,36 @@ import { ArrowRight, Check, FileSignature, Info, ScanSearch, Upload } from 'luci
 import { Pill, Reveal } from './ui'
 
 const steps = [
-  { icon: Upload, title: 'Send the image', text: 'Your application posts an X-ray, CT slice or MRI image to Skanda V1 through an OpenAI-compatible chat completions request.' },
+  { icon: Upload, title: 'Send the image', text: 'Your application posts a de-identified X-ray, CT slice or MRI image to Skanda V1 with an organisation API key, as an OpenAI-compatible chat completions request.' },
   { icon: ScanSearch, title: 'Get candidate findings', text: 'Skanda returns candidate findings with boxes and outlines, measurements where it can make them, and a draft report.' },
-  { icon: FileSignature, title: 'The radiologist decides', text: 'Candidates appear in your reporting software, where the radiologist reviews, edits or rejects each one and signs the report.' },
+  { icon: FileSignature, title: 'The radiologist decides', text: 'Candidates appear in your reporting software, where a radiologist reviews, edits or rejects each one. Nothing is filed without that review.' },
 ] as const
 
 const tiers = [
   {
     name: 'Research & evaluation',
     who: 'For researchers and teams deciding whether Skanda fits their work.',
-    points: ['Hosted workspace access', 'A limited number of reads per day', 'Research use with de-identified images'],
+    points: ['Hosted workspace access', 'A sandbox API key: a test key with about 20 reads a day', 'De-identified images only, for research use'],
   },
   {
-    name: 'Clinic & teleradiology',
-    who: 'For practices and teleradiology groups integrating Skanda’s drafts into their reporting software.',
-    points: ['API access for your reporting software', 'Higher read volume, agreed with you', 'Onboarding support for your integration', 'Hosted workspace for your readers'],
+    name: 'Pilots & integration',
+    who: 'For practices and teleradiology groups evaluating Skanda’s drafts inside their own reporting software.',
+    points: ['API access for evaluation and supervised pilots, under a research agreement', 'Higher daily read limits, agreed with you', 'Onboarding support for your integration', 'Hosted workspace for your readers'],
     featured: true,
   },
   {
     name: 'Enterprise & on-premise',
-    who: 'For organisations that need the model to run on their own hardware or a dedicated GPU.',
-    points: ['Dedicated GPU or on-premise deployment', 'Volume set to your workload', 'Private weights deployment, discussed case by case', 'Integration planning with your team'],
+    who: 'For organisations that need the model on a dedicated GPU or their own hardware.',
+    points: ['Dedicated GPU capacity or on-premise deployment', 'Served in bf16: about 68 GB of GPU memory while reading, 93 GB at peak', 'Tested on NVIDIA DGX Spark; other GPUs sized on request', 'A signed data agreement for any model-improvement use'],
   },
 ] as const
 
-/** API access and placeholder plans. No prices are published; every plan routes to the access request form. */
+/** API access and plans. No prices are published; every plan routes to the access request form. Hardware figures come from docs/reading-with-skanda.md. */
 export function Pricing() {
   return <section className="sk-wrap sk-api" id="pricing" aria-labelledby="pricing-title">
     <Reveal className="sk-api-head">
       <h2 id="pricing-title" className="sk-h2">Skanda in <em>your software</em></h2>
-      <p>Connect Skanda V1 to your own application or radiology reporting software through an OpenAI-compatible API. It drafts; your radiologists review and sign, in the tools they already use.</p>
+      <p>Connect Skanda V1 to your own application or radiology reporting software through an OpenAI-compatible API, for research, evaluation and supervised pilots. It drafts; your radiologists review every finding, in the tools they already use.</p>
     </Reveal>
 
     <Reveal className="sk-api-flow">
@@ -54,6 +54,6 @@ export function Pricing() {
       </div>
     </article>)}</Reveal>
 
-    <p className="sk-api-note"><Info size={14} aria-hidden="true" /><span>VoxelRad AI and Skanda are research and review-support software, not a medical device. Every finding is a candidate until a radiologist reviews it. Pricing and availability are on request.</span></p>
+    <p className="sk-api-note"><Info size={14} aria-hidden="true" /><span>VoxelRad AI and Skanda are research and review-support software, not a cleared medical device. Clinical use needs regulatory clearance, such as from CDSCO in India, which has not been obtained; until then, API access is for research, evaluation and supervised pilots under a research agreement, and a radiologist reviews every finding. API reads are not used for model training. Pricing and availability are on request.</span></p>
   </section>
 }

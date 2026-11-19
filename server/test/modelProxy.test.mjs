@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { once } from 'node:events'
-import { createModelProxy, dailyReadLimit, modelRoute, upstreamBase, upstreamError, userPseudonym } from '../src/modelProxy.mjs'
+import { collectStream, createModelProxy, dailyReadLimit, modelRoute, streamFailure, upstreamBase, upstreamError, userPseudonym } from '../src/modelProxy.mjs'
 
 const SECRET = 's'.repeat(40)
 function send(res, status, body, extra = {}) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...extra }); res.end(JSON.stringify(body)) }
@@ -165,4 +165,17 @@ test('proxies the model list and rejects wrong methods', async () => {
     assert.equal((await fetch(`${ctx.url}/lmstudio/v1/chat/completions`)).status, 405)
     assert.equal([...ctx.pool.counts.values()].length, 0, 'model checks do not use reads')
   } finally { ctx.close() }
+})
+
+test('buffers a whole SSE read across chunk boundaries and classifies in-stream errors', async () => {
+  const chunks = async function* (...parts) { for (const part of parts) yield new TextEncoder().encode(part) }
+  const event = JSON.stringify({ id: 'chatcmpl-1', model: 'skanda-v1', choices: [{ delta: { content: '{"findings":[]}' }, finish_reason: 'stop' }] })
+  const ok = await collectStream(chunks(': queued\n\n: que', 'ued\n\ndata: ' + event.slice(0, 20), event.slice(20) + '\n\ndata: [DONE]\n\n'))
+  assert.deepEqual(ok, { ok: true, content: '{"findings":[]}', finish: 'stop', model: 'skanda-v1', id: 'chatcmpl-1', usage: null })
+  const dropped = await collectStream(chunks(': queued\n\n'))
+  assert.equal(dropped.ok, false)
+  assert.equal(dropped.code, 'stream_error')
+  assert.equal(streamFailure('ZeroGPU read failed or quota exhausted. null').status, 502, 'the Space prefix alone is not a quota refusal')
+  assert.equal(streamFailure('ZeroGPU read failed or quota exhausted. You have exceeded your GPU quota').refund, true)
+  assert.equal(streamFailure('ZeroGPU read timed out after 180 seconds').status, 504)
 })

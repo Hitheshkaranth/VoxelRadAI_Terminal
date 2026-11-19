@@ -84,7 +84,7 @@ export function Reads() {
       <div className="sk-streaks" aria-hidden="true"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">{[0, 1, 2, 3, 4, 5, 6].map((i) => <path key={i} d={`M-100 ${120 + i * 110} C 300 ${-80 + i * 160}, 700 ${980 - i * 120}, 1700 ${160 + i * 95}`} />)}</svg></div>
       <h2 id="reads-title">Our <em>Reads</em></h2>
       <div className="sk-helix">{reads.map((r) => <a key={r.image} className="sk-helix-card" href="#top"><img src={img(r.image)} alt={`${r.title}, ${r.meta}`} loading="lazy" /><span><b>{r.title}</b><small>{r.meta}</small></span></a>)}</div>
-      <p className="sk-reads-note">Chest and BraTS overlays are recorded model output. CT and MR head overlays are illustrative.</p>
+      <p className="sk-reads-note">Chest X-ray and SOOP stroke MRI overlays are recorded model output. CT and MR head overlays are illustrative.</p>
     </div>
   </section>
 }
@@ -103,14 +103,14 @@ export function Capabilities() {
 
 /* ------------------------------------------------------------------ 10 · approach bento */
 export function Approach() {
-  // Recorded Skanda findings: cxd_69598 (segmentation-outline capture) and BraTS axial 75 (skanda-mri capture)
-  const findings = [['Consolidation', 'L mid zone', 'cxr-69598-skanda', 'Outline'], ['Pleural effusion', 'R mid zone', 'cxr-69598-skanda', 'Outline'], ['Consolidation', 'R upper zone', 'cxr-69598', 'Outline'], ['Enhancing tumour', 'L hemisphere', 'mri-brats-75-skanda', 'Outline'], ['Peritumoral oedema', 'L hemisphere', 'mri-brats-skanda-boxes', 'Box']]
+  // Recorded Skanda findings: cxd_69598 (segmentation-outline capture) and SOOP sub-47 axial 16 (skanda-demo.mp4 capture)
+  const findings = [['Consolidation', 'L mid zone', 'cxr-69598-skanda', 'Outline'], ['Pleural effusion', 'R mid zone', 'cxr-69598-skanda', 'Outline'], ['Consolidation', 'R upper zone', 'cxr-69598', 'Outline'], ['Acute ischaemic infarct', 'L cerebral hemisphere', 'soop-47-16-skanda', 'Box']]
   return <section className="sk-wrap sk-approach" id="approach" aria-labelledby="approach-title">
     <Reveal><h2 id="approach-title" className="sk-h2">Our Approach</h2></Reveal>
     <div className="sk-bento">
       <Reveal as="article" className="sk-card sk-card-wide">
         <h3>Source First</h3><p>Every read begins with <b>the original image</b>, kept beside each finding so the evidence is never more than a glance away.</p>
-        <div className="sk-collage">{['mr-coronal', 'ct-axial-brain', 'cxr-69598', 'mri-brats-75', 'xr-skull-lateral'].map((n, i) => <img key={n} src={img(n)} alt="" style={{ ['--i' as string]: i }} loading="lazy" />)}</div>
+        <div className="sk-collage">{['mr-coronal', 'ct-axial-brain', 'cxr-69598', 'soop-47-16', 'xr-skull-lateral'].map((n, i) => <img key={n} src={img(n)} alt="" style={{ ['--i' as string]: i }} loading="lazy" />)}</div>
       </Reveal>
       <Reveal as="article" className="sk-card sk-card-planet">
         <h3>Grounded Findings</h3><p>Each finding arrives with <b>a box and an outline</b>, drawn where Skanda saw it.</p>
@@ -122,7 +122,7 @@ export function Approach() {
       </Reveal>
       <Reveal as="article" className="sk-card sk-card-wide sk-card-stars">
         <h3>Reference-Checked</h3><p>Outlines are scored against <b>radiologist reference masks</b>, slice by slice, before anyone relies on them.</p>
-        <div className="sk-triptych"><div className="sk-chrome"><i /><i /><i /><span>BraTS glioma · axial 75 · T1 post-contrast</span><b>Outline Dice 0.84</b></div><figure><img src={img('mri-brats-75')} alt="BraTS axial 75 source" loading="lazy" /><figcaption>Source</figcaption></figure><figure><img src={img('mri-brats-75-reference')} alt="Radiologist reference mask" loading="lazy" /><figcaption>Reference</figcaption><span className="sk-cursor sk-cursor-a">Radiologist</span></figure><figure><img src={img('mri-brats-75-skanda')} alt="Skanda outline and box" loading="lazy" /><figcaption>Skanda V1</figcaption><span className="sk-cursor sk-cursor-b">Skanda</span></figure></div>
+        <div className="sk-triptych"><div className="sk-chrome"><i /><i /><i /><span>SOOP sub-47 · DWI axial 16</span><b>Recorded read</b></div><figure><img src={img('soop-47-16')} alt="SOOP sub-47 diffusion-weighted axial 16, source" loading="lazy" /><figcaption>Source</figcaption></figure><figure><img src={img('soop-47-16-reference')} alt="SOOP manual acute-lesion mask" loading="lazy" /><figcaption>Reference</figcaption><span className="sk-cursor sk-cursor-a">Radiologist</span></figure><figure><img src={img('soop-47-16-skanda')} alt="Skanda V1 candidate box recorded in the app" loading="lazy" /><figcaption>Skanda V1</figcaption><span className="sk-cursor sk-cursor-b">Skanda</span></figure></div>
       </Reveal>
       <Reveal as="article" className="sk-card sk-card-wide sk-card-silk">
         <h3>Report-Ready</h3><p>Findings flow into <b>a structured draft</b> you can edit, approve and export after review.</p>

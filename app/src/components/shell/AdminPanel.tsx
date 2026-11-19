@@ -9,6 +9,7 @@ import { OperationsPanel } from './OperationsPanel'
 import { AdminReviews } from './AdminReviews'
 import { AdminAudit } from './AdminAudit'
 import { AdminAccessRequests } from './AdminAccessRequests'
+import { AdminApiKeys } from './AdminApiKeys'
 import './admin.css'
 
 export function AdminPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -52,6 +53,7 @@ function AdminPanelContent({ onClose }: { onClose: () => void }) {
       {remote && <AdminAccessRequests />}
       {remote && <AdminAudit />}
       {remote && <AdminUsers />}
+      {remote && <AdminApiKeys />}
     </>}
   </Sheet>
 }

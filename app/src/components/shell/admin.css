@@ -51,3 +51,16 @@
 .admin-audit .admin-refresh { flex-direction: row; align-items: center; }
 .admin-filters a.btn, .admin-filters select.input { box-sizing: border-box; height: 40px; }
 .admin-audit .admin-table { min-width: 560px; } .admin-review-table { min-width: 520px; }
+.admin-api-keys .admin-key-table { min-width: 720px; }
+.admin-key-table td { vertical-align: middle; }
+.admin-key-table tr.admin-muted td { color: var(--label-2); }
+.admin-key-reveal { margin: 16px 0; padding: 16px; border: 1px solid var(--accent); border-radius: 8px; background: var(--bg-grouped); display: grid; gap: 14px; }
+.admin-key-reveal h4 { margin: 0; font-size: 14px; color: var(--label); }
+.admin-key-reveal .admin-note { margin: 0; }
+.admin-key-reveal label { display: grid; gap: 8px; font-size: 13px; color: var(--label); }
+.admin-key-reveal small { color: var(--label-2); line-height: 1.5; }
+.admin-secret { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-secret code { flex: 1 1 280px; min-width: 0; padding: 10px; border: 1px solid var(--separator-strong); border-radius: 8px; background: var(--bg-content); font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.admin-secret .btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; }
+.admin-secret svg { width: 16px; height: 16px; }
+.admin-key-reveal > .btn { justify-self: start; }

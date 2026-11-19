@@ -38,5 +38,25 @@
     "Independent security and accessibility review",
     "Representative load testing, monitoring and operational ownership",
     "Model service availability and independent clinical validation"
-  ]
+  ],
+  "publicApi": {
+    "serverToServerModelApi": "implemented-disabled-until-model-bridge-configured",
+    "routes": [
+      "GET /api/v1/models",
+      "POST /api/v1/chat/completions",
+      "POST /api/v1/reads",
+      "GET /api/v1/reads/{id}",
+      "DELETE /api/v1/reads/{id}"
+    ],
+    "authentication": "administrator-issued-bearer-keys-stored-as-sha256-hashes",
+    "keyScope": "model-routes-only",
+    "readIsolation": "organisation-record-id",
+    "idempotencyScope": "api-key",
+    "perKeyDailyReadCaps": true,
+    "maxTokens": 1536,
+    "signedTimestampedWebhooks": "implemented-disabled-until-API_WEBHOOK_SECRET",
+    "trainingCaptureOfApiReads": false,
+    "durableReadQueue": false,
+    "webhookDeliveryLog": false
+  }
 }

@@ -140,31 +140,30 @@
     "overlay": "RECORDED - TorchXRayVision evidence map and MedGemma boxes captured in the app"
   },
   {
-    "file": "mri-brats-skanda-boxes.webp",
-    "source": "docs/screenshots/skanda-mri.png",
-    "dataset": "BraTS glioma case BraTS-GLI-00000-000, axial 75",
-    "kind": "Brain MRI T1c + Skanda candidate regions",
-    "overlay": "RECORDED - Skanda server run 3"
-  },
-  {
-    "file": "mri-brats-75.webp",
-    "source": "docs/validation/skanda-rerun/mri-75.png",
-    "dataset": "BraTS glioma, axial 75",
-    "kind": "Brain MRI T1c axial 75",
+    "file": "soop-47-16.webp",
+    "dataset": "SOOP acute stroke MRI (OpenNeuro ds004889)",
+    "licence": "CC0",
+    "case": "sub-47 (Skanda held-out test split), DWI axial 16 / 26",
+    "source": "OpenNeuro ds004889: sub-47_rec-TRACE_dwi.nii.gz, sub-47_space-TRACE_desc-lesionAcute_mask.nii.gz",
+    "kind": "Brain MRI DWI (b1000 trace) axial 16",
     "overlay": null
   },
   {
-    "file": "mri-brats-75-reference.webp",
-    "source": "docs/validation/skanda-rerun/mri-75.png",
-    "dataset": "BraTS glioma, axial 75",
+    "file": "soop-47-16-reference.webp",
+    "dataset": "SOOP acute stroke MRI (OpenNeuro ds004889)",
+    "licence": "CC0",
+    "case": "sub-47 (Skanda held-out test split), DWI axial 16 / 26",
+    "source": "OpenNeuro ds004889: sub-47_rec-TRACE_dwi.nii.gz, sub-47_space-TRACE_desc-lesionAcute_mask.nii.gz",
     "kind": "Radiologist reference mask",
-    "overlay": "REFERENCE - BraTS label"
+    "overlay": "REFERENCE - SOOP manual acute-lesion mask (desc-lesionAcute)"
   },
   {
-    "file": "mri-brats-75-skanda.webp",
-    "source": "docs/validation/skanda-rerun/mri-75.png",
-    "dataset": "BraTS glioma, axial 75",
-    "kind": "Skanda outline and box",
-    "overlay": "RECORDED - Skanda server run 3, Dice in results.json"
+    "file": "soop-47-16-skanda.webp",
+    "dataset": "SOOP acute stroke MRI (OpenNeuro ds004889)",
+    "licence": "CC0",
+    "case": "sub-47 (Skanda held-out test split), DWI axial 16 / 26",
+    "source": "docs/skanda-demo.mp4, frame at 192 s",
+    "kind": "Skanda candidate box, captured in the app",
+    "overlay": "RECORDED - Skanda V1 (model skanda-v1, run 4b) read in the app, 6 Nov 2026; box only, no Dice recorded"
   }
 ]

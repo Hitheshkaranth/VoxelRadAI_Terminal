@@ -1,22 +1,31 @@
 """Build the landing page's imaging assets from material already in this repository.
 
-Sources (no new data is downloaded):
+Sources:
   * app/public/samples/ct-brain.nrrd, mr-head.nrrd  - public Slicer teaching volumes (see samples/provenance.json)
-  * docs/screenshots/*.png, docs/validation/skanda-rerun/*.png - captures of real model output recorded in this app
+  * docs/screenshots/*.png - captures of real model output recorded in this app
+  * docs/skanda-demo.mp4 - the recorded Skanda V1 read of SOOP sub-47 (DWI axial 16/26), one frame taken with ffmpeg
+  * SOOP sub-47 DWI trace and its manual acute-lesion mask (OpenNeuro ds004889, CC0). Three small files, fetched once
+    from OpenNeuro into $SOOP_DIR (default ~/.cache/skanda-landing/soop) when they are not already there.
 
 Outputs land in app/public/landing/ as WebP, plus provenance.json describing every file.
 
 Overlays drawn here on the Slicer teaching volumes are ILLUSTRATIVE: those volumes carry no labelled finding. The
-chest-film and BraTS overlays are crops of recorded Skanda / classifier output, not re-drawn.
+chest-film and SOOP overlays are crops of recorded Skanda / classifier output, not re-drawn. The SOOP reference image
+is the dataset's own manual lesion mask. Every landing image comes from a commercially usable source.
 
 Run:  python app/scripts/build-landing-imagery.py
-Needs numpy and pillow only.
+Needs numpy and pillow, plus ffmpeg on PATH for the demo frame.
 """
 from __future__ import annotations
 
 import gzip
+import io
 import json
+import os
 import re
+import struct
+import subprocess
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -216,20 +225,88 @@ def build_recorded() -> None:
     save(square(crop(shots / "heatmap.png", (560, 262, 1378, 980))), "cxr-45707-heat.webp", **cxr,
          source="docs/screenshots/heatmap.png", kind="Chest X-ray + classifier heatmap and finding boxes",
          overlay="RECORDED - TorchXRayVision evidence map and MedGemma boxes captured in the app")
-    save(square(crop(shots / "skanda-mri.png", (430, 290, 870, 790)), fill=0), "mri-brats-skanda-boxes.webp",
-         source="docs/screenshots/skanda-mri.png", dataset="BraTS glioma case BraTS-GLI-00000-000, axial 75",
-         kind="Brain MRI T1c + Skanda candidate regions", overlay="RECORDED - Skanda server run 3")
-    panels = Image.open(DOCS / "validation" / "skanda-rerun" / "mri-75.png").convert("RGB")
-    for idx, (name, kind, ov) in enumerate((("mri-brats-75.webp", "Brain MRI T1c axial 75", None),
-                                            ("mri-brats-75-reference.webp", "Radiologist reference mask", "REFERENCE - BraTS label"),
-                                            ("mri-brats-75-skanda.webp", "Skanda outline and box", "RECORDED - Skanda server run 3, Dice in results.json"))):
-        p = panels.crop((idx * 240, 0, idx * 240 + 240, 240)).resize((SIZE, SIZE), Image.LANCZOS)
-        save(p, name, source="docs/validation/skanda-rerun/mri-75.png", dataset="BraTS glioma, axial 75", kind=kind, overlay=ov)
 
+
+
+# ---------------------------------------------------------------- SOOP stroke MRI (CC0) + recorded Skanda V1 read
+SOOP_URL = "https://s3.amazonaws.com/openneuro.org/ds004889"
+SOOP_FILES = ("sub-47/dwi/sub-47_rec-TRACE_dwi.nii.gz",
+              "derivatives/lesion_masks/sub-47/dwi/sub-47_space-TRACE_desc-lesionAcute_mask.nii.gz")
+
+
+def read_nifti(path: Path) -> np.ndarray:
+    """Minimal NIfTI-1 reader: voxel array indexed [i][j][k], scaling applied, trailing singleton dims dropped."""
+    raw = gzip.decompress(path.read_bytes())
+    dims = struct.unpack("<8h", raw[40:56])
+    shape = dims[1 : 1 + dims[0]]
+    dtype = {2: "u1", 4: "<i2", 8: "<i4", 16: "<f4", 64: "<f8", 512: "<u2"}[struct.unpack("<h", raw[70:72])[0]]
+    offset = int(struct.unpack("<f", raw[108:112])[0])
+    slope, inter = struct.unpack("<2f", raw[112:120])
+    count = int(np.prod(shape))
+    a = np.frombuffer(raw[offset : offset + count * np.dtype(dtype).itemsize], dtype=dtype).reshape(shape[::-1]).T
+    a = a.astype(np.float32) * (slope or 1) + (inter if slope else 0)
+    while a.ndim > 3 and a.shape[-1] == 1:
+        a = a[..., 0]
+    return a
+
+
+def soop_files() -> list[Path]:
+    cache = Path(os.environ.get("SOOP_DIR", Path.home() / ".cache" / "skanda-landing" / "soop"))
+    out = []
+    for rel in SOOP_FILES:
+        dest = cache / Path(rel).name
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(f"{SOOP_URL}/{rel}", dest)
+        out.append(dest)
+    return out
+
+
+def build_soop() -> None:
+    """SOOP sub-47, DWI axial 16/26: the slice Skanda V1 read in docs/skanda-demo.mp4 (recorded 6 Nov 2026).
+
+    The app shows this volume with the lesion on the viewer's right; the slice and the mask are drawn the same way so
+    the three panels line up with the recording. Pixel geometry: the app's viewport shows the 256 x 256 slice at 2.5x,
+    at (332, 211)-(972, 851) of the 1600 x 1000 recording.
+    """
+    dwi_path, mask_path = soop_files()
+    k = 15  # "16 / 26" in the app is 1-based
+    view = lambda v: v[::-1, ::-1, k].T[:, ::-1]  # noqa: E731 - rows anterior -> posterior, as on screen
+    dwi, mask = view(read_nifti(dwi_path)), view(read_nifti(mask_path)) > 0
+
+    frame = Image.open(io.BytesIO(subprocess.run(
+        ["ffmpeg", "-v", "error", "-ss", "192", "-i", str(DOCS / "skanda-demo.mp4"), "-frames:v", "1",
+         "-f", "image2pipe", "-vcodec", "png", "-"], check=True, capture_output=True).stdout)).convert("RGB")
+    recorded = frame.crop((332, 211, 972, 851))
+    ImageDraw.Draw(recorded).rectangle([0, 0, 639, 639], outline=(0, 0, 0), width=2)  # the viewport's 1px frame line
+
+    # match the slice's grey levels to the app's display (W 1100 / L 550) so source and Skanda panels cross-fade cleanly
+    grey = np.clip(dwi / 1100, 0, 1) * 255
+    shown = np.asarray(recorded.convert("L").resize(grey.shape[::-1], Image.BOX), np.float32)
+    rows, cols = np.nonzero(mask)
+    outside = np.ones(mask.shape, bool)  # leave out the recorded box and its tint
+    outside[max(rows.min() - 24, 0) : rows.max() + 24, max(cols.min() - 24, 0) : cols.max() + 24] = False
+    fit = np.polyfit(grey[outside], shown[outside], 1)
+    grey = np.clip(np.polyval(fit, grey), 0, 255)
+
+    base = Image.fromarray(grey.astype(np.uint8)).resize((SIZE, SIZE), Image.LANCZOS).convert("RGB")
+    m = np.asarray(Image.fromarray(mask.astype(np.uint8) * 255).resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
+    m = (m > 0.5).astype(np.float32)[..., None] * 0.58
+    ref = np.asarray(base, np.float32) * (1 - m) + np.array([16, 228, 118], np.float32) * m
+
+    nifti = "OpenNeuro ds004889: " + ", ".join(Path(f).name for f in SOOP_FILES)
+    src = {"dataset": "SOOP acute stroke MRI (OpenNeuro ds004889)", "licence": "CC0", "case": "sub-47 (Skanda held-out test split), DWI axial 16 / 26"}
+    save(base, "soop-47-16.webp", **src, source=nifti, kind="Brain MRI DWI (b1000 trace) axial 16", overlay=None)
+    save(Image.fromarray(ref.clip(0, 255).astype(np.uint8)), "soop-47-16-reference.webp", **src, source=nifti,
+         kind="Radiologist reference mask", overlay="REFERENCE - SOOP manual acute-lesion mask (desc-lesionAcute)")
+    save(recorded.resize((SIZE, SIZE), Image.LANCZOS), "soop-47-16-skanda.webp", **src,
+         source="docs/skanda-demo.mp4, frame at 192 s", kind="Skanda candidate box, captured in the app",
+         overlay="RECORDED - Skanda V1 (model skanda-v1, run 4b) read in the app, 6 Nov 2026; box only, no Dice recorded")
 
 if __name__ == "__main__":
     build_ct()
     build_mr()
     build_recorded()
+    build_soop()
     (OUT / "provenance.json").write_text(json.dumps(provenance, indent=2))
     print("\n".join(f"{p['file']:34} {p['kind']}" for p in provenance))

@@ -35,6 +35,7 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 - [Workspace tour](#-workspace-tour)
 - [Benchmarks](#-benchmarks)
 - [Review workflow](#-review-workflow)
+- [Model API](#-model-api)
 - [Architecture](#-architecture)
 - [Evaluation and limitations](#-evaluation-and-limitations)
 - [Development](#-development)
@@ -202,6 +203,19 @@ These numbers are generated from `score.py` output by [`benchmark/emit_landing.p
 | <kbd>?</kbd> | Shortcut help |
 
 </details>
+
+## 🔌 Model API
+
+Organisations can call Skanda V1 from their own software at `https://voxelradai.com/api/v1`, with an OpenAI-compatible request. Full reference: [voxelradai.com/docs](https://voxelradai.com/docs).
+
+- **Keys by request only.** An administrator issues `vr_live_…` or `vr_test_…` keys per organisation in the admin panel; there is no self-serve signup. Send them as `Authorization: Bearer …`. Keys work only on `/api/v1`, never on studies or other app routes.
+- **Endpoints.** `GET /models`; `POST /chat/completions` (`stream:false` by default returns one `chat.completion`, `stream:true` returns SSE); `POST /reads` for async reads (202, poll `GET /reads/{id}`, cancel with `DELETE`), with `Idempotency-Key` and optional HMAC-signed webhooks (`X-VoxelRad-Signature`).
+- **Limits.** By default 200 reads per UTC day for a live key and 20 for a test key (`API_LIVE_DAILY_READS`, `API_TEST_DAILY_READS`, or a per-key override); `429 daily_limit_reached` with `Retry-After`. Errors use the OpenAI shape `{"error":{"message","type","code"}}`.
+- **Data.** API reads are never captured for model training; any model-improvement use needs a separate signed data agreement. Async read results expire after 24 hours.
+- **Setup.** Needs `MODEL_UPSTREAM_URL` and `BRIDGE_SECRET`; webhooks also need `API_WEBHOOK_SECRET` (32+ characters). Apply migration `015_api_access.sql`.
+
+> [!NOTE]
+> Skanda is not a cleared medical device. Clinical use requires regulatory clearance (for example from CDSCO in India), which has not been obtained. Until then, API integrations are for research, evaluation and supervised pilots under a research agreement, with every finding reviewed by a radiologist.
 
 ## 🏗️ Architecture
 
