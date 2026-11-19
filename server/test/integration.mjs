@@ -5,8 +5,8 @@ import { createRequire } from 'node:module'
 const baseUrl = process.env.BASE_URL || process.env.TEST_ORIGIN || 'http://localhost:5173'
 const origin = process.env.TEST_ORIGIN || baseUrl
 if (!process.env.TEST_ADMIN_EMAIL || !process.env.TEST_ADMIN_PASSWORD) throw new Error('Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD for a disposable deployment')
-async function call(path, { method = 'GET', data, cookie } = {}) {
-  const response = await fetch(baseUrl + path, { method, headers: { Origin: origin, ...(data ? {'Content-Type':'application/json'} : {}), ...(cookie ? {Cookie:cookie} : {}) }, body: data ? JSON.stringify(data) : undefined })
+async function call(path, { method = 'GET', data, cookie, headers = {} } = {}) {
+  const response = await fetch(baseUrl + path, { method, headers: { ...headers, Origin: origin, ...(data ? {'Content-Type':'application/json'} : {}), ...(cookie ? {Cookie:cookie} : {}) }, body: data ? JSON.stringify(data) : undefined })
   const type = response.headers.get('content-type') || ''
   const body = type.includes('json') ? await response.json() : await response.text()
   return { status: response.status, body, cookie: response.headers.get('set-cookie')?.split(';')[0] }
@@ -64,6 +64,20 @@ const study = {id:randomUUID(),title:'Integration fixture',createdAt:Date.now(),
 assert.equal((await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study})).status,200)
 assert.equal((await call(`/api/studies/${study.id}`,{cookie:admin.cookie})).status,404)
 assert.equal((await call(`/api/studies/${study.id}`,{cookie:clinician.cookie})).body.study.id,study.id)
+// Optimistic concurrency: a save naming an old revision (or "new" for an existing study) is refused.
+const saved = await call(`/api/studies/${study.id}`,{cookie:clinician.cookie}); assert.ok(Number.isInteger(saved.body.revision))
+assert.equal((await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study,headers:{'X-Study-Revision':'new'}})).status,409)
+const bumped = await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study,headers:{'X-Study-Revision':String(saved.body.revision)}})
+assert.equal(bumped.status,200); assert.equal(bumped.body.revision,saved.body.revision+1)
+const stale = await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study,headers:{'X-Study-Revision':String(saved.body.revision)}})
+assert.equal(stale.status,409); assert.equal(stale.body.code,'stale')
+assert.equal((await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study,headers:{'X-Study-Revision':'abc'}})).status,400)
+// Signed versions are append-only on the server.
+const sections = {technique:'',comparison:'',findings:'<script>unsafe</script>',impression:'',recommendations:''}
+const signedStudy = {...study,report:{...study.report,signed:true,signedAt:Date.now(),versions:[{version:1,signedAt:Date.now(),signedBy:'Integration',sections}]}}
+assert.equal((await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:signedStudy,headers:{'X-Study-Revision':String(bumped.body.revision)}})).status,200)
+const dropped = await call('/api/studies',{method:'POST',cookie:clinician.cookie,data:study})
+assert.equal(dropped.status,409); assert.equal(dropped.body.code,'signed-history')
 const listed = await call('/api/studies?limit=1&offset=0',{cookie:clinician.cookie})
 assert.equal(listed.body.studies.length,1); assert.ok(!('payload' in listed.body.studies[0]))
 assert.equal((await call(`/api/studies/${study.id}/shares`,{method:'POST',cookie:clinician.cookie,data:{expiresInHours:0,includeIdentity:false,includeImages:false}})).status,400)

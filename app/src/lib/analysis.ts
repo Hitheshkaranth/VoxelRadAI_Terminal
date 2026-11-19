@@ -280,7 +280,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
   if (demoBlocked()) return
   const study = useApp.getState().studies.find((s) => s.id === studyId)
   if (!study) return
-  if (study.report?.signed) { toast('Unlock the signed report before replacing its draft.', 'info'); return }
+  if (study.report?.signed) { toast('This report is signed. Use Correct report to start a new version.', 'info'); return }
 
   cancelReport()
   const controller = new AbortController()

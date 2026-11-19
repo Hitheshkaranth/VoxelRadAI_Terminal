@@ -215,6 +215,35 @@ export interface ReportDraft {
   aiDraft?: Partial<Record<ReportFieldKey, string>>
   /** Report template chosen for this report; falls back to the user's default template. */
   templateId?: string
+  /** Every signed state, appended at each sign-off and never edited or removed (the server refuses that). */
+  versions?: ReportVersion[]
+  /** Text added to a signed report without changing it. */
+  addenda?: ReportAddendum[]
+  /** Set while a signed report is being corrected into a new version. */
+  correction?: { of: number; startedAt: number; by: string }
+}
+
+/** One signed state of a report, frozen at sign-off. */
+export interface ReportVersion {
+  version: number
+  signedAt: number
+  signedBy: string
+  sections: Record<ReportFieldKey, string>
+  rich?: Partial<Record<ReportFieldKey, string>>
+  patientSnapshot?: PatientInfo
+  signOverrides?: string[]
+  /** Version this one corrects (signed after "Correct report"). */
+  corrects?: number
+}
+
+export interface ReportAddendum {
+  id: string
+  text: string
+  createdAt: number
+  by: string
+  signedAt?: number
+  /** Signed version the addendum was added to. */
+  version?: number
 }
 
 export interface Study {

@@ -1,4 +1,5 @@
 import type { Study } from '../types.ts'
+import { saveStudyToServer } from './studySync.ts'
 
 export interface HostedShare { id: string; expiresAt: number; createdAt: number; revokedAt: number | null; openCount?: number; lastOpenedAt?: number | null }
 export interface CreatedShare { id: string; expiresAt: number; url: string }
@@ -28,7 +29,8 @@ export async function listHostedShares(studyId: string, signal?: AbortSignal): P
   })
 }
 export async function createHostedShare(study: Study, options: { expiresInHours: number; includeIdentity: boolean; includeImages: boolean }): Promise<CreatedShare> {
-  await request('/api/studies', { method: 'POST', body: JSON.stringify(study) })
+  // Revision-checked: a share never overwrites a newer server copy or its signed report versions.
+  await saveStudyToServer(study)
   const result = await request(`/api/studies/${encodeURIComponent(study.id)}/shares`, { method: 'POST', body: JSON.stringify(options) }) as { share?: { id?: unknown; expiresAt?: unknown; url?: unknown } }
   const share = result?.share
   if (!share || typeof share.id !== 'string' || typeof share.url !== 'string') throw new Error('The link was requested but its response was invalid. Refresh link history before retrying.')

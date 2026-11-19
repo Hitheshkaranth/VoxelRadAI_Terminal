@@ -1,5 +1,6 @@
 import type { Study } from '../types.ts'
 import { MAX_MEASUREMENTS, validMeasurement } from './measure.ts'
+import { validReportHistory } from './reportVersions.ts'
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -49,6 +50,7 @@ export function validateTransferredStudy(value: unknown): Study {
     if (report.signOverrides !== undefined && !strings(report.signOverrides)) return fail()
     if (report.amendments !== undefined && (!Array.isArray(report.amendments) || !report.amendments.every((item) => object(item) && finite(item.signedAt) && finite(item.unlockedAt) && typeof item.by === 'string'))) return fail()
     if (report.patientSnapshot !== undefined && (!object(report.patientSnapshot) || !hasStrings(report.patientSnapshot, ['name', 'patientId', 'age', 'sex', 'studyDate', 'referringPhysician', 'indication', 'clinicalHistory']))) return fail()
+    if (!validReportHistory(report)) return fail()
   }
   const study = structuredClone(value) as unknown as Study
   study.images = study.images.map((image) => image.status === 'analyzing' ? { ...image, status: 'idle', stage: undefined, progressText: undefined, analysisStartedAt: undefined } : image)

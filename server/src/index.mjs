@@ -4,7 +4,7 @@ import pg from 'pg'
 import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword, needsRehash } from './security.mjs'
 import { sharedDocument } from './share.mjs'
 import { migrate } from './migrate.mjs'
-import { validStudy } from './studyValidation.mjs'
+import { expectedRevision, studyWriteConflict, validStudy } from './studyValidation.mjs'
 import { pagination } from './pagination.mjs'
 import { createOperations } from './operations.mjs'
 import { createOidcRoutes } from './oidc.mjs'
@@ -459,15 +459,30 @@ export async function handler(req, res) {
       const params = new URL(req.url,'http://internal').searchParams
       let limit,offset
       try { ({limit,offset}=pagination(params)) } catch(error) { return send(res,400,{error:error.message}) }
-      const [result,count] = await Promise.all([pool.query('SELECT id,payload->>\'title\' AS title,image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",updated_at AS "updatedAt" FROM studies WHERE owner_id=$1 ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3', [user.id,limit,offset]),pool.query('SELECT count(*)::int AS total FROM studies WHERE owner_id=$1',[user.id])])
+      const [result,count] = await Promise.all([pool.query('SELECT id,payload->>\'title\' AS title,image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",revision,updated_at AS "updatedAt" FROM studies WHERE owner_id=$1 ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3', [user.id,limit,offset]),pool.query('SELECT count(*)::int AS total FROM studies WHERE owner_id=$1',[user.id])])
       return send(res, 200, { studies: result.rows, total:count.rows[0].total })
     }
     if (path === '/api/studies' && req.method === 'POST') {
       const data = await body(req, (process.env.VERCEL ? 4 : 25) * 1024 * 1024)
       if (!validStudy(data)) return send(res, 400, { error: 'The study has invalid patient, image, analysis or report fields. Export a valid Skanda study and retry.' })
-      const result = await pool.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,image_count=EXCLUDED.image_count,has_report=EXCLUDED.has_report,report_signed=EXCLUDED.report_signed,updated_at=now() WHERE studies.owner_id=$2 RETURNING id', [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed])
-      if (!result.rowCount) return send(res, 404, { error: 'Study not found.' })
-      await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id })
+      const expected = expectedRevision(req.headers['x-study-revision'])
+      if (expected === null) return send(res, 400, { error: 'X-Study-Revision must be "new" or a positive integer.' })
+      // Lock the row so the revision check and the write cannot interleave with another save.
+      const client = await pool.connect()
+      let revision
+      try {
+        await client.query('BEGIN')
+        const current = (await client.query("SELECT owner_id,revision,payload->'report' AS report FROM studies WHERE id=$1 FOR UPDATE", [data.id])).rows[0]
+        if (current && current.owner_id !== user.id) { await client.query('ROLLBACK'); return send(res, 404, { error: 'Study not found.' }) }
+        const conflict = studyWriteConflict(current ? { revision: current.revision, report: current.report } : null, data, expected)
+        if (conflict) { await client.query('ROLLBACK'); return send(res, 409, { ...conflict, revision: current.revision }) }
+        const values = [data.id,user.id,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed]
+        const result = current
+          ? await client.query('UPDATE studies SET payload=$3,image_count=$4,has_report=$5,report_signed=$6,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING revision', values)
+          : await client.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) RETURNING revision', values)
+        await client.query('COMMIT'); revision = result.rows[0].revision
+      } catch(error) { await client.query('ROLLBACK').catch(() => {}); throw error } finally { client.release() }
+      await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id, revision })
     }
     const shareMatch = path.match(/^\/api\/studies\/([a-f0-9-]+)\/shares$/i)
     if (shareMatch && UUID.test(shareMatch[1]) && ['GET','POST'].includes(req.method)) {
@@ -494,8 +509,8 @@ export async function handler(req, res) {
     if (path.startsWith('/api/studies/') && req.method === 'GET') {
       const id = path.slice('/api/studies/'.length)
       if (!UUID.test(id)) return send(res,400,{error:'Invalid study ID.'})
-      const result = await pool.query('SELECT payload FROM studies WHERE id=$1 AND owner_id=$2',[id,user.id])
-      return result.rows[0] ? send(res,200,{study:result.rows[0].payload}) : send(res,404,{error:'Study not found.'})
+      const result = await pool.query('SELECT payload,revision FROM studies WHERE id=$1 AND owner_id=$2',[id,user.id])
+      return result.rows[0] ? send(res,200,{study:result.rows[0].payload,revision:result.rows[0].revision}) : send(res,404,{error:'Study not found.'})
     }
     if (path.startsWith('/api/studies/') && req.method === 'DELETE') {
       const id = path.slice('/api/studies/'.length)
