@@ -847,3 +847,65 @@
   .sk-builders .sk-about-links{grid-column:1/-1}
   .sk-builders .sk-monogram{width:40px;height:40px;font-size:13px;box-shadow:0 0 0 3px #000,0 0 0 4px #ffffff2e}
 }
+
+/* Pricing */
+.sk-api{padding:clamp(80px,7.3vw,139px) 0 0;scroll-margin-top:60px}
+.sk-api-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:36px}
+.sk-api-head .sk-h2{max-width:620px;text-wrap:balance}
+.sk-api-head>p{max-width:480px;color:var(--sk-muted);font-size:15px}
+.sk-api-flow{border:1px solid var(--sk-card-line);border-radius:12px;background:radial-gradient(60% 120% at 0% 0%,#0b2350 0%,#030712 45%,#030303 80%);overflow:hidden}
+.sk-api-flow-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 32px;border-bottom:1px solid var(--sk-line)}
+.sk-api-flow-top .sk-api-docs{margin-top:0}
+.sk-api-flow-top h3{color:#cfcfcf}
+.sk-api-flow ol{display:grid;grid-template-columns:repeat(3,1fr);counter-reset:step}
+.sk-api-flow li{position:relative;display:grid;align-content:start;gap:10px;padding:28px 32px 32px}
+.sk-api-flow li+li{border-left:1px solid var(--sk-line)}
+.sk-api-flow li+li::before{content:'';position:absolute;left:-6px;top:47px;width:11px;height:11px;border-radius:50%;background:#030303;border:1.5px solid var(--sk-blue-2);box-shadow:0 0 0 4px #03030399}
+.sk-api-step{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.sk-api-step>svg{box-sizing:content-box;padding:10px;border-radius:12px;background:#ffffff0d;border:1px solid var(--sk-line);color:var(--sk-blue-2)}
+.sk-api-step-n{font:500 12px/1 var(--sk-body);letter-spacing:.04em;color:var(--sk-dim);font-variant-numeric:tabular-nums}
+.sk-api-flow li h3{font:500 22px/1.15 var(--sk-display);letter-spacing:-.03em}
+.sk-api-flow p{max-width:36ch;font-size:14px;color:#bdbdbd}
+.sk-reveal[data-in=true] .sk-api-flow li{animation:sk-rise .8s calc(var(--i) * 110ms) var(--sk-ease) both}
+.sk-api-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px}
+.sk-api .sk-api-plan{min-height:0;padding:36px;transition:transform .35s var(--sk-ease),border-color .35s var(--sk-ease)}
+.sk-api .sk-api-plan:hover{transform:translateY(-4px);border-color:#ffffff59}
+.sk-api .sk-api-plan[data-model=skanda]:hover{border-color:#4a8ff0}
+.sk-api-plan h3{font:500 clamp(26px,2vw,32px)/1.1 var(--sk-display);letter-spacing:-.035em;text-wrap:balance}
+.sk-api-who{margin-top:12px;min-height:44px;font-size:14px;color:var(--sk-muted);text-wrap:pretty}
+.sk-api-price{align-self:start;justify-self:start;margin-top:22px;padding:5px 11px;border:1px solid var(--sk-line-2);border-radius:999px;font:500 12.5px/1.3 var(--sk-body);color:#d8d8d8}
+.sk-api-plan[data-model=skanda] .sk-api-price{border-color:#7acaff59;color:var(--sk-blue-2)}
+.sk-api .sk-api-plan ul{margin:22px 0 30px}
+.sk-api .sk-api-plan li{justify-content:flex-start;gap:10px;font-size:13.5px}
+.sk-api-plan li svg{flex:none;margin-top:3px;color:var(--sk-blue-2)}
+.sk-api-plan .sk-plan-actions{gap:12px;flex-wrap:wrap}
+.sk-api-note{display:flex;gap:9px;align-items:flex-start;max-width:760px;margin-top:20px;font-size:12.5px;line-height:1.6;color:var(--sk-dim)}
+.sk-api-note svg{flex:none;margin-top:3px;color:var(--sk-muted)}
+@media (min-width:901px){
+  .sk-api .sk-api-plan{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0}
+  .sk-api-who{min-height:0}
+  .sk-api-plan .sk-plan-actions{align-self:end}
+}
+@media (max-width:1180px){
+  .sk-api .sk-api-plan{padding:30px 26px}
+  .sk-api-flow li{padding:24px 26px 28px}
+}
+@media (max-width:900px){
+  .sk-api-head{flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:28px}
+  .sk-api-flow-top{padding:16px 20px}
+  .sk-api-flow ol{grid-template-columns:1fr}
+  .sk-api-flow li{padding:22px 20px 24px 20px}
+  .sk-api-flow li+li{border-left:0;border-top:1px solid var(--sk-line)}
+  .sk-api-flow li+li::before{left:39px;top:-6px}
+  .sk-api-plans{grid-template-columns:1fr}
+  .sk-api .sk-api-plan{padding:26px 22px}
+  .sk-api-who{min-height:0}
+}
+@media (max-width:520px){
+  .sk-api-flow-top{flex-direction:column;align-items:flex-start;gap:8px}
+}
+
+/* Docs — the main nav gained Pricing and Docs; keep nine links on one line down to the 960px menu breakpoint. */
+.sk-nav[data-scrolled=true] .sk-nav-inner{width:min(1080px,100% - 32px)}
+@media (max-width:1240px){.sk-nav nav{gap:16px}.sk-nav nav a{font-size:14px}}
+@media (max-width:1100px){.sk-nav .sk-serving{display:none}.sk-nav nav{gap:13px}.sk-nav nav a{font-size:13.5px}}

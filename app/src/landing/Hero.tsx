@@ -4,7 +4,7 @@ import { studies, img, type Modality } from './data'
 import { Pill, Roll, anchor, onLanding } from './ui'
 import { BrandIcon } from '../components/BrandIcon'
 
-const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['Weights', '#weights'], ['FAQs', '#faqs']] as const
+const links = [['Home', '#top'], ['Model', '#model'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['Benchmarks', '#benchmarks'], ['Weights', '#weights'], ['Pricing', '#pricing'], ['Docs', '/docs'], ['FAQs', '#faqs']] as const
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false)
@@ -26,6 +26,7 @@ export function Nav() {
       frame = 0
       let current = '#top'
       for (const [, href] of links) {
+        if (!href.startsWith('#')) continue
         const el = document.querySelector<HTMLElement>(href)
         if (el && el.getBoundingClientRect().top <= innerHeight * 0.45) current = href
       }
@@ -39,7 +40,7 @@ export function Nav() {
   return <header className="sk-nav" data-scrolled={scrolled}>
     <div className="sk-nav-inner">
       <a className="sk-brand" href={anchor('#top')} aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a>
-      <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={anchor(href)} aria-current={href === active ? 'location' : undefined}><Roll>{label}</Roll></a>)}</nav>
+      <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={anchor(href)} aria-current={href === active ? 'location' : typeof location !== 'undefined' && href === location.pathname ? 'page' : undefined}><Roll>{label}</Roll></a>)}</nav>
       <div className="sk-nav-end">
         <span className="sk-serving" title="Model used by the hosted workspace">Skanda V1</span>
         <a className="sk-pill sk-pill-ghost sk-pill-sm sk-nav-signin" href="/workspace"><Roll>Sign in</Roll></a>

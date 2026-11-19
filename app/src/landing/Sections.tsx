@@ -201,9 +201,9 @@ const social = [
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 export function Footer() {
   const cols = [
-    ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
+    ['Product', [['Try the demo', '/demo'], ['Request access', '#access'], ['Sign in', '/workspace'], ['API & pricing', '#pricing'], ['Reads', '#reads'], ['Capabilities', '#capabilities'], ['FAQs', '#faqs']]],
     ['Model', [['Skanda V1', '#model'], ['Foundation models', '#foundations'], ['Benchmarks', '/benchmarks'], ['Skanda-0 (open source)', '/skanda-0'], ['Results log', '#log'], ['Approach', '#approach'], ['Evidence', '#evidence']]],
-    ['Resources', [['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
+    ['Resources', [['API docs', '/docs'], ['Benchmark method', `${repo}benchmark/README.md`], ['Validation', `${repo}benchmark/volume-validation/README.md`], ['Deployment', `${repo}docs/deployment.md`], ['Known limitations', `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`], ['Image provenance', '/landing/provenance.json']]],
     ['About', [['The builders', '#about'], ['Cite Skanda', '#cite'], ['Privacy', '/privacy'], ['Terms of use', '/terms'], ['Report an issue', 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/issues'], ['Public teaching imagery', '/samples/provenance.json']]],
   ] as const
   return <footer className="sk-footer">

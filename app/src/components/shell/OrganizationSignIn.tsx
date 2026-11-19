@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Building2 } from 'lucide-react'
 import { ShellButton } from './ShellButton'
 
 export function OrganizationSignIn({ account = false }: { account?: boolean }) {
@@ -40,8 +41,8 @@ export function OrganizationSignIn({ account = false }: { account?: boolean }) {
       window.location.assign(target.href)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Account linking failed.'); setBusy(false) }
   }
-  if (!provider) return error ? <p role="alert" className="admin-error">{error}</p> : null
-  if (!account) return <ShellButton className="btn session-submit" onClick={() => window.location.assign('/api/oidc/login')}>Continue with {provider}</ShellButton>
+  if (!provider) return error ? <p role="alert" className={account ? 'admin-error' : 'session-error session-sso-error'}>{error}</p> : null
+  if (!account) return <div className="session-sso"><p className="session-or"><span>or</span></p><ShellButton className="btn session-secondary" onClick={() => window.location.assign('/api/oidc/login')}><Building2 aria-hidden="true" />Continue with {provider}</ShellButton></div>
   return <details className="sh-account-security"><summary>Organization sign-in</summary>
     <p>{linked ? `Your account is linked to ${provider}. Unlinking signs you out of all app sessions.` : `Link your existing workspace to ${provider}. Your organization manages its sign-in and MFA policy.`}</p>
     <form onSubmit={(event) => { void submit(event) }} aria-busy={busy}>

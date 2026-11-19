@@ -15,7 +15,7 @@ import './skanda-landing.css'
 const repo = 'https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/blob/main/'
 const failureReport = `${repo}docs/validation/2026-11-02-labeled-case-failure-report.md`
 
-function usePageMeta(title: string, description: string) {
+export function usePageMeta(title: string, description: string) {
   useEffect(() => {
     document.title = title
     document.querySelector('meta[name="description"]')?.setAttribute('content', description)
@@ -23,7 +23,7 @@ function usePageMeta(title: string, description: string) {
   }, [title, description])
 }
 
-function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children }: { children: ReactNode }) {
   return <div className="sk-page sk-subpage">
     <a className="sk-skip" href="#main">Skip to content</a>
     <Nav />
@@ -32,7 +32,7 @@ function Shell({ children }: { children: ReactNode }) {
   </div>
 }
 
-function PageHead({ eyebrow, title, lead, children }: { eyebrow: string; title: ReactNode; lead: string; children?: ReactNode }) {
+export function PageHead({ eyebrow, title, lead, children }: { eyebrow: string; title: ReactNode; lead: string; children?: ReactNode }) {
   return <header className="sk-wrap sk-page-head">
     <nav className="sk-crumbs" aria-label="Breadcrumb"><a href="/">VoxelRad</a><span aria-hidden="true">/</span><span aria-current="page">{eyebrow}</span></nav>
     <h1>{title}</h1>
