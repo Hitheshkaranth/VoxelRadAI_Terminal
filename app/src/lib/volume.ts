@@ -18,6 +18,11 @@ export interface Volume {
   range: [number, number]
   /** Bounds of voxel centres, not inferred anatomical landmarks. */
   worldBounds: { min: Vec3; max: Vec3 }
+  /** Stored value marking DICOM Pixel Padding (outside the scanned field); measurements skip it. */
+  paddingValue?: number
+  /** Built from a DICOM series (via the NRRD hand-off), with its series-level Burned In Annotation when declared. */
+  fromDicom?: boolean
+  burnedInAnnotation?: boolean
 }
 export interface SliceGeometry {
   /** Native acquired plane, rather than a resampled canonical plane. */
@@ -123,10 +128,12 @@ export async function decodeNrrd(input: ArrayBuffer): Promise<Volume> {
   const lines = new TextDecoder().decode(bytes.subarray(0, headerEnd)).split(/\r?\n/)
   if (!/^NRRD000[1-5]$/.test(lines.shift()?.trim() ?? '')) throw new Error('This file is not a supported NRRD volume.')
   const fields: Record<string, string> = {}
+  const keyValues: Record<string, string> = {}
   for (const line of lines) {
     if (!line.trim() || line.trimStart().startsWith('#')) continue
     const separator = line.indexOf(':')
-    if (separator < 1 || line[separator + 1] === '=') continue
+    if (separator >= 1 && line[separator + 1] === '=') { keyValues[line.slice(0, separator).trim().toLowerCase()] = line.slice(separator + 2).trim(); continue }
+    if (separator < 1) continue
     fields[line.slice(0, separator).trim().toLowerCase()] = line.slice(separator + 1).trim()
   }
   if (fields.dimension !== '3') throw new Error('Only three-dimensional scalar NRRD volumes are supported.')
@@ -185,7 +192,13 @@ export async function decodeNrrd(input: ArrayBuffer): Promise<Volume> {
   }
   const geometry = { origin, directions, spacing }
   const corners = Array.from({ length: 8 }, (_, corner) => voxelToWorld(geometry, dimensions.map((size, axis) => corner & (1 << axis) ? size - 1 : 0) as Vec3))
-  return { data, dimensions, origin, directions, spacing, space: 'LPS', range: [min, max], worldBounds: {
+  const padding = keyValues.voxelrad_padding != null && /^-?\d+$/.test(keyValues.voxelrad_padding) ? Number(keyValues.voxelrad_padding) : undefined
+  const fromDicom = keyValues.voxelrad_source === 'dicom'
+  const burned = keyValues.voxelrad_burned_in
+  return { data, dimensions, origin, directions, spacing, space: 'LPS', range: [min, max],
+    ...(padding != null ? { paddingValue: padding } : {}),
+    ...(fromDicom ? { fromDicom, ...(burned === 'no' ? { burnedInAnnotation: false } : burned === 'yes' ? { burnedInAnnotation: true } : {}) } : {}),
+    worldBounds: {
     min: [0, 1, 2].map((axis) => Math.min(...corners.map((point) => point[axis]))) as Vec3,
     max: [0, 1, 2].map((axis) => Math.max(...corners.map((point) => point[axis]))) as Vec3,
   } }

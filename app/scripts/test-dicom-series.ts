@@ -218,4 +218,15 @@ assert.equal(series([...Array(9).fill('NO'), undefined]).burnedInAnnotation, und
 assert.equal(series(Array(10).fill(undefined)).burnedInAnnotation, undefined)
 assert.equal(seriesBurnedIn([]), undefined)
 
+// Provenance survives the NRRD hand-off: padding for ROI statistics, and Burned In Annotation for training-capture privacy.
+const decodedBore = await decodeNrrd(volumeToNrrd(boreVolume.volume, { burnedInAnnotation: false }).slice().buffer)
+assert.equal(decodedBore.paddingValue, boreVolume.volume.paddingValue, 'padding marker is read back from the NRRD hand-off')
+assert.equal(decodedBore.fromDicom, true)
+assert.equal(decodedBore.burnedInAnnotation, false)
+const unknownBurn = await decodeNrrd(volumeToNrrd(boreVolume.volume, {}).slice().buffer)
+assert.equal(unknownBurn.fromDicom, true)
+assert.equal(unknownBurn.burnedInAnnotation, undefined, 'missing tag stays unknown, so pixels are not sent')
+const plainNrrd = await decodeNrrd(volumeToNrrd(volume).slice().buffer)
+assert.equal(plainNrrd.fromDicom, undefined, 'a volume without provenance is not marked as DICOM-derived')
+
 console.log('DICOM series: geometry parsing, normal sort, spacing/gap/tilt warnings, refusals, HU rescale, padding, NRRD hand-off and routing checks passed')

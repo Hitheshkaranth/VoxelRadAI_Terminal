@@ -151,7 +151,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         })
         const validated = validateVolumeAnalysis(opts.volume, job.plane, index, job.snapshot, analysis, { sequence: job.snapshot.acquisition?.sequence })
         // Model-improvement capture of the slice exactly as the reader saw it (best-effort, never blocks the review).
-        void captureVolumeSlice(job, index, canvas.toDataURL('image/jpeg', 0.92), canvas.width, canvas.height, validated)
+        void captureVolumeSlice({ ...job, fromDicom: opts.volume.fromDicom, burnedInAnnotation: opts.volume.burnedInAnnotation }, index, canvas.toDataURL('image/jpeg', 0.92), canvas.width, canvas.height, validated)
         return validated
       },
     })

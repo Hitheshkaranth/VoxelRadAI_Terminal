@@ -314,7 +314,7 @@ export function buildDicomVolume(series: DicomSliceHeader[]): DicomVolumeResult 
 }
 
 /** Raw little-endian NRRD for a Volume, so the existing NRRD-based viewer, storage and analysis reuse it unchanged. */
-export function volumeToNrrd(volume: PaddedVolume): Uint8Array {
+export function volumeToNrrd(volume: PaddedVolume, provenance?: { burnedInAnnotation?: boolean }): Uint8Array {
   const type = volume.data instanceof Int16Array ? 'int16' : volume.data instanceof Int32Array ? 'int32' : volume.data instanceof Uint16Array ? 'uint16'
     : volume.data instanceof Uint32Array ? 'uint32' : volume.data instanceof Int8Array ? 'int8' : 'uint8'
   const vector = (v: number[]) => `(${v.map((x) => String(x)).join(',')})`
@@ -323,7 +323,9 @@ export function volumeToNrrd(volume: PaddedVolume): Uint8Array {
     `space directions: ${volume.directions.map((direction, axis) => vector(direction.map((x) => x * volume.spacing[axis]))).join(' ')}`,
     'kinds: domain domain domain', 'endian: little', 'encoding: raw', `space origin: ${vector(volume.origin)}`, 'space units: "mm" "mm" "mm"',
     // NRRD key/value line (":="): readers that do not know it skip it; decodeNrrd can surface it as Volume.paddingValue.
-    ...(Number.isSafeInteger(volume.paddingValue) ? [`voxelrad_padding:=${volume.paddingValue}`] : []), '', '',
+    ...(Number.isSafeInteger(volume.paddingValue) ? [`voxelrad_padding:=${volume.paddingValue}`] : []),
+    // Provenance for training-capture privacy: a DICOM-derived volume sends pixels only when every slice said Burned In Annotation = NO.
+    ...(provenance ? ['voxelrad_source:=dicom', `voxelrad_burned_in:=${provenance.burnedInAnnotation === false ? 'no' : provenance.burnedInAnnotation ? 'yes' : 'unknown'}`] : []), '', '',
   ].join('\n')
   const head = new TextEncoder().encode(header)
   const body = new Uint8Array(volume.data.buffer, volume.data.byteOffset, volume.data.byteLength)
@@ -367,7 +369,7 @@ export function dicomBuffersToVolume(buffers: Uint8Array[]): DicomSeriesOutcome 
     const { volume, ...result } = buildDicomVolume(main)
     const used = new Set(result.used)
     rest.push(...main.filter((slice) => !used.has(slice.index)).map((slice) => slice.index))
-    return { opened: { ...result, nrrd: volumeToNrrd(volume), dimensions: volume.dimensions }, rest: rest.sort((a, b) => a - b), warnings: [...warnings, ...result.warnings] }
+    return { opened: { ...result, nrrd: volumeToNrrd(volume, { burnedInAnnotation: result.burnedInAnnotation }), dimensions: volume.dimensions }, rest: rest.sort((a, b) => a - b), warnings: [...warnings, ...result.warnings] }
   } catch (error) {
     // Fall back to today's per-image path so nothing silently disappears.
     warnings.push(`The series could not be opened as a volume: ${error instanceof Error ? error.message : String(error)}`)
