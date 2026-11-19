@@ -50,6 +50,12 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 | 🧭 **Spatial context** | Optional voxel-derived 3D locator and source-plane navigation |
 | 🎯 **Grounded findings** | Every candidate links to its source slice, outline or box, so you can compare it with the original image |
 | 📝 **Review and reporting** | Accept or dismiss candidates, track coverage, draft from reviewed findings, sign and export |
+| 🗂️ **Exam templates and macros** | Built-in and personal normal templates with Tab/F2 fill-in fields, `.name` text macros, and a sign-off check for unfilled fields |
+| 🔏 **Addenda and corrections** | Signed reports are never edited in place: each signature keeps a version, with addenda and "Correct report" history, and saves are revision-checked |
+| 📐 **Guideline helpers and QA** | Fleischner, Lung-RADS, TI-RADS, Bosniak, adrenal and BI-RADS decision support to verify, plus sign-off checks for laterality, sex, size, impression coverage and logged critical results |
+| 🧊 **DICOM series volumes** | Uncompressed CT/MR series (dropped folders or PACS) open as volumes with spacing, orientation and HU rescale checks |
+| 🔍 **Viewer tools** | CT window presets (keys 1–9), value under the cursor, length/ellipse ROI measurements inserted into the report, MIP/MinIP slabs, 2D flip/rotate and loupe |
+| 🌉 **Vercel to Space bridge** | Optional signed-in, per-user-capped proxy from a Vercel deployment to the Hugging Face ZeroGPU Space for hosted reads ([docs](docs/vercel.md)) |
 | 🔐 **Server mode** | Sign-in, admin tools, saved studies in PostgreSQL, and share links that expire or can be revoked |
 | 🔌 **Integrations** | Optional [Keycloak SSO](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md) and [Orthanc import](docs/orthanc.md). All are off until configured |
 | 💻 **Local mode** | Studies stay in browser storage. Bring your own model service |
