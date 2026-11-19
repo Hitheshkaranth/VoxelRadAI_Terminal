@@ -4,6 +4,9 @@ import { Maximize } from 'lucide-react'
 import { getSliceGeometry, renderSlice, type Vec3, type Volume, type VolumePlane } from '../../lib/volume'
 import { indexForPlane, setSliceAnchor, slicePointFromVoxel, voxelFromSlicePoint } from '../../lib/volumeNavigation'
 import { regionOnSlice, type VolumeRegion } from '../../lib/volumeAnnotations'
+import { renderSlab, slabCaption, type SlabSettings } from '../../lib/volumeSlab'
+import { readoutText, voxelReadout } from '../../lib/volumeMeasure'
+import { wheelSteps } from '../../lib/viewerInput'
 import './volumeMultiplanar.css'
 
 export interface VolumeMultiplanarProps {
@@ -21,6 +24,9 @@ export interface VolumeMultiplanarProps {
   showOverlays?: boolean
   overlayOpacity?: number
   onInteraction?: () => void
+  /** Slab projection, applied to the active plane only. */
+  slab?: SlabSettings
+  modality?: string
 }
 const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
 const title = (plane: VolumePlane) => plane[0].toUpperCase() + plane.slice(1)
@@ -32,14 +38,17 @@ export function VolumeMultiplanar(props: VolumeMultiplanarProps) {
   </div>
 }
 
-function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorChange, onMaximize, regions = [], selectedRegion, onRegionSelect, showOverlays = true, overlayOpacity = 1, onInteraction }: VolumeMultiplanarProps & { plane: VolumePlane }) {
+function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorChange, onMaximize, regions = [], selectedRegion, onRegionSelect, showOverlays = true, overlayOpacity = 1, onInteraction, activePlane = 'axial', slab, modality = '' }: VolumeMultiplanarProps & { plane: VolumePlane }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const drag = useRef<number | null>(null)
   const [size, setSize] = useState({ width: 1, height: 1 })
   const geometry = useMemo(() => getSliceGeometry(volume, plane), [volume, plane])
   const index = indexForPlane(volume, anchor, plane)
-  const slice = useMemo(() => renderSlice(volume, plane, index, { center, width }), [volume, plane, index, center, width])
+  const slabbed = plane === activePlane && slab && slab.mode !== 'none' ? slab : null
+  const slice = useMemo(() => slabbed ? renderSlab(volume, plane, index, { center, width }, slabbed) : renderSlice(volume, plane, index, { center, width }), [volume, plane, index, center, width, slabbed])
+  const readout = useRef<HTMLSpanElement>(null)
+  const wheelRemainder = useRef(0)
   const point = slicePointFromVoxel(volume, plane, anchor)
   const physicalWidth = geometry.width * geometry.pixelSpacing[0], physicalHeight = geometry.height * geometry.pixelSpacing[1]
   const scale = Math.min(Math.max(1, size.width - 36) / physicalWidth, Math.max(1, size.height - 36) / physicalHeight) * zoom
@@ -68,7 +77,10 @@ function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorCha
       event.preventDefault()
       const latest = current.current
       latest.onInteraction?.()
-      latest.onAnchorChange(setSliceAnchor(volume, latest.anchor, plane, latest.index + Math.sign(event.deltaY)))
+      // Accumulate so a trackpad steps in proportion to distance while a mouse notch steps exactly once.
+      const { steps, remainder } = wheelSteps(wheelRemainder.current, event.deltaY, event.deltaMode)
+      wheelRemainder.current = remainder
+      if (steps) latest.onAnchorChange(setSliceAnchor(volume, latest.anchor, plane, latest.index + steps))
     }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
@@ -81,8 +93,13 @@ function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorCha
     onInteraction?.()
     onAnchorChange(voxelFromSlicePoint(volume, plane, index, { x, y }))
   }
+  const showReadout = (clientX: number, clientY: number) => {
+    const rect = canvas.current?.getBoundingClientRect(), el = readout.current
+    if (!el) return
+    el.textContent = rect && rect.width > 0 ? readoutText(voxelReadout(volume, plane, index, { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height }), modality) : ''
+  }
   return <section className="volume-plane-view" data-plane={plane} aria-label={`${title(plane)} plane`}>
-    <header><div><strong>{title(plane)}</strong><span>{index + 1}/{geometry.count}{geometry.oblique ? ' · acquired oblique' : ''}</span></div><ScanButton type="button" className="icon-btn" aria-label={`Maximize ${plane} view`} title={`Maximize ${plane}`} onClick={() => { onInteraction?.(); onMaximize(plane) }}><Maximize /></ScanButton></header>
+    <header><div><strong>{title(plane)}</strong><span>{index + 1}/{geometry.count}{geometry.oblique ? ' · acquired oblique' : ''}{slabCaption(slice)}</span></div><ScanButton type="button" className="icon-btn" aria-label={`Maximize ${plane} view`} title={`Maximize ${plane}`} onClick={() => { onInteraction?.(); onMaximize(plane) }}><Maximize /></ScanButton></header>
     <div ref={stage} className="volume-plane-stage" tabIndex={0} aria-label={`${title(plane)} slice ${index + 1} of ${geometry.count}. Click to position crosshairs; scroll or use arrow keys to change slices.`}
       onKeyDown={(event) => {
         const change = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0
@@ -91,7 +108,8 @@ function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorCha
         onAnchorChange(setSliceAnchor(volume, anchor, plane, index + change))
       }}
       onPointerDown={(event) => { if (event.button !== 0) return; event.currentTarget.focus(); event.currentTarget.setPointerCapture(event.pointerId); drag.current = event.pointerId; pick(event.clientX, event.clientY) }}
-      onPointerMove={(event) => { if (drag.current === event.pointerId) pick(event.clientX, event.clientY) }}
+      onPointerMove={(event) => { if (drag.current === event.pointerId) pick(event.clientX, event.clientY); showReadout(event.clientX, event.clientY) }}
+      onPointerLeave={() => { if (readout.current) readout.current.textContent = '' }}
       onPointerUp={() => { drag.current = null }} onPointerCancel={() => { drag.current = null }} onLostPointerCapture={() => { drag.current = null }}>
       <canvas ref={canvas} className="volume-plane-image" style={{ width: imageWidth, height: imageHeight }} role="img" aria-label={`${title(plane)} source image, slice ${index + 1}`} />
       {showOverlays && <svg className="volume-plane-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ width: imageWidth, height: imageHeight, opacity }} aria-label={`${title(plane)} finding locations`}>
@@ -101,6 +119,6 @@ function PlaneView({ plane, volume, anchor, center, width, zoom = 1, onAnchorCha
       </svg>}
       <span className="volume-plane-direction volume-plane-direction--top">{geometry.labels.top}</span><span className="volume-plane-direction volume-plane-direction--bottom">{geometry.labels.bottom}</span><span className="volume-plane-direction volume-plane-direction--left">{geometry.labels.left}</span><span className="volume-plane-direction volume-plane-direction--right">{geometry.labels.right}</span>
     </div>
-    <footer>Click or touch to position · Scroll to browse</footer>
+    <footer>Click or touch to position · Scroll to browse <span ref={readout} className="volume-plane-readout" aria-live="off" /></footer>
   </section>
 }

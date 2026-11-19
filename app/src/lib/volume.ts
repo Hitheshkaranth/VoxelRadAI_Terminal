@@ -43,6 +43,8 @@ export interface VolumeSlice extends SliceGeometry {
   position: Vec3
 }
 
+/** A storage axis whose dominant direction cosine falls below this is treated as an oblique acquisition. */
+export const OBLIQUE_TOLERANCE = 0.99999
 const MAX_VOXELS = 256 * 1024 * 1024
 const MAX_AXIS = 4096
 const scalarTypes: Record<string, { bytes: 1 | 2 | 4; signed: boolean }> = {
@@ -75,7 +77,7 @@ function anatomicalAxes(directions: [Vec3, Vec3, Vec3]): { axes: number[]; obliq
   const permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
   const score = (axes: number[]) => axes.reduce((sum, axis, storage) => sum + Math.abs(directions[storage][axis]), 0)
   const axes = permutations.reduce((best, candidate) => score(candidate) > score(best) ? candidate : best)
-  return { axes, oblique: directions.some((direction, storage) => Math.abs(direction[axes[storage]]) < 0.99999) }
+  return { axes, oblique: directions.some((direction, storage) => Math.abs(direction[axes[storage]]) < OBLIQUE_TOLERANCE) }
 }
 
 /** Dominant patient directions, retaining compound labels for oblique in-plane vectors. */

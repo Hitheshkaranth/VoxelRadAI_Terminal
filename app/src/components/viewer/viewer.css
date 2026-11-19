@@ -828,3 +828,7 @@
   .vw-measure-list { max-height: 84px; }
   .scan-content .vw-measure-hint { top: 100px; }
 }
+/* Magnifier loupe: a circular, pointer-following window; never intercepts input. */
+.vw-loupe { position: absolute; z-index: 4; overflow: hidden; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.75); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55); background: #000; pointer-events: none; }
+.vw-loupe img { position: absolute; max-width: none; user-select: none; }
+.vw-orientation-tag { position: absolute; bottom: 120px; left: var(--sp-3); padding: 3px 8px; border-radius: 6px; background: rgba(18, 18, 18, 0.82); color: rgba(255, 255, 255, 0.85); font-size: 11px; pointer-events: none; }
