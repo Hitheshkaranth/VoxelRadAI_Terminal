@@ -16,8 +16,10 @@ SESSION_IDLE_MINUTES=60
 SARVAM_API_KEY=
 # Model-improvement capture: de-identified analysed images, AI findings with reviewer decisions,
 # AI draft vs signed report text, and failed/undone/corrected dictation clips (with audio).
-# On by default; set TRAINING_CAPTURE=off to disable. Records are deleted after the retention period.
-TRAINING_CAPTURE=on
+# Off by default. To enable, set TRAINING_CAPTURE=on AND a long random TRAINING_PSEUDONYM_SECRET
+# (e.g. `openssl rand -hex 32`); without the secret capture stays off. Each user must also opt in
+# under Settings -> Data & storage. Records are deleted after the retention period.
+TRAINING_CAPTURE=off
 TRAINING_RETENTION_DAYS=365
-# Optional secret for one-way study/image/user pseudonyms in captured records.
+# Required when capture is on: keys the one-way study/image/user pseudonyms. Keep it private and stable.
 TRAINING_PSEUDONYM_SECRET=

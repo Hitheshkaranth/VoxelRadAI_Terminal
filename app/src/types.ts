@@ -143,6 +143,8 @@ export interface StudyImage {
   /** Actual DICOM source identities for grouping/traceability, never inferred from filenames. */
   sourceSeriesUid?: string
   sourceSopInstanceUid?: string
+  /** DICOM Burned In Annotation (0028,0301) is YES. Absent for raster imports, whose status is unknown. */
+  burnedInAnnotation?: boolean
   /** Original pixel grid, before the display downscale. */
   sourceRows?: number
   sourceColumns?: number
