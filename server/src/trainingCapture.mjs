@@ -1,26 +1,58 @@
 // Model-improvement capture: de-identified analysis cases, signed-report ground truth and
-// dictation clips that failed or were corrected. On by default; TRAINING_CAPTURE=off disables it.
+// dictation clips that failed or were corrected. Opt-in twice: the operator sets TRAINING_CAPTURE=on with a
+// TRAINING_PSEUDONYM_SECRET, and each user consents in Settings. Either missing means nothing is kept.
 import { createHash, createHmac } from 'node:crypto'
 
 export const TRAINING_BODY_LIMIT = (process.env.VERCEL ? 4 : 10) * 1024 * 1024
 export const DICTATION_FEEDBACK_LIMIT = 3 * 1024 * 1024
-export const captureEnabled = (env = process.env) => !/^(off|false|0|no)$/i.test(env.TRAINING_CAPTURE ?? 'on')
+const secretOf = env => (typeof env.TRAINING_PSEUDONYM_SECRET === 'string' ? env.TRAINING_PSEUDONYM_SECRET.trim() : '')
+const switchedOn = env => /^(on|true|1|yes)$/i.test(env.TRAINING_CAPTURE ?? '')
+/** Server-side switch: explicitly on and keyed with a private secret. A public default key would make pseudonyms reversible. */
+export const captureEnabled = (env = process.env) => switchedOn(env) && secretOf(env).length > 0
+let warned = false
+export function warnIfUnkeyed(env = process.env, log = console.warn) {
+  if (warned || !switchedOn(env) || secretOf(env)) return false
+  warned = true
+  log('TRAINING_CAPTURE is on but TRAINING_PSEUDONYM_SECRET is empty; model-improvement capture is disabled.')
+  return true
+}
 export const retentionDays = (env = process.env) => Math.min(3650, Math.max(7, Number(env.TRAINING_RETENTION_DAYS) || 365))
 
-const SECRET = () => process.env.TRAINING_PSEUDONYM_SECRET || 'voxelrad-training'
-/** One-way, keyed pseudonym so records join across events without revealing the source ID. */
-export const ref = (kind, id) => createHmac('sha256', SECRET()).update(`${kind}:${id}`).digest('hex').slice(0, 20)
+/** One-way, keyed pseudonym so records join across events without revealing the source ID. Never keyed with a default. */
+export function ref(kind, id, env = process.env) {
+  const secret = secretOf(env)
+  if (!secret) throw Object.assign(new Error('Training capture is not configured.'), { status: 503 })
+  return createHmac('sha256', secret).update(`${kind}:${id}`).digest('hex').slice(0, 20)
+}
 
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v)
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
 
-/** Remove contact details, ID-like numbers and full dates from free text. Known patient names are removed client-side. */
+// Identity labels whose value (to the end of the clause) is a name or ID: "Patient: Ravi Kumar", "MRN# 0042", "UHID no. A12".
+const LABELLED = /\b(patient(?:'s)?\s+name|patient|name|pt|mrn|uhid|ip\s*no|op\s*no|hospital\s+(?:no|number|id)|accession(?:\s+(?:no|number))?|aadhaa?r)\b\s*(?:[:#=]|no\.|number\b)\s*[^\n,;.]{1,60}/gi
+const ADDRESS_PIN = /\b(address|addr|road|rd|street|nagar|colony|layout|district|dist|city|village|pin\s*code|pincode|pin)\b([^\n]{0,60}?)\b\d{3}\s?\d{3}\b/gi
+const PHONE = /(?:\+\d{1,3}[\s-]?)?(?:\(\d{2,5}\)[\s-]?)?\d(?:[\s-]?\d){7,}/g
+// Measurements such as 12x10mm or 120ml are clinical content, not identifiers.
+const MEASURE = /^\d+(?:x\d+)*(?:mm|cm|ml|mg|hu|kg|cc|mls?)?$/i
+/** MRN-like token: 6+ digits, or 6+ letters and digits mixed with at least 4 digits (AB123456, MRN-0042). */
+const idLike = token => {
+  const bare = token.replace(/-/g, '')
+  if (MEASURE.test(bare)) return /^\d{6,}$/.test(bare)
+  return bare.length >= 6 && (bare.match(/\d/g)?.length ?? 0) >= 4
+}
+/** Remove contact details, ID-like tokens, labelled names and full dates from free text. Known patient names are removed client-side. */
 export function scrub(text) {
   return str(text, 20000)
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[EMAIL]')
+    .replace(LABELLED, (_, label) => `${label}: [REDACTED]`)
     .replace(/\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b/g, '[DATE]')
-    .replace(/\b(?:\+?\d[\d -]{8,}\d)\b/g, '[NUMBER]')
+    // Aadhaar-like 12 digits (often grouped 4-4-4), before the phone rule so it is labelled as an ID.
+    .replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g, '[ID]')
+    .replace(ADDRESS_PIN, (_, word, between) => `${word}${between}[PIN]`)
+    // Phone numbers (+91 98765 43210, (080) 2345-6789); runs of single digits such as level lists are left alone.
+    .replace(PHONE, m => (/\d{3}/.test(m) ? '[NUMBER]' : m))
+    .replace(/\b[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\b/g, m => (idLike(m) ? '[ID]' : m))
 }
 
 const SEVERITY = ['critical', 'significant', 'moderate', 'minor', 'normal']
@@ -49,7 +81,7 @@ export function decodeImage(dataUrl) {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Validate and de-identify a capture request. Unknown fields, including any patient fields, are dropped. */
-export function parseCase(data) {
+export function parseCase(data, userId = '', env = process.env) {
   if (!object(data) || !['analysis', 'signed'].includes(data.kind) || typeof data.studyId !== 'string' || !UUID.test(data.studyId)) {
     throw Object.assign(new Error('Invalid training case.'), { status: 400 })
   }
@@ -62,8 +94,10 @@ export function parseCase(data) {
     width: num(data.width), height: num(data.height), durationMs: num(data.durationMs),
     ...(data.kind === 'signed' ? { aiDraft: sections(data.aiDraft), final: sections(data.final), draftMethod: str(data.draftMethod, 20), signOverrides: Array.isArray(data.signOverrides) ? data.signOverrides.slice(0, 20).map(s => str(s, 300)) : [] } : {}),
   }
+  // The user ID is part of the key so a capture can never join another account's records for the same study ID.
+  const owner = `${userId}:${data.studyId}`
   return {
-    kind: data.kind, studyRef: ref('study', data.studyId), imageRef: imageId ? ref('image', `${data.studyId}/${imageId}`) : null,
+    kind: data.kind, studyRef: ref('study', owner, env), imageRef: imageId ? ref('image', `${owner}/${imageId}`, env) : null,
     modality: payload.modality, model: payload.model, payload, image: data.kind === 'analysis' ? decodeImage(data.image) : null,
   }
 }
@@ -78,10 +112,25 @@ export function parseDictationFeedback(data) {
 
 export function createTrainingCapture({ pool, env = process.env }) {
   const enabled = () => captureEnabled(env)
+  const consent = async userId => {
+    const result = await pool.query('SELECT training_consent AS consent,training_consent_at AS "consentedAt" FROM users WHERE id=$1', [userId])
+    return { consent: result.rows[0]?.consent === true, consentedAt: result.rows[0]?.consentedAt ?? null }
+  }
+  /** On for this user only when the server is on and they have consented. */
+  const enabledFor = async userId => Boolean(userId) && enabled() && (await consent(userId)).consent
   return {
-    enabled,
-    async saveCase(parsed) {
-      if (!enabled()) return false
+    enabled, consent, enabledFor,
+    async setConsent(userId, value) {
+      const result = await pool.query('UPDATE users SET training_consent=$2,training_consent_at=now() WHERE id=$1 RETURNING training_consent AS consent,training_consent_at AS "consentedAt"', [userId, value === true])
+      return { consent: result.rows[0]?.consent === true, consentedAt: result.rows[0]?.consentedAt ?? null }
+    },
+    /** Who may attach a capture to this study ID: its owner, or anyone when it is not a server study (browser-local). */
+    async studyAllowed(userId, studyId) {
+      const result = await pool.query('SELECT owner_id FROM studies WHERE id=$1', [studyId])
+      return !result.rows[0] || result.rows[0].owner_id === userId
+    },
+    async saveCase(parsed, userId) {
+      if (!await enabledFor(userId)) return false
       if (parsed.image) {
         await pool.query('INSERT INTO training_images(sha256,mime,bytes,width,height) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (sha256) DO NOTHING',
           [parsed.image.sha256, parsed.image.mime, parsed.image.bytes, parsed.payload.width ?? null, parsed.payload.height ?? null])
@@ -91,9 +140,9 @@ export function createTrainingCapture({ pool, env = process.env }) {
       return true
     },
     async saveDictation(userId, event) {
-      if (!enabled()) return false
+      if (!await enabledFor(userId)) return false
       await pool.query('INSERT INTO dictation_events(kind,user_ref,language,transcript,corrected,error,audio,audio_mime) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-        [event.kind, ref('user', userId), event.language || '', event.transcript || '', event.corrected || '', event.error || '', event.audio ?? null, event.audio ? event.mime : null])
+        [event.kind, ref('user', userId, env), event.language || '', event.transcript || '', event.corrected || '', event.error || '', event.audio ?? null, event.audio ? event.mime : null])
       return true
     },
     /** Unsynced records with their image or audio bytes, oldest first, for the durable-storage sync. */

@@ -1,5 +1,5 @@
 import { ShellButton } from './ShellButton'
-import { captureEnabled } from '../../lib/trainingCapture'
+import { TrainingConsent } from './TrainingConsent'
 import { cancelImages, cancelReport } from '../../lib/analysis'
 import { resetVolumeJobs } from '../../lib/volumeJobs'
 import { resolveModelUrl } from '../../lib/modelTransport'
@@ -419,23 +419,6 @@ function formatBytes(n: number): string {
   return `${Math.round(n / 1e3)} KB`
 }
 
-/** Tells users, on accounts where it is on, what the server keeps for improving future models. */
-function TrainingCaptureNote() {
-  const [enabled, setEnabled] = useState(false)
-  useEffect(() => { void captureEnabled().then(setEnabled) }, [])
-  if (!enabled) return null
-  return (
-    <Section title="Model improvement" desc="On for this server.">
-      <div className="sh-about-sub">
-        To improve future models, this server keeps a de-identified copy of each analysed image with its AI findings,
-        your accept and dismiss decisions, the AI draft beside your signed report, and dictation phrases that fail,
-        are undone or are corrected (with audio). Patient name, ID, referring physician and contact details are removed;
-        burned-in text on images is not. Your administrator can turn this off.
-      </div>
-    </Section>
-  )
-}
-
 function DataControls() {
   const studies = useApp((s) => s.studies)
   const [deleting, setDeleting] = useState(false)
@@ -479,7 +462,7 @@ function DataControls() {
 
   return (
     <>
-    <TrainingCaptureNote />
+    <TrainingConsent />
     <Section title="Data" desc="Manage locally stored studies.">
       <div className="sh-settings-row">
         <div style={{ flex: 1, minWidth: 0 }}>

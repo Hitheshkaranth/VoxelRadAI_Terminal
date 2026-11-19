@@ -135,10 +135,6 @@ class FacadeTests(unittest.TestCase):
             self.assertIn("Secure; HttpOnly", result.headers["set-cookie"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TrainingSyncTests(unittest.TestCase):
     """The dataset sync uploads images, audio and records, then marks them synced only after upload."""
 
@@ -190,3 +186,64 @@ class TrainingSyncTests(unittest.TestCase):
         with patch.object(httpx, "get", get), patch.object(httpx, "post", post):
             with self.assertRaises(RuntimeError):
                 self.ns["sync_training_once"](Api(), "me/VoxelRad-training")
+
+
+class StateBackupTests(unittest.TestCase):
+    """Restore never half-applies, a failed restore never lets an empty database overwrite the backup."""
+
+    def setUp(self):
+        import hashlib
+        tree = ast.parse(Path(__file__).with_name("space_app.py").read_text())
+        names = {"state_excluded_tables", "state_dump_args", "state_digest", "restore_state", "backups_allowed"}
+        consts = {"STATE_EXCLUDED_DATA", "SESSION_TABLES", "OFF"}
+        keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name in names)
+                or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") in consts for t in n.targets))]
+        self.ns = {"os": os, "hashlib": hashlib, "subprocess": SimpleNamespace(run=None)}
+        exec(compile(ast.Module(body=keep, type_ignores=[]), "space_app.py", "exec"), self.ns)
+        self.calls = []
+
+    def run_ok(self, code=0):
+        def run(args, **kwargs):
+            self.calls.append((args, kwargs))
+            return SimpleNamespace(returncode=code)
+        return run
+
+    def test_restore_is_one_transaction_and_seeds_digest(self):
+        sql = b"-- dump\nCREATE TABLE users();\n"
+        status, digest = self.ns["restore_state"](Path("/pg"), "db", lambda: sql, run=self.run_ok(), env={})
+        self.assertEqual(status, "restored")
+        self.assertEqual(digest, self.ns["state_digest"](b"-- other comment\nCREATE TABLE users();\n"))
+        args = self.calls[0][0]
+        self.assertIn("--single-transaction", args)
+        self.assertEqual(args[args.index("-v") + 1], "ON_ERROR_STOP=1")
+        self.assertEqual(self.calls[0][1]["input"], sql)
+        self.assertIn("DELETE FROM sessions", self.calls[1][0])
+
+    def test_failed_restore_blocks_backups_until_operator_allows(self):
+        status, digest = self.ns["restore_state"](Path("/pg"), "db", lambda: b"x", run=self.run_ok(3), env={})
+        self.assertEqual((status, digest), ("failed", None))
+        def broken():
+            raise OSError("hub down")
+        self.assertEqual(self.ns["restore_state"](Path("/pg"), "db", broken, run=self.run_ok(), env={})[0], "failed")
+        allowed = self.ns["backups_allowed"]
+        self.assertFalse(allowed("failed", {}))
+        self.assertFalse(allowed("failed", {"STATE_BACKUP_ALLOW_FRESH": "0"}))
+        self.assertTrue(allowed("failed", {"STATE_BACKUP_ALLOW_FRESH": "1"}))
+        self.assertTrue(allowed("none", {})); self.assertTrue(allowed("restored", {})); self.assertTrue(allowed("existing", {}))
+
+    def test_missing_backup_starts_empty(self):
+        self.assertEqual(self.ns["restore_state"](Path("/pg"), "db", lambda: None, run=self.run_ok(), env={}), ("none", None))
+        self.assertEqual(self.calls, [])
+
+    def test_dump_excludes_session_and_training_data(self):
+        args = self.ns["state_dump_args"](Path("/pg"), "db", env={})
+        excluded = [args[i + 1] for i, a in enumerate(args) if a == "--exclude-table-data"]
+        self.assertEqual(set(excluded), {"sessions", "training_cases", "training_images", "dictation_events"})
+        kept = self.ns["state_dump_args"](Path("/pg"), "db", env={"STATE_BACKUP_SESSIONS": "on"})
+        self.assertNotIn("sessions", kept)
+        self.ns["restore_state"](Path("/pg"), "db", lambda: b"x", run=self.run_ok(), env={"STATE_BACKUP_SESSIONS": "on"})
+        self.assertEqual(len(self.calls), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -40,6 +40,9 @@ function parseDicomBytes(bytes: Uint8Array): dicomParser.DataSet {
   }
 }
 
+/** Burned In Annotation (0028,0301). Only an explicit YES marks text in the pixels; an absent tag is read as NO, as DICOM viewers do. */
+export const burnedIn = (ds: { string: (tag: string) => string | undefined }) => (ds.string('x00280301') ?? '').trim().toUpperCase() === 'YES'
+
 /** Parse once, then decode any frame of a supported monochrome image stack. */
 export function createDicomFrameDecoder(bytes: Uint8Array) {
   const ds = parseDicomBytes(bytes)
@@ -92,7 +95,7 @@ export function createDicomFrameDecoder(bytes: Uint8Array) {
     mono1: photo === 'MONOCHROME1',
   })
   const uid = (tag: string) => { const value = ds.string(tag)?.trim(); return value && value.length <= 64 && /^\d+(?:\.\d+)*$/.test(value) ? value : undefined }
-  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018'), sourceRows: rows, sourceColumns: cols, ...(spacing ? { pixelSpacing: spacing } : {}) }
+  return { gray, rows, cols, sourceModality: ds.string('x00080060')?.trim().toUpperCase() || undefined, sourceBodyPart: ds.string('x00180015')?.trim().toUpperCase() || undefined, sourceFrameCount: frames, sourceFrameIndex: frameIndex, sourceSeriesUid: uid('x0020000e'), sourceSopInstanceUid: uid('x00080018'), burnedInAnnotation: burnedIn(ds), sourceRows: rows, sourceColumns: cols, ...(spacing ? { pixelSpacing: spacing } : {}) }
   } }
 }
 

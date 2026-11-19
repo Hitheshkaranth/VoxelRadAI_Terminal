@@ -41,11 +41,17 @@ Set these Space secrets:
 - `DATABASE_URL` (recommended): an external PostgreSQL database for durable accounts
   and saved studies. Without it, a loopback PostgreSQL instance is initialized in
   `/tmp` and backed up every five minutes (and at shutdown) to the private dataset
-  `<owner>/VoxelRad-state`, then restored at the next start. Accounts, sign-in
-  sessions, templates and server-saved studies therefore survive restarts; changes
-  made in the last few minutes before an abrupt stop can be lost. Set
-  `STATE_BACKUP=off` to disable the backup. The backup contains account password
-  hashes and any server-saved study data, so keep the dataset private.
+  `<owner>/VoxelRad-state`, then restored at the next start. Accounts, templates and
+  server-saved studies therefore survive restarts; changes made in the last few
+  minutes before an abrupt stop can be lost. Sign-in sessions are not backed up, so a
+  session revoked after the last backup cannot return and users sign in again after a
+  restart; set `STATE_BACKUP_SESSIONS=on` to keep logins across restarts and accept
+  that risk. The restore runs in a single transaction. If it fails (as opposed to no
+  backup existing yet), the Space starts with an empty database and **does not upload
+  backups**, so the last good backup is not overwritten; fix the cause, or set
+  `STATE_BACKUP_ALLOW_FRESH=1` to start fresh and replace it. Set `STATE_BACKUP=off`
+  to disable the backup. The backup contains account password hashes and any
+  server-saved study data, so keep the dataset private.
   Browser-local studies retain their existing browser storage behavior.
 
 ### Connect Neon PostgreSQL
@@ -128,15 +134,26 @@ REST limit is 30 seconds per request) and understands voice commands: "next sect
 
 ## Model-improvement capture
 
-On by default (`TRAINING_CAPTURE=on`). For each analysed image the server keeps a
-de-identified JPEG (pixels only, long side at most 2048 px) with the AI findings; at
+Off by default. It runs only when the operator sets `TRAINING_CAPTURE=on` **and** a private
+`TRAINING_PSEUDONYM_SECRET` (a long random value; without it capture stays off and the server
+logs why), **and** the signed-in user has turned on "Share de-identified cases" under
+Settings → Data & storage. Users can withdraw at any time; that stops future capture, and
+records already kept stay until the retention period ends. Captures for a server study are
+accepted only from its owner, and pseudonyms include the user ID so one account cannot attach
+records to another's.
+
+For each analysed image the server keeps a de-identified JPEG (pixels only, long side at most
+2048 px) with the AI findings. Images whose DICOM Burned In Annotation (0028,0301) is YES, and
+PNG/JPEG uploads (whose burned-in text status is unknown), are captured as text only; at
 sign-off it keeps the radiologist's accept/dismiss decisions and the AI draft beside the
 signed report text. Dictation phrases that fail, return nothing, are undone ("scratch
 that") or are later corrected are kept with their audio and the corrected text.
 
 Patient name, ID, referring physician, contact details and full dates are removed and
 study, image and user IDs are replaced with keyed one-way pseudonyms. Only an age band
-and sex are kept. Burned-in text on images is not removed. Records are deleted from the
+and sex are kept. Free text is also scrubbed of labelled names ("Patient:", "Name:"), MRN-like
+tokens, phone numbers, Aadhaar-like 12-digit numbers and PIN codes after address words. Burned-in
+text is not removed from images that are sent. Records are deleted from the
 database after `TRAINING_RETENTION_DAYS` (default 365).
 
 On the Space, captured records are also copied every five minutes (and at shutdown) to a

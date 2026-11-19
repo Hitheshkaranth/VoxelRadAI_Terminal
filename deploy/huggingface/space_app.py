@@ -58,6 +58,59 @@ STATE_BACKUP_SECONDS = int(os.environ.get("STATE_BACKUP_SECONDS", "300"))
 STATE_FILE = "skanda.sql.gz"
 # Training data has its own dataset sync; leave it out of the state backup.
 STATE_EXCLUDED_DATA = ("training_cases", "training_images", "dictation_events")
+# Sign-in sessions are left out too, so a session revoked after the last backup (sign-out, password change,
+# disabled account) cannot come back on restore. STATE_BACKUP_SESSIONS=on keeps logins across restarts instead.
+SESSION_TABLES = ("sessions",)
+OFF = {"off", "false", "0", "no", ""}
+
+
+def state_excluded_tables(env=os.environ):
+    keep_sessions = env.get("STATE_BACKUP_SESSIONS", "off").lower() not in OFF
+    return STATE_EXCLUDED_DATA + (() if keep_sessions else SESSION_TABLES)
+
+
+def state_dump_args(pg_bin, url, env=os.environ):
+    args = [str(pg_bin / "pg_dump"), "--no-owner", "--no-privileges", "-d", url]
+    for table in state_excluded_tables(env):
+        args += ["--exclude-table-data", table]
+    return args
+
+
+def state_digest(dump):
+    """Hash without comments and the per-dump random restrict keys, so an unchanged database is not uploaded again."""
+    return hashlib.sha256(b"\n".join(l for l in dump.splitlines() if not l.startswith((b"--", b"\\restrict", b"\\unrestrict")))).hexdigest()
+
+
+def restore_state(pg_bin, url, fetch, run=subprocess.run, env=os.environ):
+    """Load the backup into an empty database. Returns ("restored", digest), ("none", None) or ("failed", None).
+
+    fetch() returns the SQL bytes, or None when no backup exists yet. The restore runs in one transaction,
+    so a failure leaves the database empty rather than half-restored."""
+    try:
+        sql = fetch()
+    except Exception as error:
+        print(f"State restore failed: {type(error).__name__}.", flush=True)
+        return "failed", None
+    if sql is None:
+        print("No state backup yet; starting empty.", flush=True)
+        return "none", None
+    result = run([str(pg_bin / "psql"), "-q", "--single-transaction", "-v", "ON_ERROR_STOP=1", "-d", url], input=sql, capture_output=True)
+    if result.returncode != 0:
+        print(f"State restore failed (exit {result.returncode}).", flush=True)
+        return "failed", None
+    if "sessions" in state_excluded_tables(env):
+        # Older backups included sessions; drop them so a revoked session cannot return.
+        run([str(pg_bin / "psql"), "-q", "-d", url, "-c", "DELETE FROM sessions"], capture_output=True)
+    print("Restored accounts and saved data from backup.", flush=True)
+    # Start from the restored state so the first backup loop does not re-upload (or overwrite) it unchanged.
+    return "restored", state_digest(sql)
+
+
+def backups_allowed(status, env=os.environ):
+    """After a failed restore the dataset still holds the last good backup; never overwrite it with an empty database."""
+    if status != "failed":
+        return True
+    return env.get("STATE_BACKUP_ALLOW_FRESH", "").lower() not in OFF
 
 
 def start_state_backup(pg_bin, url, restore):
@@ -79,27 +132,23 @@ def start_state_backup(pg_bin, url, restore):
         print(f"State backup unavailable: {type(error).__name__}", flush=True)
         return False
 
-    if restore:
+    def fetch():
         try:
             path = hf_hub_download(repo_id, STATE_FILE, repo_type="dataset", token=token, force_download=True)
-            sql = gzip.decompress(Path(path).read_bytes())
-            result = subprocess.run([str(pg_bin / "psql"), "-q", "-v", "ON_ERROR_STOP=1", "-d", url], input=sql, capture_output=True)
-            print("Restored accounts and saved data from backup." if result.returncode == 0
-                  else f"State restore failed (exit {result.returncode}); starting empty.", flush=True)
         except EntryNotFoundError:
-            print("No state backup yet; starting empty.", flush=True)
-        except Exception as error:
-            print(f"State restore failed: {type(error).__name__}; starting empty.", flush=True)
+            return None
+        return gzip.decompress(Path(path).read_bytes())
 
-    last = {"digest": None}
+    status, digest = restore_state(pg_bin, url, fetch) if restore else ("existing", None)
+    if not backups_allowed(status):
+        print("State backups paused so the last good backup is not overwritten. Fix the restore, or set "
+              "STATE_BACKUP_ALLOW_FRESH=1 to start a fresh database and replace the backup.", flush=True)
+        return False
+    last = {"digest": digest}
 
     def backup():
-        args = [str(pg_bin / "pg_dump"), "--no-owner", "--no-privileges", "-d", url]
-        for table in STATE_EXCLUDED_DATA:
-            args += ["--exclude-table-data", table]
-        dump = subprocess.run(args, capture_output=True, check=True).stdout
-        # Hash without comments and the per-dump random restrict keys, so an unchanged database is not uploaded again.
-        digest = hashlib.sha256(b"\n".join(l for l in dump.splitlines() if not l.startswith((b"--", b"\\restrict", b"\\unrestrict")))).hexdigest()
+        dump = subprocess.run(state_dump_args(pg_bin, url), capture_output=True, check=True).stdout
+        digest = state_digest(dump)
         if digest == last["digest"]:
             return False
         api.upload_file(path_or_fileobj=gzip.compress(dump), path_in_repo=STATE_FILE, repo_id=repo_id,
@@ -171,7 +220,7 @@ def start_services():
         else:
             raise RuntimeError("PostgreSQL did not become ready")
         env["DATABASE_URL"] = "postgresql://skanda@127.0.0.1/skanda"
-        # Accounts, sessions, templates and saved studies survive restarts through a private backup.
+        # Accounts, templates and saved studies survive restarts through a private backup (sessions only if opted in).
         if start_state_backup(pg_bin, env["DATABASE_URL"], restore=created):
             print("Using local PostgreSQL with a private Hugging Face backup.", flush=True)
         else:
@@ -283,7 +332,9 @@ def sync_training_once(api, repo_id):
 def start_training_sync():
     """Durable copy of captured data: the Space database may be temporary, the private dataset is not."""
     token = os.environ.get("HF_TOKEN")
-    if not token or os.environ.get("TRAINING_CAPTURE", "on").lower() in {"off", "false", "0", "no"}:
+    # Mirrors the API: capture is opt-in and needs a private pseudonym key.
+    if (not token or os.environ.get("TRAINING_CAPTURE", "off").lower() not in {"on", "true", "1", "yes"}
+            or not os.environ.get("TRAINING_PSEUDONYM_SECRET", "").strip()):
         print("Training data sync disabled.", flush=True)
         return
     from huggingface_hub import HfApi

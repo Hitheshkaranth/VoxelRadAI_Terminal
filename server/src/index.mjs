@@ -14,7 +14,7 @@ import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
-import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback } from './trainingCapture.mjs'
+import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, parseCase, parseDictationFeedback, warnIfUnkeyed } from './trainingCapture.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -113,6 +113,7 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
 const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
+warnIfUnkeyed()
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
   await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup()])
@@ -250,10 +251,24 @@ export async function handler(req, res) {
       if (!result.transcript) await keep('empty')
       return send(res, 200, result)
     }
-    if (path === '/api/training/status' && req.method === 'GET') return send(res, 200, { enabled: training.enabled() })
+    // Capture needs the operator switch and this user's own consent; status reports both separately.
+    if (path === '/api/training/status' && req.method === 'GET') return send(res, 200, { enabled: await training.enabledFor(user.id), serverEnabled: training.enabled() })
+    if (path === '/api/training/consent' && req.method === 'GET') return send(res, 200, { ...await training.consent(user.id), serverEnabled: training.enabled() })
+    if (path === '/api/training/consent' && req.method === 'PUT') {
+      const data = await body(req, 1024)
+      if (typeof data.consent !== 'boolean') return send(res, 400, { error: 'Send consent as true or false.' })
+      const result = await training.setConsent(user.id, data.consent)
+      await audit(user.id, data.consent ? 'training.consent_given' : 'training.consent_withdrawn')
+      return send(res, 200, { ...result, serverEnabled: training.enabled() })
+    }
     if (path === '/api/training/cases' && req.method === 'POST') {
       if (await rateLimit(`training:${user.id}`, 2000)) return send(res, 429, { error: 'Too many capture requests.' })
-      const saved = await training.saveCase(parseCase(await body(req, TRAINING_BODY_LIMIT)))
+      const data = await body(req, TRAINING_BODY_LIMIT)
+      if (!await training.enabledFor(user.id)) return send(res, 200, { saved: false })
+      const parsed = parseCase(data, user.id)
+      // Server studies only take captures from their owner; browser-local IDs are keyed per user in parseCase.
+      if (!await training.studyAllowed(user.id, data.studyId)) return send(res, 404, { error: 'Study not found.' })
+      const saved = await training.saveCase(parsed, user.id)
       return send(res, saved ? 201 : 200, { saved })
     }
     if (path === '/api/training/dictation' && req.method === 'POST') {
