@@ -1,5 +1,7 @@
 """Exercise the real facade routes without loading model weights or starting services."""
 import ast
+import hmac
+import re
 import asyncio
 import json
 import os
@@ -19,11 +21,11 @@ class FacadeTests(unittest.TestCase):
     def setUp(self):
         self.app = FastAPI()
         tree = ast.parse(Path(__file__).with_name("space_app.py").read_text())
-        names = {"authenticate_inference", "models", "completion", "api_proxy"}
-        routes = ast.Module(body=[node for node in tree.body if isinstance(node, ast.AsyncFunctionDef) and node.name in names], type_ignores=[])
+        names = {"authenticate_inference", "models", "completion", "api_proxy", "bridge_caller"}
+        routes = ast.Module(body=[node for node in tree.body if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and node.name in names], type_ignores=[])
         namespace = {"app": self.app, "httpx": httpx, "Request": Request, "JSONResponse": JSONResponse,
                      "Response": Response, "json": json, "os": os, "uuid": uuid, "MODEL_ID": "skanda-v1", "APP_PORT": 7861,
-                     "asyncio": asyncio, "READ_TIMEOUT_SECONDS": 1, "demo": SimpleNamespace(_queue=SimpleNamespace(clean_events=AsyncMock()))}
+                     "asyncio": asyncio, "READ_TIMEOUT_SECONDS": 1, "BRIDGE_SECRET": "", "hmac": hmac, "re": re, "demo": SimpleNamespace(_queue=SimpleNamespace(clean_events=AsyncMock()))}
         self.namespace = namespace
         exec(compile(routes, "space_app.py", "exec"), namespace)
         self.mode = "complete"
