@@ -50,6 +50,9 @@ import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportT
 import { reportQa, uncommunicatedCritical } from '../../lib/reportQa'
 import { GuidelineHelper } from './GuidelineHelper'
 import { CriticalCommsForm } from './CriticalCommsForm'
+import { ExamLibrarySheet, ExamTemplatePicker } from './ExamTemplates'
+import { fieldLabel, mergeTemplateSections, unresolvedFields, type ExamTemplate } from '../../lib/examTemplates'
+import { plainToHtml } from '../../lib/richText'
 import './report.css'
 
 const REPORT_FIELDS: { key: ReportFieldKey; label: string; icon: ReactNode; emphasis?: boolean }[] = [
@@ -173,6 +176,9 @@ function signChecklist(study: Study, report: ReportDraft, stale: boolean): strin
   if (stale) items.push('The draft is out of date: images, reviews or patient details changed since drafting.')
   // Text QA: laterality, sex-specific anatomy, impression coverage, lesion size, critical comms, dictation leftovers.
   items.push(...reportQa(study, report).map((issue) => issue.message))
+  const fields = unresolvedFields(report)
+  if (fields.length)
+    items.push(`${plural(fields.length, 'template field')} not filled in: ${fields.slice(0, 3).map((f) => `[${fieldLabel(f.field)}]`).join(', ')}${fields.length > 3 ? ', …' : ''}.`)
   return items
 }
 
@@ -268,6 +274,31 @@ export function ReportPanel() {
   const loadTemplates = useTemplates((s) => s.load)
   useEffect(() => { if (!templatesLoaded) void loadTemplates() }, [templatesLoaded, loadTemplates])
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [examPickerOpen, setExamPickerOpen] = useState(false)
+  const [examLibraryOpen, setExamLibraryOpen] = useState(false)
+
+  // Replace overwrites the sections the template fills; insert appends its text and keeps existing formatting.
+  const applyExamTemplate = useCallback((template: ExamTemplate, mode: 'replace' | 'insert') => {
+    if (!study) return
+    const merged = mergeTemplateSections(report ?? {}, template, mode)
+    const patch: Partial<ReportDraft> = { ...merged, edited: true }
+    if (mode === 'insert' && report) {
+      const rich = { ...report.rich }
+      for (const key of Object.keys(merged) as ReportFieldKey[]) {
+        rich[key] = report[key].trim() ? (report.rich?.[key] ?? plainToHtml(report[key])) + plainToHtml(template.sections[key] ?? '') : plainToHtml(merged[key] ?? '')
+      }
+      patch.rich = rich
+    }
+    setReport(study.id, patch)
+    toast(`Applied “${template.name}”. Tab or F2 moves between [fields].`, 'success')
+  }, [study, report, setReport])
+  const examSheets = study ? (
+    <>
+      <ExamTemplatePicker open={examPickerOpen} onClose={() => setExamPickerOpen(false)} study={study} current={report ?? {}}
+        onApply={applyExamTemplate} onManage={() => setExamLibraryOpen(true)} />
+      <ExamLibrarySheet open={examLibraryOpen} onClose={() => setExamLibraryOpen(false)} />
+    </>
+  ) : null
 
   const sign = useCallback((overrides: string[] = []) => {
     if (!study || !report) return
@@ -365,7 +396,9 @@ export function ReportPanel() {
             context into a structured, signable report.
           </div>
           <div className="rp-empty-count">{analyzedCount} of {totalCount} images analyzed</div>
+          <ShellButton type="button" className="btn btn-sm" onClick={() => setExamPickerOpen(true)}>Start from exam template</ShellButton>
         </div>
+        {examSheets}
       </div>
     )
   }
@@ -412,10 +445,11 @@ export function ReportPanel() {
               <ShellButton type="button" className="btn btn-destructive" onClick={cancelReport}>
                 Cancel
               </ShellButton>
-            ) : null}
+            ) : <ShellButton type="button" className="btn" onClick={() => setExamPickerOpen(true)}>Exam template</ShellButton>}
           </div>
         </div>
         <div className="rp-disclaimer">{DISCLAIMER_LINE}</div>
+        {examSheets}
       </div>
     )
   }
@@ -543,6 +577,13 @@ export function ReportPanel() {
         </label>
         <ShellButton type="button" className="btn btn-sm" onClick={() => setTemplatesOpen(true)}>Manage</ShellButton>
       </section>
+      {!signed ? (
+        <section className="rp-card exam-pick" aria-label="Exam template">
+          <ShellButton type="button" className="btn btn-sm" onClick={() => setExamPickerOpen(true)}>Apply exam template</ShellButton>
+          <ShellButton type="button" className="btn btn-sm btn-plain" onClick={() => setExamLibraryOpen(true)}>Templates &amp; macros</ShellButton>
+          <span className="exam-pick-hint">Type .name + Space for a macro · Tab / F2 next field</span>
+        </section>
+      ) : null}
       <DictationBar disabled={signed} labels={sectionLabels} studyId={study.id} />
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
@@ -704,6 +745,7 @@ export function ReportPanel() {
         <PrintReport study={study} settings={settings} onClose={() => setPreviewOpen(false)} />
       ) : null}
       <TemplatesSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} institution={settings.institution} />
+      {examSheets}
       {shareOpen ? <ShareStudySheet key={study.id} study={study} institution={settings.institution} onClose={() => setShareOpen(false)} /> : null}
     </div>
   )
