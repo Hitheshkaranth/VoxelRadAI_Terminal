@@ -94,7 +94,7 @@ export function ReportHistory({ report, labels }: { report: ReportDraft; labels:
                   <div key={key}><dt>{labels[key]}</dt><dd>{version.sections[key]?.trim() || '—'}</dd></div>
                 ))}
               </dl>
-              {version.signOverrides?.length ? <p className="ri-hint">Signed past: {version.signOverrides.join('; ')}</p> : null}
+              {version.signOverrides?.length ? <p className="ri-hint">Signed past unresolved items: {version.signOverrides.join(' ')}</p> : null}
             </details>
             {addenda.map((a) => (
               <div key={a.id} className="ri-addendum"><strong>{addendumHeading(a)}</strong><p>{a.text}</p></div>

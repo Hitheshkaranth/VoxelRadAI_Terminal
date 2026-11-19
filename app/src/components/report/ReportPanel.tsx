@@ -554,7 +554,7 @@ export function ReportPanel() {
               <span className="rp-seal-name">Signed by {report.radiologist || 'radiologist'}</span>
               <span className="rp-seal-date">{report.signedAt ? new Date(report.signedAt).toLocaleString() : '—'}</span>
               {report.signOverrides?.length ? (
-                <span className="rp-seal-date">Signed past: {report.signOverrides.join('; ')}</span>
+                <span className="rp-seal-date">Signed past unresolved items: {report.signOverrides.join(' ')}</span>
               ) : null}
             </div>
           </div>
@@ -589,7 +589,7 @@ export function ReportPanel() {
           <span className="exam-pick-hint">Type .name + Space for a macro · Tab / F2 next field</span>
         </section>
       ) : null}
-      <DictationBar key={study.id} disabled={signed} labels={sectionLabels} studyId={study.id} />
+      {!signed ? <DictationBar key={study.id} disabled={signed} labels={sectionLabels} studyId={study.id} /> : null}
       <nav className="rp-section-nav" aria-label="Report sections">
         {REPORT_FIELDS.map((field) => <ShellButton key={field.key} type="button" onClick={() => {
           const section = document.getElementById(`report-${field.key}`)

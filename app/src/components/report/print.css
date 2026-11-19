@@ -451,6 +451,8 @@
   line-height: 1.5;
   color: #3c3c43;
 }
+/* Critical-result communication is part of the clinical record: body size and ink, not footnote grey. */
+.rp-amendments.rp-critical-comms { font-size: var(--text-body); line-height: 1.55; color: #1c1c1e; }
 .rp-thumb { max-width: 100%; }
 /* Addenda print after the signature: the signed sections above them stay exactly as signed. */
 .rp-addendum {

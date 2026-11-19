@@ -829,6 +829,25 @@
   .scan-content .vw-measure-hint { top: 100px; }
 }
 /* Magnifier loupe: a circular, pointer-following window; never intercepts input. */
-.vw-loupe { position: absolute; z-index: 4; overflow: hidden; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.75); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55); background: #000; pointer-events: none; }
+.vw-loupe { position: absolute; z-index: 4; overflow: hidden; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, 0.7); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.6); background: #000; pointer-events: none; }
 .vw-loupe img { position: absolute; max-width: none; user-select: none; }
-.vw-orientation-tag { position: absolute; bottom: 120px; left: var(--sp-3); padding: 3px 8px; border-radius: 6px; background: rgba(18, 18, 18, 0.82); color: rgba(255, 255, 255, 0.85); font-size: 11px; pointer-events: none; }
+/* Flipped or rotated film: labels drawn on it are counter-transformed so they stay readable. */
+.vw-canvas[data-oriented] :is(.vw-chip, .vw-lat, .vw-compare-tag) { transform: var(--vw-unorient); }
+.vw-canvas[data-oriented] .vw-label,
+.vw-canvas[data-oriented] .vw-finding:hover .vw-label,
+.vw-canvas[data-oriented] .vw-finding.vw-found .vw-label { transform: var(--vw-unorient); }
+.vw-canvas[data-oriented] .vw-measure text { transform-box: fill-box; transform-origin: center; transform: var(--vw-unorient); }
+.vw-orientation-tag { position: absolute; bottom: 120px; left: var(--sp-3); z-index: 4; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--scan-surface, rgba(18, 18, 18, 0.88)); color: var(--scan-muted, rgba(255, 255, 255, 0.8)); font: 500 var(--text-caption) / 1.3 var(--font-sans); pointer-events: none; }
+@media (max-width: 1023px) {
+  /* The finding count and series tray own the lower-left corner on touch layouts. */
+  .vw-orientation-tag { bottom: auto; top: 136px; left: auto; right: var(--sp-3); max-width: calc(100% - 2 * var(--sp-3)); }
+}
+.vw-orientation-popover small { color: var(--label-2); font-size: var(--text-caption); line-height: 1.4; padding: 2px 4px 0; }
+.vw-orientation-popover .btn[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); }
+
+/* Measurement panel: the dark scan surface in both themes, so its buttons use light ink rather than theme tokens. */
+.vw-measure-panel .btn { color: rgba(255, 255, 255, 0.88); background: rgba(255, 255, 255, 0.08); border-color: transparent; box-shadow: none; }
+.vw-measure-panel .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.vw-measure-panel .btn:disabled { opacity: 0.4; }
+.vw-measure-panel .vw-measure-show { flex-basis: 100%; }
+.vw-measure-actions { justify-content: flex-end; }

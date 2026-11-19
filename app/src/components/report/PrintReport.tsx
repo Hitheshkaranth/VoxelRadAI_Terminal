@@ -439,7 +439,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
 
               {report?.criticalComms?.length ? (
                 <Section title="Critical result communication">
-                  <ul className="rp-amendments">
+                  <ul className="rp-amendments rp-critical-comms">
                     {report.criticalComms.map((c) => <li key={c.id}>{criticalCommLine(c)}</li>)}
                   </ul>
                 </Section>

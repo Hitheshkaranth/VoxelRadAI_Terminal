@@ -260,7 +260,7 @@ function StudyRow({
       </div>
     )
   return (
-    <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}${wait?.overdue ? ' wl-study--overdue' : ''}`}>
+    <div className={`sh-row wl-study${active ? ' sh-row--active' : ''}`}>
       <ShellButton type="button" className="wl-open-study"
         aria-current={active ? 'true' : undefined}
         onClick={() => { useShell.getState().closeVolume(); useApp.getState().selectStudy(study.id); useShell.getState().setMobileView('viewer') }}>
@@ -268,13 +268,13 @@ function StudyRow({
       <span className="sh-row-main">
         <span className="wl-study-top">
           <span className="sh-row-title">{name}</span>
-          {urgent && <span className="wl-critical" title="The model marked at least one finding urgent. Candidate only: confirm on review."><AlertTriangle aria-hidden="true" />Urgent</span>}
           <ChevronRight aria-hidden="true" />
         </span>
         <span className="wl-patient-id">{study.patient.patientId || 'Patient ID not entered'}</span>
         <span className="sh-row-sub"><Subline study={study} status={status} /></span>
         <span className="wl-study-status">
           <span className="wl-workflow" data-state={study.report?.signed ? 'signed' : status.analyzing ? 'analyzing' : 'pending'}>{workflow}</span>
+          {urgent && <span className="wl-critical" title="The model marked at least one finding urgent. Candidate only: confirm on review."><AlertTriangle aria-hidden="true" />AI urgent</span>}
           {priority === 1 && <span className="wl-priority" data-priority={priority}>AI priority</span>}
           {wait && <span className="wl-age" data-overdue={wait.overdue || undefined}
             title={`Waiting ${formatAge(wait.sinceCreated)} since the study was added${wait.sinceAnalysis !== undefined ? `, ${formatAge(wait.sinceAnalysis)} since the last AI read` : ''}${wait.overdue ? '. Over the waiting threshold.' : '.'}`}>

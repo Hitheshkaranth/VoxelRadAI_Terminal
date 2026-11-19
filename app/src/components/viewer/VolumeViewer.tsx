@@ -360,7 +360,8 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
             </svg>}
             <span className="volume-orientation volume-top">{geometry.labels.top}</span><span className="volume-orientation volume-bottom">{geometry.labels.bottom}</span><span className="volume-orientation volume-left">{geometry.labels.left}</span><span className="volume-orientation volume-right">{geometry.labels.right}</span>
             {(measurements.length > 0 || draftMeasure) && <VolumeMeasureOverlay volume={volume} plane={plane} index={sliceIndex} measurements={measurements} draft={draftMeasure} width={physicalW * scale} height={physicalH * scale} zoom={zoom} style={{ transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})` }} />}
-            <span className="volume-image-caption">{title(plane)}{oblique ? ' · acquired oblique plane' : ''} · {sliceIndex + 1}/{count}{slabCaption(sliceData)}{measureTool ? ` · ${measureTool === 'length' ? 'Length' : 'Ellipse ROI'} tool: drag to measure, Esc to stop` : ''}</span>
+            <span className="volume-image-caption">{title(plane)}{oblique ? ' · acquired oblique plane' : ''} · {sliceIndex + 1}/{count}{slabCaption(sliceData)}</span>
+            {measureTool && <span className="vw-measure-hint volume-measure-hint" role="status">{measureTool === 'length' ? 'Length' : 'Ellipse ROI'}: drag across the structure · Esc to stop · Shift-drag to window</span>}
             <span ref={readoutRef} className="volume-value-readout" hidden aria-live="off" />
           </div>
           }

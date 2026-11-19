@@ -82,30 +82,48 @@
 /* The row's click target is a ShellButton, whose default size class fixes it at 32px; let it grow with the study details. */
 .wl-sidebar .wl-open-study { height: auto; white-space: normal; align-items: flex-start; }
 
-/* Five reading-state pills, waiting time and the extra filter panel. */
+/* Five reading-state pills, waiting time and the extra filter panel.
+   Selectors carry .sh-app so they win over the later material/scan workspace layers. */
 .wl-filters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.wl-filters button { flex-direction: column; gap: 1px; padding: 2px 0; font-size: 10px; }
-.wl-facet-toggle { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; border: 0; background: none; color: var(--label-2); font-size: 10px; padding: 4px 2px; cursor: pointer; }
+.sh-app .wl-sidebar .wl-filters button { flex-direction: column; gap: 1px; min-width: 0; padding: 4px 0; font-size: 11px; line-height: 1.2; letter-spacing: -.01em; }
+.sh-app .wl-sidebar .wl-filters button span { font-size: 10px; color: var(--label-2); }
+.sh-app .wl-sidebar .wl-filters button[aria-pressed='true'] span { color: inherit; }
+.wl-sidebar .wl-filters button:not([aria-pressed='true']):hover { color: var(--label); }
+.wl-list-heading > span { flex: none; white-space: nowrap; }
+.wl-facet-toggle { display: inline-flex; flex: none; align-items: center; gap: 3px; margin-left: auto; min-height: 26px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--label-2); font-size: inherit; padding: 0 4px; cursor: pointer; }
+.wl-facet-toggle:hover { color: var(--label); background: var(--bg-control); }
 .wl-facet-toggle svg { width: 12px; height: 12px; }
-.wl-facet-toggle[aria-expanded='true'] { color: var(--accent); }
-.wl-facet-toggle span { min-width: 14px; border-radius: 7px; background: var(--accent); color: var(--accent-fg); font-size: 9px; line-height: 14px; text-align: center; }
-.wl-facets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 10px 16px 12px; border-bottom: 1px solid var(--separator); background: var(--bg-grouped); }
-.wl-facets label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 10px; color: var(--label-2); }
-.wl-facets select, .wl-facets input { min-width: 0; height: 28px; border: 1px solid var(--separator); border-radius: 5px; background: var(--bg-content); color: var(--label); font-size: 11px; padding: 0 6px; }
-.wl-facets .btn { align-self: end; }
-.wl-facet-hint { grid-column: 1 / -1; font-size: 10px; line-height: 1.5; color: var(--label-2); }
-.wl-facet-hint kbd { font-family: var(--font-mono); font-size: 9px; border: 1px solid var(--separator); border-radius: 3px; padding: 0 3px; }
-.wl-critical { display: inline-flex; align-items: center; gap: 3px; flex: none; border-radius: 4px; padding: 1px 5px; background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); font-size: 9px; font-weight: 600; }
-.wl-study-top .wl-critical svg { width: 11px; height: 11px; color: var(--red); }
-.wl-age { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; color: var(--label-2); font-variant-numeric: tabular-nums; }
-.wl-age svg { width: 10px; height: 10px; }
+.wl-facet-toggle[aria-expanded='true'] { color: var(--label); background: var(--bg-control); }
+.wl-facet-toggle span { min-width: 15px; padding: 0 4px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 10px; font-weight: 600; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; }
+.wl-facets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 14px; border-bottom: 1px solid var(--separator); background: var(--bg-grouped); }
+.wl-facets label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; font-weight: 500; color: var(--label-2); }
+.wl-facets select, .wl-facets input { min-width: 0; height: 30px; border: 1px solid var(--separator-strong); border-radius: var(--radius-sm); background: var(--bg-content); color: var(--label); font: 400 12px var(--font-sans); padding: 0 8px; }
+.wl-facets :is(select, input):hover { border-color: var(--label-3); }
+.wl-facets :is(select, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wl-facets .btn { align-self: end; min-height: 30px; }
+.wl-facet-hint { grid-column: 1 / -1; margin: 0; font-size: 11px; line-height: 1.5; color: var(--label-2); }
+.wl-facet-hint kbd { display: inline-block; min-width: 16px; font: 500 10px/16px var(--font-mono); text-align: center; color: var(--label); background: var(--bg-content); border: 1px solid var(--separator-strong); border-radius: 4px; padding: 0 4px; }
+/* Keep the queue itself reachable when the filter panel is open on short screens: the sidebar scrolls instead. */
+.wl-sidebar { overflow-y: auto; }
+.wl-sidebar .sh-studies { min-height: 168px; }
+/* Model urgency is a candidate signal: set like the "AI priority" tag beside it, with a red mark rather than a red block.
+   Icons lead these tags, so they need no dot separator when the row wraps. */
+.wl-critical { display: inline-flex; align-items: center; gap: 4px; color: var(--label); font-size: 11px; line-height: 1.2; font-weight: 600; }
+.wl-critical svg { width: 12px; height: 12px; flex: none; color: var(--red); }
+.wl-age { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.wl-age svg { width: 11px; height: 11px; flex: none; }
 .wl-age[data-overdue] { color: var(--orange); font-weight: 600; }
-.wl-sidebar .wl-study.wl-study--overdue { box-shadow: inset 2px 0 0 var(--orange); }
 @media (max-width: 1023px) {
-  .wl-filters { gap: 4px; }
-  .wl-filters button { font-size: 12px; }
-  .wl-facet-toggle { min-height: 36px; font-size: 12px; }
-  .wl-facets select, .wl-facets input { height: 40px; font-size: 14px; }
+  .sh-app .wl-sidebar .wl-filters button { font-size: 12px; }
+  .sh-app .wl-sidebar .wl-filters button span { font-size: 11px; }
+  .wl-facet-toggle { min-height: 44px; padding-inline: 10px; font-size: 12px; }
+  .wl-facets select, .wl-facets input { height: 44px; font-size: 16px; }
   .wl-facets label { font-size: 12px; }
-  .wl-critical, .wl-age { font-size: 11px; }
+  .wl-facets .btn { min-height: 44px; }
+  .wl-facet-hint { font-size: 12px; }
+  .wl-critical, .wl-age { font-size: 12px; }
+}
+/* Touch tablets keep the narrow desktop sidebar: five 44px-wide pills do not fit, so only the height grows. */
+@media (pointer: coarse) and (min-width: 1024px) {
+  .sh-app .wl-sidebar .wl-filters button { min-width: 0; }
 }

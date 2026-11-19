@@ -3,7 +3,7 @@ import { ThinkingOrb } from 'thinking-orbs'
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
 import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, FileInput, Flame, FlipHorizontal2, FlipVertical2, Layers, Maximize, RotateCcw, RotateCw, Ruler, Search, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Finding, Heatmap, ImageMeasurement, MeasurePoint, OverlayStyle, ViewerState } from '../../types'
 import { uid, useActiveImage, useActiveStudy, useApp } from '../../store'
@@ -450,11 +450,14 @@ export function ImageViewer() {
       <div
         ref={canvasRef}
         className={`vw-canvas${animating ? ' vw-anim' : ''}`}
+        data-oriented={!isDefaultOrientation(orientation) || undefined}
         style={{
           width: dispW,
           height: dispH,
           transform: `translate(calc(-50% + ${viewer.panX}px), calc(-50% + ${viewer.panY}px)) ${orientationTransform(orientation)}`,
-        }}
+          // Inverse of the display orientation, so labels drawn on the film stay upright and unmirrored.
+          '--vw-unorient': `scale(${orientation.flipH ? -1 : 1}, ${orientation.flipV ? -1 : 1}) rotate(${-orientation.rotate}deg)`,
+        } as CSSProperties}
       >
         <img
           className="vw-src"
@@ -720,15 +723,30 @@ export function ImageViewer() {
           <Search strokeWidth={1.75} />
         </ScanButton>
         <span className="vw-sep" />
-        <ScanButton className="vw-tool" aria-label="Flip horizontally" title="Flip horizontally (display only)" aria-pressed={orientation.flipH} onClick={() => setOrientation({ ...orientation, flipH: !orientation.flipH })}>
-          <FlipHorizontal2 strokeWidth={1.75} />
-        </ScanButton>
-        <ScanButton className="vw-tool" aria-label="Flip vertically" title="Flip vertically (display only)" aria-pressed={orientation.flipV} onClick={() => setOrientation({ ...orientation, flipV: !orientation.flipV })}>
-          <FlipVertical2 strokeWidth={1.75} />
-        </ScanButton>
-        <ScanButton className="vw-tool" aria-label="Rotate 90° clockwise" title="Rotate 90° clockwise (display only)" onClick={() => { setOrientation(rotateBy(orientation, 90)); setViewer({ panX: 0, panY: 0 }) }}>
-          <RotateCw strokeWidth={1.75} />
-        </ScanButton>
+        {/* Flip and rotate are occasional: one toolbar slot, the choices in the shared scan popover.
+            Lucide's FlipVertical2 glyph is the mirror about a vertical axis (a left-right flip), so it marks "horizontally". */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ScanButton className="vw-tool" aria-label="Orientation: flip and rotate" title="Flip and rotate (display only)" aria-pressed={!isDefaultOrientation(orientation)}>
+              <FlipVertical2 strokeWidth={1.75} />
+            </ScanButton>
+          </PopoverTrigger>
+          <PopoverContent align="center" className="scan-popover vw-orientation-popover" aria-label="Orientation">
+            <ScanButton className="btn btn-sm" aria-pressed={orientation.flipH} onClick={() => setOrientation({ ...orientation, flipH: !orientation.flipH })}>
+              <FlipVertical2 size={16} aria-hidden="true" /><span>Flip horizontally</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" aria-pressed={orientation.flipV} onClick={() => setOrientation({ ...orientation, flipV: !orientation.flipV })}>
+              <FlipHorizontal2 size={16} aria-hidden="true" /><span>Flip vertically</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" onClick={() => { setOrientation(rotateBy(orientation, 90)); setViewer({ panX: 0, panY: 0 }) }}>
+              <RotateCw size={16} aria-hidden="true" /><span>Rotate 90° clockwise</span>
+            </ScanButton>
+            <ScanButton className="btn btn-sm" disabled={isDefaultOrientation(orientation)} onClick={() => { setOrientation(DEFAULT_ORIENTATION); setViewer({ panX: 0, panY: 0 }) }}>
+              <RotateCcw size={16} aria-hidden="true" /><span>Original orientation</span>
+            </ScanButton>
+            <small>Display only. The source image is unchanged.</small>
+          </PopoverContent>
+        </Popover>
         <span className="vw-sep" />
         <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view, flip and rotation (R)" onClick={() => { resetViewer(); setOrientation(DEFAULT_ORIENTATION) }}>
           <RotateCcw strokeWidth={1.75} />

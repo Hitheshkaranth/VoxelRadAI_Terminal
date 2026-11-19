@@ -1,25 +1,47 @@
-/* Guideline helper popover and critical-result communication log. */
-.gh-popover { z-index: 180; width: min(360px, calc(100vw - 24px)); max-height: min(560px, var(--radix-popover-content-available-height)); overflow: auto; background: var(--bg-elevated); color: var(--label); border: 1px solid var(--separator-strong); border-radius: 12px; padding: 12px; box-shadow: 0 12px 32px #0003; font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
-.gh-popover h3 { margin: 0; font-size: 13px; font-weight: 600; }
+/* Guideline helper popover and critical-result communication log. The popover follows the shared
+   portaled popover pattern (.scan-popover): elevated surface, strong separator, soft drop shadow. */
+.gh-popover { z-index: 180; width: min(360px, calc(100vw - 24px)); max-height: min(560px, var(--radix-popover-content-available-height)); overflow: auto; background: var(--bg-elevated); color: var(--label); border: 1px solid var(--separator-strong); border-radius: 12px; padding: var(--sp-3); box-shadow: 0 12px 32px #0003; font-size: var(--text-footnote); display: flex; flex-direction: column; gap: var(--sp-2); }
+.gh-popover h3 { margin: 0; font-size: var(--text-body); font-weight: 600; }
 .gh-popover label { display: flex; flex-direction: column; gap: 4px; color: var(--label-2); }
-.gh-popover :is(input:not([type="checkbox"]), select) { color: var(--label); background: var(--bg-control); border: 1px solid var(--separator-strong); border-radius: 6px; min-height: 32px; padding: 0 8px; font: inherit; }
-.gh-popover .gh-check { flex-direction: row; align-items: center; gap: 6px; color: var(--label); }
+.gh-popover :is(input:not([type="checkbox"]), select) { color: var(--label); background: var(--bg-control); border: 1px solid var(--separator-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 8px; font: inherit; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
+.gh-popover :is(input:not([type="checkbox"]), select):focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.gh-popover input[type="checkbox"] { flex: none; width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
+.gh-popover .gh-check { flex-direction: row; align-items: center; gap: 8px; color: var(--label); }
 .gh-foci { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .gh-foci legend { color: var(--label-2); margin-bottom: 4px; }
-.gh-note { margin: 0; color: var(--label-2); line-height: 1.4; }
-.gh-error { margin: 0; color: var(--red, #c0392b); }
-.gh-result { border-top: 0.5px solid var(--separator); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-.gh-sentence { margin: 0; font-weight: 600; line-height: 1.4; }
-.gh-notes { margin: 0; padding-left: 16px; color: var(--label-2); line-height: 1.4; }
-.gh-cite { margin: 0; color: var(--label-3); font-size: 11px; line-height: 1.4; }
+.gh-note { margin: 0; color: var(--label-2); line-height: 1.45; }
+.gh-error { margin: 0; color: var(--red); }
+.gh-result { border-top: 1px solid var(--separator); padding-top: var(--sp-2); display: flex; flex-direction: column; gap: 6px; }
+.gh-sentence { margin: 0; font-size: var(--text-body); font-weight: 600; line-height: 1.45; }
+.gh-notes { margin: 0; padding-left: 16px; color: var(--label-2); line-height: 1.45; }
+.gh-cite { margin: 0; color: var(--label-2); font-size: var(--text-caption); line-height: 1.45; }
+/* The insert action stays reachable while long guideline inputs scroll. */
+.gh-popover > .btn { flex: none; position: sticky; bottom: 0; height: 30px; margin-top: 2px; box-shadow: 0 0 0 var(--sp-3) var(--bg-elevated); }
 .gh-trigger { align-self: flex-start; }
 
 .cc-card { display: flex; flex-direction: column; gap: var(--sp-2); }
-.cc-hint { margin: 0; font-size: var(--text-footnote); color: var(--label-2); line-height: 1.4; }
-.cc-pending { margin: 0; font-size: var(--text-footnote); color: var(--red, #c0392b); font-weight: 600; }
-.cc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: var(--text-footnote); }
-.cc-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.cc-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.cc-form label { display: flex; flex-direction: column; gap: 3px; font-size: var(--text-caption); color: var(--label-2); }
+.cc-card > .btn { align-self: flex-start; }
+.cc-open { align-self: flex-start; margin-left: calc(var(--sp-2) * -1); }
+.cc-hint { margin: 0; font-size: var(--text-caption); color: var(--label-2); line-height: 1.45; }
+/* Unlogged critical results: a tinted note with full-contrast text (small red text alone reads poorly). */
+.cc-pending { margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm); font-size: var(--text-footnote); line-height: 1.45; color: var(--label); background: color-mix(in srgb, var(--red) 10%, transparent); }
+.cc-pending strong { font-weight: 600; }
+.cc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; font-size: var(--text-footnote); line-height: 1.45; }
+.cc-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 6px 0; }
+.cc-list li + li { border-top: 1px solid var(--separator); }
+.cc-list .icon-btn { flex: none; }
+.cc-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.cc-form label { display: flex; min-width: 0; flex-direction: column; gap: 4px; font-size: var(--text-footnote); color: var(--label-2); overflow-wrap: normal; }
 .cc-form .cc-wide { grid-column: 1 / -1; }
-.cc-form .input { min-height: 32px; }
+.cc-form .input { min-width: 0; min-height: 32px; }
+
+/* Touch: the popover is portaled outside the app shell, so it needs its own 44px targets. */
+@media screen and (max-width: 1023px) {
+  .gh-popover :is(input:not([type="checkbox"]), select), .gh-popover > .btn, .gh-trigger { min-height: 44px; }
+  .gh-popover .gh-check { min-height: 44px; }
+  .gh-popover input[type="checkbox"] { width: 20px; height: 20px; }
+  .cc-form .input { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gh-popover :is(input, select) { transition: none; }
+}

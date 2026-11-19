@@ -1,6 +1,6 @@
 // Dictation control for the report editor (Sarvam speech-to-text through the server): hands-free or push-to-talk.
 import { useEffect, useRef, useState } from 'react'
-import { Mic, MicOff, HelpCircle, BookText, Undo2, X } from 'lucide-react'
+import { Mic, MicOff, Settings2, BookText, Undo2, X } from 'lucide-react'
 import { ShellButton } from '../shell/ShellButton'
 import { toast } from '../shell/toastStore'
 import { Dictation, dictationAvailable, guardStudy, type DictationEvent, type DictationState } from '../../lib/dictation'
@@ -318,27 +318,16 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
           <BookText size={15} />
         </ShellButton>
         <ShellButton type="button" className="icon-btn" aria-label="Voice commands and settings" aria-expanded={panel === 'help'} onClick={() => setPanel((p) => (p === 'help' ? null : 'help'))}>
-          <HelpCircle size={15} />
+          <Settings2 size={15} />
         </ShellButton>
       </div>
       <div className="dict-row">
-      {on ? <span className="dict-meter" role="meter" aria-label="Microphone level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}><span style={{ transform: `scaleX(${level})` }} /></span> : null}
-      <span className="dict-status" role="status" aria-live="polite">
-        {status}
-        {on ? <> · into <strong>{labels[target()]}</strong></> : null}
-      </span>
-      <select
-        className="input dict-lang"
-        aria-label="Dictation language"
-        value={language}
-        disabled={on}
-        onChange={(event) => {
-          setLanguage(event.target.value)
-          try { localStorage.setItem(LANGUAGE_KEY, event.target.value) } catch { /* optional preference */ }
-        }}
-      >
-        {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-      </select>
+        {on ? <span className="dict-meter" role="meter" aria-label="Microphone level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}><span style={{ transform: `scaleX(${level})` }} /></span> : null}
+        <span className="dict-status" role="status" aria-live="polite">
+          {status}
+          {on ? <> · into <strong>{labels[target()]}</strong></> : null}
+        </span>
+        {language !== LANGUAGES[0].code ? <span className="dict-lang-tag">{LANGUAGES.find((l) => l.code === language)?.label ?? language}</span> : null}
       </div>
       {chip ? (
         <div className="dict-chip" key={chip.id}>
@@ -358,9 +347,23 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
         <div className="dict-help">
           <div className="dict-settings">
             <label>
-              Mode{' '}
+              Language
               <select
-                className="input dict-lang"
+                className="input dict-select"
+                value={language}
+                disabled={on}
+                onChange={(event) => {
+                  setLanguage(event.target.value)
+                  try { localStorage.setItem(LANGUAGE_KEY, event.target.value) } catch { /* optional preference */ }
+                }}
+              >
+                {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+              </select>
+            </label>
+            <label>
+              Mode
+              <select
+                className="input dict-select"
                 value={mode}
                 disabled={on}
                 onChange={(event) => {

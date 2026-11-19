@@ -3,13 +3,13 @@
 .ri-compose { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
 .ri-label { font-size: var(--text-footnote); font-weight: 600; color: var(--label); }
 .ri-text { width: 100%; min-height: 6em; resize: vertical; font: inherit; }
-.ri-hint { margin: 0; font-size: var(--text-caption); line-height: 1.4; color: var(--label-2); }
+.ri-hint { margin: 0; font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
 .ri-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
-.ri-version { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm); border: 0.5px solid var(--separator); }
+.ri-version { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-md); border: 1px solid var(--separator); }
 .ri-version summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--sp-2); cursor: pointer; font-size: var(--text-footnote); }
 .ri-version-name { font-weight: 600; color: var(--label); }
 .ri-meta { color: var(--label-2); }
-.ri-status { padding: 0 6px; border-radius: 999px; font-size: var(--text-caption); font-weight: 600; }
+.ri-status { padding: 0 6px; border-radius: 999px; font-size: var(--text-caption); font-weight: 600; line-height: 18px; }
 .ri-status-current { color: var(--accent); background: var(--accent-soft); }
 .ri-status-superseded { color: var(--label-2); background: var(--bg-grouped); text-decoration: none; }
 .ri-status-under-correction { color: var(--label); background: color-mix(in srgb, var(--orange) 16%, transparent); }
@@ -21,3 +21,9 @@
 .ri-addendum strong { font-size: var(--text-caption); letter-spacing: 0.03em; color: var(--label); }
 .ri-addendum p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--label); }
 .ri-legacy { font-size: var(--text-footnote); line-height: 1.5; color: var(--label-2); }
+.ri-version summary { list-style: none; }
+.ri-version summary::-webkit-details-marker { display: none; }
+.ri-version summary::before { content: ''; align-self: center; width: 5px; height: 5px; margin: 0 2px 2px 0; border-right: 1.5px solid var(--label-2); border-bottom: 1.5px solid var(--label-2); transform: rotate(-45deg); transition: transform var(--dur-fast) var(--ease-out); }
+.ri-version details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; }
+@media (prefers-reduced-motion: reduce) { .ri-version summary::before { transition: none; } }
+.ri-addendum strong { display: block; }

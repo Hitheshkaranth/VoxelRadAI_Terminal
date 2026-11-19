@@ -27,7 +27,10 @@ export function VolumeMeasureOverlay({ volume, plane, index, measurements, draft
       {m.kind === 'length'
         ? <><line x1={ax} y1={ay} x2={bx} y2={by} /><circle cx={ax} cy={ay} r={3 / zoom} /><circle cx={bx} cy={by} r={3 / zoom} /></>
         : <ellipse cx={(ax + bx) / 2} cy={(ay + by) / 2} rx={Math.abs(bx - ax) / 2} ry={Math.abs(by - ay) / 2} />}
-      <text x={Math.max(ax, bx) + 6 / zoom} y={Math.min(ay, by) - 4 / zoom} fontSize={font}>{prefix}{label}</text>
+      {/* Labels sit beside the shape, on whichever side has more room, so they stay on the film. */}
+      {width - Math.max(ax, bx) < Math.min(ax, bx)
+        ? <text x={Math.min(ax, bx) - 6 / zoom} y={Math.min(ay, by) - 4 / zoom} fontSize={font} textAnchor="end">{prefix}{label}</text>
+        : <text x={Math.max(ax, bx) + 6 / zoom} y={Math.min(ay, by) - 4 / zoom} fontSize={font}>{prefix}{label}</text>}
     </g>
   }
   return <svg className="volume-measure-overlay" width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={style} aria-label="Measurements on this slice">

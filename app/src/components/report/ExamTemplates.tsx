@@ -188,9 +188,9 @@ export function ExamLibrarySheet({ open, onClose }: { open: boolean; onClose: ()
         </form>
       ) : (
         <>
-          <div className="exam-tabs" role="tablist" aria-label="Library">
-            <button type="button" role="tab" aria-selected={tab === 'templates'} className={`btn btn-sm${tab === 'templates' ? ' btn-primary' : ''}`} onClick={() => setTab('templates')}>Exam templates</button>
-            <button type="button" role="tab" aria-selected={tab === 'macros'} className={`btn btn-sm${tab === 'macros' ? ' btn-primary' : ''}`} onClick={() => setTab('macros')}>Macros</button>
+          <div className="segmented exam-tabs" role="tablist" aria-label="Library">
+            <ShellButton type="button" role="tab" aria-selected={tab === 'templates'} onClick={() => setTab('templates')}>Exam templates</ShellButton>
+            <ShellButton type="button" role="tab" aria-selected={tab === 'macros'} onClick={() => setTab('macros')}>Macros</ShellButton>
           </div>
           {tab === 'templates' ? (
             <div className="tpl-list" role="tabpanel">
@@ -221,7 +221,7 @@ export function ExamLibrarySheet({ open, onClose }: { open: boolean; onClose: ()
                 <div key={m.id} className="tpl-row">
                   <div className="tpl-row-main">
                     <strong>.{m.name}{m.trigger ? ` · “${m.trigger}”` : ''}</strong>
-                    <span>{m.scope === 'builtin' ? 'Built-in · ' : ''}{m.text}</span>
+                    <span className="tpl-row-text">{m.scope === 'builtin' ? 'Built-in · ' : ''}{m.text}</span>
                   </div>
                   {m.scope === 'builtin' ? (
                     <ShellButton type="button" className="btn btn-sm" onClick={() => editMacro(m)}><Copy size={13} /> Duplicate</ShellButton>

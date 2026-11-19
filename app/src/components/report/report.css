@@ -579,86 +579,111 @@
 .rte-active:not(.rp-sec-ro) { border-color: color-mix(in srgb, var(--accent) 55%, var(--separator)); }
 
 /* ---- Dictation bar --------------------------------------------------------- */
-.dict-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; }
+.dict-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 12px; }
 .dict-bar > .btn { justify-self: start; }
-.dict-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Row 1: microphone and talk buttons. Row 2: live status beside the vocabulary and settings toggles. */
+.dict-row { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .dict-bar.dict-on { border-color: color-mix(in srgb, var(--red) 40%, var(--separator)); }
 .dict-off { display: flex; gap: 8px; color: var(--label-2); font-size: 12px; line-height: 1.45; }
 .dict-off svg { flex: none; }
 .dict-meter { width: 44px; height: 6px; border-radius: 3px; background: var(--bg-control); overflow: hidden; }
 .dict-meter span { display: block; height: 100%; background: var(--green); transform-origin: left; transition: transform 80ms linear; }
-.dict-status { flex: 1; min-width: 0; font-size: 12px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dict-status { flex: 1; min-width: 0; font-size: var(--text-footnote); line-height: 1.45; color: var(--label-2); }
 .dict-status strong { color: var(--label); font-weight: 600; }
-.dict-lang { width: auto; max-width: 150px; height: 30px; font-size: 12px; }
+.dict-select { width: auto; max-width: 100%; height: 28px; padding-block: 0; font-size: var(--text-footnote); }
+.dict-lang-tag { flex: none; padding: 1px 6px; border: 1px solid var(--separator); border-radius: var(--radius-sm); font-size: var(--text-caption); color: var(--label-2); white-space: nowrap; }
 .dict-last, .dict-help { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.5; }
 .dict-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dict-help, .dict-vocab { padding-top: var(--sp-3); border-top: 1px solid var(--separator); }
 .dict-help p { margin: 0 0 6px; }
 .dict-help ul { margin: 0 0 6px; padding-left: 18px; }
 @media (prefers-reduced-motion: reduce) { .dict-meter span { transition: none; } }
-.dict-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.dict-tools { display: flex; gap: 2px; }
+.dict-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.dict-tools { grid-column: 2; grid-row: 2; display: flex; gap: 2px; }
+.dict-tools .icon-btn[aria-expanded='true'] { background: var(--accent-soft); color: var(--accent); }
 .dict-bar.dict-holding { border-color: color-mix(in srgb, var(--green) 55%, var(--separator)); }
-.dict-chip, .dict-suggest { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 4px 4px 10px; border-radius: 8px; background: var(--bg-control); font-size: 12px; color: var(--label-2); }
+.dict-chip, .dict-suggest { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 4px 4px 10px; border-radius: var(--radius-md); background: var(--bg-control); font-size: var(--text-footnote); color: var(--label-2); }
 .dict-chip { animation: dict-chip-in 160ms ease-out; }
 .dict-chip-text, .dict-suggest > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dict-chip-text { color: var(--label); }
 @keyframes dict-chip-in { from { opacity: 0; transform: translateY(-2px); } }
-.dict-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px; }
+.dict-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: var(--sp-3); }
 .dict-settings label, .dict-settings > span { display: inline-flex; align-items: center; gap: 6px; }
-.dict-help kbd { padding: 1px 6px; border: 1px solid var(--separator); border-radius: 4px; font: 11px/1.5 ui-monospace, monospace; color: var(--label); }
-.dict-vocab { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.5; }
+.dict-help kbd { padding: 1px 6px; border: 1px solid var(--separator); border-radius: var(--radius-sm); font: var(--text-caption) / 1.5 var(--font-mono); color: var(--label); }
+.dict-vocab { grid-column: 1 / -1; font-size: var(--text-footnote); color: var(--label-2); line-height: 1.5; }
 .dict-vocab p { margin: 0 0 6px; }
 .dict-vocab-add { display: flex; align-items: center; gap: 6px; }
-.dict-vocab-add .input { flex: 1; min-width: 0; height: 30px; font-size: 12px; }
+.dict-vocab-add .input { flex: 1; min-width: 0; height: 28px; font-size: var(--text-footnote); }
 .dict-vocab-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 160px; overflow-y: auto; }
 .dict-vocab-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.dict-vocab-list li + li { border-top: 1px solid var(--separator); }
 .dict-vocab-list b { color: var(--label); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .dict-chip { animation: none; } }
 
 /* ---- Template picker and manager ------------------------------------------ */
 .tpl-pick { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 8px; padding: 10px 12px; }
-.tpl-pick-label { display: flex; min-width: 0; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
-.tpl-pick-label select { width: 100%; min-width: 0; height: 30px; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.tpl-pick-label { display: flex; min-width: 0; flex-direction: column; gap: 6px; font-size: var(--text-footnote); font-weight: 600; color: var(--label); }
+.tpl-pick-label select { width: 100%; min-width: 0; height: 28px; padding-block: 0; font-size: var(--text-footnote); font-weight: 400; }
 .tpl-list { display: flex; flex-direction: column; gap: 8px; }
 .tpl-empty, .tpl-error { margin: 0 0 8px; font-size: 13px; color: var(--label-2); }
 .tpl-error { color: var(--red); }
-.tpl-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--separator); border-radius: 6px; }
+.tpl-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--separator); border-radius: var(--radius-md); }
 .tpl-row-main { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
-.tpl-row-main strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tpl-row-main span { font-size: 11px; color: var(--label-2); }
+.tpl-row-main strong { font-size: var(--text-body); line-height: 1.35; overflow-wrap: anywhere; }
+.tpl-row-main span { font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
+.tpl-row-main .tpl-row-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .tpl-star-on { color: var(--orange); }
 .tpl-star-on svg { fill: currentColor; }
 .tpl-form { display: flex; flex-direction: column; gap: 14px; }
 .tpl-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--label-2); }
-.tpl-form fieldset { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--separator); border-radius: 6px; }
+.tpl-form fieldset { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--separator); border-radius: var(--radius-md); }
 .tpl-form legend { padding: 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
 .tpl-form .tpl-check { flex-direction: row; align-items: center; gap: 8px; color: var(--label); }
 .tpl-titles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .tpl-logo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.tpl-logo { max-width: 120px; max-height: 48px; object-fit: contain; border-radius: 4px; background: #fff; }
+.tpl-logo { max-width: 120px; max-height: 48px; object-fit: contain; border-radius: var(--radius-sm); background: #fff; }
 .tpl-logo-empty { display: grid; place-items: center; width: 96px; height: 40px; font-size: 11px; color: var(--label-3); background: var(--bg-control); }
 .tpl-form .tpl-upload { flex-direction: row; align-items: center; gap: 6px; cursor: pointer; color: var(--label); }
-.tpl-preview { padding: 14px; border-radius: 6px; background: #fff; color: #1c1c1e; overflow-x: auto; }
+.tpl-preview { padding: 14px; border-radius: var(--radius-md); background: #fff; color: #1c1c1e; overflow-x: auto; }
 .tpl-preview .rp-lh { margin-bottom: 0; }
 
 /* Touch-sized controls on phones and tablets, matching the shell's 44px targets. */
 @media screen and (max-width: 1023px) {
   .rte-tool { width: 44px; height: 44px; }
-  .dict-lang, .tpl-pick-label select, .tpl-form .input { min-height: 44px; }
+  .tpl-form .input { min-height: 44px; }
   .dict-meter { width: 64px; }
 }
 
 /* Exam templates, fill-in fields and macros. Fields are highlighted with the CSS Custom Highlight API (no markup). */
 ::highlight(report-field) { background-color: color-mix(in srgb, var(--orange) 28%, transparent); color: inherit; }
 .exam-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; }
-.exam-pick-hint { flex: 1 1 180px; font-size: 11px; color: var(--label-3); text-align: right; }
-.exam-row { width: 100%; text-align: left; background: none; color: inherit; font: inherit; cursor: pointer; }
+.tpl-pick + .exam-pick { margin-top: calc(var(--sp-2) * -1); }
+.exam-pick-hint { flex: 1 1 100%; font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
+.exam-row { width: 100%; text-align: left; background: none; color: inherit; font: inherit; cursor: pointer; transition: background var(--dur-fast); }
 .exam-row:hover, .exam-row:focus-visible { background: var(--bg-control); }
-.exam-group { margin: 6px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
-.exam-hint, .exam-confirm { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--label-2); }
-.exam-confirm { font-size: 13px; color: var(--label); }
-.exam-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.exam-group { margin: 6px 0 0; font-size: var(--text-caption); font-weight: 600; letter-spacing: .035em; text-transform: uppercase; color: var(--label-2); }
+.exam-hint, .exam-confirm { margin: 4px 0 0; font-size: var(--text-footnote); line-height: 1.45; color: var(--label-2); }
+.exam-confirm { font-size: var(--text-body); line-height: 1.55; color: var(--label); }
+.exam-tabs { margin-bottom: var(--sp-3); }
 .rte-choices { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
-.rte-choice { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid var(--separator); border-radius: 5px; font: inherit; font-size: 12px; color: var(--label); background: var(--bg-control); cursor: pointer; }
-.rte-choice kbd { font: inherit; font-size: 10px; color: var(--label-3); }
-@media screen and (max-width: 1023px) { .rte-choice, .exam-pick .btn { min-height: 44px; } }
+.rte-choice { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid var(--separator); border-radius: var(--radius-sm); font: inherit; font-size: var(--text-footnote); color: var(--label); background: var(--bg-control); cursor: pointer; transition: background var(--dur-fast), border-color var(--dur-fast); }
+.rte-choice:hover { background: var(--bg-control-hover); border-color: var(--separator-strong); }
+.rte-choice kbd { font: var(--text-caption) / 1 var(--font-mono); color: var(--label-2); }
+@media screen and (max-width: 1023px) { .rte-choice, .exam-pick .btn, .exam-tabs > button { min-height: 44px; } }
+
+/* Tool groups and the new report records sit on the same flat, rule-separated rhythm as the sections. */
+.rp-panel .rp-card.dict-bar,
+.rp-panel .rp-card.cc-card,
+.rp-panel .rp-card.rp-amend { border-top: 1px solid var(--separator); padding-top: var(--sp-3); }
+
+/* Touch-sized dictation and template controls. */
+@media screen and (max-width: 1023px) {
+  .dict-select, .dict-vocab-add .input { min-height: 44px; }
+  .tpl-pick-label select { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-progress-bar > span { animation: none; transform: none; }
+  .rp-toast { animation: none; }
+  .exam-row, .rte-choice, .rp-sec { transition: none; }
+}

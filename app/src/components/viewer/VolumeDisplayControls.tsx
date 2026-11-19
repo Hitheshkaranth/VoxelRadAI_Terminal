@@ -58,6 +58,6 @@ export function VolumeDisplayControls({ center, width, range, initialWindow, aut
       <ScanButton type="button" className="btn btn-sm" onClick={() => onWindowChange(initialWindow ?? fullRange)}>Reset window</ScanButton>
     </div>
     <span className="volume-calibration-note">{modality.toUpperCase() === 'CT' ? 'Calibration unknown · Values are not verified HU' : 'Uncalibrated display values'}</span>
-    <span className="volume-display-note">Display values{activeTool === 'window' ? ' · Drag left/right for width, up/down for level' : ' · Shift-drag or right-drag to window'}</span>
+    <span className="volume-display-note">Display values{activeTool === 'window' ? ' · Drag left/right for width, up/down for level' : ' · Shift-drag or right-drag to window'} · Keys 1–{Math.min(9, presets.length)} pick a preset</span>
   </div>
 }

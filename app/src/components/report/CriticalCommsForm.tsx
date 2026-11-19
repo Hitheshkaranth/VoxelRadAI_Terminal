@@ -49,14 +49,14 @@ export function CriticalCommsForm({ comms, pending, defaultBy, report, onChange 
   return (
     <section className="rp-card cc-card" aria-label="Critical result communication">
       <div className="rp-sec-head"><PhoneCall /> Critical result communication</div>
-      {pending.length ? <p className="cc-pending">Not yet logged: {pending.join(', ')}</p> : null}
+      {pending.length ? <p className="cc-pending"><strong>Not yet logged:</strong> {pending.join(', ')}</p> : null}
       {comms.length ? (
         <ul className="cc-list">
           {comms.map((c) => (
             <li key={c.id}>
               <span>{criticalCommLine(c)}</span>
-              {commRemovable(c, report) ? <ShellButton type="button" className="btn btn-plain btn-sm" aria-label={`Remove entry for ${c.finding}`}
-                onClick={() => onChange(comms.filter((x) => x.id !== c.id))}><X size={12} /></ShellButton> : null}
+              {commRemovable(c, report) ? <ShellButton type="button" className="icon-btn" aria-label={`Remove entry for ${c.finding}`}
+                onClick={() => onChange(comms.filter((x) => x.id !== c.id))}><X size={14} /></ShellButton> : null}
             </li>
           ))}
         </ul>
@@ -70,8 +70,8 @@ export function CriticalCommsForm({ comms, pending, defaultBy, report, onChange 
           <label>Method<select className="input" value={method} onChange={(e) => setMethod(e.target.value as CriticalCommMethod)}>
             {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select></label>
-          <label>Date and time<input className="input" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} required /></label>
-          <label className="cc-wide">Communicated by<input className="input" value={by} onChange={(e) => setBy(e.target.value)} /></label>
+          <label>Communicated by<input className="input" value={by} onChange={(e) => setBy(e.target.value)} /></label>
+          <label className="cc-wide">Date and time<input className="input" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} required /></label>
           <div className="cc-wide rp-confirm-actions">
             <ShellButton type="button" className="btn btn-sm" onClick={() => setOpen(false)}>Cancel</ShellButton>
             <ShellButton type="submit" className="btn btn-primary btn-sm" disabled={!valid}>Save entry</ShellButton>
