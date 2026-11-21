@@ -19,7 +19,7 @@ import { TemplateHeader } from './TemplateHeader'
 import { SystematicLetterhead } from './SystematicReport'
 
 const toInput = (t: ReportTemplate): TemplateInput => ({ name: t.name, header: { ...t.header, lines: [...t.header.lines] }, footer: { ...t.footer }, sectionTitles: { ...t.sectionTitles },
-  ...(t.layout ? { layout: t.layout } : {}), ...(t.signatory ? { signatory: { ...t.signatory } } : {}), ...(t.greeting !== undefined ? { greeting: t.greeting } : {}) })
+  ...(t.layout ? { layout: t.layout } : {}), ...(t.signatory ? { signatory: { ...t.signatory, ...(t.signatory.lines ? { lines: [...t.signatory.lines] } : {}) } } : {}), ...(t.signatureLines ? { signatureLines: [...t.signatureLines] } : {}), ...(t.greeting !== undefined ? { greeting: t.greeting } : {}) })
 const NO_SIGNATORY = { name: '', qualifications: '', registration: '' }
 
 export function TemplatesSheet({ open, onClose, institution }: { open: boolean; onClose: () => void; institution: string }) {
@@ -124,7 +124,15 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
                 <label>Reporting radiologist<input className="input" maxLength={120} value={draft.signatory?.name ?? ''} placeholder="Dr. A. Radiologist" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, name: e.target.value } }))} /></label>
                 <label>Qualifications<input className="input" maxLength={160} value={draft.signatory?.qualifications ?? ''} placeholder="MBBS, MD (Radiodiagnosis)" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, qualifications: e.target.value } }))} /></label>
                 <label>Registration line<input className="input" maxLength={120} value={draft.signatory?.registration ?? ''} placeholder="Medical council registration number" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, registration: e.target.value } }))} /></label>
-                <p className="tpl-empty">Sections the AI read did not assess print as “Not assessed by the AI read — radiologist to review”; normals print only where the read stated them.</p>
+                <label>More radiologist lines (one per line, up to 4)
+                  <textarea className="input" rows={2} value={(draft.signatory?.lines ?? []).join('\n')} placeholder="e.g. Life membership number"
+                    onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, lines: e.target.value.split('\n').slice(0, 4).map((l) => l.slice(0, 160)) } }))} />
+                </label>
+                <label>Signature block (one per line, up to 6; text only)
+                  <textarea className="input" rows={3} value={(draft.signatureLines ?? []).join('\n')} placeholder="Defaults to the radiologist's name, qualifications and registration"
+                    onChange={(e) => patch((d) => ({ ...d, signatureLines: e.target.value.split('\n').slice(0, 6).map((l) => l.slice(0, 160)) }))} />
+                </label>
+                <p className="tpl-empty">Every section heading prints; one the read said nothing about prints with an empty line for you. Normals appear only where the read stated them.</p>
               </>
             ) : null}
           </fieldset>

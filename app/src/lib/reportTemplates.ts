@@ -15,7 +15,10 @@ export interface ReportTemplate {
    *  block (diagnostic-centre style). Absent = 'standard' (templates saved before this option keep their layout). */
   layout?: ReportLayout
   /** Reporting radiologist shown in the systematic letterhead and signature block (plain text). */
-  signatory?: { name: string; qualifications: string; registration: string }
+  signatory?: { name: string; qualifications: string; registration: string; lines?: string[] }
+  /** Signature block text, one line each (e.g. name with degrees, centre, address, registration); default: the
+   *  signatory's name, qualifications and registration. Plain text only, never a signature or stamp image. */
+  signatureLines?: string[]
   /** Line above the findings in the systematic layout, e.g. "THANKS FOR REFERRING". */
   greeting?: string
   updatedAt?: string

@@ -9,7 +9,7 @@ const text = (value, max) => typeof value === 'string' && value.length <= max
 const only = (value, keys) => Object.keys(value).every(key => keys.includes(key))
 
 export function validTemplate(value) {
-  if (!object(value) || !only(value, ['name', 'header', 'footer', 'sectionTitles', 'layout', 'signatory', 'greeting'])) return false
+  if (!object(value) || !only(value, ['name', 'header', 'footer', 'sectionTitles', 'layout', 'signatory', 'greeting', 'signatureLines'])) return false
   if (!text(value.name, 80) || !value.name.trim()) return false
   const { header, footer, sectionTitles } = value
   if (!object(header) || !only(header, ['logoDataUrl', 'institution', 'department', 'lines', 'align'])) return false
@@ -24,7 +24,9 @@ export function validTemplate(value) {
   if (value.layout !== undefined && !['standard', 'systematic'].includes(value.layout)) return false
   if (value.greeting !== undefined && !text(value.greeting, 80)) return false
   const { signatory } = value
-  if (signatory !== undefined && !(object(signatory) && only(signatory, ['name', 'qualifications', 'registration']) &&
-    text(signatory.name, 120) && text(signatory.qualifications, 160) && text(signatory.registration, 120))) return false
+  const lineList = (v, n) => v === undefined || (Array.isArray(v) && v.length <= n && v.every(line => text(line, 160)))
+  if (signatory !== undefined && !(object(signatory) && only(signatory, ['name', 'qualifications', 'registration', 'lines']) &&
+    text(signatory.name, 120) && text(signatory.qualifications, 160) && text(signatory.registration, 120) && lineList(signatory.lines, 4))) return false
+  if (!lineList(value.signatureLines, 6)) return false
   return SECTION_KEYS.every(key => sectionTitles[key] === undefined || text(sectionTitles[key], 60))
 }

@@ -24,6 +24,7 @@ export function SystematicLetterhead({ template, fallbackInstitution }: { templa
           {signatory?.name ? <div className="sys-lh-doctor-name">{signatory.name},</div> : null}
           {signatory?.qualifications ? <div>{signatory.qualifications}</div> : null}
           {signatory?.registration ? <div>{signatory.registration}</div> : null}
+          {(signatory?.lines ?? []).filter((l) => l.trim()).map((l, i) => <div key={i}>{l}</div>)}
         </div>
       </div>
       <div className="sys-lh-name">{header.institution || fallbackInstitution || 'Diagnostic Centre'}</div>
@@ -101,6 +102,16 @@ export function SystematicBody({ template, patient, report, examType, reportDate
 
 export function SystematicSignatory({ template, signedName }: { template: ReportTemplate; signedName: string }) {
   const s = template.signatory
+  const custom = (template.signatureLines ?? []).filter((l) => l.trim())
+  // A different signer than the template's radiologist gets their own name only.
+  if (custom.length && (!signedName || signedName === s?.name)) {
+    return (
+      <div className="sys-sign">
+        <div className="sys-sign-line" />
+        {custom.map((l, i) => <div key={i} className={i === 0 ? 'sys-sign-name' : undefined}>{l}</div>)}
+      </div>
+    )
+  }
   const name = signedName || s?.name
   if (!name) return null
   return (

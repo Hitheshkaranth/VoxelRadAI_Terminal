@@ -26,6 +26,10 @@ interface PrintReportProps {
   onClose: () => void
 }
 
+// Key-image legend: capitalised title; a location that only names the body part ("chest") adds nothing.
+const BODY_ONLY_LOCATION = /^(chest|thorax|abdomen|abdominal|head|brain|pelvis)$/i
+const legendTitle = (title: string) => (title ? title.charAt(0).toUpperCase() + title.slice(1) : 'Finding')
+
 const ACCESSION = (studyId: string): string => studyId.replace(/-/g, '').slice(0, 10).toUpperCase()
 
 function splitLines(value: string | undefined): string[] {
@@ -105,8 +109,8 @@ function ImageKey({ image, index, src, ready }: { image: StudyImage; index: numb
               <span className="rp-legend-no">{i + 1}</span>
               <span className="rp-legend-dot" data-severity={f.severity} />
               <span className="rp-legend-text">
-                <strong>{f.title || 'Finding'}</strong>
-                {f.location ? ` · ${f.location}` : ''}
+                <strong>{legendTitle(f.title)}</strong>
+                {f.location && !BODY_ONLY_LOCATION.test(f.location.trim()) ? ` · ${f.location}` : ''}
                 {isExcluded(f) ? ' · not in report' : ''}
                 {f.source === 'maira2' ? ' · MAIRA-2 second reader' : ''}
                 {f.severity !== 'normal' && !f.bbox ? ' · not localized' : ''}
@@ -491,8 +495,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 {template?.footer.text.trim() ? <span className="rp-footer-template rp-screen-only">{template.footer.text}</span> : null}
                 {!template || template.footer.showDisclaimer || !report?.signed ? (
                   <span className="rp-footer-disclaimer">
-                    {DISCLAIMER} Drafted with AI assistance ({analysisModels || report?.draftModel || 'model not recorded'}
-                    {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
+                    {DISCLAIMER} Drafted with AI assistance{(analysisModels || report?.draftModel) ? ` (${analysisModels || report?.draftModel}${included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''})` : ''}.
                   </span>
                 ) : null}
               </footer>

@@ -22,4 +22,7 @@ test('accepts the optional systematic layout fields and rejects bad ones', () =>
   assert.ok(!validTemplate({ ...sys, layout: 'fancy' }))
   assert.ok(!validTemplate({ ...sys, signatory: { ...sys.signatory, html: '<b>' } }))
   assert.ok(!validTemplate({ ...sys, greeting: 'x'.repeat(81) }))
+  assert.ok(validTemplate({ ...sys, signatory: { ...sys.signatory, lines: ['Life member'] }, signatureLines: ['Dr. A. Radiologist', 'Centre'] }))
+  assert.ok(!validTemplate({ ...sys, signatureLines: Array(7).fill('x') }))
+  assert.ok(!validTemplate({ ...sys, signatureLines: [{ html: 1 }] }))
 })
