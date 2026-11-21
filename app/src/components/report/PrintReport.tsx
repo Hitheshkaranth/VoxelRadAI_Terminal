@@ -330,7 +330,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </Section>
               )}
 
-              {heatRows.length > 0 && (
+              {!systematic && heatRows.length > 0 && (
                 <Section title="Classifier Heatmaps">
                   <p className="rp-heat-note">
                     One map per finding: where an independent image classifier (TorchXRayVision) found evidence for that
@@ -379,7 +379,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </>
               )}
 
-              {included.length > 0 && (
+              {!systematic && included.length > 0 && (
                 <section className="rp-section rp-table-section">
                   <h3 className="rp-section-title">AI Findings Summary</h3>
                   <table className="rp-table rp-table-findings">
@@ -424,7 +424,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </section>
               )}
 
-              {excluded.length > 0 && (
+              {!systematic && excluded.length > 0 && (
                 <section className="rp-section rp-table-section rp-excluded-section">
                   <h3 className="rp-section-title">AI findings not included in this report</h3>
                   <table className="rp-table rp-table-excluded">
