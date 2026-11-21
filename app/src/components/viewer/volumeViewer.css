@@ -77,6 +77,11 @@
 .volume-region-overlay rect { fill: rgba(255, 169, 77, .12); stroke: #ffb65c; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .volume-region-overlay text { fill: #ffcf8d; font: 22px var(--font-sans); stroke: #1a140c; stroke-width: 3; paint-order: stroke; }
 .volume-region-overlay g[data-selected='true'] rect { stroke: #fff; fill: rgba(255, 169, 77, .22); }
+/* traced outline on its source slice: the box stays as a faint dashed hit area */
+.volume-region-overlay rect[data-outlined='true'] { fill: transparent; stroke-dasharray: 6 6; stroke-opacity: .45; }
+.volume-region-overlay .volume-outline-edge { fill: #ffb65c; stroke: none; }
+.volume-region-overlay .volume-outline-fill { fill: rgba(255, 169, 77, .22); stroke: none; }
+.volume-region-overlay g[data-selected='true'] .volume-outline-edge { fill: #fff; }
 .volume-region-key { padding: 10px 12px; border-bottom: 1px solid var(--separator); font-size: 12px; }
 .volume-region-key label { display: flex; align-items: center; gap: 7px; min-height: 30px; }
 .volume-region-key span { display: block; color: var(--label-2); line-height: 1.5; }
