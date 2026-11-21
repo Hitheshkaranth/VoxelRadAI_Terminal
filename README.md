@@ -142,6 +142,28 @@ Captured November 21, 2026 in the deployed [Hugging Face Space](https://hitheshk
   </tr>
 </table>
 
+## 🧪 Skanda-V2 preview (local, in development)
+
+Captured November 22, 2026 with **Skanda-V2 served locally** (`deploy/serve_v2.py` in the Skanda-V2 repo, OpenAI-compatible on `:1234`) and this app pointed at it through the `/lmstudio` proxy. Skanda-V2 is not released yet (planned private release on Hugging Face, December 2026). The images are public: ChestX-Det test films, the Slicer CT / MR samples, and TCIA CRLM (CC BY 4.0). The app's optional TorchXRayVision cross-check was not running, which the amber note in the X-ray panel states.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/v2/v2-xray-abnormal-cxd_67569.png" alt="Chest X-ray cxd_67569 with three Skanda-V2 boxes and a findings panel: pleural effusion, consolidation and cardiomegaly"><br><sub><b>Chest X-ray, abnormal</b> (ChestX-Det <code>cxd_67569</code>; radiologist labels: effusion, consolidation, enlarged heart). Skanda-V2 reports all three in 9 s (Skanda V1 reported only the effusion on the same film). The boxes come from the detector and are coarse.</sub></td>
+    <td width="50%"><img src="docs/screenshots/v2/v2-xray-normal-cxd_70278.png" alt="Normal chest X-ray cxd_70278 with no findings and the impression no acute cardiopulmonary abnormality"><br><sub><b>Chest X-ray, normal</b> (<code>cxd_70278</code>, labelled No Finding): no findings, 2 s. On the 29 normal test films 21 are called normal (72%).</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/v2/v2-ct-liver-metastasis-crlm1043.png" alt="Abdominal CT slice from TCIA CRLM-CT-1043 with one box on a right liver lesion measured 52 mm"><br><sub><b>CT, abnormal</b> (TCIA CRLM <code>CRLM-CT-1043</code>, colorectal liver metastasis, largest cross-section). One box on the lesion, measured from the outline (52 mm, 46 HU vs 110 HU around it). On one slice the organ is not named and the confidence shown is the development-set precision, not a probability.</sub></td>
+    <td><img src="docs/screenshots/v2/v2-ct-brain-sample-slice39.png" alt="CT brain sample slice 39 with one Skanda-V2 candidate box near the right frontal horn labelled focal lesion, right side"><br><sub><b>CT brain sample, slice 39/76</b>: a <b>false finding</b>. Skanda-V2 boxes a 6 mm area next to the right lateral ventricle (V1 also flagged this slice). Single-slice CT still flags 14 of 50 normal test slices (28%); the CT series path (localiser + organ detectors) is the fix in progress.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/v2/v2-mri-brain-sample-normal.png" alt="MR head sample axial slice 129 with the result no focal abnormality on this slice"><br><sub><b>MRI brain sample, slice 129/256</b>, body region set to Brain in Acquisition: no focal abnormality, 2.7 s.</sub></td>
+    <td><img src="docs/screenshots/v2/v2-mri-unknown-body-not-supported.png" alt="MR head sample with the result: not read, unknown MRI is not supported yet"><br><sub><b>MRI with no body region</b>: Skanda-V2 now declines (“not supported yet”) instead of reading every MRI as brain; prostate and spine MRI get the same answer until their models pass their gates.</sub></td>
+  </tr>
+</table>
+
+<img src="docs/screenshots/v2/v2-benchmarks-by-checkpoint.png" alt="Line charts of closed-question accuracy per Skanda checkpoint on VQA-RAD, RadBench, SLAKE and ReXVQA with MedGemma 27B and Harrison.rad.1 reference lines" width="100%">
+<sub>Closed-question accuracy per checkpoint (our runs, same items for every model). Harrison.rad.1 values are the company's published figures, not reproduced by us. RadBench: V2 69.5% [95% CI 63.3–75.7] includes Harrison's 73.</sub>
+
 ## 🖼️ Workspace tour
 
 <table>
