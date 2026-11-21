@@ -32,6 +32,7 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 
 - [Highlights](#-highlights)
 - [Quick start](#-quick-start)
+- [Live analysis on ZeroGPU](#-live-analysis-on-zerogpu)
 - [Workspace tour](#-workspace-tour)
 - [Architecture](#-architecture)
 - [Scaling and capacity](#-scaling-and-capacity)
@@ -114,6 +115,33 @@ This runs one [Skanda V1 server](deploy/gpu/serve.py) per GPU and sends workspac
 
 [**v0.2.0-beta.2**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) ships a **source ZIP**, a prebuilt local-only **web ZIP** (serve it over HTTP) and **SHA256SUMS.txt**. `main` may be ahead of the beta. The login CT cine, the integrations, the GPU pool, read workers and storage allowances are not in the beta packages.
 
+## 🔬 Live analysis on ZeroGPU
+
+Captured November 21, 2026 in the deployed [Hugging Face Space](https://hitheshkaranth-voxelrad.hf.space/workspace), with **Skanda V1 running live on ZeroGPU** (bf16, `zero-a10g`). Every image is public: a ChestX-Det test film and the Slicer CT and MR teaching volumes. Nothing below is a patient study, and none of it is clinical validation.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/live/skanda-v1-xray.gif" alt="Animated: a chest film is added, Skanda V1 reads it on ZeroGPU, and a pleural effusion appears with outlines and a findings card"><br><sub><b>X-ray, start to finish.</b> Add the film, Analyze, review.</sub></td>
+    <td width="33%"><img src="docs/screenshots/live/skanda-v1-ct.gif" alt="Animated: the CT brain sample opens, HU calibration is confirmed in Acquisition, and Skanda V1 analyses the current slice"><br><sub><b>CT slice.</b> HU confirmed in Acquisition, then one slice read.</sub></td>
+    <td width="33%"><img src="docs/screenshots/live/skanda-v1-mri.gif" alt="Animated: the MR head sample opens in three planes and Skanda V1 analyses the current axial slice"><br><sub><b>MRI slice.</b> Three-plane view, one axial slice read.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/live/xray-skanda-v1.png" alt="Chest X-ray cxd_67569 with Skanda V1 outlines on both sides and a findings panel listing one significant finding, pleural effusion, read in 11 seconds"><br><sub><b>Chest X-ray</b> (ChestX-Det <code>cxd_67569</code>; radiologist labels: effusion, consolidation, enlarged heart). Skanda V1 reported <b>pleural effusion</b> with outlines in 11 s. It did not report the consolidation or the enlarged heart. The optional TorchXRayVision cross-check is not configured on the Space, which the amber note states.</sub></td>
+    <td width="50%"><img src="docs/screenshots/live/mri-skanda-v1.png" alt="MR head sample in axial, coronal and sagittal views with the single-slice result: no focal abnormality on this slice, skanda-v1, 2.6 seconds"><br><sub><b>MRI, axial slice 129/256</b> of the Slicer MR head (a donated healthy-volunteer scan, no reference labels). Skanda V1: <b>no focal abnormality on this slice</b>, in 2.6 s.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/live/ct-slice-skanda-v1.png" alt="CT brain sample, axial slice 39 of 76, with one small Skanda V1 candidate box at the right cortical edge labelled focal lesion, right"><br><sub><b>CT, axial slice 39/76</b> of the Slicer CT brain (no reference labels). Skanda V1 drew one small candidate, "focal lesion, right", at the cortical edge. Nothing in the source confirms a lesion there, so treat it as an unverified candidate, most likely a false alarm.</sub></td>
+    <td><img src="docs/screenshots/live/server-storage-live.png" alt="Settings, Account, Server storage on the live Space: 81 KB of 10.7 GB used after saving the X-ray study, split into 77 KB scans, 287 B patient data and reports, 4 KB analysis, 0 B feedback"><br><sub><b>Storage allowance, live.</b> After saving the analysed X-ray to the account: 81 KB of the 10 GiB allowance, split into scans, patient data and reports, analysis, and feedback.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/live/skanda-v1-ct-volume.gif" alt="Animated: a whole-volume Skanda V1 job runs across all 76 CT slices on ZeroGPU while candidate boxes accumulate in the axial, coronal, sagittal and 3D views"><br><sub><b>CT whole volume, live.</b> All 76 acquired slices read on ZeroGPU (about 7 minutes, one read per slice), candidates appearing in every plane and the 3D locator.</sub></td>
+    <td><img src="docs/screenshots/live/ct-volume-skanda-v1.png" alt="CT brain sample after the whole-volume job: many orange candidate boxes in axial, coronal and sagittal views and a list of AI candidates"><br><sub><b>CT whole-volume result: a failure case, shown on purpose.</b> On this unlabelled head CT, which looks normal, Skanda V1 produced <b>33 candidates</b> (26 "focal lesion", 6 "soft-tissue lesion", 1 "skull fracture"). These are almost certainly false alarms: the Slicer volume is an oblique, older acquisition unlike the held-out CT cases in the benchmarks. This is why every candidate needs source review.</sub></td>
+  </tr>
+</table>
+
 ## 🖼️ Workspace tour
 
 <table>
@@ -125,13 +153,9 @@ This runs one [Skanda V1 server](deploy/gpu/serve.py) per GPU and sends workspac
     <td><img src="docs/screenshots/v0.2.0/ct-review.png" alt="CT with 3D locator and review panel"><br><sub><b>3D locator and review.</b> Navigation aid only, not validated segmentation.</sub></td>
     <td><img src="docs/screenshots/v0.2.0/xray-workspace.png" alt="Chest X-ray workspace"><br><sub><b>X-ray.</b> Public ChestX-Det film opened through the file picker.</sub></td>
   </tr>
-  <tr>
-    <td><img src="docs/screenshots/v0.3.0/server-storage-sidebar.png" alt="Server-mode workspace: a ChestX-Det film restored from Saved studies with three recorded Skanda outlines, the findings panel, and a storage meter at the foot of the worklist reading 3.4 GB of 10.7 GB used"><br><sub><b>Saved study with its analysis.</b> A study restored from the server keeps its findings and outlines. The worklist shows how much of the allowance is used.</sub></td>
-    <td><img src="docs/screenshots/v0.3.0/server-storage-settings.png" alt="Settings, Account: Server storage panel with 3.4 GB of 10.7 GB used, split into scans, patient data and reports, analysis and feedback, over the analysed study"><br><sub><b>Storage breakdown.</b> Settings → Account splits usage into scans, patient data and reports, analysis, and feedback.</sub></td>
-  </tr>
 </table>
 
-<sub>The first four were captured November 12, 2026 with public teaching samples and a public ChestX-Det film, and no model running. The storage views were captured November 21, 2026 from a server-mode build. The studies are public ChestX-Det test films carrying <b>recorded Skanda reads from runs 2–3</b> (the earlier checkpoints, not Skanda V1), parsed by the app's normal pipeline and restored through <i>Saved studies</i>. The storage figures are illustrative, served by a test API. None of these screenshots show diagnostic performance.</sub>
+<sub>Captured November 12, 2026 with public teaching samples and a public ChestX-Det film, and no model running. These screenshots show layout and navigation, not diagnostic performance. For live model output, see <a href="#-live-analysis-on-zerogpu">Live analysis on ZeroGPU</a>.</sub>
 
 ## 🏗️ Architecture
 
