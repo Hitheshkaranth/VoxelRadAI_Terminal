@@ -202,23 +202,23 @@ sequenceDiagram
   participant P as PostgreSQL
   participant W as Read worker
   participant G as GPU upstream pool
-  Note over B,G: Workspace read (one per X-ray, one per acquired CT/MR slice)
-  B->>A: POST /lmstudio/v1/chat/completions (session cookie)
-  A->>P: check session · count daily read
-  A->>G: least-loaded healthy upstream (fail over if refused before start)
-  G-->>B: SSE ": queued" heartbeats → result chunk → [DONE]
+  Note over B,G: Workspace read, one per X-ray or per acquired CT/MR slice
+  B->>A: POST /lmstudio/v1/chat/completions with session cookie
+  A->>P: check session, count daily read
+  A->>G: least-loaded healthy upstream, fail over if refused before start
+  G-->>B: SSE heartbeats, then the result chunk, then DONE
   Note over B,G: Async API read
-  B->>A: POST /api/v1/reads (Bearer key, Idempotency-Key)
-  A->>P: queue limit? count read · INSERT queued · NOTIFY
-  A-->>B: 202 { id, poll_url }
-  W->>P: claim (FOR UPDATE SKIP LOCKED, lease 60 s)
+  B->>A: POST /api/v1/reads with Bearer key and Idempotency-Key
+  A->>P: check queue limit, count read, INSERT queued, NOTIFY
+  A-->>B: 202 with id and poll_url
+  W->>P: claim with FOR UPDATE SKIP LOCKED, lease 60 s
   loop every 5 s
-    W->>P: heartbeat (renews lease; sees cancel)
+    W->>P: heartbeat, renews lease and sees cancel
   end
   W->>G: read
   G-->>W: result
-  W->>P: finish (lease holder only) · drop image data
-  W-->>B: signed webhook (optional)
+  W->>P: finish as lease holder, drop image data
+  W-->>B: signed webhook, optional
   B->>A: GET /api/v1/reads/{id}
   A-->>B: succeeded + report
 ```
