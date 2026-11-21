@@ -33,10 +33,13 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 - [Highlights](#-highlights)
 - [Quick start](#-quick-start)
 - [Workspace tour](#-workspace-tour)
+- [Architecture](#-architecture)
+- [Scaling and capacity](#-scaling-and-capacity)
+- [Storage and data](#-storage-and-data)
 - [Benchmarks](#-benchmarks)
 - [Review workflow](#-review-workflow)
 - [Model API](#-model-api)
-- [Architecture](#-architecture)
+- [Operations](#-operations)
 - [Evaluation and limitations](#-evaluation-and-limitations)
 - [Development](#-development)
 - [Documentation](#-documentation)
@@ -56,7 +59,9 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 | 📐 **Guideline helpers and QA** | Fleischner, Lung-RADS, TI-RADS, Bosniak, adrenal and BI-RADS decision support to verify, plus sign-off checks for laterality, sex, size, impression coverage and logged critical results |
 | 🧊 **DICOM series volumes** | Uncompressed CT/MR series (dropped folders or PACS) open as volumes with spacing, orientation and HU rescale checks |
 | 🔍 **Viewer tools** | CT window presets (keys 1–9), value under the cursor, length/ellipse ROI measurements inserted into the report, MIP/MinIP slabs, 2D flip/rotate and loupe |
-| 🌉 **Vercel to Space bridge** | Optional signed-in, per-user-capped proxy from a Vercel deployment to the Hugging Face ZeroGPU Space for hosted reads ([docs](docs/vercel.md)) |
+| ⚡ **GPU pool with fail-over** | Reads go to the least-loaded of several model backends (ZeroGPU Space and/or [dedicated GPU servers](deploy/gpu)), skipping any that are down or out of quota ([scaling](docs/architecture/scaling.md)) |
+| 🧾 **Durable API reads** | Async `/api/v1/reads` are leased jobs in PostgreSQL: retried if a worker dies, refused with `queue_full` before they are counted, refunded if they never ran |
+| 💾 **Per-user storage allowance** | 10 GB by default (adjustable per user) for saved scans, patient data, reports, analysis and feedback, shown in the sidebar and in Settings |
 | 🔐 **Server mode** | Sign-in, admin tools, saved studies in PostgreSQL, and share links that expire or can be revoked |
 | 🔌 **Integrations** | Optional [Keycloak SSO](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md) and [Orthanc import](docs/orthanc.md). All are off until configured |
 | 💻 **Local mode** | Studies stay in browser storage. Bring your own model service |
@@ -94,11 +99,20 @@ cp config.example .env   # set the DB password and bootstrap admin credentials
 docker compose up -d --build
 ```
 
-Open **http://localhost:8088**. For HTTPS, persistence and backups, see the [deployment guide](docs/deployment.md). For the hosted setup (Vercel and Neon), see [Vercel deployment](docs/vercel.md). To add SSO, S3 or Orthanc, layer on `compose.integrations.yaml`.
+Open **http://localhost:8088**. This starts PostgreSQL, the API, a read worker and the web server. For HTTPS, persistence and backups, see the [deployment guide](docs/deployment.md). For the hosted setup (Vercel and Neon), see [Vercel deployment](docs/vercel.md). To add SSO, S3 or Orthanc, layer on `compose.integrations.yaml`.
+
+### 4. Add dedicated GPUs (on-prem or VPC)
+
+```sh
+# in .env: BRIDGE_SECRET (32+ chars), HF_TOKEN (read access to Skanda V1), MODEL_REVISION (pinned)
+docker compose -f compose.yaml -f compose.gpu.yaml up -d --build
+```
+
+This runs one [Skanda V1 server](deploy/gpu/serve.py) per GPU and sends workspace and API reads through the API's upstream pool. Async reads go to the workers. To size GPUs for a site, see [capacity](#-scaling-and-capacity).
 
 ### Release packages
 
-[**v0.2.0-beta.2**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) ships a **source ZIP**, a prebuilt local-only **web ZIP** (serve it over HTTP) and **SHA256SUMS.txt**. `main` may be ahead of the beta. The login CT cine and the integrations are not in the beta packages.
+[**v0.2.0-beta.2**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) ships a **source ZIP**, a prebuilt local-only **web ZIP** (serve it over HTTP) and **SHA256SUMS.txt**. `main` may be ahead of the beta. The login CT cine, the integrations, the GPU pool, read workers and storage allowances are not in the beta packages.
 
 ## 🖼️ Workspace tour
 
@@ -111,9 +125,168 @@ Open **http://localhost:8088**. For HTTPS, persistence and backups, see the [dep
     <td><img src="docs/screenshots/v0.2.0/ct-review.png" alt="CT with 3D locator and review panel"><br><sub><b>3D locator and review.</b> Navigation aid only, not validated segmentation.</sub></td>
     <td><img src="docs/screenshots/v0.2.0/xray-workspace.png" alt="Chest X-ray workspace"><br><sub><b>X-ray.</b> Public ChestX-Det film opened through the file picker.</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/v0.3.0/server-storage-sidebar.png" alt="Server-mode workspace: a ChestX-Det film restored from Saved studies with three recorded Skanda outlines, the findings panel, and a storage meter at the foot of the worklist reading 3.4 GB of 10.7 GB used"><br><sub><b>Saved study with its analysis.</b> A study restored from the server keeps its findings and outlines. The worklist shows how much of the allowance is used.</sub></td>
+    <td><img src="docs/screenshots/v0.3.0/server-storage-settings.png" alt="Settings, Account: Server storage panel with 3.4 GB of 10.7 GB used, split into scans, patient data and reports, analysis and feedback, over the analysed study"><br><sub><b>Storage breakdown.</b> Settings → Account splits usage into scans, patient data and reports, analysis, and feedback.</sub></td>
+  </tr>
 </table>
 
-<sub>Workspace captured November 12, 2026 with public teaching samples and a public ChestX-Det film, and no model running. These screenshots show layout and navigation, not diagnostic performance.</sub>
+<sub>The first four were captured November 12, 2026 with public teaching samples and a public ChestX-Det film, and no model running. The storage views were captured November 21, 2026 from a server-mode build. The studies are public ChestX-Det test films carrying <b>recorded Skanda reads from runs 2–3</b> (the earlier checkpoints, not Skanda V1), parsed by the app's normal pipeline and restored through <i>Saved studies</i>. The storage figures are illustrative, served by a test API. None of these screenshots show diagnostic performance.</sub>
+
+## 🏗️ Architecture
+
+### System
+
+```mermaid
+flowchart TB
+  subgraph Clients["Clients"]
+    WS["🖥️ Workspace SPA<br/>React + Vite<br/>viewer · worklist · report"]
+    IDB[("IndexedDB<br/>local mode studies")]
+    PARTNER["🏥 Partner systems<br/>Bearer API keys"]
+    SHARE["🔗 Share viewer<br/>/shared#token"]
+    WS --- IDB
+  end
+
+  subgraph Edge["Edge"]
+    EDGE["Vercel (hosted) / nginx (Compose)<br/>TLS · static assets · routing<br/>/api/* · /lmstudio/v1/* · /healthz"]
+  end
+
+  subgraph APITier["API tier: stateless, scale on CPU/RPS"]
+    API["Node API (server/src/index.mjs)<br/>sessions · studies · shares · admin<br/>storage allowance · audit"]
+    PROXY["Model proxy + upstream pool<br/>(modelProxy.mjs, modelPool.mjs)<br/>least-loaded · circuit breaker · fail-over<br/>per-user / per-key daily caps"]
+    PUB["Public API /api/v1<br/>(publicApi.mjs)<br/>sync reads · async reads · webhooks"]
+    API --- PROXY
+    API --- PUB
+  end
+
+  subgraph WorkerTier["Worker tier: scale on queue depth"]
+    WK["Read workers (worker.mjs)<br/>claim · heartbeat · finish<br/>graceful drain"]
+  end
+
+  subgraph DataTier["Data tier"]
+    PG[("PostgreSQL<br/>users · sessions · studies (sizes)<br/>api_keys · api_reads queue<br/>audit · rate limits")]
+    S3[("Object storage (S3)<br/>CT/MR volumes<br/>presigned upload/download")]
+  end
+
+  subgraph ModelTier["Model tier: the expensive one"]
+    ZG["HF ZeroGPU Space<br/>Skanda V1 bf16<br/>burst capacity · owner quota"]
+    G1["GPU server 1<br/>deploy/gpu/serve.py"]
+    GN["GPU server N"]
+  end
+
+  subgraph Optional["Optional integrations"]
+    KC["Keycloak / OIDC SSO"]
+    OR["Orthanc DICOMweb (PACS)"]
+    STT["Sarvam speech-to-text"]
+  end
+
+  WS & PARTNER & SHARE --> EDGE --> API
+  API -- "SQL (pooled)" --> PG
+  PUB -- "INSERT read + NOTIFY" --> PG
+  WK -- "SKIP LOCKED leases" --> PG
+  PROXY -- "SSE, bridge secret" --> ZG & G1 & GN
+  WK -- "async reads" --> ZG & G1 & GN
+  WK -- "signed webhooks" --> PARTNER
+  API -- "presign" --> S3
+  WS -. "direct upload/download" .-> S3
+  API -.-> KC & OR & STT
+```
+
+### A read, end to end
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as Workspace / partner
+  participant A as API replica
+  participant P as PostgreSQL
+  participant W as Read worker
+  participant G as GPU upstream pool
+  Note over B,G: Workspace read (one per X-ray, one per acquired CT/MR slice)
+  B->>A: POST /lmstudio/v1/chat/completions (session cookie)
+  A->>P: check session · count daily read
+  A->>G: least-loaded healthy upstream (fail over if refused before start)
+  G-->>B: SSE ": queued" heartbeats → result chunk → [DONE]
+  Note over B,G: Async API read
+  B->>A: POST /api/v1/reads (Bearer key, Idempotency-Key)
+  A->>P: queue limit? count read · INSERT queued · NOTIFY
+  A-->>B: 202 { id, poll_url }
+  W->>P: claim (FOR UPDATE SKIP LOCKED, lease 60 s)
+  loop every 5 s
+    W->>P: heartbeat (renews lease; sees cancel)
+  end
+  W->>G: read
+  G-->>W: result
+  W->>P: finish (lease holder only) · drop image data
+  W-->>B: signed webhook (optional)
+  B->>A: GET /api/v1/reads/{id}
+  A-->>B: succeeded + report
+```
+
+If a worker dies, its lease lapses and the read goes back on the queue for another worker, at most `READ_MAX_ATTEMPTS` times. A read that waits past `READ_QUEUE_TTL_SECONDS` fails and is refunded if it never reached a GPU.
+
+### Deployment shapes
+
+| | Hosted (voxelradai.com) | Private install | Dedicated GPUs | All-in-one Space |
+| --- | --- | --- | --- | --- |
+| Entry | Vercel | `compose.yaml` | `+ compose.gpu.yaml` | [`deploy/huggingface`](docs/huggingface.md) |
+| API | Serverless function | Node container(s) | Node container(s) | Node child process |
+| Async reads | `inline` (with retry) | worker service | worker service | inline |
+| Database | Neon | PostgreSQL 17 | PostgreSQL 17 | Bundled PostgreSQL |
+| Model | ZeroGPU Space (+ any GPUs in `MODEL_UPSTREAMS`) | Host model service on :1234 | One `deploy/gpu` server per GPU | In-process ZeroGPU |
+
+### Repository map
+
+| Path | Responsibility |
+| --- | --- |
+| [`app/src/landing`](app/src/landing) | Public landing page, reading-room hero and benchmarks |
+| [`app/src/components/viewer`](app/src/components/viewer) | Image rendering, volume navigation and review controls |
+| [`app/src/components/shell`](app/src/components/shell) | Worklist, settings, sessions, storage meter and administration |
+| [`app/src/lib/volumeJobs.ts`](app/src/lib/volumeJobs.ts) | Coverage, progress, retries and resume |
+| [`server/src/index.mjs`](server/src/index.mjs) | Auth, studies, sharing, admin, metrics route |
+| [`server/src/modelProxy.mjs`](server/src/modelProxy.mjs) · [`modelPool.mjs`](server/src/modelPool.mjs) | Model bridge, daily caps, upstream pool and fail-over |
+| [`server/src/publicApi.mjs`](server/src/publicApi.mjs) · [`worker.mjs`](server/src/worker.mjs) | `/api/v1`, durable read queue, read workers |
+| [`server/src/storage.mjs`](server/src/storage.mjs) | Per-user storage allowance and usage |
+| [`server/src/metrics.mjs`](server/src/metrics.mjs) | Prometheus exposition for API and workers |
+| [`server/migrations`](server/migrations) | Checksummed, ordered SQL migrations |
+| [`deploy/gpu`](deploy/gpu) | Skanda V1 server for one dedicated GPU |
+| [`deploy/huggingface`](deploy/huggingface) | ZeroGPU Space (full app plus queued reads) |
+| [`api`](api) | Vercel serverless entry point |
+| [`benchmark`](benchmark) | Scoring, plots and landing-page data generation |
+
+Inference sends images to whichever model host you configure. In server mode, only studies you explicitly save are persisted. Hosted share links work as bearer links until they expire or are revoked. VoxelRad AI is not a PACS or a multi-tenant clinical archive.
+
+## 📈 Scaling and capacity
+
+The binding constraint is GPU time, not the web tier. Skanda V1 takes **6.4 s per read** on average, and each GPU runs one read at a time, so plan for about **350 reads per GPU-hour**. An X-ray is one read. A CT/MR volume job is one read per acquired slice, so a 30-slice job is 30 reads.
+
+```
+GPUs = ceil(peak-hour reads ÷ 350)    peak-hour reads = X-rays + volume studies × slices per job
+```
+
+Example: 400 X-rays and 60 CT/MR studies a day gives about 330 reads at the busiest hour, so one GPU, or two for N+1.
+
+| Tier | How it scales | Signal |
+| --- | --- | --- |
+| Web | CDN / any number of nginx replicas | — |
+| API | Add replicas; no sticky sessions (state is in PostgreSQL) | CPU, `voxelrad_http_*` |
+| Workers | Add replicas or raise `READ_WORKER_CONCURRENCY` | `voxelrad_api_reads{status="queued"}` |
+| GPUs | Add `deploy/gpu` servers to `MODEL_UPSTREAMS` | `voxelrad_model_upstream_in_flight` |
+| PostgreSQL | Pooled connections (Neon pooler / PgBouncer); replica for analytics (planned) | `voxelrad_db_pool_connections{state="waiting"}` |
+
+The full review covers bottlenecks, the roadmap (images to object storage, tenancy with row-level security, batched slice inference), field deployment topologies, runbooks and every new setting: **[docs/architecture/scaling.md](docs/architecture/scaling.md)**.
+
+## 💾 Storage and data
+
+| | Local mode | Server mode |
+| --- | --- | --- |
+| Where studies live | Browser (IndexedDB) | PostgreSQL (studies you save) and S3 (volumes, when configured) |
+| Allowance | Browser quota | **10 GB per user by default** (`STORAGE_QUOTA_GB`). Administrators can change it per user |
+| What counts | — | **Scans** (study images and volumes), **patient data & reports**, **analysis** (findings, measurements, your review decisions), **feedback** (dictation corrections) |
+| What you can open | Everything in the browser | Your own saved scans, patient data and reports, with their analysis. Download or delete them from *Saved studies* and *Saved volumes* |
+| When full | — | Saves and uploads that would exceed the allowance are refused with a clear message. Nothing is silently dropped |
+
+Your usage is shown at the foot of the worklist and in **Settings → Account → Server storage**, and refreshes after every save, upload and deletion. Dictation feedback is pseudonymous and is not shown back. De-identified training cases are organisation data with their own retention, so they do not count against a user's allowance.
 
 ## 📊 Benchmarks
 
@@ -210,47 +383,35 @@ Organisations can call Skanda V1 from their own software at `https://voxelradai.
 
 - **Keys by request only.** An administrator issues `vr_live_…` or `vr_test_…` keys per organisation in the admin panel; there is no self-serve signup. Send them as `Authorization: Bearer …`. Keys work only on `/api/v1`, never on studies or other app routes.
 - **Endpoints.** `GET /models`; `POST /chat/completions` (`stream:false` by default returns one `chat.completion`, `stream:true` returns SSE); `POST /reads` for async reads (202, poll `GET /reads/{id}`, cancel with `DELETE`), with `Idempotency-Key` and optional HMAC-signed webhooks (`X-VoxelRad-Signature`).
-- **Limits.** By default 200 reads per UTC day for a live key and 20 for a test key (`API_LIVE_DAILY_READS`, `API_TEST_DAILY_READS`, or a per-key override); `429 daily_limit_reached` with `Retry-After`. Errors use the OpenAI shape `{"error":{"message","type","code"}}`.
+- **Limits.** By default 200 reads per UTC day for a live key and 20 for a test key (`API_LIVE_DAILY_READS`, `API_TEST_DAILY_READS`, or a per-key override); `429 daily_limit_reached` with `Retry-After`. When the read queue is full, `POST /reads` returns `503 queue_full` with `Retry-After` and the read is not counted. Errors use the OpenAI shape `{"error":{"message","type","code"}}`.
+- **Reliability.** Async reads survive a worker or function crash: they are retried once on another executor. A read that never reached a GPU is refunded once, to the UTC day it was counted on.
 - **Data.** API reads are never captured for model training; any model-improvement use needs a separate signed data agreement. Async read results expire after 24 hours.
-- **Setup.** Needs `MODEL_UPSTREAM_URL` and `BRIDGE_SECRET`; webhooks also need `API_WEBHOOK_SECRET` (32+ characters). Apply migration `015_api_access.sql`.
+- **Setup.** Needs `MODEL_UPSTREAMS` (or `MODEL_UPSTREAM_URL`) and `BRIDGE_SECRET`; webhooks also need `API_WEBHOOK_SECRET` (32+ characters). Set `READ_EXECUTION=worker` when read workers run. Migrations `015`–`017` apply automatically, or with `npm run migrate --prefix server`.
 
 > [!NOTE]
 > Skanda is not a cleared medical device. Clinical use requires regulatory clearance (for example from CDSCO in India), which has not been obtained. Until then, API integrations are for research, evaluation and supervised pilots under a research agreement, with every finding reviewed by a radiologist.
 
-## 🏗️ Architecture
+## 🩺 Operations
 
-```mermaid
-flowchart LR
-    I[Images and scalar NRRD] --> V[Browser viewer]
-    V --> L[Local IndexedDB]
-    V --> M[Configured model service]
-    M --> R[Candidates and consistency checks]
-    R --> H[Human source review]
-    H --> D[Draft and export]
-    V -->|Explicit save in server mode| A[Authenticated API]
-    A --> P[(PostgreSQL)]
-    A -.optional.-> S[(S3 volumes)]
-    A -.optional.-> O[Orthanc / Keycloak]
-```
-
-| Path | Responsibility |
-| --- | --- |
-| [`app/src/landing`](app/src/landing) | Public landing page, reading-room hero and benchmarks |
-| [`app/src/components/viewer`](app/src/components/viewer) | Image rendering, volume navigation and review controls |
-| [`app/src/components/shell`](app/src/components/shell) | Worklist, settings, sessions and administration |
-| [`app/src/components/ui`](app/src/components/ui) | Editable shadcn/Radix primitives |
-| [`app/src/lib/volumeJobs.ts`](app/src/lib/volumeJobs.ts) | Coverage, progress, retries and resume |
-| [`server`](server) | Auth, study storage, sharing and migrations |
-| [`api`](api) | Vercel serverless entry point |
-| [`benchmark`](benchmark) | Scoring, plots and landing-page data generation |
-
-Inference sends images to whichever model host you configure. In server mode, only studies you explicitly save are persisted. Hosted share links work as bearer links until they expire or are revoked. VoxelRad AI is not a PACS or a multi-tenant clinical archive.
+- **Health.** `/healthz` on the API (checks the database) and `:9090/healthz` on each worker (turns 503 while draining).
+- **Metrics.** Set `METRICS_TOKEN`, then scrape `GET /metrics` on each API replica and `:9090/metrics` on each worker with `Authorization: Bearer …`. These cover HTTP status classes and latency, DB pool pressure, upstream health and in-flight reads, queue depth, and worker saturation. The routes are hidden without a token and are not exposed through nginx or Vercel.
+- **Logs.** One JSON line per request with a random `X-Request-ID`, status and duration. URLs, bodies, cookies and identities are never logged.
+- **Releases.** Migrations are checksummed and serialised. With many replicas or serverless, set `MIGRATE_ON_START=false` and run `npm run migrate --prefix server` as a release step.
+- **Runbooks** for queue backlog, an upstream down, ZeroGPU quota exhaustion, full allowances and DB pool pressure are in the [scaling guide](docs/architecture/scaling.md#73-runbooks).
 
 ## 🧪 Evaluation and limitations
 
-- ✅ The release build and application tests pass, and all server tests pass. Browser QC covers the CT/MRI views, the popovers and the responsive layouts. See the [workspace verification](docs/validation/2026-11-10-scan-workspace.md), [platform QC](docs/validation/2026-11-10-platform-qc.md) and [swarm follow-up](docs/validation/2026-11-10-swarm-followup.md).
+- ✅ The release build and application tests pass, and all server tests pass (including the upstream pool, durable queue, workers, metrics and storage allowance). The queue and allowance SQL was also run against PostgreSQL. Browser QC covers the CT/MRI views, the popovers and the responsive layouts. See the [workspace verification](docs/validation/2026-11-10-scan-workspace.md), [platform QC](docs/validation/2026-11-10-platform-qc.md) and [swarm follow-up](docs/validation/2026-11-10-swarm-followup.md).
 - ⚠️ Earlier labelled tests found large localization errors: five of six positive-slice GGUF boxes had zero overlap with the reference. The bf16 Skanda rerun improved selected MRI outlines, but CT tumour outlines remained poor. See the [failure report](docs/validation/2026-11-02-labeled-case-failure-report.md) and the [volume validation protocol](benchmark/volume-validation/README.md).
-- ⏳ Still outstanding: full accessibility and physical-device testing, live hosted inference, geometric DICOM-series/PACS integration, MFA, multi-tenant isolation and durable server inference jobs. Real-provider acceptance of the integrations is also pending. The [capability manifest](server/capabilities.json) lists what is available and what is not.
+- ⏳ Still outstanding: the following have not been done yet.
+  - Full accessibility and physical-device testing, and live hosted inference
+  - Geometric DICOM-series/PACS integration
+  - MFA and multi-tenant isolation (planned with row-level security)
+  - Moving study images out of PostgreSQL into object storage
+  - Load tests at the target scale, and a GPU-host run of the `deploy/gpu` image
+  - Real-provider acceptance of the integrations
+
+  The [capability manifest](server/capabilities.json) lists what is available and what is not.
 
 ## 🛠️ Development
 
@@ -260,6 +421,11 @@ npm test && npm run lint && npm run build
 
 # API (server/)
 npm ci && npm test
+npm run worker      # a read worker against DATABASE_URL
+npm run migrate     # apply migrations and exit
+
+# GPU server contract tests (deploy/gpu/), no GPU needed
+python -m unittest test_serve -v
 
 # Whole repo
 npm test
@@ -271,8 +437,10 @@ The API integration harness writes synthetic records, so run it only against a d
 
 | Guide | |
 | --- | --- |
+| [Scaling and architecture review](docs/architecture/scaling.md) | Capacity model, bottlenecks, roadmap, FDE playbook and runbooks |
 | [Deployment](docs/deployment.md) · [Vercel](docs/vercel.md) | Self-hosted Compose and hosted setup |
 | [Hugging Face Space](docs/huggingface.md) | Full application with queued Skanda V1 bf16 reads on ZeroGPU |
+| [Dedicated GPU server](deploy/gpu/serve.py) | One Skanda V1 server per GPU, same contract as the Space |
 | [Keycloak](docs/keycloak.md) · [S3 storage](docs/s3-storage.md) · [Orthanc](docs/orthanc.md) | Optional integrations |
 | [Reading with Skanda](docs/reading-with-skanda.md) | Model serving, inputs and evidence |
 | [Benchmarks](benchmark/README.md) | CXR scoring and reproduction |

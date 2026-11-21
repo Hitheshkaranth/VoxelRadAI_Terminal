@@ -1,0 +1,39 @@
+# Dedicated-GPU overlay: docker compose -f compose.yaml -f compose.gpu.yaml up -d --build
+# Runs one Skanda V1 server per GPU (scale with --scale skanda-gpu=N only on multi-GPU hosts with one GPU each, or
+# add services pinned to device_ids), routes workspace and API reads through the API's upstream pool, and moves
+# asynchronous API reads to the worker. Needs in .env: BRIDGE_SECRET (32+ chars), HF_TOKEN, MODEL_REVISION.
+services:
+  skanda-gpu:
+    build: ./deploy/gpu
+    restart: unless-stopped
+    environment:
+      BRIDGE_SECRET: ${BRIDGE_SECRET:?Set BRIDGE_SECRET in .env}
+      HF_TOKEN: ${HF_TOKEN:?Set HF_TOKEN in .env (read access to the private Skanda V1 weights)}
+      MODEL_REVISION: ${MODEL_REVISION:?Pin MODEL_REVISION in .env}
+      MAX_QUEUE: ${GPU_MAX_QUEUE:-8}
+    volumes:
+      - model-cache:/models
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]
+    networks: [data]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  api:
+    environment:
+      MODEL_UPSTREAMS: ${MODEL_UPSTREAMS:-http://skanda-gpu:8000}
+      MODEL_UPSTREAM_HTTP_HOSTS: skanda-gpu
+      BRIDGE_SECRET: ${BRIDGE_SECRET}
+      READ_EXECUTION: worker
+  worker:
+    environment:
+      MODEL_UPSTREAMS: ${MODEL_UPSTREAMS:-http://skanda-gpu:8000}
+      MODEL_UPSTREAM_HTTP_HOSTS: skanda-gpu
+      BRIDGE_SECRET: ${BRIDGE_SECRET}
+      READ_WORKER_CONCURRENCY: ${READ_WORKER_CONCURRENCY:-2}
+  web:
+    volumes:
+      - ./deploy/gpu/nginx-models.conf:/etc/nginx/voxelrad/models.conf:ro
+volumes:
+  model-cache:

@@ -1,3 +1,4 @@
+import { announceStorageChange } from './accountStorage.ts'
 // Server study saves with optimistic concurrency: each save names the server revision that THIS copy of the study
 // was loaded from or last saved as (Study.serverRevision, persisted with the study). A second tab or a re-imported
 // older copy therefore sends its own, older revision and is refused (409) instead of silently overwriting newer text.
@@ -71,11 +72,17 @@ export async function saveStudyToServer(study: Study, options: { overwrite?: boo
     throw new StudyConflictError(typeof data.error === 'string' && data.error ? data.error : 'The server copy of this study changed since you last saved it.', code)
   }
   if (response.status === 401) throw new Error('Your session expired. Sign in again.')
-  if (response.status === 413) throw new Error('This study is too large for the server. Keep it local or ask your administrator about the upload limit.')
+  if (response.status === 413) {
+    const data = await response.json().catch(() => ({})) as { code?: unknown; error?: unknown }
+    announceStorageChange()
+    if (data.code === 'storage_quota_exceeded' && typeof data.error === 'string') throw new Error(data.error)
+    throw new Error('This study is too large for the server. Keep it local or ask your administrator about the upload limit.')
+  }
   if (!response.ok) throw new Error('The study could not be saved. Check the server and try again.')
   const data = await response.json().catch(() => ({})) as { revision?: unknown }
   if (!validRevision(data.revision)) return undefined
   forgetLegacy(study.id)
+  announceStorageChange()
   revisionListener?.(study.id, data.revision)
   return data.revision
 }

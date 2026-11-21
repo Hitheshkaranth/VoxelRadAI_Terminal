@@ -9,6 +9,7 @@ RUN npm run build
 
 FROM nginx:1.28-alpine
 COPY deploy/nginx.conf /etc/nginx/nginx.conf
+COPY deploy/models.conf /etc/nginx/voxelrad/models.conf
 COPY --from=build /build/dist /usr/share/nginx/html
 USER nginx
 EXPOSE 8080

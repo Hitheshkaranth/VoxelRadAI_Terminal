@@ -19,6 +19,8 @@ import { DICTATION_FEEDBACK_LIMIT, TRAINING_BODY_LIMIT, createTrainingCapture, p
 import { createModelProxy } from './modelProxy.mjs'
 import { createApiKeys, createKeyStore } from './apiKeys.mjs'
 import { createPublicApi, createReadStore } from './publicApi.mjs'
+import { metricsAuthorized, renderMetrics } from './metrics.mjs'
+import { defaultQuota, ensureRoom, storageUsage, validQuota } from './storage.mjs'
 
 const databaseDriver = process.env.DATABASE_DRIVER || 'postgres'
 if (!['postgres', 'neon'].includes(databaseDriver)) throw new Error('DATABASE_DRIVER must be postgres or neon')
@@ -39,7 +41,9 @@ if (process.env.VERCEL) {
   waitUntil = vercelFunctions.waitUntil
 }
 pool.on('error', () => console.error('Database connection interrupted'))
-await migrate(pool)
+// Migrations run at start by default. Set MIGRATE_ON_START=false when a release step runs `npm run migrate`
+// (recommended for serverless, where every cold start would otherwise take the migration lock).
+if (process.env.MIGRATE_ON_START !== 'false') await migrate(pool)
 
 // Bootstrap is opt-in and only allowed when the user table is empty. No shipped credentials.
 if ((process.env.BOOTSTRAP_ADMIN_EMAIL || process.env.BOOTSTRAP_ADMIN_PASSWORD) && !(await pool.query('SELECT 1 FROM users LIMIT 1')).rowCount) {
@@ -86,9 +90,14 @@ function auditFilter(params) {
 async function userFor(req) {
   const token = readSessionCookie(req.headers.cookie)
   if (!token) return null
-  // Idle sessions end after SESSION_IDLE_MINUTES; last_used_at is refreshed at most once a minute to limit writes.
-  const result = await pool.query(`UPDATE sessions s SET last_used_at=CASE WHEN s.last_used_at<now()-interval '1 minute' THEN now() ELSE s.last_used_at END FROM users u WHERE u.id=s.user_id AND s.token_hash=$1 AND s.expires_at>now() AND s.last_used_at>now()-make_interval(mins=>$2) AND NOT u.disabled RETURNING u.id,u.email,u.role`, [hashToken(token), sessionIdleMinutes])
-  return result.rows[0] || null
+  // Idle sessions end after SESSION_IDLE_MINUTES. Reading is a plain SELECT; last_used_at is written at most once a
+  // minute per session (an UPDATE on every request would create a dead tuple per request and serialise on the row).
+  const tokenHash = hashToken(token)
+  const result = await pool.query(`SELECT u.id,u.email,u.role,s.last_used_at<now()-interval '1 minute' AS stale FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND s.last_used_at>now()-make_interval(mins=>$2) AND NOT u.disabled`, [tokenHash, sessionIdleMinutes])
+  const row = result.rows[0]
+  if (!row) return null
+  if (row.stale) await pool.query("UPDATE sessions SET last_used_at=now() WHERE token_hash=$1 AND last_used_at<now()-interval '1 minute'", [tokenHash])
+  return { id: row.id, email: row.email, role: row.role }
 }
 // Client address for abuse limits. Vercel and the bundled nginx set X-Real-IP themselves; elsewhere use the socket.
 function clientIp(req) {
@@ -114,7 +123,7 @@ const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body
     return sessionCookie(token, secureCookies)
   },
 })
-const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env })
+const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env, checkRoom: (client, userId, bytes) => ensureRoom(client, userId, bytes) })
 const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
 warnIfUnkeyed()
@@ -137,6 +146,13 @@ export async function handler(req, res) {
   try {
     const path = new URL(req.url, 'http://internal').pathname
     if (path === '/healthz' && req.method === 'GET') { await pool.query('SELECT 1'); return send(res, 200, { status: 'ok' }) }
+    // Prometheus scrape for this replica; hidden unless METRICS_TOKEN is set. Not routed by the bundled nginx or Vercel.
+    if (path === '/metrics' && req.method === 'GET') {
+      if (!metricsAuthorized(req, process.env.METRICS_TOKEN)) return send(res, 404, { error: 'Endpoint not found.' })
+      const queue = await publicApi.depth().catch(() => null)
+      res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8', 'Cache-Control': 'no-store' })
+      return res.end(renderMetrics({ role: 'api', operations, pool, upstreams: modelProxy.upstreams(), queue }))
+    }
     // Server-to-server API: Bearer API keys only, before the browser Origin check (no cookies are read, so no CSRF).
     // Keys are accepted nowhere else; every other route below still requires a signed-in session.
     if (path === '/api/v1' || path.startsWith('/api/v1/')) return await publicApi.handle(req, res, path)
@@ -339,7 +355,7 @@ export async function handler(req, res) {
     if (await apiKeys.handleAdmin(req, res, path, user)) return
     if (path === '/api/admin/operations' && req.method === 'GET') {
       await pool.query('SELECT 1')
-      return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: oidc.enabled, multiTenant: false, volumeStorage: objectStorage.enabled, durableInferenceJobs: false } })
+      return send(res, 200, { ...operations.snapshot(), generatedAt: new Date().toISOString(), database: { status: 'ready', connections: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, memory: { rssBytes: process.memoryUsage().rss }, features: { accountRecovery: 'administrator-issued-token', mfa: false, sso: oidc.enabled, multiTenant: false, volumeStorage: objectStorage.enabled, durableInferenceJobs: modelProxy.enabled, readExecution: publicApi.settings.mode, modelUpstreams: modelProxy.upstreams().map(({ host, up, inFlight }) => ({ host, up, inFlight })) } })
     }
     const recoveryMatch = path.match(/^\/api\/admin\/users\/([a-f0-9-]+)\/recovery$/i)
     if (recoveryMatch && UUID.test(recoveryMatch[1]) && req.method === 'POST') {
@@ -381,8 +397,9 @@ export async function handler(req, res) {
       const params = new URL(req.url, 'http://internal').searchParams
       let limit,offset
       try { ({limit,offset}=pagination(params)) } catch(error) { return send(res,400,{error:error.message}) }
-      const [result,count] = await Promise.all([pool.query('SELECT id,email,role,disabled,created_at AS "createdAt",last_login_at AS "lastSeenAt" FROM users ORDER BY created_at DESC,id LIMIT $1 OFFSET $2',[limit,offset]),pool.query('SELECT count(*)::int AS total FROM users')])
-      return send(res, 200, { users: result.rows, total: count.rows[0].total })
+      const [result,count] = await Promise.all([pool.query(`SELECT u.id,u.email,u.role,u.disabled,u.created_at AS "createdAt",u.last_login_at AS "lastSeenAt",COALESCE(u.storage_quota_bytes,$3)::bigint AS "storageQuotaBytes",(COALESCE((SELECT sum(payload_bytes) FROM studies WHERE owner_id=u.id),0)+COALESCE((SELECT sum(size_bytes) FROM volume_objects WHERE owner_id=u.id AND state<>'pending'),0))::bigint AS "storageUsedBytes" FROM users u ORDER BY u.created_at DESC,u.id LIMIT $1 OFFSET $2`,[limit,offset,defaultQuota()]),pool.query('SELECT count(*)::int AS total FROM users')])
+      // Storage figures here leave out dictation feedback (pseudonymous); the account view includes it.
+      return send(res, 200, { users: result.rows.map(row => ({ ...row, storageQuotaBytes: Number(row.storageQuotaBytes), storageUsedBytes: Number(row.storageUsedBytes) })), total: count.rows[0].total })
     }
     if (path === '/api/admin/users' && req.method === 'POST') {
       const data = await body(req); const email = normalizeEmail(data.email)
@@ -395,6 +412,14 @@ export async function handler(req, res) {
     if (userMatch && UUID.test(userMatch[1]) && req.method === 'PATCH') {
       const data = await body(req), target = userMatch[1]
       if (target === user.id && data.disabled === true) return send(res,400,{error:'You cannot disable your own account.'})
+      if ('storageQuotaBytes' in data) {
+        // Storage allowance only: bytes up to 1 TiB, or null for the server default (STORAGE_QUOTA_GB, 10 GiB).
+        if (Object.keys(data).some(field => field !== 'storageQuotaBytes') || !validQuota(data.storageQuotaBytes)) return send(res,400,{error:'Set storageQuotaBytes on its own: whole bytes up to 1 TiB, or null for the default.'})
+        const result = await pool.query('UPDATE users SET storage_quota_bytes=$2 WHERE id=$1 RETURNING id',[target,data.storageQuotaBytes])
+        if (!result.rowCount) return send(res,404,{error:'User not found.'})
+        await audit(user.id,'user.storage_quota',target)
+        return send(res,200,{ user: { id: target }, storage: await storageUsage(pool,target) })
+      }
       if (typeof data.disabled !== 'boolean' && !validPassword(data.password)) return send(res,400,{error:'Supply disabled true/false or a 12–256 character password.'})
       if ('password' in data && !validPassword(data.password)) return send(res,400,{error:'Password must contain 12–256 characters.'})
       if ('password' in data && target === user.id) return send(res,400,{error:'Change your own password from account security.'})
@@ -489,6 +514,8 @@ export async function handler(req, res) {
       if (offset === 0) await audit(user.id, 'reviews.exported')
       return send(res, 200, { records: result.rows.slice(0, limit).map(reviewRecord), nextOffset: result.rows.length > limit ? offset + limit : null })
     }
+    // The signed-in user's storage allowance and what uses it (shown in Settings and the sidebar).
+    if (path === '/api/account/storage' && req.method === 'GET') return send(res, 200, await storageUsage(pool, user.id))
     if (path === '/api/studies' && req.method === 'GET') {
       const params = new URL(req.url,'http://internal').searchParams
       let limit,offset

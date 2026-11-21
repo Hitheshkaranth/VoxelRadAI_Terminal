@@ -218,7 +218,7 @@ test('async read: 202, poll to the parsed report, image data dropped, organisati
 
 test('a different organisation with the same name cannot see, cancel or replay reads', async () => {
   let gate = null
-  const ctx = await setup({ readStore: store => ({ ...store, start: async id => { if (gate) await gate; return store.start(id) } }) })
+  const ctx = await setup({ readStore: store => ({ ...store, start: async (...args) => { if (gate) await gate; return store.start(...args) } }) })
   try {
     const owner = await ctx.issue({ organisation: 'Acme Imaging' })
     const namesake = await ctx.issue({ organisation: 'acme imaging' })
@@ -279,7 +279,7 @@ test('cancelling a running read aborts the upstream; a queued one is refunded', 
   const closed = new Promise(resolve => { upstreamClosed = resolve })
   const hang = async (req, res) => { await body(req, 1e7); res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.write(': queued\n\n'); res.on('close', upstreamClosed) }
   let gate = null
-  const ctx = await setup({ upstream: hang, readStore: store => ({ ...store, start: async id => { if (gate) await gate; return store.start(id) } }) })
+  const ctx = await setup({ upstream: hang, readStore: store => ({ ...store, start: async (...args) => { if (gate) await gate; return store.start(...args) } }) })
   try {
     const { secret } = await ctx.issue()
     const running = await (await post(ctx, '/api/v1/reads', secret, readBody())).json()
@@ -303,7 +303,7 @@ test('cancelling a running read aborts the upstream; a queued one is refunded', 
 
 test('a refund landing after 00:00 UTC is not taken from the new day', async () => {
   let gate = null
-  const ctx = await setup({ readStore: store => ({ ...store, start: async id => { if (gate) await gate; return store.start(id) } }) })
+  const ctx = await setup({ readStore: store => ({ ...store, start: async (...args) => { if (gate) await gate; return store.start(...args) } }) })
   try {
     const { secret } = await ctx.issue({ kind: 'test', dailyReadLimit: 1 })
     let open; gate = new Promise(resolve => { open = resolve })

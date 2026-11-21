@@ -1,6 +1,6 @@
 # Container deployment and database operations
 
-Skanda now has two modes: the existing local-only Vite application, and a server build with mandatory sign-in. The Compose web build enables `VITE_SERVER_MODE=true`. Accounts, sessions, explicitly uploaded image studies, share snapshots and aggregate activity live in PostgreSQL. Browser-local studies are not automatically uploaded. Full NRRD volumes and inference jobs remain browser/model-service workflows.
+Skanda now has two modes: the existing local-only Vite application, and a server build with mandatory sign-in. The Compose web build enables `VITE_SERVER_MODE=true`. Accounts, sessions, explicitly uploaded image studies, share snapshots and aggregate activity live in PostgreSQL. Browser-local studies are not automatically uploaded. Full NRRD volumes and workspace inference remain browser/model-service workflows; asynchronous API reads use a durable PostgreSQL queue and read workers. Each user has a server storage allowance (default 10 GiB, `STORAGE_QUOTA_GB`).
 
 ## Run a private installation
 
@@ -21,7 +21,8 @@ The web service proxies model requests to the host's ports 1234, 8765 and 8766 a
 | Web / Nginx | Immutable frontend assets | Can run behind a load balancer/CDN; API, shares and HTML must not be cached |
 | API / Node | PostgreSQL sessions, rate-limit buckets and records | Replicas share login/session state; no sticky session requirement |
 | PostgreSQL 17 | Named durable volume | Single-instance Compose database; use managed HA PostgreSQL and PITR for production |
-| Model services | Model/GPU memory | Independently provision; a durable distributed inference queue is not implemented |
+| Read workers | None (leases in PostgreSQL) | Scale with GPU capacity; async API reads survive worker restarts |
+| Model services | Model/GPU memory | One `deploy/gpu` server per GPU (`compose.gpu.yaml`), pooled with fail-over via `MODEL_UPSTREAMS`; see [scaling](architecture/scaling.md) |
 
 For a local replica smoke test: `docker compose up -d --scale api=2`. Budget database connections as `API replicas × DB_POOL_SIZE`, leaving capacity for maintenance and other clients. Docker DNS lets Nginx discover API replicas. This proves deployability, not throughput capacity; measure concurrent logins, study reads/uploads and slow-model behavior before selecting a user-capacity target.
 

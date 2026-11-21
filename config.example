@@ -23,3 +23,14 @@ TRAINING_CAPTURE=off
 TRAINING_RETENTION_DAYS=365
 # Required when capture is on: keys the one-way study/image/user pseudonyms. Keep it private and stable.
 TRAINING_PSEUDONYM_SECRET=
+# Server storage allowance per user, in GiB (saved scans, patient data, reports, analysis, feedback). Administrators
+# can set a different allowance per user. Default 10.
+STORAGE_QUOTA_GB=10
+# Bearer token for Prometheus scrapes of the API (/metrics) and workers (:9090/metrics). Empty hides the routes.
+METRICS_TOKEN=
+# Dedicated-GPU overlay (compose.gpu.yaml): shared bridge secret (32+ chars), and read access to the private weights.
+BRIDGE_SECRET=
+HF_TOKEN=
+MODEL_REVISION=
+# Several model upstreams, comma-separated (ZeroGPU Space and/or GPU servers). The overlay defaults to its own GPU.
+# MODEL_UPSTREAMS=https://your-space.hf.space/lmstudio,http://skanda-gpu:8000

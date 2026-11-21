@@ -1,0 +1,22 @@
+.as-meter { height: 6px; border-radius: 999px; background: var(--fill-2, color-mix(in srgb, currentColor 12%, transparent)); overflow: hidden; }
+.as-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent, #2f6fde); transition: width 240ms ease; }
+.as-meter.as-warn > span { background: var(--warning, #c98a00); }
+.as-meter.as-full > span { background: var(--destructive, #d33b3b); }
+.as-compact { padding: 10px 16px; border-top: 1px solid var(--separator); display: grid; gap: 6px; }
+.as-compact-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.as-compact-row svg { width: 12px; height: 12px; flex: none; }
+.as-panel { display: grid; gap: 10px; width: 100%; }
+.as-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.as-head strong { font-size: 18px; font-weight: 600; }
+.as-head strong span, .as-head > span { font-size: 12px; font-weight: 400; color: var(--label-2); }
+.as-parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.as-parts li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.as-part-label { flex: 1; min-width: 0; }
+.as-part-value { color: var(--label-2); font-variant-numeric: tabular-nums; }
+.as-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; background: var(--label-3, #999); }
+.as-dot-scans { background: var(--accent, #2f6fde); }
+.as-dot-patientAndReports { background: #2e9e6b; }
+.as-dot-analysis { background: #8a5cd1; }
+.as-dot-feedback { background: #c98a00; }
+.as-refresh { background: none; border: 0; padding: 0; color: var(--accent, #2f6fde); cursor: pointer; font: inherit; text-decoration: underline; }
+.as-refresh:disabled { opacity: .5; cursor: default; }

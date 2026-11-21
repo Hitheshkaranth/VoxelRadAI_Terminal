@@ -49,3 +49,16 @@ jobs:
       - name: Space tests
         working-directory: deploy/huggingface
         run: python -m unittest test_space -v
+
+  gpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Contract tests for the dedicated GPU model server with a stand-in reader; no GPU, weights or torch.
+      - run: pip install fastapi httpx
+      - name: GPU server tests
+        working-directory: deploy/gpu
+        run: python -m unittest test_serve -v

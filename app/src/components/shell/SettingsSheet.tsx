@@ -21,6 +21,7 @@ import { useShell } from './shellState'
 import { AdminPanel } from './AdminPanel'
 import { CloudStudiesSheet } from './CloudStudiesSheet'
 import { logout, SERVER_MODE, useSession } from '../../lib/session'
+import { AccountStoragePanel } from './AccountStorage'
 import type { ConnectionState, Settings } from '../../types'
 import './shell.css'
 import './settings.css'
@@ -96,6 +97,10 @@ export function SettingsSheet() {
         </div>
         {SERVER_MODE && <ChangePasswordForm />}
         {SERVER_MODE && <OrganizationSignIn account />}
+      </Section>}
+      {section === 'account' && SERVER_MODE &&
+      <Section title="Server storage" desc="Your allowance on this server for saved scans, patient data, reports, analysis and feedback. Studies kept only in this browser do not count.">
+        <AccountStoragePanel />
       </Section>}
       {section === 'model' && <>
       <Section title="Model" desc={`Connect to the service running ${settings.model}.`}>

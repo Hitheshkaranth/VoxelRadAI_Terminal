@@ -34,9 +34,38 @@ services:
       TRAINING_CAPTURE: ${TRAINING_CAPTURE:-off}
       TRAINING_RETENTION_DAYS: ${TRAINING_RETENTION_DAYS:-365}
       TRAINING_PSEUDONYM_SECRET: ${TRAINING_PSEUDONYM_SECRET:-}
+      STORAGE_QUOTA_GB: ${STORAGE_QUOTA_GB:-10}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
     depends_on:
       db: { condition: service_healthy }
     networks: [data, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  # Executes asynchronous /api/v1 reads from the durable queue. Idle until a model upstream is configured; add
+  # replicas (--scale worker=N) as GPU capacity grows. See docs/architecture/scaling.md.
+  worker:
+    build: ./server
+    command: ['node', 'src/worker.mjs']
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://skanda:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/skanda
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8088}
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-4}
+      MIGRATE_ON_START: 'false'
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      API_WEBHOOK_SECRET: ${API_WEBHOOK_SECRET:-}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:9090/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [data]
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]

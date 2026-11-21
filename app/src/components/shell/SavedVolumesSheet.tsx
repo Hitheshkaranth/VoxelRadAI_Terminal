@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { announceStorageChange } from '../../lib/accountStorage'
 import { Sheet } from './Sheet'
 import { ShellButton } from './ShellButton'
 import { useShell } from './shellState'
@@ -49,7 +50,7 @@ function SavedVolumesContent({ onClose }: { onClose: () => void }) {
     })().catch((reason: unknown) => { if (!controller.signal.aborted) setMessage(reason instanceof Error ? reason.message : 'Volumes could not be loaded.') }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [attempt, page])
-  const refresh = () => { setLoading(true); setAttempt((value) => value + 1) }
+  const refresh = () => { setLoading(true); setAttempt((value) => value + 1); announceStorageChange() }
   const run = async (label: string, work: (signal: AbortSignal) => Promise<void>) => {
     if (busy) return
     const controller = new AbortController(); operation.current = controller

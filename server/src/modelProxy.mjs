@@ -1,9 +1,12 @@
-// Same-origin model proxy for the Vercel deployment: /lmstudio/v1/* is forwarded to the Hugging Face
-// ZeroGPU Space with a shared bridge secret. All signed-in users spend the Space owner's GPU quota,
-// so reads are capped per user per UTC day. Off unless MODEL_UPSTREAM_URL and BRIDGE_SECRET are set.
+// Same-origin model proxy: /lmstudio/v1/* and the public API are forwarded to one or more model upstreams (the
+// Hugging Face ZeroGPU Space and/or dedicated GPU servers, see modelPool.mjs) with a shared bridge secret. All
+// signed-in users spend the operator's GPU capacity, so reads are capped per user per UTC day. Off unless an
+// upstream (MODEL_UPSTREAMS or MODEL_UPSTREAM_URL) and BRIDGE_SECRET are set.
 import { createHmac } from 'node:crypto'
 import { hashToken } from './security.mjs'
+import { createUpstreamPool, parseUpstreams, releasing, upstreamBase } from './modelPool.mjs'
 
+export { upstreamBase }
 export const MODEL_PATHS = new Set(['/lmstudio/v1/chat/completions', '/lmstudio/v1/models', '/lmstudio/api/v0/models'])
 const READ_BODY_LIMIT = (process.env.VERCEL ? 4 : 25) * 1024 * 1024
 // The Space cancels a read after 180 s; stop just inside Vercel's 300 s function limit regardless.
@@ -11,20 +14,8 @@ const STREAM_LIMIT_MS = 280_000
 const HEADERS_TIMEOUT_MS = 60_000
 const MODELS_TIMEOUT_MS = 12_000
 
-/** HTTPS upstream (or loopback http for local testing), without a trailing slash. Null when unusable. */
-export function upstreamBase(value) {
-  if (typeof value !== 'string' || !value.trim()) return null
-  try {
-    const url = new URL(value.trim())
-    const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) return null
-    if (url.username || url.password || url.search || url.hash) return null
-    return url.href.replace(/\/+$/, '')
-  } catch { return null }
-}
-
 export function bridgeConfigured(env) {
-  return Boolean(upstreamBase(env.MODEL_UPSTREAM_URL) && typeof env.BRIDGE_SECRET === 'string' && env.BRIDGE_SECRET.length >= 32)
+  return parseUpstreams(env).length > 0 && typeof env.BRIDGE_SECRET === 'string' && env.BRIDGE_SECRET.length >= 32
 }
 
 /** Vercel rewrite target: model paths reach the proxy only when the bridge is configured. */
@@ -108,7 +99,8 @@ export async function collectStream(stream, { signal } = {}) {
 
 export function createModelProxy({ pool, env = process.env, body, send, fetchImpl = fetch, timeouts = {} }) {
   const enabled = bridgeConfigured(env)
-  const base = upstreamBase(env.MODEL_UPSTREAM_URL)
+  // Every upstream shares BRIDGE_SECRET and speaks the Space's SSE contract (deploy/gpu/serve.py does too).
+  const upstreams = createUpstreamPool(enabled ? parseUpstreams(env) : [])
   const secret = env.BRIDGE_SECRET
   const limit = dailyReadLimit(env)
   const streamLimit = timeouts.stream ?? STREAM_LIMIT_MS
@@ -129,14 +121,18 @@ export function createModelProxy({ pool, env = process.env, body, send, fetchImp
   const bridgeHeaders = pseudonym => ({ 'X-VoxelRad-Bridge': secret, 'X-VoxelRad-User': pseudonym })
   const headers = user => bridgeHeaders(userPseudonym(user.id, secret))
 
-  /** GET an upstream model-list path. Returns { status, json } or { status, error }. */
+  /** GET an upstream model-list path from the first upstream that answers. Returns { status, json } or { status, error }. */
   async function fetchModels(upstreamPath, pseudonym) {
-    let upstream
-    try { upstream = await fetchImpl(base + upstreamPath, { headers: bridgeHeaders(pseudonym), signal: AbortSignal.timeout(MODELS_TIMEOUT_MS) }) }
-    catch { return { status: 503, code: 'model_unavailable', error: 'The model service is not responding. It may be starting; wait a minute, then check again.' } }
-    const text = await upstream.text().catch(() => '')
-    if (!upstream.ok) return upstreamError(upstream.status, text)
-    try { return { status: 200, json: JSON.parse(text) } } catch { return { status: 502, code: 'upstream_error', error: 'The model service returned an unreadable model list.' } }
+    let last = { status: 503, code: 'model_unavailable', error: 'The model service is not configured.' }
+    for (const upstream of upstreams.candidates()) {
+      let response
+      try { response = await fetchImpl(upstream.base + upstreamPath, { headers: bridgeHeaders(pseudonym), signal: AbortSignal.timeout(MODELS_TIMEOUT_MS) }) }
+      catch { last = { status: 503, code: 'model_unavailable', error: 'The model service is not responding. It may be starting; wait a minute, then check again.' }; continue }
+      const text = await response.text().catch(() => '')
+      if (!response.ok) { last = upstreamError(response.status, text); continue }
+      try { return { status: 200, json: JSON.parse(text) } } catch { last = { status: 502, code: 'upstream_error', error: 'The model service returned an unreadable model list.' } }
+    }
+    return last
   }
 
   async function models(req, res, user) {
@@ -144,28 +140,47 @@ export function createModelProxy({ pool, env = process.env, body, send, fetchImp
     return result.json ? send(res, 200, result.json) : send(res, result.status, { error: result.error })
   }
 
-  /**
-   * Start one upstream read. Returns { upstream } with a readable SSE body, or { failure: { status, error, code } }
-   * for a read that never started (always refundable). `ac` aborts the read; a 60 s wait for headers aborts it too.
-   */
-  async function openRead(payload, pseudonym, ac) {
+  /** Try one upstream. `retry` says whether another upstream may take the read: only when this one cannot have run it. */
+  async function openOne(upstream, payload, pseudonym, ac) {
     const headerTimer = setTimeout(() => ac.abort(new Error('headers-timeout')), headersTimeout)
-    let upstream
+    let response
     try {
-      upstream = await fetchImpl(`${base}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...bridgeHeaders(pseudonym) }, body: JSON.stringify(payload), signal: ac.signal })
+      response = await fetchImpl(`${upstream.base}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...bridgeHeaders(pseudonym) }, body: JSON.stringify(payload), signal: ac.signal })
     } catch {
       clearTimeout(headerTimer)
-      const timedOut = ac.signal.reason?.message === 'headers-timeout'
-      return { failure: timedOut
-        ? { status: 504, code: 'upstream_timeout', error: 'The model service did not start the read within 60 seconds. It may be waking up; retry in a minute.' }
-        : { status: 503, code: 'model_unavailable', error: 'The model service is not reachable. Check again in a minute.' } }
+      upstreams.failed(upstream)
+      // A header timeout may mean the read is queued on that GPU, so it is not handed to a second one.
+      if (ac.signal.reason?.message === 'headers-timeout') return { retry: false, failure: { status: 504, code: 'upstream_timeout', error: 'The model service did not start the read within 60 seconds. It may be waking up; retry in a minute.' } }
+      return { retry: !ac.signal.aborted, failure: { status: 503, code: 'model_unavailable', error: 'The model service is not reachable. Check again in a minute.' } }
     }
     clearTimeout(headerTimer)
-    if (!upstream.ok || !upstream.body) {
-      const text = await upstream.text().catch(() => '')
-      return { failure: upstreamError(upstream.status, text) }
+    if (!response.ok || !response.body) {
+      const text = await response.text().catch(() => '')
+      const failure = upstreamError(response.status, text)
+      // A busy queue is healthy; an exhausted quota or a broken upstream should be skipped for a while.
+      if (failure.code !== 'upstream_busy') upstreams.failed(upstream)
+      // Malformed or oversized requests would be refused everywhere.
+      return { retry: ![400, 413, 422].includes(response.status), failure }
     }
-    return { upstream }
+    upstreams.started(upstream)
+    const release = upstreams.track(upstream)
+    return { upstream: { status: response.status, body: releasing(response.body, release) } }
+  }
+
+  /**
+   * Start one read on the best available upstream, failing over while no GPU can have run it. Returns { upstream }
+   * with a readable SSE body, or { failure: { status, error, code } } for a read that never started (always
+   * refundable). `ac` aborts the read; a 60 s wait for headers aborts it too.
+   */
+  async function openRead(payload, pseudonym, ac) {
+    let failure = { status: 503, code: 'model_unavailable', error: 'The model service is not configured.' }
+    for (const upstream of upstreams.candidates()) {
+      const attempt = await openOne(upstream, payload, pseudonym, ac)
+      if (attempt.upstream) return attempt
+      failure = attempt.failure
+      if (!attempt.retry || ac.signal.aborted) break
+    }
+    return { failure }
   }
 
   /** Pass the upstream SSE bytes straight to the client, with an in-stream error event if the hosting limit is reached. */
@@ -230,6 +245,7 @@ export function createModelProxy({ pool, env = process.env, body, send, fetchImp
     enabled,
     limit,
     readBodyLimit: READ_BODY_LIMIT,
+    upstreams: () => upstreams.snapshot(),
     reserve, refund, retryAfter, bucketKey: hashToken, fetchModels, openRead, pipeStream, bufferRead,
     /** Returns true when the request was a model path and has been answered. */
     async handle(req, res, path, user) {

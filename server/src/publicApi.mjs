@@ -10,6 +10,7 @@
 // only to the UTC day it was counted on, when a read never reached the GPU). API reads are NEVER captured for model training: this module does not use
 // trainingCapture, and a key's data_agreement_id is stored only for a possible future opt-in.
 import { createHash, createHmac, randomUUID } from 'node:crypto'
+import { hostname } from 'node:os'
 import { checkWebhookUrl, deliverWebhook } from './webhook.mjs'
 import { webhookSecretFor, webhooksConfigured } from './apiKeys.mjs'
 
@@ -22,7 +23,26 @@ const IDEMPOTENCY = /^[\x21-\x7e]{1,255}$/
 // Vercel's maxDuration is 300 s. An async read gets 230 s (the Space itself cancels at 180 s), leaving time for the webhook.
 const JOB_BUDGET_MS = 290_000
 const ASYNC_READ_MS = 230_000
+// Heartbeats renew a 60 s lease every 5 s (and notice cancellation); a dead executor's read is recovered within ~1 min.
 const CANCEL_POLL_MS = 5_000
+const LEASE_SECONDS = 60
+const intSetting = (value, fallback, min, max) => { const n = Number(value); return value !== undefined && value !== '' && Number.isInteger(n) && n >= min && n <= max ? n : fallback }
+
+/**
+ * Queue settings. READ_EXECUTION=inline (default) runs each async read in the process that accepted it (Vercel
+ * waitUntil, or in-process); =worker leaves every read to `node src/worker.mjs` processes.
+ */
+export function queueSettings(env) {
+  return {
+    mode: env.READ_EXECUTION === 'worker' ? 'worker' : 'inline',
+    // Queued reads beyond this are refused with 503 queue_full before anything is counted. 0 = no limit.
+    queueLimit: intSetting(env.READ_QUEUE_LIMIT, 500, 0, 1_000_000),
+    // A read waiting longer than this fails (refunded if it never started).
+    queueTtlSeconds: intSetting(env.READ_QUEUE_TTL_SECONDS, 600, 60, 86_400),
+    // Executions per read, counting a retry after its executor died.
+    maxAttempts: intSetting(env.READ_MAX_ATTEMPTS, 2, 1, 5),
+  }
+}
 const ROLES = new Set(['system', 'user', 'assistant'])
 
 const ERROR_TYPES = { 400: 'invalid_request_error', 401: 'authentication_error', 403: 'permission_error', 404: 'invalid_request_error', 405: 'invalid_request_error', 409: 'invalid_request_error', 413: 'invalid_request_error', 422: 'invalid_request_error', 429: 'rate_limit_error' }
@@ -65,15 +85,29 @@ const parseReport = content => { try { const value = JSON.parse(content); return
 export const keyPseudonym = (keyId, secret) => 'k-' + createHmac('sha256', secret).update(`voxelrad-key:${keyId}`).digest('hex').slice(0, 16)
 
 const READ_COLUMNS = 'r.id,r.key_id,r.status,r.request_hash,r.result,r.error,r.webhook_url,r.created_at,r.started_at,r.finished_at,r.expires_at'
-// Every read is over (finished, failed or cut off) well inside 300 s of submission; one still queued or running after
-// STALE belongs to a function that died, and must not keep its image data.
+// A read still running without a lease (written before the durable queue) after STALE belongs to a function that died.
 const STALE = "interval '10 minutes'"
 const SWEEP_LIMIT = 20
 const INTERRUPTED = JSON.stringify({ message: 'The read was interrupted before it finished. No findings were generated. Submit it again.', type: 'api_error', code: 'interrupted' })
+const QUEUE_TIMEOUT = JSON.stringify({ message: 'The read waited too long in the queue and was not started. No findings were generated and it was not counted. Submit it again.', type: 'api_error', code: 'queue_timeout' })
 const ORG_READ = 'FROM api_reads r JOIN api_keys k ON k.id=r.key_id WHERE r.id=$1 AND k.organisation_id=$2 AND r.expires_at>now()'
+const CLAIM_COLUMNS = 'r.id,r.key_id,r.request,r.webhook_url,r.created_at,r.attempts'
+export const READ_CHANNEL = 'voxelrad_reads'
 
-/** SQL persistence for asynchronous reads. Reads are visible to every key of the same organisation record. */
+/**
+ * SQL persistence for asynchronous reads, which doubles as the durable read queue. Reads are visible to every key
+ * of the same organisation record. `lease` is { owner, seconds }: whoever holds a read renews it with heartbeat();
+ * a read whose lease lapsed is returned to the queue by sweep() while it has attempts left.
+ */
 export function createReadStore(pool) {
+  // Recover lapsed reads a bounded number at a time (FOR UPDATE SKIP LOCKED keeps concurrent sweeps apart).
+  async function recover({ limit, maxAttempts, queueTtlSeconds }) {
+    await pool.query(`UPDATE api_reads SET status='queued',lease_owner=NULL,lease_expires_at=NULL,available_at=now()+make_interval(secs=>LEAST(60,5*attempts)) WHERE id IN (SELECT id FROM api_reads WHERE status='running' AND lease_expires_at<now() AND attempts<$1 AND request IS NOT NULL AND expires_at>now() ORDER BY lease_expires_at LIMIT ${limit} FOR UPDATE SKIP LOCKED)`, [maxAttempts])
+    await pool.query(`UPDATE api_reads SET status='failed',error=$1,request=NULL,finished_at=now(),lease_expires_at=NULL WHERE id IN (SELECT id FROM api_reads WHERE status='running' AND (lease_expires_at<now() OR (lease_expires_at IS NULL AND COALESCE(started_at,created_at)<now()-${STALE})) ORDER BY created_at LIMIT ${limit} FOR UPDATE SKIP LOCKED)`, [INTERRUPTED])
+    // Waited past the queue time limit. attempts=0 means it never reached a GPU, so the caller refunds it.
+    const expired = await pool.query(`UPDATE api_reads SET status='failed',error=CASE WHEN attempts=0 THEN $1::jsonb ELSE $2::jsonb END,request=NULL,finished_at=now() WHERE id IN (SELECT id FROM api_reads WHERE status='queued' AND created_at<now()-make_interval(secs=>$3) ORDER BY created_at LIMIT ${limit} FOR UPDATE SKIP LOCKED) RETURNING id,key_id,attempts`, [QUEUE_TIMEOUT, INTERRUPTED, queueTtlSeconds])
+    return { expired: expired.rows.filter(row => row.attempts === 0).map(({ id, key_id }) => ({ id, key_id })) }
+  }
   return {
     async findIdempotent(keyId, idempotencyKey) {
       await pool.query('DELETE FROM api_reads WHERE key_id=$1 AND idempotency_key=$2 AND expires_at<=now()', [keyId, idempotencyKey])
@@ -84,15 +118,38 @@ export function createReadStore(pool) {
       const result = await pool.query(`INSERT INTO api_reads(id,key_id,status,request,request_hash,idempotency_key,webhook_url,quota_resets_at) VALUES ($1,$2,'queued',$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING ${READ_COLUMNS.replace(/r\./g, '')}`, [id, keyId, JSON.stringify(request), requestHash, idempotencyKey, webhookUrl, quotaResetsAt])
       return result.rows[0] || null
     },
-    async start(id) { return (await pool.query("UPDATE api_reads SET status='running',started_at=now() WHERE id=$1 AND status='queued'", [id])).rowCount === 1 },
-    async status(id) { return (await pool.query('SELECT status FROM api_reads WHERE id=$1', [id])).rows[0]?.status ?? null },
-    /** Only a queued or running read can finish (queued when starting it failed); a cancelled one keeps its status. */
-    async finish(id, { status, result, error, request }) {
-      const updated = await pool.query("UPDATE api_reads SET status=$2,result=$3,error=$4,request=$5,finished_at=now() WHERE id=$1 AND status IN ('queued','running') RETURNING id", [id, status, result ? JSON.stringify(result) : null, error ? JSON.stringify(error) : null, JSON.stringify(request)])
+    /** Wake read workers listening on READ_CHANNEL. */
+    async notify() { await pool.query('SELECT pg_notify($1,$2)', [READ_CHANNEL, '']) },
+    /** Take one specific queued read (the submitting process running its own read). */
+    async start(id, lease) {
+      return (await pool.query("UPDATE api_reads SET status='running',started_at=COALESCE(started_at,now()),attempts=attempts+1,lease_owner=$2,lease_expires_at=now()+make_interval(secs=>$3) WHERE id=$1 AND status='queued' AND available_at<=now()", [id, lease.owner, lease.seconds])).rowCount === 1
+    },
+    /** Take up to `limit` queued reads, oldest first. `retriesOnly` leaves fresh reads to the process that took them. */
+    async claim(lease, limit, { retriesOnly = false } = {}) {
+      const result = await pool.query(`WITH next AS (SELECT id FROM api_reads WHERE status='queued' AND available_at<=now() AND expires_at>now() ${retriesOnly ? 'AND attempts>0' : ''} ORDER BY available_at,created_at LIMIT $3 FOR UPDATE SKIP LOCKED), claimed AS (UPDATE api_reads r SET status='running',started_at=COALESCE(r.started_at,now()),attempts=r.attempts+1,lease_owner=$1,lease_expires_at=now()+make_interval(secs=>$2) FROM next WHERE r.id=next.id RETURNING ${CLAIM_COLUMNS}) SELECT c.*,k.webhook_secret_issued FROM claimed c JOIN api_keys k ON k.id=c.key_id`, [lease.owner, lease.seconds, limit])
+      return result.rows
+    },
+    /** Renew the lease. 'running' while this executor still holds the read, else 'cancelled' or 'lost'. */
+    async heartbeat(id, lease) {
+      const result = await pool.query("WITH beat AS (UPDATE api_reads SET lease_expires_at=now()+make_interval(secs=>$3) WHERE id=$1 AND status='running' AND lease_owner=$2 RETURNING id) SELECT EXISTS (SELECT 1 FROM beat) AS held,(SELECT status FROM api_reads WHERE id=$1) AS status", [id, lease.owner, lease.seconds])
+      const row = result.rows[0]
+      return row?.held ? 'running' : row?.status === 'cancelled' ? 'cancelled' : 'lost'
+    },
+    /** Put a held read back on the queue without using an attempt (graceful worker shutdown). */
+    async release(id, lease) {
+      await pool.query("UPDATE api_reads SET status='queued',lease_owner=NULL,lease_expires_at=NULL,available_at=now(),attempts=GREATEST(attempts-1,0) WHERE id=$1 AND status='running' AND lease_owner=$2", [id, lease.owner])
+    },
+    async depth() {
+      const row = (await pool.query("SELECT count(*) FILTER (WHERE status='queued')::int AS queued,count(*) FILTER (WHERE status='running')::int AS running FROM api_reads WHERE status IN ('queued','running')")).rows[0]
+      return { queued: row?.queued ?? 0, running: row?.running ?? 0 }
+    },
+    /** Only a queued or running read can finish (queued when starting it failed), and only by the lease holder. */
+    async finish(id, { status, result, error, request, owner = null }) {
+      const updated = await pool.query("UPDATE api_reads SET status=$2,result=$3,error=$4,request=$5,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status IN ('queued','running') AND (lease_owner IS NULL OR lease_owner=$6) RETURNING id", [id, status, result ? JSON.stringify(result) : null, error ? JSON.stringify(error) : null, JSON.stringify(request), owner])
       return updated.rowCount === 1
     },
     /** Mark one unfinished read interrupted and drop its request (image data included). */
-    async abandon(id) { await pool.query("UPDATE api_reads SET status='failed',error=$2,request=NULL,finished_at=now() WHERE id=$1 AND status IN ('queued','running')", [id, INTERRUPTED]) },
+    async abandon(id) { await pool.query("UPDATE api_reads SET status='failed',error=$2,request=NULL,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status IN ('queued','running')", [id, INTERRUPTED]) },
     /**
      * Claim the refund for a read. Returns the end of the UTC day it was counted on the first time, and null after
      * that (or for a read that was never counted), so concurrent or repeated refund paths refund once.
@@ -101,13 +158,11 @@ export function createReadStore(pool) {
       return (await pool.query('UPDATE api_reads SET refunded_at=now() WHERE id=$1 AND refunded_at IS NULL AND quota_resets_at IS NOT NULL RETURNING quota_resets_at', [id])).rows[0]?.quota_resets_at ?? null
     },
     async get(id, organisationId) {
-      // A read whose function died mid-way can never finish; report it as failed rather than running forever.
-      await pool.query(`UPDATE api_reads SET status='failed',error=$2,request=NULL,finished_at=now() WHERE id=$1 AND status IN ('queued','running') AND created_at<now()-${STALE}`, [id, INTERRUPTED])
       return (await pool.query(`SELECT ${READ_COLUMNS} ${ORG_READ}`, [id, organisationId])).rows[0] || null
     },
     /** Returns { row, was } where `was` is the status before cancelling, or { row } unchanged when it had already finished. */
     async cancel(id, organisationId) {
-      const result = await pool.query(`WITH prev AS (SELECT r.id,r.status ${ORG_READ} AND r.status IN ('queued','running') FOR UPDATE OF r) UPDATE api_reads r SET status='cancelled',finished_at=now() FROM prev WHERE r.id=prev.id RETURNING prev.status AS was,r.request,${READ_COLUMNS}`, [id, organisationId])
+      const result = await pool.query(`WITH prev AS (SELECT r.id,r.status ${ORG_READ} AND r.status IN ('queued','running') FOR UPDATE OF r) UPDATE api_reads r SET status='cancelled',finished_at=now(),lease_expires_at=NULL FROM prev WHERE r.id=prev.id RETURNING prev.status AS was,r.request,${READ_COLUMNS}`, [id, organisationId])
       if (result.rows[0]) {
         const { was, request, ...row } = result.rows[0]
         await pool.query('UPDATE api_reads SET request=$2 WHERE id=$1', [id, JSON.stringify(redactRequest(request))])
@@ -116,16 +171,12 @@ export function createReadStore(pool) {
       const row = await this.get(id, organisationId)
       return row ? { row } : null
     },
-    /**
-     * Fail reads left queued or running past STALE and drop their image data. One UPDATE over the partial
-     * api_reads_active_idx index, at most SWEEP_LIMIT rows, cheap enough to run on every /api/v1 request.
-     */
-    async sweep() {
-      await pool.query(`UPDATE api_reads SET status='failed',error=$1,request=NULL,finished_at=now() WHERE id IN (SELECT id FROM api_reads WHERE status IN ('queued','running') AND created_at<now()-${STALE} ORDER BY created_at LIMIT ${SWEEP_LIMIT} FOR UPDATE SKIP LOCKED)`, [INTERRUPTED])
-    },
-    async cleanup() {
-      await pool.query(`UPDATE api_reads SET status='failed',error=$1,request=NULL,finished_at=now() WHERE status IN ('queued','running') AND created_at<now()-${STALE}`, [INTERRUPTED])
+    /** Bounded recovery, cheap enough (partial indexes) to run beside every /api/v1 request. */
+    sweep: ({ maxAttempts, queueTtlSeconds }) => recover({ limit: SWEEP_LIMIT, maxAttempts, queueTtlSeconds }),
+    async cleanup({ maxAttempts, queueTtlSeconds }) {
+      const result = await recover({ limit: 1000, maxAttempts, queueTtlSeconds })
       await pool.query('DELETE FROM api_reads WHERE expires_at<now()')
+      return result
     },
   }
 }
@@ -134,7 +185,9 @@ export function createReadStore(pool) {
  * `modelProxy` supplies the upstream bridge and the daily counters; `apiKeys.authenticate` resolves the Bearer key.
  * `schedule(promise)` keeps an async read alive after the 202 response (Vercel waitUntil, or in-process).
  */
-export function createPublicApi({ readStore, env = process.env, body, send, modelProxy, apiKeys, publicOrigin, schedule = task => { task.catch(() => {}) }, resolve, deliver = deliverWebhook, now = Date.now, timeouts = {} }) {
+export function createPublicApi({ readStore, env = process.env, body, send, modelProxy, apiKeys, publicOrigin, schedule = task => { task.catch(() => {}) }, resolve, deliver = deliverWebhook, now = Date.now, timeouts = {}, leaseOwner = `api-${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}` }) {
+  const settings = queueSettings(env)
+  const lease = { owner: leaseOwner, seconds: timeouts.leaseSeconds ?? LEASE_SECONDS }
   const readLimitMs = timeouts.asyncRead ?? ASYNC_READ_MS
   const jobBudgetMs = timeouts.job ?? JOB_BUDGET_MS
   const cancelPollMs = timeouts.cancelPoll ?? CANCEL_POLL_MS
@@ -206,19 +259,23 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
     } finally { finished = true }
   }
 
-  /** Run one async read to completion, then deliver its webhook. Never throws. */
-  async function execute(row, key, payload, startedAt) {
+  /**
+   * Run one async read to completion, then deliver its webhook. Never throws. `claimed` means the caller already
+   * holds the read's lease (a worker claim); otherwise this takes it, and returns if someone else has it.
+   */
+  async function execute(row, key, payload, startedAt, { claimed = false } = {}) {
     const deadline = startedAt + jobBudgetMs
     let outcome
     try {
-      if (!await readStore.start(row.id)) return // cancelled while queued (that path refunds)
+      if (!claimed && !await readStore.start(row.id, lease)) return // cancelled while queued (that path refunds), or taken
       const ac = new AbortController()
-      const poll = setInterval(() => { readStore.status(row.id).then(status => { if (status === 'cancelled') ac.abort(new Error('cancelled')) }).catch(() => {}) }, cancelPollMs)
+      // The heartbeat keeps the lease and stops the read once it is cancelled or another executor has taken it over.
+      const beat = setInterval(() => { readStore.heartbeat(row.id, lease).then(state => { if (state !== 'running') ac.abort(new Error(state === 'cancelled' ? 'cancelled' : 'lease-lost')) }).catch(() => {}) }, cancelPollMs)
       try {
         const opened = await modelProxy.openRead(payload, pseudonym(key.id), ac)
         if (opened.failure) outcome = { ok: false, status: opened.failure.status, code: opened.failure.code, message: opened.failure.error, refund: true }
         else outcome = await modelProxy.bufferRead(opened.upstream, ac, Math.min(readLimitMs, Math.max(1000, deadline - now() - 30_000)))
-      } finally { clearInterval(poll) }
+      } finally { clearInterval(beat) }
     } catch {
       outcome = { ok: false, status: 503, code: 'internal_error', message: 'The read could not be completed. No findings were generated.', refund: true }
     }
@@ -227,7 +284,7 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
     const result = outcome.ok ? { content: outcome.content, report: parseReport(outcome.content), finish_reason: outcome.finish ?? null, model: API_MODEL, ...(outcome.usage ? { usage: outcome.usage } : {}) } : null
     const error = outcome.ok ? null : errorBody(outcome.status, outcome.message, outcome.code).error
     try {
-      if (!await readStore.finish(row.id, { status, result, error, request: redactRequest(payload) })) return // cancelled
+      if (!await readStore.finish(row.id, { status, result, error, request: redactRequest(payload), owner: lease.owner })) return // cancelled or taken over
     } catch {
       // The outcome could not be stored. Do not leave the image data behind until the stale sweep: fail the read now.
       await readStore.abandon(row.id).catch(() => {})
@@ -239,6 +296,20 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
         if (secret) await deliver({ url: row.webhook_url, payload: outcome.ok ? { id: row.id, status, result } : { id: row.id, status, error }, secret, deadline, now })
       }
     } catch { /* delivery results are not stored; the client can poll */ }
+  }
+
+  /** Recover lapsed reads; reads that expired in the queue without reaching a GPU are refunded. Never throws. */
+  async function recover(all = false) {
+    try {
+      const outcome = await (all ? readStore.cleanup(settings) : readStore.sweep(settings))
+      for (const read of outcome?.expired ?? []) await refundRead(read.id, read.key_id)
+    } catch { /* the next sweep retries */ }
+  }
+
+  /** Claim up to `limit` queued reads and start them. Returns one promise per read (each never rejects). */
+  async function runQueued(limit, options) {
+    const rows = await readStore.claim(lease, limit, options)
+    return rows.map(row => execute(row, { id: row.key_id, webhooks: row.webhook_secret_issued === true && webhooksConfigured(env) }, row.request, now(), { claimed: true }))
   }
 
   async function submit(req, res, key) {
@@ -265,6 +336,8 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
       const existing = await readStore.findIdempotent(key.id, idempotencyKey)
       if (existing) return replay(existing)
     }
+    // Back-pressure: a full queue refuses new reads before anything is counted.
+    if (settings.queueLimit > 0 && (await readStore.depth()).queued >= settings.queueLimit) return fail(res, 503, 'The read queue is full. Retry in a minute.', 'queue_full', { ...keyHeaders(key), 'Retry-After': '30' })
     // Counted at submission; refunded if the read never reaches the GPU or is cancelled while queued.
     const reservation = await reserve(res, key)
     if (!reservation) return
@@ -277,7 +350,8 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
       return existing ? replay(existing) : fail(res, 409, 'A read with this Idempotency-Key is being created. Retry.', 'idempotency_conflict', keyHeaders(key))
     }
     send(res, 202, readView(row), { ...keyHeaders(key, reservation), Location: pollUrl(row.id) })
-    schedule(execute(row, key, checked.payload, startedAt))
+    if (settings.mode === 'worker') schedule(readStore.notify())
+    else schedule(execute(row, key, checked.payload, startedAt))
   }
 
   async function readRoute(req, res, key, id) {
@@ -298,15 +372,25 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
   }
 
   return {
-    cleanup: () => readStore.cleanup(),
+    settings,
+    lease,
+    cleanup: () => recover(true),
+    recover,
+    runQueued,
+    depth: () => readStore.depth(),
+    release: id => readStore.release(id, lease),
     /** Answers every /api/v1/* request. Only a valid Bearer key is accepted; session cookies are ignored here. */
     async handle(req, res, path) {
       try {
         const auth = await apiKeys.authenticate(req)
         if (auth.error) return fail(res, auth.error.status, auth.error.message, auth.error.code, { 'WWW-Authenticate': 'Bearer' })
         const { key } = auth
-        // Fail stuck reads (and drop their images) a few at a time on every authenticated request, beside the work.
-        schedule(Promise.resolve().then(() => readStore.sweep()))
+        // Recover stuck reads a few at a time on every authenticated request, beside the work. Without workers, a
+        // read put back on the queue after its executor died is retried here too (fresh reads stay with their submitter).
+        schedule(Promise.resolve().then(async () => {
+          await recover()
+          if (settings.mode === 'inline' && modelProxy.enabled) await Promise.all(await runQueued(1, { retriesOnly: true }))
+        }))
         if (!modelProxy.enabled) return fail(res, 503, 'The hosted model service is not configured on this server.', 'model_unavailable', keyHeaders(key))
         if (path === '/api/v1/models') return req.method === 'GET' ? await models(res, key) : fail(res, 405, 'Method not allowed.', 'method_not_allowed', { ...keyHeaders(key), Allow: 'GET' })
         if (path === '/api/v1/chat/completions') return req.method === 'POST' ? await chat(req, res, key) : fail(res, 405, 'Method not allowed.', 'method_not_allowed', { ...keyHeaders(key), Allow: 'POST' })

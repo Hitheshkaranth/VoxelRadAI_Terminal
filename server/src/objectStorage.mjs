@@ -90,7 +90,7 @@ async function createS3Storage(config) {
 }
 
 /** Call only after the host router's origin and session checks. Also denies missing users defensively. */
-export async function createObjectStorageRouter({ pool, body, send, env = process.env, storage: suppliedStorage, now = () => Date.now() }) {
+export async function createObjectStorageRouter({ pool, body, send, env = process.env, storage: suppliedStorage, now = () => Date.now(), checkRoom = null }) {
   const config = readObjectStorageConfig(env)
   const storage = config.enabled ? suppliedStorage || await createS3Storage(config) : null
   const transact = async action => {
@@ -147,6 +147,8 @@ export async function createObjectStorageRouter({ pool, body, send, env = proces
           const used = await client.query("SELECT COALESCE(sum(size_bytes),0)::bigint AS bytes,count(*) FILTER(WHERE state='pending' AND upload_expires_at>now())::int AS pending FROM volume_objects WHERE owner_id=$1 AND (state<>'pending' OR upload_expires_at>now())", [user.id])
           if (Number(used.rows[0].pending) >= 10) throw fail(429, 'Finish or delete an existing pending upload before starting another.')
           if (Number(used.rows[0].bytes) + data.sizeBytes > config.ownerQuotaBytes) throw fail(413, 'This upload exceeds your configured volume storage quota.')
+          // The account-wide allowance (studies, volumes and feedback together); the owner row is already locked.
+          if (checkRoom) await checkRoom(client, user.id, data.sizeBytes)
           const result = await client.query('INSERT INTO volume_objects(id,owner_id,file_name,title,size_bytes,acquisition,staging_key,object_key,upload_expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *', [id, user.id, data.fileName, data.title, data.sizeBytes, data.acquisition ? JSON.stringify(data.acquisition) : null, `pending/${user.id}/${id}`, `volumes/${user.id}/${id}`, expiresAt])
           return result.rows[0]
         })

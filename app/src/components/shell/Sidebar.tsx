@@ -15,6 +15,8 @@ import { activeFacetCount, filterWorklist, formatAge, hasUrgentCandidate, OVERDU
 import { stepStudy, useWorklist } from './worklistNav'
 import { isTypingTarget } from '../viewer/readingControls'
 import { SampleStudies } from './SampleStudies'
+import { StorageMeterCompact } from './AccountStorage'
+import { SERVER_MODE } from '../../lib/session'
 import { volumeSourceKind } from '../../lib/volumeIdentity'
 import './shell.css'
 import './worklist.css'
@@ -142,7 +144,7 @@ export function Sidebar() {
         )}
       </div>
       <SampleStudies onOpen={() => { setQuery(''); setFilter('all'); clearFacets() }} />
-      <div className="wl-storage-note">Stored in this browser</div>
+      {SERVER_MODE ? <StorageMeterCompact /> : <div className="wl-storage-note">Stored in this browser</div>}
 
       <SidebarFooter connection={connection} onOpenSettings={openSettings} />
     </nav>

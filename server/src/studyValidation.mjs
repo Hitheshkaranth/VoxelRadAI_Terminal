@@ -1,3 +1,4 @@
+import { ensureRoom, studySizes } from './storage.mjs'
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const textFields = (value,fields) => object(value) && fields.every(field => typeof value[field] === 'string')
 const stringArray = value => Array.isArray(value) && value.every(item => typeof item === 'string')
@@ -54,17 +55,22 @@ const STALE = { code: 'stale', error: 'The server copy of this study changed sin
 /** Revision-checked study write inside one transaction on `client` (a pg client). Returns { status, body }.
  *  Two first-time saves of the same new study can race past the empty row lock; the loser's INSERT hits the
  *  primary key, so it inserts with ON CONFLICT DO NOTHING and reports the conflict as a stale 409, never a 500. */
-export async function writeStudy(client,userId,data,expected) {
+export async function writeStudy(client,userId,data,expected,env = process.env) {
   await client.query('BEGIN')
   try {
-    const current = (await client.query("SELECT owner_id,revision,payload->'report' AS report FROM studies WHERE id=$1 FOR UPDATE", [data.id])).rows[0]
+    // The user row lock serialises this user's saves, so the allowance check below cannot be raced.
+    await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [userId])
+    const current = (await client.query("SELECT owner_id,revision,payload->'report' AS report,payload_bytes FROM studies WHERE id=$1 FOR UPDATE", [data.id])).rows[0]
     if (current && current.owner_id !== userId) { await client.query('ROLLBACK'); return { status: 404, body: { error: 'Study not found.' } } }
     const conflict = studyWriteConflict(current ? { revision: current.revision, report: current.report } : null, data, expected)
     if (conflict) { await client.query('ROLLBACK'); return { status: 409, body: { ...conflict, revision: current.revision } } }
-    const values = [data.id,userId,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed]
+    const sizes = studySizes(data)
+    try { await ensureRoom(client, userId, sizes.payloadBytes, Number(current?.payload_bytes || 0), env) }
+    catch (error) { if (error.code !== 'storage_quota_exceeded') throw error; await client.query('ROLLBACK'); return { status: 413, body: { code: error.code, error: error.message } } }
+    const values = [data.id,userId,JSON.stringify(data),data.images.length,!!data.report,!!data.report?.signed,sizes.payloadBytes,sizes.imageBytes,sizes.analysisBytes]
     const result = current
-      ? await client.query('UPDATE studies SET payload=$3,image_count=$4,has_report=$5,report_signed=$6,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING revision', values)
-      : await client.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING RETURNING revision', values)
+      ? await client.query('UPDATE studies SET payload=$3,image_count=$4,has_report=$5,report_signed=$6,payload_bytes=$7,image_bytes=$8,analysis_bytes=$9,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING revision', values)
+      : await client.query('INSERT INTO studies(id,owner_id,payload,image_count,has_report,report_signed,payload_bytes,image_bytes,analysis_bytes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING RETURNING revision', values)
     if (!result.rows[0]) { await client.query('ROLLBACK'); return { status: 409, body: STALE } }
     await client.query('COMMIT')
     return { status: 200, body: { id: data.id, revision: result.rows[0].revision } }

@@ -1,4 +1,5 @@
 import { ShellButton } from './ShellButton'
+import { announceStorageChange } from '../../lib/accountStorage'
 import { useEffect, useRef, useState } from 'react'
 import { useActiveStudy, useApp, persistedStudies } from '../../store'
 import { SERVER_MODE } from '../../lib/session'
@@ -40,7 +41,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
     }).catch((reason: unknown) => { if (!controller.signal.aborted) setMessage(reason instanceof Error ? reason.message : 'Saved studies could not be loaded.') }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [attempt, offset])
-  const refreshSaved = () => { setLoading(true); setMessage(''); setAttempt((value) => value + 1) }
+  const refreshSaved = () => { setLoading(true); setMessage(''); setAttempt((value) => value + 1); announceStorageChange() }
   const showPage = (next: number) => { setLoading(true); setMessage(''); setConfirmRestore(null); setOffset(next) }
   const save = async (overwrite = false) => {
     if (!active || busy) return
