@@ -202,6 +202,9 @@ export interface ReportDraft {
   /** True once a draft has been assembled; user edits keep it true. */
   generated: boolean
   draftMethod?: 'findings' | 'model'
+  /** Reading model(s) behind the draft, from each analysis' `model` field (also set for volume drafts, which have no
+   *  analysed key image to name the model). */
+  draftModel?: string
   updatedAt: number
   /** reportSourceKey() of the study when the draft was generated; differs → draft is stale. */
   sourceKey?: string

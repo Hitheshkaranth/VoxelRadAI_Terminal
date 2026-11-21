@@ -491,7 +491,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 {template?.footer.text.trim() ? <span className="rp-footer-template rp-screen-only">{template.footer.text}</span> : null}
                 {!template || template.footer.showDisclaimer || !report?.signed ? (
                   <span className="rp-footer-disclaimer">
-                    {DISCLAIMER} Drafted with AI assistance ({analysisModels || 'model not recorded'}
+                    {DISCLAIMER} Drafted with AI assistance ({analysisModels || report?.draftModel || 'model not recorded'}
                     {included.some((r) => r.finding.source === 'maira2') ? ', with MAIRA-2 as second reader' : ''}).
                   </span>
                 ) : null}

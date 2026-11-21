@@ -5,7 +5,7 @@
 // normal-severity finding that names that section). A section with neither a finding nor a stated negative reads
 // NOT_ASSESSED. A whole-study "no acute abnormality" impression is not spread across sections.
 import type { Finding, ReportDraft, Study, StudyImage } from '../types.ts'
-import { findingSentence } from './findingsReport.ts'
+import { UNREVIEWED, measurementPhrase } from './findingsReport.ts'
 
 export const NOT_ASSESSED = 'Not assessed by the AI read — radiologist to review.'
 export const SUGGESTIVE = 'Features suggestive of:'
@@ -95,18 +95,61 @@ function sectionOf(sources: string[], scheme: SectionDef[]): string | null {
 export const GLOBAL_NEGATIVE = /\b(no acute|no (significant |focal )?abnormalit|unremarkable (study|examination|chest|film)|normal (study|examination|chest|film|radiograph))/i
 
 export interface SystematicRow { title: string; lines: string[]; status: 'finding' | 'negative' | 'not-assessed' }
-export interface SystematicInput { exam: SystematicExam; findings: Finding[]; negatives: string[] }
+/** A finding as placed in a systematic row; `slice` is its 1-based slice label in a volume read ("axial slice 81"). */
+export type SystematicFinding = Finding & { slice?: string }
+export interface SystematicInput { exam: SystematicExam; findings: SystematicFinding[]; negatives: string[]; sliceIndexFromZero?: boolean }
+
+/** The measurement code's own sentence from a description ("Measured from the outline: …" / "Measured from the scan:
+ *  …"), nothing else of the free text. `fromZero`: slice numbers in it count from 0 (server volume index) and are
+ *  printed counting from 1, so the report shows one numbering. */
+export function measuredText(description: string | undefined, fromZero = false): string {
+  const m = (description ?? '').match(/Measured from the (?:outline|scan):[\s\S]*?(?=\s*(?:Location by\b|$))/)
+  if (!m) return ''
+  let text = m[0].trim().replace(/\s+/g, ' ')
+  if (fromZero) {
+    text = text.replace(/\bslices \((\d+)\s*[-–]\s*(\d+)\)/g, (_, a, b) => `slices ${+a + 1}–${+b + 1}`)
+      .replace(/\bslice (\d+)\b/g, (_, a) => `slice ${+a + 1}`)
+  }
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
+const SIDE = /\bpatient(?:'s)?\s+(right|left|both)(?:\s+sides?)?\b/i
+/** Title, location and measurements as printed in a row. "Liver lesion, right" + "liver patient right" becomes
+ *  "Liver lesion, patient's right side": the organ word the title already names is not repeated. */
+export function systematicSentence(f: SystematicFinding, fromZero = false, withMeasure = true): string {
+  let title = (f.title || 'Finding').trim().replace(/[.\s]+$/, '')
+  title = title.charAt(0).toUpperCase() + title.slice(1)
+  const loc = (f.location ?? '').trim().replace(/[.\s]+$/, '')
+  const side = loc.match(SIDE)?.[1]?.toLowerCase()
+  const titleWords = new Set(title.toLowerCase().split(/[^a-z]+/).filter(Boolean))
+  // Only the "<organ> patient <side>" form is rewritten; the organ word is dropped when the title already names it.
+  const left = side ? loc.replace(SIDE, ' ').replace(/\s+/g, ' ').trim() : loc
+  const rest = side && left.split(' ').every((w) => titleWords.has(w.toLowerCase())) ? '' : left
+  if (side) title = title.replace(/,\s*(right|left|both)\s*$/i, '')
+  const parts = [f.slice ? `${title} (${f.slice})` : title]
+  if (rest && !title.toLowerCase().includes(rest.toLowerCase())) parts.push(/^[A-Z][a-z]/.test(rest) ? rest.charAt(0).toLowerCase() + rest.slice(1) : rest)
+  if (side) parts.push(side === 'both' ? 'both sides' : `patient's ${side} side`)
+  const measured = withMeasure ? (measuredText(f.description, fromZero) || (measurementPhrase(f.measurements) ? `${measurementPhrase(f.measurements).replace(/^measuring/, 'Measuring')}.` : '')) : ''
+  return `${parts.join(', ')}.${measured ? ` ${measured}` : ''}${f.review === 'accepted' ? '' : ` ${UNREVIEWED}`}`
+}
+
+/** Identical lines merge into one with a count: "… (×2)". */
+export function mergeDuplicates(lines: string[]): string[] {
+  const counts = new Map<string, number>()
+  for (const l of lines) counts.set(l, (counts.get(l) ?? 0) + 1)
+  return [...counts].map(([l, n]) => (n > 1 ? `${l} (×${n})` : l))
+}
 
 /** Deterministic section assignment; see the honesty rule at the top of this file. */
-export function systematicRows({ exam, findings, negatives }: SystematicInput): SystematicRow[] {
+export function systematicRows({ exam, findings, negatives, sliceIndexFromZero = false }: SystematicInput): SystematicRow[] {
   const scheme = SCHEMES[exam]
   const abnormal = new Map<string, string[]>(), stated = new Map<string, string[]>()
   const add = (map: Map<string, string[]>, key: string, line: string) => map.set(key, [...(map.get(key) ?? []), line])
   for (const f of findings) {
     if (f.review === 'dismissed') continue
     const title = sectionOf([f.title, f.category ?? '', f.location], scheme) ?? UNPLACED_TITLE
-    if (f.severity === 'normal') add(stated, title, findingSentence({ ...f, review: 'accepted' }))
-    else add(abnormal, title, findingSentence(f))
+    if (f.severity === 'normal') add(stated, title, systematicSentence({ ...f, review: 'accepted' }, sliceIndexFromZero))
+    else add(abnormal, title, systematicSentence(f, sliceIndexFromZero))
   }
   for (const n of negatives) {
     const line = n.trim().replace(/\s+/g, ' ')
@@ -115,7 +158,7 @@ export function systematicRows({ exam, findings, negatives }: SystematicInput): 
   }
   const titles = [...scheme.map((s) => s.title), ...((abnormal.has(UNPLACED_TITLE) || stated.has(UNPLACED_TITLE)) ? [UNPLACED_TITLE] : [])]
   return titles.map((title) => {
-    const a = abnormal.get(title) ?? [], s = stated.get(title) ?? []
+    const a = mergeDuplicates(abnormal.get(title) ?? []), s = mergeDuplicates(stated.get(title) ?? [])
     if (a.length) return { title, lines: [...a, ...s], status: 'finding' as const }
     if (s.length) return { title, lines: s, status: 'negative' as const }
     return { title, lines: [NOT_ASSESSED], status: 'not-assessed' as const }
@@ -153,7 +196,7 @@ export function systematicReport(study: Study): Pick<ReportDraft, 'technique' | 
     .sort((a, b) => Number(b.f.review === 'accepted') - Number(a.f.review === 'accepted') || RANK[a.f.severity] - RANK[b.f.severity] || a.index - b.index)
   const globals = [...new Set(negatives.map((n) => n.trim()).filter((n) => GLOBAL_NEGATIVE.test(n)))]
   const impression = ranked.length
-    ? [SUGGESTIVE, ...ranked.map(({ f }, i) => `${i + 1}. ${findingSentence({ ...f, measurements: undefined })}`)].join('\n')
+    ? [SUGGESTIVE, ...mergeDuplicates(ranked.map(({ f }) => systematicSentence(f, false, false))).map((l, i) => `${i + 1}. ${l}`)].join('\n')
     : [NO_ABNORMALITY, ...globals.map((g) => `The AI read states: ${g.replace(/[.\s]+$/, '')}.`)].join('\n')
   const scope = readScope(images)
   return {
@@ -186,15 +229,16 @@ export function parseRows(findings: string): { title: string; lines: string[] }[
 /** Volume (CT / MRI series) draft rows from accepted slice findings; each line keeps its slice number. */
 export function volumeSystematicLines(args: { title: string; modality: string; plane: string; completed: number; count: number; accepted: { index: number; finding: Finding }[] }): string[] {
   const exam = systematicExam(`${args.modality} ${args.title}`)
-  const findings = args.accepted.map(({ index, finding }) => ({ ...finding, title: `${finding.title} (${args.plane} slice ${index + 1})` }))
-  const rows = systematicRows({ exam, findings, negatives: [] })
-  const ranked = args.accepted.filter(({ finding }) => finding.severity !== 'normal')
+  // Read indices count from 0; every printed slice number counts from 1, including numbers inside measurement text.
+  const findings: SystematicFinding[] = args.accepted.map(({ index, finding }) => ({ ...finding, slice: `${args.plane} slice ${index + 1}` }))
+  const rows = systematicRows({ exam, findings, negatives: [], sliceIndexFromZero: true })
+  const ranked = findings.filter((f) => f.severity !== 'normal')
   return [
     'SYSTEMATIC FINDINGS',
-    `Read scope: ${args.completed}/${args.count} ${args.plane} slices of one series; unread slices were not assessed.`,
+    `Read scope: ${args.completed}/${args.count} ${args.plane} slices of one series (${args.plane} slice numbers count from 1); unread slices were not assessed.`,
     ...rows.map((r) => `${r.title}: ${r.lines.join('\n')}`),
     '',
     'IMPRESSION',
-    ...(ranked.length ? [SUGGESTIVE, ...ranked.map(({ index, finding }, i) => `${i + 1}. ${finding.title} (${args.plane} slice ${index + 1}).`)] : [NO_ABNORMALITY]),
+    ...(ranked.length ? [SUGGESTIVE, ...mergeDuplicates(ranked.map((f) => systematicSentence(f, true, false))).map((l, i) => `${i + 1}. ${l}`)] : [NO_ABNORMALITY]),
   ]
 }

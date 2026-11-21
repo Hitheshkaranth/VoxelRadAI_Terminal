@@ -322,6 +322,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
       recommendations,
       generated: true,
       draftMethod,
+      draftModel: [...new Set(study.images.map((i) => i.analysis?.model).filter(Boolean))].join(', ') || undefined,
       signed: false,
       radiologist: settings.radiologist,
       sourceKey,
