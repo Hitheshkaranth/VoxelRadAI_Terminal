@@ -66,5 +66,5 @@ assert.match(lines.join('\n'), /^LIVER: Not assessed by the AI read/m)
 const job = { id: 'j', title: 'CT abdomen', modality: 'CT', plane: 'axial', count: 1, snapshot: { model: 'm', center: 40, width: 400 },
   reads: [{ index: 0, status: 'done', analysis: { findings: [f('Liver lesion')] } }], reviews: { '0:Liver lesion': { decision: 'accepted' } } } as unknown as ReviewableVolume
 assert.doesNotMatch(buildVolumeDraft(job), /SYSTEMATIC FINDINGS/)
-assert.match(buildVolumeDraft(job, { systematic: true }), /LIVER: Liver lesion \(axial slice 1\)/)
+assert.match(buildVolumeDraft(job, { systematic: true }), /LIVER: Liver lesion \(axial slice 1\)\.$/m) // accepted: no unreviewed marker
 console.log('systematic report ok')

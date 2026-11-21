@@ -88,6 +88,6 @@ export function buildVolumeDraft(job: ReviewableVolume, opts: { systematic?: boo
     'Review source images and edit this draft before clinical use. Separate slice findings have not been merged into lesions.',
   ]
   if (opts.systematic) lines.push('', ...volumeSystematicLines({ title: job.title, modality: job.modality, plane: job.plane, completed: coverage.completed, count: job.count,
-    accepted: accepted.map((row) => ({ index: row.index, finding: { ...row.finding, description: row.description } })) }))
+    accepted: accepted.map((row) => ({ index: row.index, finding: { ...row.finding, description: row.description, review: 'accepted' as const } })) }))
   return lines.join('\n')
 }

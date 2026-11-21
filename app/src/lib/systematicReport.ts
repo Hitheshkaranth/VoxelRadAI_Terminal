@@ -192,7 +192,7 @@ export function volumeSystematicLines(args: { title: string; modality: string; p
   return [
     'SYSTEMATIC FINDINGS',
     `Read scope: ${args.completed}/${args.count} ${args.plane} slices of one series; unread slices were not assessed.`,
-    ...rows.map((r) => `${r.title}: ${r.lines.join(' ')}`),
+    ...rows.map((r) => `${r.title}: ${r.lines.join('\n')}`),
     '',
     'IMPRESSION',
     ...(ranked.length ? [SUGGESTIVE, ...ranked.map(({ index, finding }, i) => `${i + 1}. ${finding.title} (${args.plane} slice ${index + 1}).`)] : [NO_ABNORMALITY]),
