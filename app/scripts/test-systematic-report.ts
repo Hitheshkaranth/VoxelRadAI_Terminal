@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { NOT_ASSESSED, NO_ABNORMALITY, SUGGESTIVE, UNPLACED_TITLE, examTypeLine, parseRows, readScope, systematicExam, systematicReport, systematicRows, volumeSystematicLines } from '../src/lib/systematicReport.ts'
+import { SUGGESTIVE, UNPLACED_TITLE, examTypeLine, parseRows, readScope, systematicExam, systematicReport, systematicRows, volumeSystematicLines } from '../src/lib/systematicReport.ts'
 import { buildVolumeDraft, type ReviewableVolume } from '../src/lib/volumeReview.ts'
 import type { Finding, Study } from '../src/types.ts'
 
@@ -25,18 +25,19 @@ assert.match(row('LUNG FIELDS'), /Consolidation/)
 assert.match(row('LUNG FIELDS'), /No pneumothorax\./)
 assert.match(row('MEDIASTINUM'), /Cardiomegaly/)
 // Honesty: no stated negative for the diaphragm or upper abdomen, so they are not called normal.
-assert.equal(row('DIAPHRAGM'), NOT_ASSESSED)
-assert.equal(row('UPPER ABDOMEN'), NOT_ASSESSED)
+assert.equal(row('DIAPHRAGM'), '')
+assert.equal(row('UPPER ABDOMEN'), '')
+assert.match(d.findings, /^DIAPHRAGM: $/m) // heading + blank for the radiologist
+assert.doesNotMatch(JSON.stringify(d), /not assessed|AI read|radiologist to review|unreviewed|Draft assembled/i)
 assert.doesNotMatch(d.findings, /Dismissed nodule|No acute cardiopulmonary/)
 assert.equal(d.impression.split('\n')[0], SUGGESTIVE)
 assert.match(d.impression, /^1\. Rib fracture/m) // accepted first
 assert.equal(d.technique, 'X-RAY CHEST PA VIEW')
 
-// A normal film: the whole-study negative stays in the impression, sections remain unassessed.
-const normal = systematicReport({ images: [{ name: 'n.png', analysis: { modality: 'X-ray', bodyPart: 'Chest', view: 'PA', findings: [], pertinentNegatives: ['No acute cardiopulmonary abnormality.'] } }] } as unknown as Study)
-assert.ok(normal.impression.startsWith(NO_ABNORMALITY))
-assert.match(normal.impression, /The AI read states: No acute cardiopulmonary abnormality\./)
-assert.ok(parseRows(normal.findings).every((r) => r.lines.join(' ') === NOT_ASSESSED))
+// A normal film: the impression is the model's own statement; sections stay empty, never called normal.
+const normal = systematicReport({ images: [{ name: 'n.png', analysis: { modality: 'X-ray', bodyPart: 'Chest', view: 'PA', findings: [], impression: 'No acute cardiopulmonary abnormality.', pertinentNegatives: [] } }] } as unknown as Study)
+assert.equal(normal.impression, 'No acute cardiopulmonary abnormality.')
+assert.ok(parseRows(normal.findings).every((r) => r.lines.join(' ') === ''))
 
 // CT abdomen single slice: organ withheld -> its own unplaced row; read scope names the slice.
 const ct = { images: [{ name: 'slice.dcm', sourceModality: 'CT', sourceBodyPart: 'Abdomen', sourceFrameIndex: 77, sourceFrameCount: 120,
@@ -47,7 +48,7 @@ const cr = parseRows(c.findings)
 assert.equal(cr[0].title, 'LIVER')
 assert.match(cr[0].lines.join(' '), /Liver lesion/)
 assert.equal(cr.at(-1)!.title, UNPLACED_TITLE)
-assert.match(c.technique, /^CT ABDOMEN\nRead from 1 single slice image \(slice\.dcm, frame 78 of 120\)\. Slices that were not sent were not assessed\.$/)
+assert.equal(c.technique, 'CT ABDOMEN\nSingle-slice read: slice.dcm, frame 78 of 120.')
 assert.equal(readScope([{ name: 'x.png', analysis: { modality: 'X-ray' } }] as never), '')
 
 // MRI brain: head scheme.
@@ -62,7 +63,8 @@ assert.deepEqual(parseRows('free text\nLUNG FIELDS: a\nb'), [{ title: 'FINDINGS'
 // Volume drafts: systematic rows only when asked, slice numbers kept.
 const lines = volumeSystematicLines({ title: 'CT abdomen', modality: 'CT', plane: 'axial', completed: 11, count: 11, accepted: [{ index: 5, finding: f('Focal lesion, right side') }] })
 assert.match(lines.join('\n'), /OTHER FINDINGS \(SECTION NOT CONFIRMED\): Focal lesion, right side \(axial slice 6\)/)
-assert.match(lines.join('\n'), /^LIVER: Not assessed by the AI read/m)
+assert.match(lines.join('\n'), /^LIVER: $/m)
+assert.equal(volumeSystematicLines({ title: 'MRI brain', modality: 'MR brain', plane: 'axial', completed: 2, count: 2, accepted: [], impressions: ['No focal abnormality on this slice.', 'No focal abnormality on this slice.'] }).at(-1), 'No focal abnormality in this series.')
 const job = { id: 'j', title: 'CT abdomen', modality: 'CT', plane: 'axial', count: 1, snapshot: { model: 'm', center: 40, width: 400 },
   reads: [{ index: 0, status: 'done', analysis: { findings: [f('Liver lesion')] } }], reviews: { '0:Liver lesion': { decision: 'accepted' } } } as unknown as ReviewableVolume
 assert.doesNotMatch(buildVolumeDraft(job), /SYSTEMATIC FINDINGS/)
@@ -78,6 +80,6 @@ assert.equal(systematicSentence(lesion, true), 'Liver lesion (axial slice 81), p
 assert.doesNotMatch(systematicSentence(lesion, true), /liver patient|slices \(66/)
 assert.deepEqual(mergeDuplicates(['a.', 'b.', 'a.']), ['a. (×2)', 'b.'])
 const vol = volumeSystematicLines({ title: 'CT abdomen', modality: 'CT', plane: 'axial', completed: 3, count: 3, accepted: [0, 0].map(() => ({ index: 1, finding: f('Liver lesion', { location: 'liver patient left', review: 'accepted' }) })) }).join('\n')
-assert.match(vol, /axial slice numbers count from 1/)
+assert.match(vol, /^Volume read: 3 axial slices \(slice numbers count from 1\)\.$/m)
 assert.match(vol, /^LIVER: Liver lesion \(axial slice 2\), patient's left side\. \(×2\)$/m)
 console.log('systematic report ok')

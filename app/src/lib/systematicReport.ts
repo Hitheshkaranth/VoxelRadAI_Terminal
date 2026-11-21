@@ -2,15 +2,14 @@
 // "Features suggestive of:", and a read-scope line for CT / MRI. Pure and node-tested.
 //
 // Honesty rule: a section states a normal only when the reader's own reply said so (a pertinent negative or a
-// normal-severity finding that names that section). A section with neither a finding nor a stated negative reads
-// NOT_ASSESSED. A whole-study "no acute abnormality" impression is not spread across sections.
+// normal-severity finding that names that section). A section with neither is left EMPTY for the radiologist (heading
+// and a blank line in the editor) and is omitted from the printed report while still empty. A whole-study "no acute
+// abnormality" statement is not spread across sections; it becomes the impression in the model's own words.
+// The only AI wording on a printed report is the unsigned-draft box and the footer disclaimer.
 import type { Finding, ReportDraft, Study, StudyImage } from '../types.ts'
-import { UNREVIEWED, measurementPhrase } from './findingsReport.ts'
+import { measurementPhrase } from './findingsReport.ts'
 
-export const NOT_ASSESSED = 'Not assessed by the AI read — radiologist to review.'
 export const SUGGESTIVE = 'Features suggestive of:'
-export const NO_ABNORMALITY =
-  'No abnormality was reported by the AI read on the assessed images. This is not a statement that the examination is normal; radiologist to review.'
 
 export type SystematicExam = 'cxr' | 'ct-chest' | 'ct-abdomen' | 'head' | 'other'
 
@@ -130,7 +129,7 @@ export function systematicSentence(f: SystematicFinding, fromZero = false, withM
   if (rest && !title.toLowerCase().includes(rest.toLowerCase())) parts.push(/^[A-Z][a-z]/.test(rest) ? rest.charAt(0).toLowerCase() + rest.slice(1) : rest)
   if (side) parts.push(side === 'both' ? 'both sides' : `patient's ${side} side`)
   const measured = withMeasure ? (measuredText(f.description, fromZero) || (measurementPhrase(f.measurements) ? `${measurementPhrase(f.measurements).replace(/^measuring/, 'Measuring')}.` : '')) : ''
-  return `${parts.join(', ')}.${measured ? ` ${measured}` : ''}${f.review === 'accepted' ? '' : ` ${UNREVIEWED}`}`
+  return `${parts.join(', ')}.${measured ? ` ${measured}` : ''}`
 }
 
 /** Identical lines merge into one with a count: "… (×2)". */
@@ -161,7 +160,7 @@ export function systematicRows({ exam, findings, negatives, sliceIndexFromZero =
     const a = mergeDuplicates(abnormal.get(title) ?? []), s = mergeDuplicates(stated.get(title) ?? [])
     if (a.length) return { title, lines: [...a, ...s], status: 'finding' as const }
     if (s.length) return { title, lines: s, status: 'negative' as const }
-    return { title, lines: [NOT_ASSESSED], status: 'not-assessed' as const }
+    return { title, lines: [], status: 'not-assessed' as const }
   })
 }
 
@@ -178,7 +177,7 @@ export function readScope(images: StudyImage[]): string {
     const frame = i.sourceFrameIndex != null ? `, frame ${i.sourceFrameIndex + 1}${i.sourceFrameCount ? ` of ${i.sourceFrameCount}` : ''}` : ''
     return `${i.name}${frame}`
   })
-  return `Read from ${cross.length} single slice image${cross.length === 1 ? '' : 's'} (${names.join('; ')}). Slices that were not sent were not assessed.`
+  return `Single-slice read: ${names.join('; ')}.`
 }
 
 const RANK = { critical: 0, significant: 1, moderate: 2, minor: 3, normal: 4 } as const
@@ -194,19 +193,19 @@ export function systematicReport(study: Study): Pick<ReportDraft, 'technique' | 
   const ranked = findings.map((f, index) => ({ f, index }))
     .filter(({ f }) => f.review !== 'dismissed' && f.severity !== 'normal')
     .sort((a, b) => Number(b.f.review === 'accepted') - Number(a.f.review === 'accepted') || RANK[a.f.severity] - RANK[b.f.severity] || a.index - b.index)
-  const globals = [...new Set(negatives.map((n) => n.trim()).filter((n) => GLOBAL_NEGATIVE.test(n)))]
+  // No finding: the impression is what the model said (its impression, or its whole-study negative); else blank.
+  const said = [...images.map((i) => i.analysis!.impression ?? ''), ...negatives.filter((n) => GLOBAL_NEGATIVE.test(n))]
   const impression = ranked.length
     ? [SUGGESTIVE, ...mergeDuplicates(ranked.map(({ f }) => systematicSentence(f, false, false))).map((l, i) => `${i + 1}. ${l}`)].join('\n')
-    : [NO_ABNORMALITY, ...globals.map((g) => `The AI read states: ${g.replace(/[.\s]+$/, '')}.`)].join('\n')
+    : modelImpression(said)
   const scope = readScope(images)
   return {
     technique: [examTypeLine(images), scope].filter(Boolean).join('\n'),
     comparison: 'None available.',
     findings: rowsText(rows),
     impression,
+    // Only the findings' own recommendations; the app's draft notes stay in the app UI, not on the report.
     recommendations: [
-      'Draft assembled from existing image findings without an additional model request. Review and edit before signing.',
-      images.length < study.images.length ? `${study.images.length - images.length} image(s) have not been analyzed and are not included.` : '',
       ...findings.filter((f) => f.review !== 'dismissed' && f.recommendation).map((f) => `${f.title.trim()}: ${f.recommendation!.trim()}`),
     ].filter(Boolean).join('\n'),
   }
@@ -226,8 +225,16 @@ export function parseRows(findings: string): { title: string; lines: string[] }[
   return out
 }
 
+/** The model's own no-finding statement, once; "on this slice" from per-slice reads becomes "in this series". Only
+ *  statements that report no abnormality are used, so a finding impression is never repeated as a negative. */
+export function modelImpression(statements: string[], series = false): string {
+  const clean = [...new Set(statements.map((t) => t.trim().replace(/\s+/g, ' ')).filter((t) => t && /^no\b/i.test(t))
+    .map((t) => (series ? t.replace(/\bon this slice\b/i, 'in this series') : t)).map((t) => (/[.!?]$/.test(t) ? t : `${t}.`)))]
+  return clean.join('\n')
+}
+
 /** Volume (CT / MRI series) draft rows from accepted slice findings; each line keeps its slice number. */
-export function volumeSystematicLines(args: { title: string; modality: string; plane: string; completed: number; count: number; accepted: { index: number; finding: Finding }[] }): string[] {
+export function volumeSystematicLines(args: { title: string; modality: string; plane: string; completed: number; count: number; accepted: { index: number; finding: Finding }[]; impressions?: string[] }): string[] {
   const exam = systematicExam(`${args.modality} ${args.title}`)
   // Read indices count from 0; every printed slice number counts from 1, including numbers inside measurement text.
   const findings: SystematicFinding[] = args.accepted.map(({ index, finding }) => ({ ...finding, slice: `${args.plane} slice ${index + 1}` }))
@@ -235,10 +242,10 @@ export function volumeSystematicLines(args: { title: string; modality: string; p
   const ranked = findings.filter((f) => f.severity !== 'normal')
   return [
     'SYSTEMATIC FINDINGS',
-    `Read scope: ${args.completed}/${args.count} ${args.plane} slices of one series (${args.plane} slice numbers count from 1); unread slices were not assessed.`,
+    `Volume read: ${args.completed === args.count ? args.count : `${args.completed} of ${args.count}`} ${args.plane} slices (slice numbers count from 1).`,
     ...rows.map((r) => `${r.title}: ${r.lines.join('\n')}`),
     '',
     'IMPRESSION',
-    ...(ranked.length ? [SUGGESTIVE, ...mergeDuplicates(ranked.map((f) => systematicSentence(f, true, false))).map((l, i) => `${i + 1}. ${l}`)] : [NO_ABNORMALITY]),
+    ...(ranked.length ? [SUGGESTIVE, ...mergeDuplicates(ranked.map((f) => systematicSentence(f, true, false))).map((l, i) => `${i + 1}. ${l}`)] : [modelImpression(args.impressions ?? [], true)]),
   ]
 }
