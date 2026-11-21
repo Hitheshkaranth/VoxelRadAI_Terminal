@@ -11,8 +11,21 @@ export interface ReportTemplate {
   header: { logoDataUrl?: string; institution: string; department: string; lines: string[]; align: 'left' | 'center' }
   footer: { text: string; showPageNumbers: boolean; showDisclaimer: boolean }
   sectionTitles: Partial<Record<ReportFieldKey, string>>
+  /** 'systematic': patient block, exam-type line, greeting, one titled row per anatomical section and a signatory
+   *  block (diagnostic-centre style). Absent = 'standard' (templates saved before this option keep their layout). */
+  layout?: ReportLayout
+  /** Reporting radiologist shown in the systematic letterhead and signature block (plain text). */
+  signatory?: { name: string; qualifications: string; registration: string }
+  /** Line above the findings in the systematic layout, e.g. "THANKS FOR REFERRING". */
+  greeting?: string
   updatedAt?: string
 }
+
+export type ReportLayout = 'standard' | 'systematic'
+export const SYSTEMATIC_TEMPLATE_NAME = 'Systematic (Indian diagnostic centre style)'
+
+export const layoutOf = (template: Pick<ReportTemplate, 'layout'> | null | undefined): ReportLayout =>
+  template?.layout === 'systematic' ? 'systematic' : 'standard'
 
 export type TemplateInput = Omit<ReportTemplate, 'id' | 'isDefault' | 'updatedAt'>
 
@@ -30,6 +43,19 @@ export function blankTemplate(institution = ''): TemplateInput {
     header: { institution, department: 'Department of Radiology', lines: [], align: 'left' },
     footer: { text: '', showPageNumbers: true, showDisclaimer: true },
     sectionTitles: {},
+  }
+}
+
+/** Built-in starting point for the systematic layout. Placeholders only: the centre fills in its own letterhead. */
+export function systematicTemplate(institution = ''): TemplateInput {
+  return {
+    name: SYSTEMATIC_TEMPLATE_NAME,
+    header: { institution: institution || 'Your Diagnostic Centre', department: 'CT · Ultrasound · X-ray', lines: ['Address line', 'Phone · Email'], align: 'center' },
+    footer: { text: '', showPageNumbers: true, showDisclaimer: true },
+    sectionTitles: { technique: 'Type of Examination', impression: 'Impression', recommendations: 'Note' },
+    layout: 'systematic',
+    signatory: { name: 'Dr. A. Radiologist', qualifications: 'MBBS, MD (Radiodiagnosis)', registration: 'Reg. No. ______' },
+    greeting: 'THANKS FOR REFERRING',
   }
 }
 

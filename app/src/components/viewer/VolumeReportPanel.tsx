@@ -1,10 +1,11 @@
 import { ScanButton } from './ScanButton'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Volume, VolumePlane } from '../../lib/volume'
 import { saveVolumeDraft } from '../../lib/volumeJobs'
 import { volumeCoverage } from '../../lib/volumeAnalysis'
 import { buildVolumeDraft, volumeFindingRows, volumeReportSourceKey } from '../../lib/volumeReview'
 import { useVolumeReview } from './useVolumeReview'
+import { layoutOf, useTemplates } from '../../lib/reportTemplates'
 import './volumeReview.css'
 import './volumeReport.css'
 
@@ -12,6 +13,9 @@ export function VolumeReportPanel({volume,modality,onNavigateEvidence}:{volume:V
   const {identity,job,loading,error:loadError}=useVolumeReview(volume,modality)
   const [edit,setEdit]=useState<{text:string;sourceKey:string}|null>(null)
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[confirmed,setConfirmed]=useState(false)
+  // Volume drafts follow the user's default report template layout.
+  const systematic=useTemplates(s=>layoutOf(s.templates.find(t=>t.isDefault))==='systematic')
+  useEffect(()=>{if(!useTemplates.getState().loaded)void useTemplates.getState().load()},[])
   if(loading)return <section className="volume-review-panel"><p role="status">Loading draft…</p></section>
   if(loadError)return <section className="volume-review-panel"><p role="alert">{loadError}</p></section>
   if(!job)return <section className="volume-review-panel"><h2>Report</h2><p>No volume analysis yet. Analyze the scan and review findings before creating a draft.</p></section>
@@ -26,7 +30,7 @@ export function VolumeReportPanel({volume,modality,onNavigateEvidence}:{volume:V
   }
   const generate=()=>{
     if(text&&!window.confirm('Replace this draft with the current accepted findings? Unsaved report edits will be replaced.'))return
-    void save(buildVolumeDraft(job),currentKey)
+    void save(buildVolumeDraft(job,{systematic}),currentKey)
   }
   const download=()=>{
     const blob=new Blob([text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a')

@@ -10,6 +10,8 @@ import { analysisEligibility, isCrossSectional } from './modality'
 import { augment, mairaHealth } from './maira'
 import { analyzeImage, generateReport, reencodeForClassifier } from './medgemma'
 import { findingsReport } from './findingsReport'
+import { systematicReport } from './systematicReport'
+import { layoutOf, templateForReport, useTemplates } from './reportTemplates'
 import { priorStudies } from './priors'
 
 const controllers = new Map<string, AbortController>()
@@ -293,7 +295,11 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
   try {
     const settings = useApp.getState().settings
     let draftMethod = method
-    const fields = method === 'findings' ? findingsReport(study, priorStudies(study, useApp.getState().studies)) : await generateReport({
+    // A report whose template uses the systematic layout is drafted section by section (same fields, same rules).
+    if (!useTemplates.getState().loaded) await useTemplates.getState().load()
+    const systematic = layoutOf(templateForReport(useTemplates.getState().templates, study.report)) === 'systematic'
+    const fromFindings = () => systematic ? systematicReport(study) : findingsReport(study, priorStudies(study, useApp.getState().studies))
+    const fields = method === 'findings' ? fromFindings() : await generateReport({
       study,
       settings,
       signal: controller.signal,
@@ -302,7 +308,7 @@ export async function generateStudyReport(studyId: string, method: 'findings' | 
       if (controller.signal.aborted || !/quota|GPU limit|illegal duration/i.test(errorMessage(error))) throw error
       draftMethod = 'findings'
       toast('Model quota unavailable. Created a draft from existing findings.', 'info')
-      return findingsReport(study, priorStudies(study, useApp.getState().studies))
+      return fromFindings()
     })
     if (reportController !== controller || controller.signal.aborted) return
     if (useApp.getState().studies.find((s) => s.id === studyId)?.report?.signed) return

@@ -15,3 +15,11 @@ test('rejects markup-capable or unknown content', () => {
   assert.ok(!validTemplate({ ...base(), header: { ...base().header, lines: Array(7).fill('x') } }))
   assert.ok(!validTemplate({ ...base(), footer: { ...base().footer, showPageNumbers: 'yes' } }))
 })
+
+test('accepts the optional systematic layout fields and rejects bad ones', () => {
+  const sys = { ...base(), layout: 'systematic', greeting: 'THANKS FOR REFERRING', signatory: { name: 'Dr. A. Radiologist', qualifications: 'MBBS, MD', registration: 'Reg. No. 0' } }
+  assert.ok(validTemplate(sys))
+  assert.ok(!validTemplate({ ...sys, layout: 'fancy' }))
+  assert.ok(!validTemplate({ ...sys, signatory: { ...sys.signatory, html: '<b>' } }))
+  assert.ok(!validTemplate({ ...sys, greeting: 'x'.repeat(81) }))
+})

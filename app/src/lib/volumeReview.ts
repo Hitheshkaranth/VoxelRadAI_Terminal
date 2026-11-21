@@ -1,6 +1,7 @@
 import type { Finding } from '../types.ts'
 import type { SliceRead } from './volumeAnalysis.ts'
 import { volumeCoverage } from './volumeAnalysis.ts'
+import { volumeSystematicLines } from './systematicReport.ts'
 
 export interface VolumeFindingReview {
   decision: 'accepted' | 'dismissed' | 'pending'
@@ -69,7 +70,8 @@ export function volumeReportSourceKey(job: ReviewableVolume): string {
     reviews: Object.entries(job.reviews ?? {}).sort(([a],[b]) => a.localeCompare(b)),
   })
 }
-export function buildVolumeDraft(job: ReviewableVolume): string {
+/** `systematic` appends section-by-section rows (report template layout 'systematic'); the accepted-findings list stays. */
+export function buildVolumeDraft(job: ReviewableVolume, opts: { systematic?: boolean } = {}): string {
   const coverage = volumeCoverage(job.reads,job.count), rows = volumeFindingRows(job)
   const accepted = rows.filter((row) => row.decision === 'accepted' && !row.incomplete && !row.blocked)
   const pending = rows.filter((row) => row.decision === 'pending').length
@@ -85,5 +87,7 @@ export function buildVolumeDraft(job: ReviewableVolume): string {
     'REVIEW STATUS', `${rows.filter(row=>row.blocked).length} model claims withheld by consistency checks.`, `${accepted.length} accepted findings included; ${pending} pending; ${rejected} rejected. Findings from incomplete responses are excluded.`,
     'Review source images and edit this draft before clinical use. Separate slice findings have not been merged into lesions.',
   ]
+  if (opts.systematic) lines.push('', ...volumeSystematicLines({ title: job.title, modality: job.modality, plane: job.plane, completed: coverage.completed, count: job.count,
+    accepted: accepted.map((row) => ({ index: row.index, finding: { ...row.finding, description: row.description } })) }))
   return lines.join('\n')
 }

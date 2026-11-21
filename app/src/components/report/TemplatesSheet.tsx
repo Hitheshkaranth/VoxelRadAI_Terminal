@@ -7,15 +7,20 @@ import { toast } from '../shell/toastStore'
 import {
   DEFAULT_SECTION_TITLES,
   blankTemplate,
+  layoutOf,
   logoDataUrl,
+  systematicTemplate,
   useTemplates,
   type ReportTemplate,
   type TemplateInput,
 } from '../../lib/reportTemplates'
 import { REPORT_FIELD_KEYS } from '../../types'
 import { TemplateHeader } from './TemplateHeader'
+import { SystematicLetterhead } from './SystematicReport'
 
-const toInput = (t: ReportTemplate): TemplateInput => ({ name: t.name, header: { ...t.header, lines: [...t.header.lines] }, footer: { ...t.footer }, sectionTitles: { ...t.sectionTitles } })
+const toInput = (t: ReportTemplate): TemplateInput => ({ name: t.name, header: { ...t.header, lines: [...t.header.lines] }, footer: { ...t.footer }, sectionTitles: { ...t.sectionTitles },
+  ...(t.layout ? { layout: t.layout } : {}), ...(t.signatory ? { signatory: { ...t.signatory } } : {}), ...(t.greeting !== undefined ? { greeting: t.greeting } : {}) })
+const NO_SIGNATORY = { name: '', qualifications: '', registration: '' }
 
 export function TemplatesSheet({ open, onClose, institution }: { open: boolean; onClose: () => void; institution: string }) {
   const { templates, load, save, remove, setDefault, error } = useTemplates()
@@ -25,9 +30,9 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
 
   useEffect(() => { if (open) void load() }, [open, load])
 
-  const edit = (template: ReportTemplate | null) => {
+  const edit = (template: ReportTemplate | null, preset?: TemplateInput) => {
     setEditingId(template?.id ?? null)
-    setDraft(template ? toInput(template) : blankTemplate(institution))
+    setDraft(template ? toInput(template) : preset ?? blankTemplate(institution))
   }
   const close = () => { setDraft(null); setEditingId(null); onClose() }
   const act = async (work: () => Promise<unknown>, done?: string) => {
@@ -58,7 +63,7 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
             <div key={t.id} className="tpl-row">
               <div className="tpl-row-main">
                 <strong>{t.name}</strong>
-                <span>{t.header.institution || 'No institution'}{t.isDefault ? ' · Default' : ''}</span>
+                <span>{t.header.institution || 'No institution'}{layoutOf(t) === 'systematic' ? ' · Systematic layout' : ''}{t.isDefault ? ' · Default' : ''}</span>
               </div>
               <ShellButton type="button" className={`icon-btn${t.isDefault ? ' tpl-star-on' : ''}`} disabled={busy}
                 aria-label={t.isDefault ? `${t.name} is the default; clear default` : `Make ${t.name} the default`} aria-pressed={t.isDefault}
@@ -73,6 +78,7 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
             </div>
           ))}
           <ShellButton type="button" className="btn btn-primary" onClick={() => edit(null)}><Plus size={14} /> New template</ShellButton>
+          <ShellButton type="button" className="btn" onClick={() => edit(null, systematicTemplate(institution))}><Plus size={14} /> New systematic template (diagnostic-centre style)</ShellButton>
         </div>
       ) : (
         <form className="tpl-form" onSubmit={(e) => e.preventDefault()}>
@@ -105,6 +111,24 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
             </label>
           </fieldset>
           <fieldset>
+            <legend>Layout</legend>
+            <label>Report layout
+              <select className="input" value={layoutOf(draft)} onChange={(e) => patch((d) => ({ ...d, layout: e.target.value as 'standard' | 'systematic' }))}>
+                <option value="standard">Standard (technique, comparison, findings, impression)</option>
+                <option value="systematic">Systematic (patient block, one row per anatomical section)</option>
+              </select>
+            </label>
+            {layoutOf(draft) === 'systematic' ? (
+              <>
+                <label>Greeting line<input className="input" maxLength={80} value={draft.greeting ?? ''} placeholder="THANKS FOR REFERRING" onChange={(e) => patch((d) => ({ ...d, greeting: e.target.value }))} /></label>
+                <label>Reporting radiologist<input className="input" maxLength={120} value={draft.signatory?.name ?? ''} placeholder="Dr. A. Radiologist" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, name: e.target.value } }))} /></label>
+                <label>Qualifications<input className="input" maxLength={160} value={draft.signatory?.qualifications ?? ''} placeholder="MBBS, MD (Radiodiagnosis)" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, qualifications: e.target.value } }))} /></label>
+                <label>Registration line<input className="input" maxLength={120} value={draft.signatory?.registration ?? ''} placeholder="Medical council registration number" onChange={(e) => patch((d) => ({ ...d, signatory: { ...NO_SIGNATORY, ...d.signatory, registration: e.target.value } }))} /></label>
+                <p className="tpl-empty">Sections the AI read did not assess print as “Not assessed by the AI read — radiologist to review”; normals print only where the read stated them.</p>
+              </>
+            ) : null}
+          </fieldset>
+          <fieldset>
             <legend>Footer (repeats on every printed page)</legend>
             <label>Footer text<textarea className="input" rows={2} maxLength={600} value={draft.footer.text} placeholder="e.g. Reported by consultant radiologist · For queries call …"
               onChange={(e) => patch((d) => ({ ...d, footer: { ...d.footer, text: e.target.value } }))} /></label>
@@ -122,7 +146,9 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
               ))}
             </div>
           </fieldset>
-          <div className="tpl-preview" aria-label="Header preview"><TemplateHeader template={{ ...draft, id: '', isDefault: false }} fallbackInstitution={institution} subtitle="Radiology Report" meta="Report date · Accession" /></div>
+          <div className="tpl-preview" aria-label="Header preview">{layoutOf(draft) === 'systematic'
+            ? <SystematicLetterhead template={{ ...draft, id: '', isDefault: false }} fallbackInstitution={institution} />
+            : <TemplateHeader template={{ ...draft, id: '', isDefault: false }} fallbackInstitution={institution} subtitle="Radiology Report" meta="Report date · Accession" />}</div>
         </form>
       )}
     </Sheet>

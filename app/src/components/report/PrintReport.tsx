@@ -11,7 +11,9 @@ import { isExcluded, isUnconfirmed } from '../../lib/classifier'
 import { reliabilityFor } from '../../lib/reliability'
 import { DISCLAIMER, analyzedImages, examSummary, exclusionReason, reportPatient, splitFindings } from '../../lib/reportExport'
 import { cssString, sanitizeReportHtml } from '../../lib/richText'
-import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import { layoutOf, sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import { examTypeLine } from '../../lib/systematicReport'
+import { SystematicBody, SystematicLetterhead, SystematicSignatory } from './SystematicReport'
 import type { ReportFieldKey } from '../../types'
 import { TemplateHeader } from './TemplateHeader'
 import { addendumHeading, correctionNote, currentAddenda } from '../../lib/reportVersions'
@@ -140,6 +142,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const templatesLoaded = useTemplates((s) => s.loaded)
   useEffect(() => { if (!templatesLoaded) void loadTemplates() }, [templatesLoaded, loadTemplates])
   const template = templateForReport(templates, report)
+  const systematic = template && layoutOf(template) === 'systematic' ? template : null
   const body = (key: ReportFieldKey, ordered = false) => (
     <Section key={key} title={sectionTitle(template, key)}>
       <SectionBody html={report?.rich?.[key]} value={report?.[key]} ordered={ordered} />
@@ -263,6 +266,13 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
           <div className="rp-print-page" role="document">
             <div className="rp-print-inner">
               {pageStyle ? <style>{pageStyle}</style> : null}
+              {systematic ? (
+                <>
+                  <SystematicLetterhead template={systematic} fallbackInstitution={settings.institution} />
+                  <SystematicBody template={systematic} patient={patient} report={report} examType={examTypeLine(analyzed)} reportDate={new Date().toLocaleDateString()} />
+                </>
+              ) : (
+                <>
               <TemplateHeader
                 template={template}
                 fallbackInstitution={settings.institution}
@@ -307,6 +317,8 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                   <p>{examLine || '—'}</p>
                 </div>
               </Section>
+                </>
+              )}
 
               {analyzed.length > 0 && (
                 <Section title="Key Images">
@@ -357,11 +369,15 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                 </Section>
               )}
 
-              {body('technique')}
-              {body('comparison')}
-              {body('findings')}
-              {body('impression', true)}
-              {body('recommendations')}
+              {systematic ? null : (
+                <>
+                  {body('technique')}
+                  {body('comparison')}
+                  {body('findings')}
+                  {body('impression', true)}
+                  {body('recommendations')}
+                </>
+              )}
 
               {included.length > 0 && (
                 <section className="rp-section rp-table-section">
@@ -460,6 +476,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
 
               <div className="rp-signature">
                 <Signature signedName={report?.radiologist ?? ''} signedAt={report?.signedAt} isSigned={!!report?.signed} />
+                {systematic ? <SystematicSignatory template={systematic} signedName={report?.signed ? report.radiologist : ''} /> : null}
               </div>
               {corrected ? <p className="rp-correction-note">{corrected}</p> : null}
 
