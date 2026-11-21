@@ -415,7 +415,18 @@ function normalizeFinding(raw: unknown, index: number): Finding {
     validationIssues: Array.isArray(raw.validationIssues) && raw.validationIssues.length ? raw.validationIssues.map((x: unknown) => asString(x)).filter(Boolean) : undefined,
     category: category || (isDevice(title, '') ? 'Devices' : ''),
     recommendation: asString(raw.recommendation),
+    ...seriesPosition(raw),
   }
+}
+
+/** sliceIndex / sliceRange from a whole-series reply (0-based axial slices); invalid values are dropped. */
+function seriesPosition(raw: Record<string, unknown>): Pick<Finding, 'sliceIndex' | 'sliceRange'> {
+  const out: Pick<Finding, 'sliceIndex' | 'sliceRange'> = {}
+  const i = raw.sliceIndex
+  if (typeof i === 'number' && Number.isInteger(i) && i >= 0) out.sliceIndex = i
+  const r = raw.sliceRange
+  if (Array.isArray(r) && r.length === 2 && r.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0) && r[0] <= r[1]) out.sliceRange = [r[0], r[1]]
+  return out
 }
 
 function toTextList(v: unknown): string[] {

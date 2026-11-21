@@ -21,6 +21,10 @@ export interface SkandaSliceInput {
     body: string
     pixel_spacing: [number, number]
     hu?: { b64: string; width: number; height: number }
+    /** Whole axial CT series (Skanda-V2 series path, skanda-v2 skanda/v2/ct_series.py): int16 HU, zlib-deflated,
+     *  slices in display orientation (patient right on image left), index = the slice on screen. */
+    series?: { b64: string; encoding: 'zlib' | 'raw'; dtype: 'int16'; slices: number; height: number; width: number;
+               spacing_zyx_mm: [number, number, number]; index: number }
     sequence?: string
     composite: boolean
   }
@@ -103,4 +107,21 @@ export function skandaSliceInput(volume: Volume, plane: VolumePlane, index: numb
   limitations.push(`One MRI sequence${source.sequence ? ` (${source.sequence})` : ''}: Skanda was trained on FLAIR, T1 post-contrast and T2 together; single-sequence reads are outside its training data.`)
   const dataUrl = pngDataUrl((i) => { const v = unit(values[i], lo, hi); return [v, v, v] }, width, height)
   return { input: { dataUrl, width, height, limitations, extension: { modality, body, pixel_spacing: pixelSpacing, composite: false, sequence: source.sequence } } }
+}
+
+/** Whole axial CT series for Skanda-V2's series path (localiser + organ detectors read 7+ slices / the volume, which one
+ *  slice cannot give). Async because the HU block is deflated (CompressionStream 'deflate' = zlib, as the server reads).
+ *  The reply's findings carry sliceIndex / sliceRange; a finding is drawn on its own slice, not on the slice on screen. */
+export async function skandaCtSeries(volume: Volume, index: number): Promise<NonNullable<SkandaSliceInput['extension']['series']>> {
+  const g = getSliceGeometry(volume, 'axial')
+  const n = g.count, plane = g.width * g.height
+  const hu = new Int16Array(n * plane)
+  for (let z = 0; z < n; z++) {
+    const { values } = sliceValues(volume, 'axial', z)
+    for (let i = 0; i < plane; i++) hu[z * plane + i] = Math.max(-32768, Math.min(32767, Math.round(values[i])))
+  }
+  const deflated = new Uint8Array(await new Response(new Blob([hu.buffer]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer())
+  const dz = Math.abs(volume.spacing[g.axis])
+  return { b64: toBase64(deflated), encoding: 'zlib', dtype: 'int16', slices: n, height: g.height, width: g.width,
+           spacing_zyx_mm: [dz, g.pixelSpacing[1], g.pixelSpacing[0]], index }
 }

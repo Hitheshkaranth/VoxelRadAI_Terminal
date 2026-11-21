@@ -78,6 +78,7 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
     </details>
     {connection !== 'online' && !running && <ScanButton className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</ScanButton>}
     {loadError && <p role="alert">{loadError}</p>}
+    {job?.notice && <p className="volume-review-note">{job.notice}</p>}
     {job?.error && <p role="alert">{job.error}</p>}
     {job?.storageError && <p role="alert">{job.storageError}</p>}
     {changed && <p>View or model changed. Resume keeps the original model, endpoint and window. Restart uses current settings.</p>}

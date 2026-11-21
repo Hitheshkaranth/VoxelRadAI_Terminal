@@ -3,10 +3,10 @@ import { assertVolumeResumeContext } from './volumeResume'
 import { volumeFingerprint } from './volumeJobIdentity'
 import { validateVolumeAnalysis } from './volumeValidation'
 import { workspaceGet as get, workspaceSet as set } from './workspaceStorage'
-import { analyzeImage, isSkandaModel } from './medgemma'
-import { skandaSliceInput, type SkandaSliceInput } from './skandaSlice'
+import { analyzeImage, isSkandaModel, isSkandaV2Model } from './medgemma'
+import { skandaCtSeries, skandaSliceInput, type SkandaSliceInput } from './skandaSlice'
 import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './volume'
-import { reviewAllSlices, volumeCoverage, type SliceRead } from './volumeAnalysis'
+import { reviewAllSlices, splitSeriesAnalysis, volumeCoverage, type SliceRead } from './volumeAnalysis'
 import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type VolumeFindingGroup, type VolumeFindingReview, type VolumeDraftReport } from './volumeReview'
 import type { PatientInfo, Settings } from '../types'
 import { uid } from '../store'
@@ -19,6 +19,8 @@ export interface VolumeJob {
   findingGroups?: VolumeFindingGroup[]
   reviews?: Record<string, VolumeFindingReview>; draftReport?: VolumeDraftReport
   progress: string; elapsedMs: number; runStartedAt?: number; updatedAt: number; error?: string; storageError?: string
+  /** How the reads were made when it is not the plain slice loop (e.g. a whole-series read, or its fallback). */
+  notice?: string
 }
 const patient: PatientInfo = { name: '', patientId: '', age: '', sex: '', studyDate: '', referringPhysician: '', indication: '', clinicalHistory: '' }
 const records = new Map<string, VolumeJob>()
@@ -115,10 +117,48 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
     const record = records.get(opts.identity)!
     return publish({ ...record, ...change, updatedAt: Date.now() })
   }
+  const renderForRead = (index: number) => {
+    const slice = renderSlice(opts.volume, job.plane, index, job.snapshot)
+    const raw = document.createElement('canvas')
+    raw.width = slice.width; raw.height = slice.height
+    raw.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(slice.pixels), slice.width, slice.height), 0, 0)
+    const aspect = slice.width * slice.pixelSpacing[0] / (slice.height * slice.pixelSpacing[1])
+    const canvas = document.createElement('canvas'), longEdge = Math.min(1536, Math.max(slice.width, slice.height))
+    canvas.width = Math.max(1, Math.round(aspect >= 1 ? longEdge : longEdge * aspect))
+    canvas.height = Math.max(1, Math.round(aspect >= 1 ? longEdge / aspect : longEdge))
+    canvas.getContext('2d')!.drawImage(raw, 0, 0, canvas.width, canvas.height)
+    const label = `${job.title}${job.snapshot.acquisition ? ` · ${acquisitionLabel(job.snapshot.acquisition)}` : ''} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
+    return { canvas, label }
+  }
   try {
     await save(job)
     if (!current()) return
     const skandaCache: { mriRange?: [number, number] } = {}  // one MRI normalisation per job (Skanda reads)
+    // Skanda-V2 on CT: one whole-series request (localiser + organ detectors read the volume), split back into per-slice
+    // reads. Any failure falls back to the slice-by-slice loop below, with a visible note.
+    if (isSkandaV2Model(job.snapshot.settings.model) && job.modality.toUpperCase() === 'CT' && job.plane === 'axial'
+        && volumeCoverage(job.reads, job.count).completed === 0) {
+      try {
+        patch({ progress: 'Reading the whole series…' })
+        const key = Math.floor(job.count / 2)
+        const built = skandaSliceInput(opts.volume, job.plane, key, { ...job.snapshot.acquisition, modality: job.modality, title: job.title }, skandaCache)
+        if (!built.input) throw new Error(built.reason ?? 'Skanda cannot read this series.')
+        const series = await skandaCtSeries(opts.volume, key)
+        const { canvas, label } = renderForRead(key)
+        const analysis = await analyzeImage({ settings: job.snapshot.settings, patient, signal: controller.signal,
+          skanda: { ...built.input, extension: { ...built.input.extension, series } },
+          image: { id: uid(), name: label, mime: 'image/png', dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, addedAt: Date.now(), status: 'idle', sourceModality: 'CT' },
+          onProgress: (text) => { if (current()) patch({ progress: `Reading the whole series… ${text}` }) },
+        })
+        if (!current()) return
+        const reads = splitSeriesAnalysis(analysis, job.count, key).map((r) => r.analysis && r.analysis.findings.length
+          ? { ...r, analysis: validateVolumeAnalysis(opts.volume, job.plane, r.index, job.snapshot, r.analysis, { sequence: job.snapshot.acquisition?.sequence }) } : r)
+        await save(patch({ reads, notice: `Read as one whole series (${job.count} axial slices) by ${job.snapshot.settings.model}.` }))
+      } catch (error) {
+        if (controller.signal.aborted || !current()) return
+        patch({ progress: '', notice: `Whole-series read failed (${error instanceof Error ? error.message : 'unknown error'}); reading slice by slice instead.` })
+      }
+    }
     await reviewAllSlices({ retries: 2, onRetry: (index,attempt) => { if(current())patch({progress:`Connection interrupted at slice ${index+1}. Retrying ${attempt}/2…`}) }, count: job.count, previous: job.reads, signal: controller.signal,
       onStart: (index) => { if (current()) patch({ progress: `Reviewing ${job.plane} slice ${index + 1} of ${job.count}` }) },
       onSlice: async (read) => {
@@ -128,16 +168,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         await save(next)
       },
       read: async (index) => {
-        const slice = renderSlice(opts.volume, job.plane, index, job.snapshot)
-        const raw = document.createElement('canvas')
-        raw.width = slice.width; raw.height = slice.height
-        raw.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(slice.pixels), slice.width, slice.height), 0, 0)
-        const aspect = slice.width * slice.pixelSpacing[0] / (slice.height * slice.pixelSpacing[1])
-        const canvas = document.createElement('canvas'), longEdge = Math.min(1536, Math.max(slice.width, slice.height))
-        canvas.width = Math.max(1, Math.round(aspect >= 1 ? longEdge : longEdge * aspect))
-        canvas.height = Math.max(1, Math.round(aspect >= 1 ? longEdge / aspect : longEdge))
-        canvas.getContext('2d')!.drawImage(raw, 0, 0, canvas.width, canvas.height)
-        const label = `${job.title}${job.snapshot.acquisition ? ` · ${acquisitionLabel(job.snapshot.acquisition)}` : ''} · ${job.plane} ${index + 1}/${job.count} · W ${job.snapshot.width}/L ${job.snapshot.center} · top ${slice.labels.top}, left ${slice.labels.left}`
+        const { canvas, label } = renderForRead(index)
         let lastProgress = 0
         let skanda: SkandaSliceInput | undefined
         if (isSkandaModel(job.snapshot.settings.model)) {

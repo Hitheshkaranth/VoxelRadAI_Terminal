@@ -61,6 +61,8 @@ no prose, no markdown, no code fences.`
 
 /** Skanda models (its own server, or a build of it in LM Studio) are named skanda-…. */
 export const isSkandaModel = (model: string) => /(^|\/)skanda-/i.test(model)
+/** Skanda-V2 serves CT as a whole series (localiser + organ detectors need the volume, not one slice). */
+export const isSkandaV2Model = (model: string) => /(^|\/)skanda-v2/i.test(model)
 
 export type AnalyzeStage = 'queued' | 'reading' | 'retry' | 'lung-pattern'
 

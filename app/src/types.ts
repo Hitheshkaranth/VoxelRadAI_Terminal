@@ -56,6 +56,10 @@ export interface Finding {
   source?: FindingSource
   /** Radiologist's accept/dismiss decision; overrides the classifier's exclusion. */
   review?: FindingReview
+  /** Whole-series reads (Skanda-V2 CT series path): the 0-based axial slice the finding is on (its box / outline are on
+   *  that slice) and the slice range it spans. Absent for single-image reads. */
+  sliceIndex?: number
+  sliceRange?: [number, number]
 }
 
 export interface ClassifierCheck {
