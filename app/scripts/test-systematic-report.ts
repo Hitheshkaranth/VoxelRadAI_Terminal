@@ -19,7 +19,7 @@ assert.equal(JSON.stringify(cxr), before)
 const rows = parseRows(d.findings)
 assert.deepEqual(rows.map((r) => r.title), ['BONES & SOFT TISSUES', 'DIAPHRAGM', 'UPPER ABDOMEN', 'LUNG FIELDS', 'MEDIASTINUM'])
 const row = (t: string) => rows.find((r) => r.title === t)!.lines.join(' ')
-assert.match(row('BONES & SOFT TISSUES'), /^Rib fracture, left lateral 5th rib\.$/)
+assert.match(row('BONES & SOFT TISSUES'), /^Rib fracture noted, left lateral 5th rib\.$/)
 assert.match(row('LUNG FIELDS'), /Pleural effusion/)
 assert.match(row('LUNG FIELDS'), /Consolidation/)
 assert.match(row('LUNG FIELDS'), /No pneumothorax\./)
@@ -62,13 +62,13 @@ assert.deepEqual(parseRows('free text\nLUNG FIELDS: a\nb'), [{ title: 'FINDINGS'
 
 // Volume drafts: systematic rows only when asked, slice numbers kept.
 const lines = volumeSystematicLines({ title: 'CT abdomen', modality: 'CT', plane: 'axial', completed: 11, count: 11, accepted: [{ index: 5, finding: f('Focal lesion, right side') }] })
-assert.match(lines.join('\n'), /OTHER FINDINGS \(SECTION NOT CONFIRMED\): Focal lesion, right side \(axial slice 6\)/)
+assert.match(lines.join('\n'), /OTHER FINDINGS \(SECTION NOT CONFIRMED\): Focal lesion noted, right side \(axial slice 6\)/)
 assert.match(lines.join('\n'), /^LIVER: $/m)
 assert.equal(volumeSystematicLines({ title: 'MRI brain', modality: 'MR brain', plane: 'axial', completed: 2, count: 2, accepted: [], impressions: ['No focal abnormality on this slice.', 'No focal abnormality on this slice.'] }).at(-1), 'No focal abnormality in this series.')
 const job = { id: 'j', title: 'CT abdomen', modality: 'CT', plane: 'axial', count: 1, snapshot: { model: 'm', center: 40, width: 400 },
   reads: [{ index: 0, status: 'done', analysis: { findings: [f('Liver lesion')] } }], reviews: { '0:Liver lesion': { decision: 'accepted' } } } as unknown as ReviewableVolume
 assert.doesNotMatch(buildVolumeDraft(job), /SYSTEMATIC FINDINGS/)
-assert.match(buildVolumeDraft(job, { systematic: true }), /LIVER: Liver lesion \(axial slice 1\)\.$/m) // accepted: no unreviewed marker
+assert.match(buildVolumeDraft(job, { systematic: true }), /LIVER: Liver lesion noted \(axial slice 1\)\.$/m) // accepted: no unreviewed marker
 // Measurements from the measurement code only; location rewrite; one numbering; exact duplicates merged.
 import { measuredText, mergeDuplicates, systematicSentence } from '../src/lib/systematicReport.ts'
 const ctDesc = 'Measured from the scan: long axis 59.0 mm, seen over 57.0 mm of slices (66-103), median attenuation 34 HU. Location by the anatomy model: liver.'
@@ -76,10 +76,13 @@ assert.equal(measuredText(ctDesc, true), 'Measured from the scan: long axis 59.0
 assert.equal(measuredText('High FLAIR signal, irregular. Measured from the outline: about 6 mm across on this slice (area 29 mm²).'), 'Measured from the outline: about 6 mm across on this slice (area 29 mm²).')
 assert.equal(measuredText('Dependent opacity with a meniscus.'), '')
 const lesion = f('Liver lesion, right', { location: 'liver patient right', description: ctDesc, review: 'accepted', slice: 'axial slice 81' } as never)
-assert.equal(systematicSentence(lesion, true), 'Liver lesion (axial slice 81), patient\'s right side. Measured from the scan: long axis 59.0 mm, seen over 57.0 mm of slices 67–104, median attenuation 34 HU.')
+assert.equal(systematicSentence(lesion, true), 'Liver lesion noted (axial slice 81), patient\'s right side. Measured from the scan: long axis 59.0 mm, seen over 57.0 mm of slices 67–104, median attenuation 34 HU.')
 assert.doesNotMatch(systematicSentence(lesion, true), /liver patient|slices \(66/)
 assert.deepEqual(mergeDuplicates(['a.', 'b.', 'a.']), ['a. (×2)', 'b.'])
 const vol = volumeSystematicLines({ title: 'CT abdomen', modality: 'CT', plane: 'axial', completed: 3, count: 3, accepted: [0, 0].map(() => ({ index: 1, finding: f('Liver lesion', { location: 'liver patient left', review: 'accepted' }) })) }).join('\n')
 assert.match(vol, /^Volume read: 3 axial slices \(slice numbers count from 1\)\.$/m)
-assert.match(vol, /^LIVER: Liver lesion \(axial slice 2\), patient's left side\. \(×2\)$/m)
+assert.match(vol, /^LIVER: Liver lesion noted \(axial slice 2\), patient's left side\. \(×2\)$/m)
+// Wording: "<Finding> noted", body-part-only locations dropped; impression items keep the bare title.
+assert.equal(systematicSentence(f('Pleural effusion', { location: 'chest' }) as never), 'Pleural effusion noted.')
+assert.equal(systematicSentence(f('consolidation', { location: 'chest' }) as never, false, false, false), 'Consolidation.')
 console.log('systematic report ok')

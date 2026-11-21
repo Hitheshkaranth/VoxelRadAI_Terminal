@@ -115,7 +115,10 @@ export function measuredText(description: string | undefined, fromZero = false):
 const SIDE = /\bpatient(?:'s)?\s+(right|left|both)(?:\s+sides?)?\b/i
 /** Title, location and measurements as printed in a row. "Liver lesion, right" + "liver patient right" becomes
  *  "Liver lesion, patient's right side": the organ word the title already names is not repeated. */
-export function systematicSentence(f: SystematicFinding, fromZero = false, withMeasure = true): string {
+const BODY_ONLY = /^(chest|thorax|abdomen|abdominal|head|brain|pelvis)$/i
+/** Section rows read "<Finding> noted, <location>." (`noted`); impression items keep the bare title. A location that
+ *  only repeats the body part of the exam ("chest") is dropped. */
+export function systematicSentence(f: SystematicFinding, fromZero = false, withMeasure = true, noted = true): string {
   let title = (f.title || 'Finding').trim().replace(/[.\s]+$/, '')
   title = title.charAt(0).toUpperCase() + title.slice(1)
   const loc = (f.location ?? '').trim().replace(/[.\s]+$/, '')
@@ -123,9 +126,12 @@ export function systematicSentence(f: SystematicFinding, fromZero = false, withM
   const titleWords = new Set(title.toLowerCase().split(/[^a-z]+/).filter(Boolean))
   // Only the "<organ> patient <side>" form is rewritten; the organ word is dropped when the title already names it.
   const left = side ? loc.replace(SIDE, ' ').replace(/\s+/g, ' ').trim() : loc
-  const rest = side && left.split(' ').every((w) => titleWords.has(w.toLowerCase())) ? '' : left
+  const rest0 = side && left.split(' ').every((w) => titleWords.has(w.toLowerCase())) ? '' : left
+  const rest = BODY_ONLY.test(rest0) ? '' : rest0
   if (side) title = title.replace(/,\s*(right|left|both)\s*$/i, '')
-  const parts = [f.slice ? `${title} (${f.slice})` : title]
+  const comma = title.indexOf(',')
+  const core = noted ? (comma > 0 ? `${title.slice(0, comma)} noted${title.slice(comma)}` : `${title} noted`) : title
+  const parts = [f.slice ? `${core} (${f.slice})` : core]
   if (rest && !title.toLowerCase().includes(rest.toLowerCase())) parts.push(/^[A-Z][a-z]/.test(rest) ? rest.charAt(0).toLowerCase() + rest.slice(1) : rest)
   if (side) parts.push(side === 'both' ? 'both sides' : `patient's ${side} side`)
   const measured = withMeasure ? (measuredText(f.description, fromZero) || (measurementPhrase(f.measurements) ? `${measurementPhrase(f.measurements).replace(/^measuring/, 'Measuring')}.` : '')) : ''
@@ -147,7 +153,7 @@ export function systematicRows({ exam, findings, negatives, sliceIndexFromZero =
   for (const f of findings) {
     if (f.review === 'dismissed') continue
     const title = sectionOf([f.title, f.category ?? '', f.location], scheme) ?? UNPLACED_TITLE
-    if (f.severity === 'normal') add(stated, title, systematicSentence({ ...f, review: 'accepted' }, sliceIndexFromZero))
+    if (f.severity === 'normal') add(stated, title, systematicSentence({ ...f, review: 'accepted' }, sliceIndexFromZero, true, false))
     else add(abnormal, title, systematicSentence(f, sliceIndexFromZero))
   }
   for (const n of negatives) {
@@ -196,7 +202,7 @@ export function systematicReport(study: Study): Pick<ReportDraft, 'technique' | 
   // No finding: the impression is what the model said (its impression, or its whole-study negative); else blank.
   const said = [...images.map((i) => i.analysis!.impression ?? ''), ...negatives.filter((n) => GLOBAL_NEGATIVE.test(n))]
   const impression = ranked.length
-    ? [SUGGESTIVE, ...mergeDuplicates(ranked.map(({ f }) => systematicSentence(f, false, false))).map((l, i) => `${i + 1}. ${l}`)].join('\n')
+    ? [SUGGESTIVE, ...mergeDuplicates(ranked.map(({ f }) => systematicSentence(f, false, false, false))).map((l, i) => `${i + 1}. ${l}`)].join('\n')
     : modelImpression(said)
   const scope = readScope(images)
   return {
@@ -246,6 +252,6 @@ export function volumeSystematicLines(args: { title: string; modality: string; p
     ...rows.map((r) => `${r.title}: ${r.lines.join('\n')}`),
     '',
     'IMPRESSION',
-    ...(ranked.length ? [SUGGESTIVE, ...mergeDuplicates(ranked.map((f) => systematicSentence(f, true, false))).map((l, i) => `${i + 1}. ${l}`)] : [modelImpression(args.impressions ?? [], true)]),
+    ...(ranked.length ? [SUGGESTIVE, ...mergeDuplicates(ranked.map((f) => systematicSentence(f, true, false, false))).map((l, i) => `${i + 1}. ${l}`)] : [modelImpression(args.impressions ?? [], true)]),
   ]
 }
