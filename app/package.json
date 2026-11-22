@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint --react-plugin -D react/rules-of-hooks src",
     "preview": "vite preview",
-    "test": "node scripts/run-tests.mjs"
+    "test": "node scripts/run-tests.mjs",
+    "e2e:dictation": "node scripts/e2e-dictation.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "playwright-core": "^1.56.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

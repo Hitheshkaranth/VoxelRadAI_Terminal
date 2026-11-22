@@ -592,6 +592,7 @@
 .dict-status strong { color: var(--label); font-weight: 600; }
 .dict-select { width: auto; max-width: 100%; height: 28px; padding-block: 0; font-size: var(--text-footnote); }
 .dict-lang-tag { flex: none; padding: 1px 6px; border: 1px solid var(--separator); border-radius: var(--radius-sm); font-size: var(--text-caption); color: var(--label-2); white-space: nowrap; }
+.dict-guideline { display: block; color: var(--accent); }
 .dict-last, .dict-help { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.5; }
 .dict-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dict-help, .dict-vocab { padding-top: var(--sp-3); border-top: 1px solid var(--separator); }

@@ -13,6 +13,8 @@ import { REPORT_FIELD_KEYS, type ReportFieldKey } from '../../types'
 import { useSectionEditors } from '../../lib/sectionEditors'
 import { rememberClip, reportUndoneClip } from '../../lib/trainingCapture'
 import { DictationVocabulary } from './DictationVocabulary'
+import { useGuidelineBus } from '../../lib/guidelineBus'
+import { GUIDELINE_NAME } from '../../lib/guidelineSuggest'
 import { useApp } from '../../store'
 
 const LANGUAGES = [
@@ -61,6 +63,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
   const vocabRef = useRef(vocab)
   const undone = useRef<{ text: string; at: number } | null>(null)
   const lastText = useRef('')
+  const topSuggestion = useGuidelineBus((s) => s.suggestions[0])
 
   useEffect(() => { void dictationAvailable().then(setAvailable) }, [])
   // Every Dictation started for this study, including ones still finishing a clip after "stop".
@@ -181,6 +184,27 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
       case 'undo':
         undoLast()
         break
+      case 'guideline': {
+        const { handle, suggestions } = useGuidelineBus.getState()
+        // Back to the section being dictated once the helper closes, so the next phrase lands there.
+        const refocus = () => window.setTimeout(() => focusSection(target()), 0)
+        if (!handle) { toast('The guideline helper is in the Recommendations section of an unsigned report.', 'info'); return }
+        if (command.action === 'open') {
+          handle.open(suggestions[0])
+          label = suggestions[0] ? `open ${GUIDELINE_NAME[suggestions[0].kind]}` : 'open guideline helper'
+        } else if (command.action === 'close') {
+          handle.close()
+          refocus()
+          label = 'close guideline'
+        } else {
+          const outcome = handle.insert()
+          if (outcome === 'closed') toast('Say “open guideline” first and check the values, then “insert guideline”.', 'info')
+          else if (outcome === 'incomplete') toast('The guideline needs more values (such as the size) before it can be inserted.', 'info')
+          else refocus()
+          label = outcome === 'inserted' ? 'insert guideline' : 'insert guideline (not inserted)'
+        }
+        break
+      }
       default:
         editor?.exec(command.kind)
     }
@@ -326,6 +350,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
         <span className="dict-status" role="status" aria-live="polite">
           {status}
           {on ? <> · into <strong>{labels[target()]}</strong></> : null}
+          {on && topSuggestion ? <span className="dict-guideline">Say “open guideline” for {topSuggestion.label}</span> : null}
         </span>
         {language !== LANGUAGES[0].code ? <span className="dict-lang-tag">{LANGUAGES.find((l) => l.code === language)?.label ?? language}</span> : null}
       </div>
@@ -394,6 +419,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
             <li><b>“insert macro</b> <i>name</i><b>”</b> to insert a saved phrase</li>
             <li><b>“new line”</b>, <b>“new paragraph”</b>, <b>“bullet point”</b>, <b>“numbered list”</b></li>
             <li><b>“scratch that”</b> to undo the last phrase, <b>“delete last sentence”</b>, <b>“capitalise that”</b></li>
+            <li><b>“open guideline”</b> to open the suggested guideline pre-filled from your dictation, <b>“insert guideline”</b> once the values are checked, <b>“close guideline”</b></li>
             <li><b>“stop dictation”</b> to turn the microphone off</li>
           </ul>
           <p>

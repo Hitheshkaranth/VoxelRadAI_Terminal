@@ -51,6 +51,7 @@ import { signPatch } from '../../lib/reportVersions'
 import { sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
 import { reportQa, uncommunicatedCritical } from '../../lib/reportQa'
 import { GuidelineHelper } from './GuidelineHelper'
+import { suggestGuidelines, unappliedSuggestions } from '../../lib/guidelineSuggest'
 import { CriticalCommsForm } from './CriticalCommsForm'
 import { ExamLibrarySheet, ExamTemplatePicker } from './ExamTemplates'
 import { fieldLabel, mergeTemplateSections, unresolvedFields, type ExamTemplate } from '../../lib/examTemplates'
@@ -133,6 +134,15 @@ function initials(name?: string) {
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+
+/** Every image is a plain radiograph (by DICOM modality, or by the analysis when the import had none). */
+function radiographOnly(study: Study): boolean {
+  return study.images.length > 0 && study.images.every((img) => {
+    const modality = img.sourceModality?.trim().toUpperCase()
+    if (modality) return modality === 'CR' || modality === 'DX'
+    return /radiograph|x-?ray/i.test(img.analysis?.modality ?? '')
+  })
+}
 
 function samePatient(a: PatientInfo, b: PatientInfo): boolean {
   return (Object.keys(a) as (keyof PatientInfo)[]).every((k) => a[k] === b[k])
@@ -468,6 +478,12 @@ export function ReportPanel() {
   const reviewedFindings = reviewFindings.filter((f) => !!f.review).length
   const template = templateForReport(templates, report)
   const sectionLabels = Object.fromEntries(REPORT_FIELDS.map((f) => [f.key, sectionTitle(template, f.key)])) as Record<ReportFieldKey, string>
+  // Findings in the dictated text that a guideline helper covers (cheap regex over a few sentences; below the early
+  // returns, so no hook). Suggestions already cited in Recommendations drop out.
+  const guidelineSuggestions = signed ? [] : unappliedSuggestions(
+    suggestGuidelines(`${report.findings}\n${report.impression}`, { indication: patient.indication, technique: report.technique, radiograph: radiographOnly(study) }),
+    report.recommendations,
+  )
 
   return (
     <div className="rp-panel">
@@ -623,7 +639,7 @@ export function ReportPanel() {
             onChange={onFieldChange(field.key)}
           />
           {field.key === 'recommendations' && !signed ? (
-            <GuidelineHelper onInsert={(sentence) => setReport(study.id, {
+            <GuidelineHelper suggestions={guidelineSuggestions} onInsert={(sentence) => setReport(study.id, {
               recommendations: report.recommendations.trim() ? `${report.recommendations.trimEnd()}\n${sentence}` : sentence, edited: true,
             })} />
           ) : null}

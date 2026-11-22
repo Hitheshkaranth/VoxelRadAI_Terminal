@@ -464,6 +464,8 @@ Organisations can call Skanda V1 from their own software at `https://voxelradai.
 ```sh
 # Frontend (app/)
 npm test && npm run lint && npm run build
+npm run e2e:dictation   # macOS: hands-free dictation in headless Chrome with spoken audio;
+                        # Sarvam is stubbed unless SARVAM_API_KEY is set (env or a git-ignored .env)
 
 # API (server/)
 npm ci && npm test

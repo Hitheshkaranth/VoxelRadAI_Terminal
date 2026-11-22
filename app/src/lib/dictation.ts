@@ -17,6 +17,7 @@ export type DictationCommand =
   | { kind: 'macro'; name: string }
   | { kind: 'deleteSentence' }
   | { kind: 'capitalise' }
+  | { kind: 'guideline'; action: 'open' | 'insert' | 'close' }
 
 export type DictationEvent = { kind: 'text'; text: string } | { kind: 'command'; command: DictationCommand }
 export type DictationState = 'idle' | 'starting' | 'listening' | 'hearing' | 'transcribing' | 'error'
@@ -95,6 +96,9 @@ export function parseUtterance(transcript: string, correct?: (text: string) => s
   if (/^(previous field|prev field|last field|previous blank)$/.test(said)) return { kind: 'command', command: { kind: 'prevField' } }
   if (/^(delete|scratch|remove) (the )?last sentence$/.test(said)) return { kind: 'command', command: { kind: 'deleteSentence' } }
   if (/^(capitali[sz]e|cap) (that|it)$/.test(said)) return { kind: 'command', command: { kind: 'capitalise' } }
+  if (/^(open|show|check) (the )?guidelines?( helper)?$|^guidelines?( helper)?$/.test(said)) return { kind: 'command', command: { kind: 'guideline', action: 'open' } }
+  if (/^(insert|apply|add) (the )?guidelines?( recommendation)?$/.test(said)) return { kind: 'command', command: { kind: 'guideline', action: 'insert' } }
+  if (/^(close|cancel|dismiss) (the )?guidelines?( helper)?$/.test(said)) return { kind: 'command', command: { kind: 'guideline', action: 'close' } }
   const macro = said.match(/^(?:insert )?macro ([\w -]{1,60})$/)
   if (macro) return { kind: 'command', command: { kind: 'macro', name: macro[1].trim() } }
   const goto = said.match(/^(?:go to |open |move to )?(\w+)(?: section)?$/)

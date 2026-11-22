@@ -45,3 +45,14 @@
 @media (prefers-reduced-motion: reduce) {
   .gh-popover :is(input, select) { transition: none; }
 }
+
+/* Suggestions spotted in the dictated text, beside the helper trigger. */
+.gh-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.gh-suggest { display: contents; list-style: none; }
+.gh-suggest li { display: inline-flex; align-items: center; }
+.gh-chip { gap: 4px; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.gh-chip-x { color: var(--label-2); border-top-left-radius: 0; border-bottom-left-radius: 0; padding-inline: 6px; }
+.gh-from { margin: 0; padding: var(--sp-2); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--label); line-height: 1.45; }
+.gh-from svg { vertical-align: -1px; color: var(--accent); }
+.gh-from q { font-style: italic; }
+@media screen and (max-width: 1023px) { .gh-chip, .gh-chip-x { min-height: 44px; } }

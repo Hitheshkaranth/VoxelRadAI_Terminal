@@ -46,6 +46,15 @@ assert.deepEqual(parseUtterances('lungs clear new line'), [{ kind: 'text', text:
 // Corrections apply to text, not commands
 const upper = (t: string) => t.toUpperCase()
 assert.deepEqual(parseUtterance('next section', upper), { kind: 'command', command: { kind: 'next' } })
+// Guideline helper commands only when said on their own; "guideline" inside report text stays text.
+for (const said of ['open guideline', 'Guideline.', 'check the guidelines', 'show guideline helper']) {
+  assert.deepEqual(parseUtterance(said), { kind: 'command', command: { kind: 'guideline', action: 'open' } }, said)
+}
+for (const said of ['insert guideline', 'Apply guideline.', 'add the guideline recommendation']) {
+  assert.deepEqual(parseUtterance(said), { kind: 'command', command: { kind: 'guideline', action: 'insert' } }, said)
+}
+assert.deepEqual(parseUtterance('close guideline'), { kind: 'command', command: { kind: 'guideline', action: 'close' } })
+assert.equal(parseUtterance('follow up per Fleischner guideline')?.kind, 'text')
 assert.deepEqual(parseUtterance('lungs clear', upper), { kind: 'text', text: 'LUNGS CLEAR' })
 // Sentence helpers
 assert.equal(lastSentenceStart('No effusion. Heart normal.'), 13)
