@@ -5,4 +5,4 @@ Disallow: /workspace
 Allow: /demo
 Disallow: /shared
 
-Sitemap: https://radgenie.com/sitemap.xml
+Sitemap: https://radgenis.com/sitemap.xml

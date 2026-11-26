@@ -153,7 +153,7 @@ export function SettingsSheet() {
             className="input"
             value={settings.institution}
             onChange={(e) => change({ institution: e.target.value })}
-            placeholder="RadGenie"
+            placeholder="RadGenis"
           />
         </Field>
         <Field label="Default radiologist">
@@ -500,15 +500,15 @@ function DataControls() {
 
 function AboutSection() {
   return (
-    <Section title="About" desc="RadGenie decision support.">
+    <Section title="About" desc="RadGenis decision support.">
       <div className="sh-about">
-        <img className="sh-about-logo" src="/radgenie-mark.png" alt="" aria-hidden />
-        <div className="sh-about-title">RadGenie</div>
+        <img className="sh-about-logo" src="/radgenis-mark.png" alt="" aria-hidden />
+        <div className="sh-about-title">RadGenis</div>
         <div className="sh-about-sub">Version {VERSION}</div>
         <div className="sh-disclaimer">
           <AlertCircle />
           <span>
-            RadGenie provides AI-generated decision support only. All findings must be reviewed and verified by a
+            RadGenis provides AI-generated decision support only. All findings must be reviewed and verified by a
             qualified radiologist before any clinical decision is made. This tool is not a medical device.
           </span>
         </div>

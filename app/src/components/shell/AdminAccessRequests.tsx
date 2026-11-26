@@ -38,7 +38,7 @@ export function AdminAccessRequests() {
   }
   return <section className="admin-audit" aria-labelledby="admin-access-title">
     <div className="admin-refresh"><h3 className="admin-heading" id="admin-access-title">Access requests{pending ? ` · ${pending} new` : ''}</h3><ShellButton className="btn" disabled={loading} onClick={() => reload(() => setAttempt((value) => value + 1))}>Refresh</ShellButton></div>
-    <p className="admin-note">Submitted from the request form on radgenie.com. Approving records your decision; create the account under User accounts, then email the person yourself. Reviewed requests are deleted after 180 days.</p>
+    <p className="admin-note">Submitted from the request form on radgenis.com. Approving records your decision; create the account under User accounts, then email the person yourself. Reviewed requests are deleted after 180 days.</p>
     <div aria-live="polite">{loading && <p className="admin-note">Loading requests...</p>}{error && <p className="admin-error" role="alert">{error}</p>}</div>
     {!error && <><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Received</th><th scope="col">Person</th><th scope="col">Use case</th><th scope="col">Status</th></tr></thead>
       <tbody>{requests.map((item) => <tr key={item.id}>

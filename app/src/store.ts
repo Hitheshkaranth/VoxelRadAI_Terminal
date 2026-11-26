@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   model: import.meta.env?.VITE_MODEL_ID || 'skanda-grounding-q3-mixed',
   temperature: 0.2,
   maxTokens: 3072,
-  institution: 'RadGenie',
+  institution: 'RadGenis',
   radiologist: '',
   theme: readThemePreference() ?? 'dark',
   material: 'glass',
@@ -389,7 +389,7 @@ export async function hydrate() {
           ...DEFAULT_SETTINGS,
           ...saved.settings,
           // Earlier default names (Skanda Radiology, VoxelRad AI) follow the product rename; a custom institution is kept.
-          institution: ['Skanda Radiology', 'VoxelRad AI'].includes(saved.settings?.institution ?? '') ? 'RadGenie' : saved.settings?.institution ?? DEFAULT_SETTINGS.institution,
+          institution: ['Skanda Radiology', 'VoxelRad AI', 'RadGenie'].includes(saved.settings?.institution ?? '') ? 'RadGenis' : saved.settings?.institution ?? DEFAULT_SETTINGS.institution,
           theme: readThemePreference() ?? saved.settings?.theme ?? DEFAULT_SETTINGS.theme,
           maira: { ...DEFAULT_SETTINGS.maira, ...saved.settings?.maira },
         },

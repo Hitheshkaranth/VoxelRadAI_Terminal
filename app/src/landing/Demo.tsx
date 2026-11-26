@@ -27,7 +27,7 @@ export function Demo() {
     </Reveal>
     <Reveal className="sk-wrap">
       <div className="sk-demo-frame" data-started={started}>
-        <video ref={video} src="/landing/skanda-demo.mp4" poster="/landing/skanda-demo-poster.jpg" preload="none" playsInline controls={started} onPlay={() => setStarted(true)} aria-label="Skanda V1 reading X-ray, CT and MRI in the RadGenie workspace" />
+        <video ref={video} src="/landing/skanda-demo.mp4" poster="/landing/skanda-demo-poster.jpg" preload="none" playsInline controls={started} onPlay={() => setStarted(true)} aria-label="Skanda V1 reading X-ray, CT and MRI in the RadGenis workspace" />
         {!started && <button type="button" className="sk-demo-play" onClick={() => play()} aria-label="Play the demo video"><span><Play size={26} fill="currentColor" /></span>Play · 3:18</button>}
       </div>
       <ol className="sk-demo-chapters" aria-label="Chapters">{chapters.map(([t, label, at]) =>

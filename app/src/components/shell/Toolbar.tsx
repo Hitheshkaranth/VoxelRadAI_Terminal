@@ -21,7 +21,7 @@ export function Toolbar() {
   const [title, setTitle] = useState('')
   const renameCancelled = useRef(false)
 
-  const titleText = study?.title || 'RadGenie'
+  const titleText = study?.title || 'RadGenis'
 
   const startRename = () => {
     if (!study) return

@@ -83,7 +83,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
     {!SERVER_MODE ? <p className="admin-note">Server storage requires a configured server and a signed-in account. Your current studies stay in this browser.</p> : <>
       <h3 className="admin-heading">Save current study</h3>
       {active && <p className="admin-note cloud-current-title">{active.title || 'Untitled study'}</p>}
-      <p className="admin-note">Saving sends this study's patient details, scans, findings and report to your configured RadGenie server. It updates an existing server copy of the same study. Other studies and open volumes are not uploaded.</p>
+      <p className="admin-note">Saving sends this study's patient details, scans, findings and report to your configured RadGenis server. It updates an existing server copy of the same study. Other studies and open volumes are not uploaded.</p>
       <ShellButton className="btn btn-primary" disabled={!active || busy || active.images.some((image) => image.status === 'analyzing')} onClick={() => { void save() }}>{busy ? 'Saving...' : 'Save current study'}</ShellButton>
       {conflict && active?.id === conflict && <p className="admin-note">Overwriting replaces the newer server copy with this browser's copy. Signed report versions on the server are still kept. <ShellButton className="btn btn-destructive" disabled={busy} onClick={() => { void save(true) }}>Overwrite server copy</ShellButton></p>}
       {!active && <p className="admin-note">Select an image study to save.</p>}

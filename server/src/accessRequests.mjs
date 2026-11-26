@@ -15,7 +15,7 @@ export function parseAccessRequest(data) {
   if (!value.name) return { error: 'Enter your name.' }
   if (!validEmail(value.email)) return { error: 'Enter a valid work email address.' }
   if (!value.organization) return { error: 'Enter your organization.' }
-  if (value.useCase.length < 10) return { error: 'Tell us briefly how you would use RadGenie (at least 10 characters).' }
+  if (value.useCase.length < 10) return { error: 'Tell us briefly how you would use RadGenis (at least 10 characters).' }
   for (const [field, max] of Object.entries(LIMITS)) if (value[field].length > max) return { error: `${field === 'useCase' ? 'Use case' : field[0].toUpperCase() + field.slice(1)} must be ${max} characters or fewer.` }
   return { value }
 }

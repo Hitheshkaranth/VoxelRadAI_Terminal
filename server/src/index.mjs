@@ -585,7 +585,7 @@ if (!process.env.VERCEL) {
 const server = http.createServer(handler)
 server.requestTimeout = 30000
 server.headersTimeout = 15000
-server.listen(port, '0.0.0.0', () => console.log(`RadGenie API listening on ${port}`))
+server.listen(port, '0.0.0.0', () => console.log(`RadGenis API listening on ${port}`))
 const cleanupTimer = setInterval(() => { cleanup().catch(() => {}) }, 3600000).unref()
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal, () => { clearInterval(cleanupTimer); server.close(() => { pool.end().then(() => process.exit(0)) }); setTimeout(() => process.exit(1), 10000).unref() })
 }

@@ -170,7 +170,7 @@ export function Evidence() {
         <div className="sk-quote-top"><span><b>{String(i + 1).padStart(2, '0')}</b> / {String(notes.length).padStart(2, '0')}</span><span className="sk-quote-mark">”</span></div>
         <span className="sk-chip">{note.stat}</span>
         <blockquote key={i}>“{note.text}”</blockquote>
-        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/radgenie-mark.png" alt="" /><span><b>Skanda V1 · {note.source}</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
+        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/radgenis-mark.png" alt="" /><span><b>Skanda V1 · {note.source}</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
       </div>
     </Reveal>
   </section>
@@ -188,7 +188,7 @@ export function Faqs() {
 export function Closing() {
   return <section className="sk-close" aria-labelledby="close-title">
     <Reveal><h2 id="close-title">See More.<br />Report Better.</h2><div className="sk-actions"><Pill href="#weights" tone="grey">Get Skanda-0</Pill><Pill href="#access">Request access</Pill></div></Reveal>
-    <div className="sk-close-mark" aria-hidden="true"><img src="/radgenie-mark.png" alt="" /></div>
+    <div className="sk-close-mark" aria-hidden="true"><img src="/radgenis-mark.png" alt="" /></div>
   </section>
 }
 
@@ -209,6 +209,6 @@ export function Footer() {
   return <footer className="sk-footer">
     <ul className="sk-social">{social.map(([icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span>{icon}{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
     <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={anchor(href)}>{label}</a></li>)}</ul></div>)}</div>
-    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 RadGenie (formerly VoxelRad AI) · Built by <a href={anchor('#about')}>Hithesh Karanth and Dr&nbsp;Skanda Kumar Udupa</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
+    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 RadGenis (formerly VoxelRad AI) · Built by <a href={anchor('#about')}>Hithesh Karanth and Dr&nbsp;Skanda Kumar Udupa</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
   </footer>
 }

@@ -19,7 +19,7 @@ export function usePageMeta(title: string, description: string) {
   useEffect(() => {
     document.title = title
     document.querySelector('meta[name="description"]')?.setAttribute('content', description)
-    document.querySelector('link[rel="canonical"]')?.setAttribute('href', `https://radgenie.com${location.pathname}`)
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', `https://radgenis.com${location.pathname}`)
   }, [title, description])
 }
 
@@ -34,7 +34,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
 export function PageHead({ eyebrow, title, lead, children }: { eyebrow: string; title: ReactNode; lead: string; children?: ReactNode }) {
   return <header className="sk-wrap sk-page-head">
-    <nav className="sk-crumbs" aria-label="Breadcrumb"><a href="/">RadGenie</a><span aria-hidden="true">/</span><span aria-current="page">{eyebrow}</span></nav>
+    <nav className="sk-crumbs" aria-label="Breadcrumb"><a href="/">RadGenis</a><span aria-hidden="true">/</span><span aria-current="page">{eyebrow}</span></nav>
     <h1>{title}</h1>
     <p>{lead}</p>
     {children}
@@ -42,10 +42,10 @@ export function PageHead({ eyebrow, title, lead, children }: { eyebrow: string; 
 }
 
 export function Skanda0Page() {
-  usePageMeta('Skanda-0 · open-source grounded radiology model · RadGenie', 'Skanda-0 reads chest X-ray, CT and MRI, writes a JSON report and outlines each finding. Open weights in bf16, int8 and int4 under CC BY-NC 4.0.')
+  usePageMeta('Skanda-0 · open-source grounded radiology model · RadGenis', 'Skanda-0 reads chest X-ray, CT and MRI, writes a JSON report and outlines each finding. Open weights in bf16, int8 and int4 under CC BY-NC 4.0.')
   const int8 = BUILDS.find((b) => b.recommended) ?? BUILDS[0]
   return <Shell>
-    <PageHead eyebrow="Skanda-0" title={<>Skanda-0, <em>open source</em></>} lead={`${SKANDA_0.summary} Published under ${SKANDA_0.license}. The hosted RadGenie workspace serves the newer Skanda V1, which is not part of this release.`}>
+    <PageHead eyebrow="Skanda-0" title={<>Skanda-0, <em>open source</em></>} lead={`${SKANDA_0.summary} Published under ${SKANDA_0.license}. The hosted RadGenis workspace serves the newer Skanda V1, which is not part of this release.`}>
       <div className="sk-actions sk-actions-left"><Pill href={hfFilesUrl(int8.repo)} lead={<BrandIcon name="huggingface" size={16} />}>{`Download int8 · ${int8.size}`}</Pill><Pill href={hfUrl(SKANDA_0.repo)} tone="ghost" lead={<BrandIcon name="huggingface" size={16} />}>Model card</Pill></div>
     </PageHead>
 
@@ -78,7 +78,7 @@ export function Skanda0Page() {
 }
 
 export function BenchmarksPage() {
-  usePageMeta('Benchmarks · Skanda vs MedGemma 27B and MAIRA-2 · RadGenie', 'Held-out results for Skanda on chest X-ray, CT and MRI against MedGemma 27B and MAIRA-2, with method, intervals and known failures.')
+  usePageMeta('Benchmarks · Skanda vs MedGemma 27B and MAIRA-2 · RadGenis', 'Held-out results for Skanda on chest X-ray, CT and MRI against MedGemma 27B and MAIRA-2, with method, intervals and known failures.')
   return <Shell>
     <PageHead eyebrow="Benchmarks" title={<>Benchmarks, <em>held out</em></>} lead="Every figure here comes from held-out cases and one scorer. Skanda V1, the served model, is compared with MedGemma 27B and MAIRA-2 on chest X-ray, CT and MRI, then tested on a confirmatory set fixed in advance. Earlier checkpoints and the open Skanda-0 follow, with known failures next to the wins.">
       <ul className="sk-bench-facts">

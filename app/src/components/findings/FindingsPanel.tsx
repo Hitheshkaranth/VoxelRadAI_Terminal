@@ -158,7 +158,7 @@ function ErrorState({ studyId, imageId, error }: { studyId: string; imageId: str
         </div>
       </div>
       <div className="fd-error-hint">{quota ? <>
-        <p>New image analysis needs available Hugging Face GPU quota. RadGenie sign-in does not increase that allowance. Reloading the model will not renew it.</p>
+        <p>New image analysis needs available Hugging Face GPU quota. RadGenis sign-in does not increase that allowance. Reloading the model will not renew it.</p>
         {quota.resetWait && <p>Reset wait reported when this request failed: {quota.resetWait}.</p>}
         <p>Reports can still be drafted from images that were already analyzed.</p>
       </> : errorHint(error, settings)}</div>

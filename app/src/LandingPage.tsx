@@ -13,7 +13,7 @@ import { Pricing } from './landing/Pricing'
 
 /** Public landing page. Section order and component geometry follow visuvate.com, re-themed for radiology. */
 export function LandingPage() {
-  useEffect(() => { document.title = 'RadGenie · Grounded radiology with Skanda V1' }, [])
+  useEffect(() => { document.title = 'RadGenis · Grounded radiology with Skanda V1' }, [])
   // The page mounts after the browser's own hash jump, so links like /#pricing from other pages land at the top. Re-run it once.
   useEffect(() => {
     const id = decodeURIComponent(location.hash.slice(1))

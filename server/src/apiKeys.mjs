@@ -138,7 +138,7 @@ export function createApiKeys({ store, env = process.env, body, send, audit, con
     if (!matches || row.kind !== plain.split('_')[1]) return { error: { status: 401, code: 'invalid_api_key', message: 'The API key is not valid.' } }
     if (row.revoked_at) {
       await auditDenied(row.id, 'revoked')
-      return { error: { status: 401, code: 'key_revoked', message: 'This API key has been revoked. Ask your RadGenie administrator for a new key.' } }
+      return { error: { status: 401, code: 'key_revoked', message: 'This API key has been revoked. Ask your RadGenis administrator for a new key.' } }
     }
     await store.touch(row.id).catch(() => {})
     // `webhooks` is false for a key issued before API_WEBHOOK_SECRET was set: it was never shown a signing secret.
