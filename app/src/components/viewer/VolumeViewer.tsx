@@ -21,7 +21,7 @@ import { validateVolumeAnalysis } from '../../lib/volumeValidation'
 import { skandaCtSeries, skandaSliceInput } from '../../lib/skandaSlice'
 import { isSkandaV2Model } from '../../lib/medgemma'
 import { sourceEdgeCoverage } from '../../lib/volumeCoverage'
-import { isTypingTarget, READING_SHORTCUTS } from './readingControls'
+import { isTypingTarget, ownsArrowKeys, READING_SHORTCUTS, sliceKeyTarget } from './readingControls'
 import { resetVolumeLayout, useVolumePreference } from './volumeLayout'
 import { VolumeMultiplanar } from './VolumeMultiplanar'
 import { VolumeIdentity } from '../shell/VolumeIdentity'
@@ -101,6 +101,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
   const [viewingEvidence, setViewingEvidence] = useState(false)
   const overlaysVisible = showRegions && !heldOverlays
   const keyActions = useRef<(key: string) => void>(() => {})
+  const sliceKey = useRef<(key: string, shift: boolean) => boolean>(() => false)
   // Manual measurements belong to this volume; each records its plane and slice.
   const [measureTool, setMeasureTool] = useState<VolumeMeasurementKind | null>(null)
   const [measureStore, setMeasureStore] = useState<{ volume: Volume | null; list: VolumeMeasurement[] }>({ volume: null, list: [] })
@@ -277,6 +278,12 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
     return () => useShell.getState().setSidebarCollapsed(previous)
   }, [readingMode])
   useEffect(() => useShell.subscribe((state, previous) => { if (state.mobileView !== previous.mobileView && state.mobileView !== 'viewer') setCine(false) }), [])
+  useLayoutEffect(() => { sliceKey.current = (key, shift) => {
+    const next = sliceKeyTarget(key, sliceIndex, count, shift)
+    if (next === null) return false
+    setCine(false); if (next !== sliceIndex) setIndex(next)
+    return true
+  } })
   useLayoutEffect(() => { keyActions.current = (key) => {
     if (key === ' ') toggleCine()
     else if (key === 'f') { setCine(false); fit() }
@@ -290,7 +297,10 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
   } })
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      if (document.querySelector('[role="dialog"][aria-modal="true"]') || isTypingTarget(event.target) || event.ctrlKey || event.metaKey || event.repeat) return
+      if (document.querySelector('[role="dialog"][aria-modal="true"]') || isTypingTarget(event.target) || event.ctrlKey || event.metaKey) return
+      // Slice keys repeat while held, so holding ↓ scrolls the stack like a mouse wheel.
+      if (!event.defaultPrevented && !event.altKey && !ownsArrowKeys(event.target) && useShell.getState().mobileView === 'viewer' && sliceKey.current(event.key, event.shiftKey)) { event.preventDefault(); return }
+      if (event.repeat) return
       if (event.key === 'Alt') { setHeldOverlays(true); return }
       if (event.altKey || useShell.getState().mobileView !== 'viewer') return
       if (event.key === ' ' && event.target instanceof HTMLElement && event.target.closest('button,summary,[role="button"]')) return
@@ -370,7 +380,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
           {!multiPlane && sourceCoverage && <div className="volume-source-note" role="note"><strong>Uniform area in source image</strong><span>The {sourceCoverage.edge} edge contains {sourceCoverage.rows} of {sourceCoverage.totalRows} constant-value rows. {zoom === 1 && pan.x === 0 && pan.y === 0 ? 'Full image extent is shown; this is not a display crop.' : 'Source pixels are retained; the current view is zoomed or panned.'}</span></div>}
           <div className="scan-overlay-bottom">
           <ScanButton className="btn btn-sm scan-play" onClick={toggleCine} aria-label={cine ? 'Pause slices' : 'Play slices'} aria-pressed={cine}>{cine ? <Pause size={16} /> : <Play size={16} />}</ScanButton>
-          <div className="volume-slice-controls" onPointerDown={() => setCine(false)} onKeyDown={() => setCine(false)}><ScanButton className="icon-btn" aria-label="Previous slice" disabled={sliceIndex === 0} onClick={() => setIndex((i) => bound(i - 1, count - 1))}><ChevronLeft /></ScanButton><label>Slice <input type="number" aria-label="Slice number" min={1} max={count} value={sliceIndex + 1} onChange={(event) => { if (event.target.value.trim()) setIndex(bound(Number(event.target.value) - 1, count - 1)) }} /> / {count}</label><div className="volume-slice-track">{plane === readPlane && sliceReads.length > 0 && <div className="volume-coverage-markers" aria-hidden="true">{Array.from({ length: count }, (_, i) => { const r = readMap.get(i); const kind = !r ? 'unreviewed' : r.error || r.analysis?.truncated ? 'incomplete' : findingSlices.includes(i) ? 'finding' : 'reviewed'; return <span key={i} data-kind={kind} /> })}</div>}<input aria-label="Slice position" type="range" min={0} max={count - 1} value={sliceIndex} onChange={(event) => setIndex(Number(event.target.value))} /></div><ScanButton className="icon-btn" aria-label="Next slice" disabled={sliceIndex === count - 1} onClick={() => setIndex((i) => bound(i + 1, count - 1))}><ChevronRight /></ScanButton></div>
+          <div className="volume-slice-controls" onPointerDown={() => setCine(false)} onKeyDown={() => setCine(false)}><ScanButton className="icon-btn" aria-label="Previous slice" disabled={sliceIndex === 0} onClick={() => setIndex((i) => bound(i - 1, count - 1))}><ChevronLeft /></ScanButton><label>Slice <input type="number" aria-label="Slice number" min={1} max={count} value={sliceIndex + 1} onChange={(event) => { if (event.target.value.trim()) setIndex(bound(Number(event.target.value) - 1, count - 1)) }} /> / {count}</label><div className="volume-slice-track">{plane === readPlane && sliceReads.length > 0 && <div className="volume-coverage-markers" aria-hidden="true">{Array.from({ length: count }, (_, i) => { const r = readMap.get(i); const kind = !r ? 'unreviewed' : r.error || r.analysis?.truncated ? 'incomplete' : findingSlices.includes(i) ? 'finding' : 'reviewed'; return <span key={i} data-kind={kind} /> })}</div>}<input aria-label="Slice position" type="range" min={0} max={count - 1} value={sliceIndex} style={{ '--fill': `${count > 1 ? (sliceIndex / (count - 1)) * 100 : 0}%` } as CSSProperties} onChange={(event) => setIndex(Number(event.target.value))} /></div><ScanButton className="icon-btn" aria-label="Next slice" disabled={sliceIndex === count - 1} onClick={() => setIndex((i) => bound(i + 1, count - 1))}><ChevronRight /></ScanButton></div>
           <div className="volume-quick-display" role="group" aria-label="Quick image display controls">
             <ScanButton className="btn btn-sm" aria-label="Zoom out" disabled={zoom <= .5} onClick={() => { setCine(false); setZoom((value) => clampZoom(value / 1.25)) }}><Minus aria-hidden="true" /></ScanButton>
             <output aria-label="Zoom relative to fitted image">{Math.round(zoom * 100)}%</output>

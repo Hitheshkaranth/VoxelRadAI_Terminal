@@ -851,3 +851,30 @@
 .vw-measure-panel .btn:disabled { opacity: 0.4; }
 .vw-measure-panel .vw-measure-show { flex-basis: 100%; }
 .vw-measure-actions { justify-content: flex-end; }
+
+/* Keyboard shortcuts ("?"): sits over the film, matching the other dark viewer panels. */
+.vw-shortcuts {
+  position: absolute;
+  top: 112px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 2 * var(--sp-3)));
+  max-height: calc(100% - 140px);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(18, 18, 18, 0.94);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+}
+.vw-shortcuts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.vw-shortcuts-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.vw-shortcuts-head .btn { color: rgba(255, 255, 255, 0.8); }
+.vw-shortcuts dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; margin: 0; }
+.vw-shortcuts dl > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 10px; }
+.vw-shortcuts dt { justify-self: end; }
+.vw-shortcuts dd { margin: 0; color: rgba(255, 255, 255, 0.72); }
+.vw-shortcuts kbd { display: inline-block; padding: 2px 6px; min-width: 22px; text-align: center; font: 500 11px/16px var(--font-mono); color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 4px; white-space: nowrap; }
+@media (max-width: 767px) { .vw-shortcuts dl { grid-template-columns: minmax(0, 1fr); } }

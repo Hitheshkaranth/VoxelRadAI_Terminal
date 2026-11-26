@@ -1,0 +1,20 @@
+.fu-card { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rp-panel .rp-card.fu-card { border-top: 1px solid var(--separator); padding-top: var(--sp-3); }
+.fu-hint { margin: 0; font-size: var(--text-caption); color: var(--label-2); line-height: 1.45; }
+.fu-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.fu-list li { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-2) 0; }
+.fu-list li + li { border-top: 1px solid var(--separator); }
+.fu-list li[data-status="declined"] .fu-text,
+.fu-list li[data-status="completed"] .fu-text { color: var(--label-2); }
+.fu-list li[data-status="completed"] .fu-text { text-decoration: line-through; text-decoration-color: var(--label-3, var(--label-2)); }
+.fu-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--text-footnote); line-height: 1.45; color: var(--label); }
+.fu-text { flex: 1 1 180px; min-width: 0; }
+.fu-chip { flex: none; padding: 1px 7px; border-radius: 999px; font-size: var(--text-caption); font-weight: 600; color: var(--label); background: var(--bg-control); border: 1px solid var(--separator); font-variant-numeric: tabular-nums; }
+.fu-status { flex-basis: 100%; font-size: var(--text-caption); color: var(--label-2); }
+/* Urgency is carried by a coloured dot and weight; the text stays in the label colour for contrast. */
+.fu-status[data-status="overdue"], .fu-status[data-status="due-soon"] { color: var(--label); font-weight: 600; }
+.fu-status[data-status="overdue"]::before, .fu-status[data-status="due-soon"]::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; background: var(--orange); }
+.fu-status[data-status="overdue"]::before { background: var(--red); }
+.fu-actions { display: flex; gap: var(--sp-2); }
+.fu-actions .btn[aria-pressed="true"] { color: var(--accent-fg, #fff); background: var(--accent); border-color: var(--accent); }
+@media screen and (max-width: 1023px) { .fu-actions .btn { min-height: 44px; } }

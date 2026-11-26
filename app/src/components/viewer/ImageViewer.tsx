@@ -4,7 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 // Diagnostic image viewer: fit/zoom/pan, window-level, invert, finding overlays locked to the image.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
-import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, FileInput, Flame, FlipHorizontal2, FlipVertical2, Layers, Maximize, RotateCcw, RotateCw, Ruler, Search, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Columns2, Contrast, Eye, EyeOff, FileInput, Flame, FlipHorizontal2, FlipVertical2, Keyboard, Layers, Maximize, RotateCcw, RotateCw, Ruler, Search, SlidersHorizontal, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Finding, Heatmap, ImageMeasurement, MeasurePoint, OverlayStyle, ViewerState } from '../../types'
 import { uid, useActiveImage, useActiveStudy, useApp } from '../../store'
 import { MAX_MEASUREMENTS, clampPoint, measurementText, pointsFor, spacingNote } from '../../lib/measure'
@@ -17,6 +17,8 @@ import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import { DEFAULT_ORIENTATION, imageToScreen, isDefaultOrientation, orientationTransform, orientedSize, rotateBy, screenToImage, seriesSiblings, wheelSteps, type ImageOrientation } from '../../lib/viewerInput'
 import { insertIntoReport, insertResultLabel } from '../../lib/reportInsert'
+import { IMAGE_SHORTCUTS, nextPendingFinding, pendingCount } from '../../lib/findingReview'
+import type { FindingReview } from '../../types'
 import './viewer.css'
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -39,7 +41,7 @@ const STYLES: { id: OverlayStyle; label: string; hint: string }[] = [
   { id: 'fill', label: 'Fill', hint: 'Filled outline (opacity below)' },
 ]
 /** Clicks on these never start a pan or window-level drag. */
-const UI = '.vw-loupe, .vw-toolbox, .vw-measure-panel, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
+const UI = '.vw-shortcuts, .vw-loupe, .vw-toolbox, .vw-measure-panel, .vw-finding, .vw-compare, .vw-layers-panel, .vw-reading-controls, [data-slot="popover-content"]'
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || !!t.closest('[role="dialog"], input, textarea, select, [contenteditable="true"]'))
@@ -57,6 +59,8 @@ export function ImageViewer() {
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const [layersOpen, setLayersOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
   const [stage, setStage] = useState({ w: 0, h: 0 })
   const [animating, setAnimating] = useState(false)
   const focused = useRef(false)
@@ -332,13 +336,48 @@ export function ImageViewer() {
           setShowMeasurements(true)
           break
         }
+        case 'j':
+        case 'k': {
+          const list = image.analysis?.findings ?? []
+          const next = nextPendingFinding(list, useApp.getState().selectedFindingId, e.key === 'j' ? 1 : -1)
+          if (next) { selectFinding(next); setInspectorTab('findings') }
+          else setAnnouncement(list.length ? 'No findings left to review on this image.' : 'No findings on this image.')
+          break
+        }
+        case 'a':
+        case 'd':
+        case 'u': {
+          const list = image.analysis?.findings ?? []
+          const current = list.find((f) => f.id === useApp.getState().selectedFindingId)
+          if (!study || !current || current.severity === 'normal') { setAnnouncement('Select a finding first (J for the next one to review).'); break }
+          const review: FindingReview | undefined = e.key === 'a' ? 'accepted' : e.key === 'd' ? 'dismissed' : undefined
+          useApp.getState().setFindingReview(study.id, image.id, current.id, review)
+          const after = list.map((f) => (f.id === current.id ? { ...f, review } : f))
+          const left = pendingCount(after)
+          const verb = review === 'accepted' ? 'accepted' : review === 'dismissed' ? 'dismissed' : 'decision cleared'
+          // A decision moves on to the next finding awaiting review; clearing one stays put so it can be re-decided.
+          const next = review ? nextPendingFinding(after, current.id, 1) : null
+          if (next) selectFinding(next)
+          setAnnouncement(`${current.title} ${verb}. ${left ? `${left} left to review.` : 'All findings on this image reviewed.'}`)
+          break
+        }
+        case '?':
+          setShortcutsOpen((open) => !open)
+          break
         case 'Escape':
-          if (draft.length) setDraft([])
+          if (shortcutsOpen) setShortcutsOpen(false)
+          else if (draft.length) setDraft([])
           else if (measureTool) setMeasureTool(null)
           else if (measureOpen) setMeasureOpen(false)
           else if (layersOpen) setLayersOpen(false)
           else selectFinding(null)
           break
+        case 'Home':
+        case 'End': {
+          const target = imgs[e.key === 'Home' ? 0 : imgs.length - 1]
+          if (target && target.id !== image.id) selectImage(target.id)
+          break
+        }
         case 'ArrowRight':
         case 'ArrowLeft': {
           const next = imgs[idx + (e.key === 'ArrowRight' ? 1 : -1)]
@@ -352,7 +391,7 @@ export function ImageViewer() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage, layersOpen, measureTool, measureOpen, draft.length])
+  }, [image, study, zoomAt, setViewer, resetViewer, selectFinding, selectImage, setInspectorTab, layersOpen, measureTool, measureOpen, draft.length, shortcutsOpen])
 
   // Selecting a finding zooms onto its box; clearing the selection (Esc, click again) returns to the whole film.
   useEffect(() => {
@@ -751,7 +790,17 @@ export function ImageViewer() {
         <ScanButton className="vw-tool" aria-label="Reset view (R)" title="Reset view, flip and rotation (R)" onClick={() => { resetViewer(); setOrientation(DEFAULT_ORIENTATION) }}>
           <RotateCcw strokeWidth={1.75} />
         </ScanButton>
+        <ScanButton className="vw-tool" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)" aria-pressed={shortcutsOpen} aria-expanded={shortcutsOpen} onClick={() => setShortcutsOpen(!shortcutsOpen)}>
+          <Keyboard strokeWidth={1.75} />
+        </ScanButton>
       </div>
+      {shortcutsOpen && (
+        <div className="vw-shortcuts" role="region" aria-label="Keyboard shortcuts" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="vw-shortcuts-head"><h2>Keyboard shortcuts</h2><button type="button" className="btn btn-plain btn-sm" onClick={() => setShortcutsOpen(false)}>Close</button></div>
+          <dl>{IMAGE_SHORTCUTS.map(([key, label]) => <div key={key}><dt><kbd>{key}</kbd></dt><dd>{label}</dd></div>)}</dl>
+        </div>
+      )}
+      <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
 
       {measureOpen && (
         <MeasurePanel

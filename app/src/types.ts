@@ -236,6 +236,23 @@ export interface ReportDraft {
   correction?: { of: number; startedAt: number; by: string }
   /** Log of critical results communicated to the care team (who, how, when). */
   criticalComms?: CriticalComm[]
+  /** Follow-up recommendations pulled from the report text, with the reader's Track / Decline decision. */
+  followUps?: FollowUp[]
+}
+
+/** A follow-up the report recommends ("CT chest in 3 months"). Extracted by lib/followUps; the reader decides. */
+export interface FollowUp {
+  /** Normalized sentence text: decisions follow the sentence across re-extraction. */
+  id: string
+  text: string
+  modality?: string
+  /** Earliest and latest interval stated, in months (weeks and days converted). */
+  minMonths?: number
+  maxMonths?: number
+  decision?: 'track' | 'declined'
+  /** Set at sign-off for tracked items with an interval. */
+  dueAt?: number
+  completedAt?: number
 }
 
 export type CriticalCommMethod = 'phone' | 'in person' | 'message' | 'other'

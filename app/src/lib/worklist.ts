@@ -1,5 +1,6 @@
 import { analysisEligibility } from './modality.ts'
 import type { Study } from '../types'
+import { matchesFollowUpFacet, type FollowUpFacet } from './followUps.ts'
 
 /** Mutually exclusive reading states: a study sits in exactly one queue. */
 export type WorklistStatus = 'unread' | 'review' | 'draft' | 'signed'
@@ -13,8 +14,10 @@ export interface WorklistFacets {
   urgency: WorklistUrgency
   from: string
   to: string
+  /** Tracked follow-ups: 'open' = any not done, 'due' = overdue or due within 30 days. */
+  followUp: FollowUpFacet
 }
-export const NO_FACETS: WorklistFacets = { modality: '', urgency: '', from: '', to: '' }
+export const NO_FACETS: WorklistFacets = { modality: '', urgency: '', from: '', to: '', followUp: '' }
 
 export function needsReview(study: Study): boolean {
   return !study.report?.signed && study.images.some((image) => !!image.analysis)
@@ -80,7 +83,7 @@ function matchesFacets(study: Study, facets: WorklistFacets): boolean {
   const day = studyDay(study)
   if (facets.from && day < facets.from) return false
   if (facets.to && day > facets.to) return false
-  return true
+  return matchesFollowUpFacet(study, facets.followUp ?? '', Date.now())
 }
 
 export function filterWorklist(studies: Study[], query: string, filter: WorklistFilter, sort: WorklistSort, facets: WorklistFacets = NO_FACETS): Study[] {
@@ -167,12 +170,13 @@ export function parseWorklistPrefs(raw: string | null): WorklistPrefs {
     modality: typeof data.modality === 'string' && /^[A-Za-z]{0,8}$/.test(data.modality) ? data.modality : '',
     from: typeof data.from === 'string' && DAY.test(data.from) ? data.from : '',
     to: typeof data.to === 'string' && DAY.test(data.to) ? data.to : '',
+    followUp: pick(data.followUp, ['', 'open', 'due'] as const, ''),
     overdueHours: OVERDUE_CHOICES.includes(data.overdueHours as never) ? data.overdueHours as number : DEFAULT_PREFS.overdueHours,
   }
 }
 
 export function activeFacetCount(facets: WorklistFacets): number {
-  return [facets.modality, facets.urgency, facets.from || facets.to].filter(Boolean).length
+  return [facets.modality, facets.urgency, facets.from || facets.to, facets.followUp].filter(Boolean).length
 }
 
 export function workflowLabel(study: Study): string {

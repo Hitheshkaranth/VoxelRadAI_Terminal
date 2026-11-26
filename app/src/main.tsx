@@ -29,6 +29,7 @@ import './styles/mobile.css'
 import './styles/clinical.css'
 import './styles/material.css'
 import './styles/scanWorkspace.css'
+import './styles/appleControls.css'
 
 // Vercel Web Analytics is cookieless. Drop query and hash before sending so no study or volume state leaves the browser.
 const bareUrl = (href: string) => { const url = new URL(href); return url.origin + url.pathname }

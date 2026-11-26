@@ -53,6 +53,8 @@ import { reportQa, uncommunicatedCritical } from '../../lib/reportQa'
 import { GuidelineHelper } from './GuidelineHelper'
 import { suggestGuidelines, unappliedSuggestions } from '../../lib/guidelineSuggest'
 import { CriticalCommsForm } from './CriticalCommsForm'
+import { FollowUpsCard } from './FollowUpsCard'
+import { signFollowUps, syncFollowUps, undecidedFollowUps } from '../../lib/followUps'
 import { ExamLibrarySheet, ExamTemplatePicker } from './ExamTemplates'
 import { fieldLabel, mergeTemplateSections, unresolvedFields, type ExamTemplate } from '../../lib/examTemplates'
 import { plainToHtml } from '../../lib/richText'
@@ -188,6 +190,9 @@ function signChecklist(study: Study, report: ReportDraft, stale: boolean): strin
   if (stale) items.push('The draft is out of date: images, reviews or patient details changed since drafting.')
   // Text QA: laterality, sex-specific anatomy, impression coverage, lesion size, critical comms, dictation leftovers.
   items.push(...reportQa(study, report).map((issue) => issue.message))
+  const undecided = undecidedFollowUps(syncFollowUps(report))
+  if (undecided.length)
+    items.push(`${plural(undecided.length, 'follow-up recommendation')} not marked Track or Decline: “${undecided[0].text}”${undecided.length > 1 ? ', …' : ''}`)
   const fields = unresolvedFields(report)
   if (fields.length)
     items.push(`${plural(fields.length, 'template field')} not filled in: ${fields.slice(0, 3).map((f) => `[${fieldLabel(f.field)}]`).join(', ')}${fields.length > 3 ? ', …' : ''}.`)
@@ -318,7 +323,9 @@ export function ReportPanel() {
     // Before setReport: signing bumps updatedAt and would move this study in the worklist order.
     offerNextStudy(study.id)
     // Each sign-off appends an immutable version (text, patient snapshot, overrides) to the report history.
-    setReport(study.id, signPatch(report, { signedAt: Date.now(), signedBy: accountSigner ?? report.radiologist.trim(), patient: study.patient, overrides }))
+    const signedAt = Date.now()
+    // Tracked follow-ups get their due date from this sign-off (an earlier signature's date is kept on re-sign).
+    setReport(study.id, { ...signPatch(report, { signedAt, signedBy: accountSigner ?? report.radiologist.trim(), patient: study.patient, overrides }), followUps: signFollowUps(report, signedAt) })
     // Ground truth for model improvement: reviewer decisions and the AI draft beside the signed text.
     const signedStudy = useApp.getState().studies.find((s) => s.id === study.id)
     if (signedStudy) void captureSignedReport(signedStudy)
@@ -652,6 +659,12 @@ export function ReportPanel() {
         defaultBy={accountSigner ?? report.radiologist}
         report={{ ...report, signed }}
         onChange={(criticalComms) => setReport(study.id, { criticalComms })}
+      />
+
+      <FollowUpsCard
+        items={signed ? report.followUps ?? [] : syncFollowUps(report)}
+        signed={signed}
+        onChange={(followUps) => setReport(study.id, { followUps })}
       />
 
       {!signed ? (

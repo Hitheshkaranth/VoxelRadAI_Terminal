@@ -127,3 +127,10 @@
 @media (pointer: coarse) and (min-width: 1024px) {
   .sh-app .wl-sidebar .wl-filters button { min-width: 0; }
 }
+
+/* Tracked follow-up on a signed study: same quiet set as the turnaround clock; urgency is a marker colour only. */
+.wl-follow-up { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.wl-follow-up svg { width: 11px; height: 11px; flex: none; }
+.wl-follow-up[data-status='due-soon'], .wl-follow-up[data-status='overdue'] { color: var(--label); font-weight: 600; }
+.wl-follow-up[data-status='due-soon'] svg { color: var(--orange); }
+.wl-follow-up[data-status='overdue'] svg { color: var(--red); }

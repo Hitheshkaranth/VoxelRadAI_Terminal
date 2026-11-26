@@ -1,0 +1,246 @@
+/* Scan navigation controls in an Apple (macOS / visionOS) control language.
+   The scan is the content layer; controls float above it as glass capsules (material used sparingly, only on
+   navigation and tools). Colour is reserved for focus; selection uses a raised neutral segment, as in AppKit.
+   Loaded last so it refines scanWorkspace.css without changing layout geometry (docks keep their positions). */
+
+.scan-content, .scan-popover, .scan-display-popover {
+  --ac-glass: rgba(30, 30, 32, 0.72);
+  --ac-glass-solid: #1e1e20;
+  --ac-edge: rgba(255, 255, 255, 0.12);
+  --ac-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.14);
+  --ac-shadow: 0 12px 32px rgba(0, 0, 0, 0.42), 0 1px 3px rgba(0, 0, 0, 0.36);
+  --ac-ink: #f5f5f7;
+  --ac-ink-2: rgba(235, 235, 245, 0.7);
+  --ac-ink-3: rgba(235, 235, 245, 0.45);
+  --ac-hover: rgba(255, 255, 255, 0.08);
+  --ac-pressed: rgba(255, 255, 255, 0.16);
+  --ac-track: rgba(118, 118, 128, 0.26);
+  --ac-segment: #636366;
+  --ac-rule: rgba(255, 255, 255, 0.14);
+  --ac-focus: #0a84ff;
+  --ac-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ---- Docks: floating glass capsules ------------------------------------------------------------------------- */
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom),
+.scan-content .vw-workspace > .vw-toolbox,
+.scan-content .vw-reading-controls {
+  background: var(--ac-glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid var(--ac-edge);
+  box-shadow: var(--ac-highlight), var(--ac-shadow);
+  border-radius: 22px;
+  padding: 5px;
+  gap: 2px;
+  color: var(--ac-ink);
+}
+/* Secondary floating surfaces share the material at a smaller radius. */
+.scan-content :is(.image-series-tray, .volume-source-note, .vw-shortcuts, .vw-layers-panel, .vw-workspace > .vw-evidence),
+.scan-image-surface > .image-context {
+  background: var(--ac-glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid var(--ac-edge);
+  box-shadow: var(--ac-highlight), var(--ac-shadow);
+  border-radius: 14px;
+}
+
+/* ---- Buttons: pill, quiet until hovered, neutral raised when on ------------------------------------------- */
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom) :is(button, summary),
+.scan-content .vw-workspace > .vw-toolbox .vw-tool,
+.scan-content .vw-reading-controls button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ac-ink-2);
+  font: 500 12.5px/1 var(--font-sans);
+  letter-spacing: -0.005em;
+  gap: 6px;
+  box-shadow: none;
+  transition: background-color 160ms var(--ac-ease), color 160ms var(--ac-ease), transform 120ms var(--ac-ease);
+}
+.scan-content .vw-workspace > .vw-toolbox .vw-tool { width: 32px; height: 32px; padding: 0; }
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom, .vw-reading-controls) :is(button, summary) svg,
+.scan-content .vw-workspace > .vw-toolbox .vw-tool svg { width: 16px; height: 16px; stroke-width: 1.75; }
+@media (hover: hover) {
+  .scan-content :is(.scan-overlay-top, .scan-overlay-bottom) :is(button, summary):hover:not(:disabled),
+  .scan-content .vw-workspace > .vw-toolbox .vw-tool:hover:not(:disabled),
+  .scan-content .vw-reading-controls button:hover:not(:disabled) { background: var(--ac-hover); color: var(--ac-ink); }
+}
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom) :is(button, summary):active:not(:disabled),
+.scan-content .vw-workspace > .vw-toolbox .vw-tool:active:not(:disabled),
+.scan-content .vw-reading-controls button:active:not(:disabled) { transform: scale(0.96); background: var(--ac-pressed); }
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom) button[aria-pressed='true'],
+.scan-content .vw-workspace .vw-toolbox .vw-tool[aria-pressed='true'],
+.scan-content .vw-reading-controls button[aria-pressed='true'] { background: var(--ac-pressed); color: var(--ac-ink); }
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom, .vw-toolbox, .vw-reading-controls) button:disabled { color: var(--ac-ink-3); opacity: 1; background: transparent; }
+
+/* System-blue focus ring on every control, offset so it reads on glass and on the image. */
+.scan-content :is(.scan-overlay-top, .scan-overlay-bottom, .vw-toolbox, .vw-reading-controls) :is(button, summary, select, input):focus-visible,
+.scan-popover :is(button, select, input):focus-visible,
+.scan-display-popover :is(button, select, input):focus-visible {
+  outline: 2px solid var(--ac-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Plane switcher: a real segmented control ------------------------------------------------------------- */
+.scan-content .scan-overlay-top .volume-planes {
+  display: inline-flex;
+  gap: 0;
+  padding: 2px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--ac-track);
+}
+.scan-content .scan-overlay-top .volume-planes button {
+  min-height: 28px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: var(--ac-ink-2);
+}
+.scan-content .scan-overlay-top .volume-planes button[aria-pressed='true'] {
+  background: var(--ac-segment);
+  color: var(--ac-ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+}
+/* Short hairlines between control groups, not full-height rules. */
+.scan-content .vw-workspace > .vw-toolbox .vw-sep { width: 1px; height: 18px; margin: 0 4px; background: var(--ac-rule); align-self: center; }
+.scan-content .scan-overlay-bottom .volume-quick-display { border-left: 0; position: relative; padding-left: 9px; }
+.scan-content .scan-overlay-bottom .volume-quick-display::before { content: ''; position: absolute; left: 0; top: 50%; width: 1px; height: 18px; transform: translateY(-50%); background: var(--ac-rule); }
+
+/* ---- Readouts: tabular figures, secondary ink ------------------------------------------------------------- */
+.scan-content :is(.vw-zoom, .volume-quick-display output, .vw-image-navigation span, .volume-slice-controls label) {
+  color: var(--ac-ink-2);
+  font: 500 12px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.scan-content .vw-workspace > .vw-toolbox .vw-zoom { min-width: 40px; text-align: center; }
+.scan-content .vw-reading-controls { gap: 8px; padding-inline: 5px; }
+.scan-content .vw-image-navigation { gap: 2px; }
+.scan-content .vw-image-navigation span { padding: 0 6px; white-space: nowrap; }
+
+/* Window preset menu in the X-ray toolbox: a pill pop-up button. */
+.scan-content .vw-workspace > .vw-toolbox select {
+  min-height: 28px;
+  padding: 0 26px 0 11px;
+  border: 0;
+  border-radius: 14px;
+  background-color: var(--ac-hover);
+  color: var(--ac-ink);
+  font: 500 12.5px/1 var(--font-sans);
+  color-scheme: dark;
+}
+
+/* ---- Slice scrubber ---------------------------------------------------------------------------------------- */
+.scan-content .scan-overlay-bottom .volume-slice-controls { gap: 2px; }
+.scan-content .scan-overlay-bottom .volume-slice-controls label { gap: 6px; padding-left: 4px; }
+.scan-content .scan-overlay-bottom input[type='number'] {
+  width: 42px;
+  min-height: 26px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ac-hover);
+  color: var(--ac-ink);
+  text-align: center;
+  font: 600 12px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+.scan-content .scan-overlay-bottom input[type='number']::-webkit-inner-spin-button,
+.scan-content .scan-overlay-bottom input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.scan-content .scan-overlay-bottom .volume-slice-track { padding-inline: 6px; }
+.scan-content .scan-overlay-bottom input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.scan-content .scan-overlay-bottom input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--ac-ink) var(--fill, 0%), rgba(255, 255, 255, 0.22) var(--fill, 0%));
+}
+.scan-content .scan-overlay-bottom input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+  transition: transform 120ms var(--ac-ease);
+}
+.scan-content .scan-overlay-bottom input[type='range']:active::-webkit-slider-thumb { transform: scale(1.12); }
+.scan-content .scan-overlay-bottom input[type='range']::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); }
+.scan-content .scan-overlay-bottom input[type='range']::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--ac-ink); }
+.scan-content .scan-overlay-bottom input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.scan-content .scan-overlay-bottom input[type='range']:focus-visible { outline: none; }
+.scan-content .scan-overlay-bottom input[type='range']:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--ac-focus), 0 1px 4px rgba(0, 0, 0, 0.5); }
+.scan-content .scan-overlay-bottom input[type='range']:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--ac-focus); }
+/* Read-coverage ticks sit just above the track, rounded like the track itself. */
+.scan-content .scan-overlay-bottom .volume-coverage-markers { height: 3px; gap: 1px; margin-bottom: -6px; border-radius: 2px; overflow: hidden; }
+
+/* Play is the primary transport control: a filled circle like a media player. */
+.scan-content .scan-overlay-bottom .scan-play { width: 32px; padding: 0; border-radius: 50%; background: var(--ac-pressed); color: var(--ac-ink); }
+
+/* ---- Popovers opened from the docks ------------------------------------------------------------------------ */
+.scan-popover, .scan-display-popover { border-radius: 14px; border-width: 0.5px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.2); }
+.scan-popover > button { border-radius: 8px; }
+
+/* ---- Shortcut panels share the material ------------------------------------------------------------------- */
+.scan-content .vw-shortcuts kbd { border-radius: 6px; border-color: var(--ac-edge); background: var(--ac-hover); }
+
+/* ---- Touch and narrow screens: 44 pt targets; docks may wrap, so a smaller radius ---------------------------- */
+@media (max-width: 1023px), (pointer: coarse) {
+  .scan-content :is(.scan-overlay-top, .scan-overlay-bottom) :is(button, summary),
+  .scan-content .vw-workspace > .vw-toolbox .vw-tool,
+  .scan-content .vw-reading-controls button { min-height: 44px; min-width: 44px; border-radius: 22px; }
+  .scan-content .vw-workspace > .vw-toolbox .vw-tool { width: 44px; height: 44px; }
+  .scan-content .scan-overlay-top .volume-planes button { min-height: 40px; border-radius: 20px; }
+  .scan-content .scan-overlay-bottom input[type='range'] { min-height: 44px; }
+  .scan-content .scan-overlay-bottom input[type='number'] { min-height: 44px; }
+  .scan-content .scan-overlay-bottom .scan-play { width: 44px; }
+}
+@media (max-width: 1023px) {
+  .scan-content :is(.scan-overlay-top, .scan-overlay-bottom), .scan-content .vw-workspace > .vw-toolbox { border-radius: 18px; }
+}
+
+/* ---- Reduced transparency and no backdrop support: opaque material, same shape --------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  .scan-content :is(.scan-overlay-top, .scan-overlay-bottom, .vw-reading-controls, .image-series-tray, .volume-source-note, .vw-shortcuts, .vw-layers-panel),
+  .scan-content .vw-workspace > :is(.vw-toolbox, .vw-evidence),
+  .scan-image-surface > .image-context { background: var(--ac-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .scan-content :is(.scan-overlay-top, .scan-overlay-bottom, .vw-reading-controls, .image-series-tray, .volume-source-note, .vw-shortcuts, .vw-layers-panel),
+  .scan-content .vw-workspace > :is(.vw-toolbox, .vw-evidence),
+  .scan-image-surface > .image-context { background: var(--ac-glass-solid); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-content :is(button, summary):active { transform: none !important; }
+}
+
+/* Analysis summary over the film: hugs its text as a small capsule; grows only when its details are opened. */
+.scan-content .vw-workspace > .vw-evidence { width: max-content; max-width: min(300px, 40%); padding: 6px 12px; color: var(--ac-ink-2); }
+.scan-content .vw-workspace > .vw-evidence:has(.vw-evidence-details[open]) { width: min(300px, 40%); }
+.scan-content .vw-workspace > .vw-evidence .vw-badge-rt { color: var(--ac-ink); font-weight: 600; }
+.scan-image-surface > .image-context { padding: 4px 4px 4px 12px; color: var(--ac-ink-2); }
+.scan-image-surface > .image-context select { min-height: 26px; padding: 0 24px 0 10px; border: 0; border-radius: 13px; background-color: var(--ac-hover); color: var(--ac-ink); font: 500 12px/1 var(--font-sans); color-scheme: dark; }
+@media (max-width: 1023px), (pointer: coarse) { .scan-image-surface > .image-context select { min-height: 36px; border-radius: 18px; } }
+/* Narrow screens: play and the slice row share the first line; the wrapped display row has no divider. */
+@media (max-width: 1023px) {
+  .scan-content .scan-overlay-bottom { gap: 0; }
+  .scan-content .scan-overlay-bottom .volume-slice-controls { flex: 1 1 calc(100% - 48px); min-width: 0; }
+  .scan-content .scan-overlay-bottom .volume-quick-display { padding-left: 0; }
+  .scan-content .scan-overlay-bottom .volume-quick-display::before { display: none; }
+}

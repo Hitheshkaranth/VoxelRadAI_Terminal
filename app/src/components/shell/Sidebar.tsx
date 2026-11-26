@@ -2,7 +2,7 @@ import { ShellButton } from './ShellButton'
 // OWNER: Agent 5. Sidebar — studies grouped by recency, search, inline rename/delete, live status.
 import { useEffect, useRef, useState } from 'react'
 import { ThemeSwitch } from './ThemeSwitch'
-import { AlertTriangle, Boxes, CheckCheck, ChevronRight, ClipboardList, Clock, Pencil, Plus, Scan, Search, Settings, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Boxes, CalendarClock, CheckCheck, ChevronRight, ClipboardList, Clock, Pencil, Plus, Scan, Search, Settings, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import type { ConnectionState, Severity, Study, StudyImage } from '../../types'
 import { SEVERITY_LABEL, SEVERITY_ORDER } from '../../types'
 import { track } from '@vercel/analytics'
@@ -14,6 +14,7 @@ import { toast } from './toastStore'
 import { activeFacetCount, filterWorklist, formatAge, hasUrgentCandidate, OVERDUE_CHOICES, studyPriority, studyStatus as readingStatus, turnaround, workflowLabel, worklistModalities, type WorklistFilter, type WorklistSort, type WorklistUrgency } from '../../lib/worklist'
 import { stepStudy, useWorklist } from './worklistNav'
 import { isTypingTarget } from '../viewer/readingControls'
+import { formatDue, studyFollowUp, type FollowUpFacet, type FollowUpStatus } from '../../lib/followUps'
 import { SampleStudies } from './SampleStudies'
 import { StorageMeterCompact } from './AccountStorage'
 import { SERVER_MODE } from '../../lib/session'
@@ -50,7 +51,7 @@ export function Sidebar() {
   const countOf = (status: WorklistFilter) => status === 'all' ? faceted.length : faceted.filter((s) => readingStatus(s) === status).length
   const modalities = worklistModalities(studies)
   const facetCount = activeFacetCount(prefs)
-  const clearFacets = () => setPrefs({ modality: '', urgency: '', from: '', to: '' })
+  const clearFacets = () => setPrefs({ modality: '', urgency: '', from: '', to: '', followUp: '' })
   useStudyStepKeys()
 
   const newStudy = () => {
@@ -119,6 +120,11 @@ export function Sidebar() {
             <option value="">Any</option><option value="urgent">Urgent</option><option value="priority">Priority</option><option value="routine">Routine</option>
           </select>
         </label>
+        <label>Follow-up
+          <select value={prefs.followUp} onChange={(e) => setPrefs({ followUp: e.target.value as FollowUpFacet })}>
+            <option value="">Any</option><option value="due">Due in 30 days or overdue</option><option value="open">Any tracked, not done</option>
+          </select>
+        </label>
         <label>From<input type="date" value={prefs.from} max={prefs.to || undefined} onChange={(e) => setPrefs({ from: e.target.value })} /></label>
         <label>To<input type="date" value={prefs.to} min={prefs.from || undefined} onChange={(e) => setPrefs({ to: e.target.value })} /></label>
         <label>Flag waiting over
@@ -134,7 +140,7 @@ export function Sidebar() {
           <div className="wl-empty">
             {filter === 'signed' ? <CheckCheck /> : <ClipboardList />}
             <strong>{!studies.length ? (volume ? 'No image studies' : 'No studies') : query || facetCount ? 'No matching studies' : EMPTY_TITLE[filter]}</strong>
-            <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : facetCount ? 'Clear or widen the modality, urgency or date filters.' : EMPTY_HINT[filter]}</p>
+            <p>{!studies.length ? (volume ? 'The open volume is listed above. Imported image studies appear here.' : 'Create a study, add images, then review the findings.') : query ? 'Try a patient name, ID, or study title.' : facetCount ? 'Clear or widen the modality, urgency, follow-up or date filters.' : EMPTY_HINT[filter]}</p>
             {!studies.length ? <ShellButton className="btn btn-primary" onClick={newStudy}><Plus /> Create study</ShellButton> : (query || filter !== 'all' || facetCount > 0) && <ShellButton className="btn" onClick={() => { setQuery(''); setFilter('all'); clearFacets() }}>Show all studies</ShellButton>}
           </div>
         ) : (
@@ -215,6 +221,7 @@ function StudyRow({
   const urgent = hasUrgentCandidate(study)
   const status = studyStatus(study.images)
   const priority = studyPriority(study)
+  const followUp = studyFollowUp(study, now)
   const workflow = workflowLabel(study)
   const editing = editingId === study.id
   const confirming = confirmId === study.id
@@ -278,6 +285,10 @@ function StudyRow({
           <span className="wl-workflow" data-state={study.report?.signed ? 'signed' : status.analyzing ? 'analyzing' : 'pending'}>{workflow}</span>
           {urgent && <span className="wl-critical" title="The model marked at least one finding urgent. Candidate only: confirm on review."><AlertTriangle aria-hidden="true" />AI urgent</span>}
           {priority === 1 && <span className="wl-priority" data-priority={priority}>AI priority</span>}
+          {followUp && <span className="wl-follow-up" data-status={followUp.status}
+            title={`${followUp.count} tracked follow-up${followUp.count === 1 ? '' : 's'}. Next: ${followUp.item.text}`}>
+            <CalendarClock aria-hidden="true" />{followUpBadge(followUp.status, followUp.item.dueAt)}
+          </span>}
           {wait && <span className="wl-age" data-overdue={wait.overdue || undefined}
             title={`Waiting ${formatAge(wait.sinceCreated)} since the study was added${wait.sinceAnalysis !== undefined ? `, ${formatAge(wait.sinceAnalysis)} since the last AI read` : ''}${wait.overdue ? '. Over the waiting threshold.' : '.'}`}>
             <Clock aria-hidden="true" />{formatAge(wait.sinceCreated)}{wait.sinceAnalysis !== undefined && <> · read {formatAge(wait.sinceAnalysis)} ago</>}
@@ -366,6 +377,13 @@ const EMPTY_HINT: Record<WorklistFilter, string> = {
   review: 'Analyzed studies without a drafted report appear in this queue.',
   draft: 'Drafted, unsigned reports appear here.',
   signed: 'Signed reports will appear here after review.',
+}
+
+/** Short worklist label for the most pressing tracked follow-up. */
+function followUpBadge(status: FollowUpStatus, dueAt: number | undefined): string {
+  if (status === 'overdue') return 'Follow-up overdue'
+  if (dueAt && (status === 'due-soon' || status === 'scheduled')) return `Follow-up ${formatDue(dueAt)}`
+  return 'Follow-up tracked'
 }
 
 /** Minute clock for waiting times; one timer per sidebar, not per row. */
