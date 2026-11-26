@@ -27,7 +27,7 @@ export function AdminReviews({ scope, studies }: { scope: 'local' | 'organizatio
     try {
       const records = scope === 'local' ? await studyReviewRecords(studies) : await fetchOrganizationReviewRecords()
       if (!records.length) { setExportMessage('No analysed images to export yet.'); return }
-      downloadFile(`voxelrad-reviews-${scope}-${new Date().toISOString().slice(0, 10)}.jsonl`, toJsonLines(records), 'application/x-ndjson')
+      downloadFile(`radgenie-reviews-${scope}-${new Date().toISOString().slice(0, 10)}.jsonl`, toJsonLines(records), 'application/x-ndjson')
       setExportMessage(`Exported ${records.length.toLocaleString()} analysed ${records.length === 1 ? 'image' : 'images'}.`)
     } catch (reason) { setExportMessage(reason instanceof Error ? reason.message : 'The export failed. Try again.') }
     finally { setExporting(false) }

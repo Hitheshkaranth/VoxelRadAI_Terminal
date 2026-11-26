@@ -20,7 +20,7 @@ export function LoginCine() {
   }, [])
   return <figure className="session-scan">
     <div className="session-scan-bar">
-      <span className="session-scan-logo"><img src="/skanda-mark.png" alt="" width="20" height="20" />CT brain<span className="session-scan-detail"> · Axial cine</span></span>
+      <span className="session-scan-logo"><img src="/radgenie-mark.png" alt="" width="20" height="20" />CT brain<span className="session-scan-detail"> · Axial cine</span></span>
       <span className="session-scan-readout" aria-label="Display window: width 100, level 40"><b>W 100</b><i />L 40</span>
     </div>
     <div className="session-scan-canvas">

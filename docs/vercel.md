@@ -1,12 +1,22 @@
-# VoxelRad AI on Vercel
+# RadGenie (formerly VoxelRad AI) on Vercel
 
-Production: https://voxelradai.com. The private GitHub repository remains named `Hitheshkaranth/skanda-radiology`.
+Production: https://radgenie.com (previously https://voxelradai.com). The private GitHub repository remains named `Hitheshkaranth/skanda-radiology`.
+
+## Moving from voxelradai.com to radgenie.com
+
+The site, docs and API examples now use radgenie.com. Sign-in cookies and origin checks accept exactly one origin, so switch in this order:
+
+1. Add `radgenie.com` (and `www.radgenie.com`) to the Vercel project and wait for its certificate.
+2. Set `PUBLIC_ORIGIN=https://radgenie.com` for Production and redeploy. API poll URLs (`/api/v1/reads/:id`) follow this value.
+3. Redirect `voxelradai.com/*` to `https://radgenie.com/*` (308, path kept) in the Vercel domain settings, so old links, bookmarks and API clients land on the new origin. Existing sessions end; users sign in once on radgenie.com.
+4. If Keycloak SSO is configured, add `https://radgenie.com/api/oidc/callback` to the client's redirect URIs.
+5. Tell API customers the new base URL. Their keys keep working, and header names keep the `X-VoxelRad-` prefix.
 
 ## Architecture
 
 Vercel serves the React app and the same-origin Node API in `api/index.mjs`. Neon PostgreSQL stores accounts, sessions and saved studies. The root build forces authenticated server mode; production does not bypass sign-in. Database migrations are bundled with the function and checked on initialization.
 
-Production environment variables are managed in Vercel: `DATABASE_URL`, `PUBLIC_ORIGIN=https://voxelradai.com`, and `DB_POOL_SIZE=3`. Never commit credentials or local environment files. The frontend and API use the Singapore region. Cookie and origin validation require the canonical production domain; preview authentication needs a separately configured origin and database.
+Production environment variables are managed in Vercel: `DATABASE_URL`, `PUBLIC_ORIGIN=https://radgenie.com`, and `DB_POOL_SIZE=3`. Never commit credentials or local environment files. The frontend and API use the Singapore region. Cookie and origin validation require the canonical production domain; preview authentication needs a separately configured origin and database.
 
 ## Deployment
 

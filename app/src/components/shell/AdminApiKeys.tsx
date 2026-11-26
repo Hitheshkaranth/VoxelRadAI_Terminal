@@ -69,7 +69,7 @@ export function AdminApiKeys() {
         <td>{key.revokedAt ? `Revoked ${date(key.revokedAt)}` : <ShellButton className="btn btn-destructive" disabled={busy} onClick={() => { void revoke(key) }}>Revoke</ShellButton>}</td></tr>)}</tbody></table></div>}
     {created && <section className="admin-key-reveal" role="alert" aria-labelledby="admin-key-reveal-heading">
       <h4 id="admin-key-reveal-heading">Copy this key now. It will not be shown again.</h4>
-      <p className="admin-note">VoxelRad stores only a hash of the key. Send it to {created.key.organisation} through your approved secure channel. If it is lost, revoke it and create a new one.</p>
+      <p className="admin-note">RadGenie stores only a hash of the key. Send it to {created.key.organisation} through your approved secure channel. If it is lost, revoke it and create a new one.</p>
       <label>API key ({created.key.prefix}…)<span className="admin-secret"><code>{created.secret}</code><ShellButton className="btn" onClick={() => { void copy('key', created.secret) }}><Copy aria-hidden="true" />{copied === 'key' ? 'Copied' : 'Copy'}</ShellButton></span></label>
       {created.webhookSecret
         ? <label>Webhook signing secret<span className="admin-secret"><code>{created.webhookSecret}</code><ShellButton className="btn" onClick={() => { void copy('webhook', created.webhookSecret ?? '') }}><Copy aria-hidden="true" />{copied === 'webhook' ? 'Copied' : 'Copy'}</ShellButton></span><small>Verifies the X-VoxelRad-Signature header on read webhooks.</small></label>

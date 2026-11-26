@@ -67,7 +67,7 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
     <h1 id="session-title">{heading}</h1>
     <p className="session-intro">{intro}</p>
     {state === 'checking' ? <p role="status" className="session-status"><span className="session-spinner" aria-hidden="true" />Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><ShellButton className="btn btn-primary session-submit" onClick={() => { setState('checking'); setError(''); setAttempt((value) => value + 1) }}><Roll>Try again</Roll><RotateCw aria-hidden="true" /></ShellButton></> : recovering ? <RecoveryForm onBack={() => setRecovering(false)} /> : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
-    {state === 'login' && !recovering && <><OrganizationSignIn /><details className="session-help"><summary>Need access or help signing in?<ChevronDown aria-hidden="true" /></summary><div className="session-help-body"><p>No account yet? <a href="/#access">Request access</a> and we will reply by email, or <a href="/demo">try the demo workspace</a> without one. If your organization already uses VoxelRad AI, ask its administrator for an account or a recovery code, and sign in with the email address they registered for you.</p><ShellButton className="btn session-secondary" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></div></details></>}
+    {state === 'login' && !recovering && <><OrganizationSignIn /><details className="session-help"><summary>Need access or help signing in?<ChevronDown aria-hidden="true" /></summary><div className="session-help-body"><p>No account yet? <a href="/#access">Request access</a> and we will reply by email, or <a href="/demo">try the demo workspace</a> without one. If your organization already uses RadGenie, ask its administrator for an account or a recovery code, and sign in with the email address they registered for you.</p><ShellButton className="btn session-secondary" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></div></details></>}
   </section></SessionLayout>
 }
 
@@ -75,7 +75,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
   return <div className="session-page">
     <div className="session-glow" aria-hidden="true" />
     <header className="session-top">
-      <a className="session-brand" href="/" aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" width="24" height="24" /><span>VoxelRad</span></a>
+      <a className="session-brand" href="/" aria-label="RadGenie home"><img src="/radgenie-mark.png" alt="" width="24" height="24" /><span>RadGenie</span></a>
       <nav className="session-top-end" aria-label="Site">
         <a className="session-pill session-pill-ghost" href="/"><ArrowLeft aria-hidden="true" /><Roll>Home</Roll></a>
         <a className="session-pill session-pill-light session-top-access" href="/#access"><Roll>Request access</Roll></a>
@@ -88,7 +88,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
     </main>
     <footer className="session-foot">
       <p>Research and review-support software, not a medical device. Findings are drafts for clinician review.</p>
-      <p><a href="/demo">Demo</a><a href="/docs">Docs</a><span>voxelradai.com</span></p>
+      <p><a href="/demo">Demo</a><a href="/docs">Docs</a><span>radgenie.com</span></p>
     </footer>
   </div>
 }

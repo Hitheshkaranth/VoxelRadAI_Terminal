@@ -54,6 +54,6 @@ export function Pricing() {
       </div>
     </article>)}</Reveal>
 
-    <p className="sk-api-note"><Info size={14} aria-hidden="true" /><span>VoxelRad AI and Skanda are research and review-support software, not a cleared medical device. Clinical use needs regulatory clearance, such as from CDSCO in India, which has not been obtained; until then, API access is for research, evaluation and supervised pilots under a research agreement, and a radiologist reviews every finding. API reads are not used for model training. Pricing and availability are on request.</span></p>
+    <p className="sk-api-note"><Info size={14} aria-hidden="true" /><span>RadGenie and Skanda are research and review-support software, not a cleared medical device. Clinical use needs regulatory clearance, such as from CDSCO in India, which has not been obtained; until then, API access is for research, evaluation and supervised pilots under a research agreement, and a radiologist reviews every finding. API reads are not used for model training. Pricing and availability are on request.</span></p>
   </section>
 }

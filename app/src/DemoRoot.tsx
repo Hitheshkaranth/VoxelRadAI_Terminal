@@ -69,7 +69,7 @@ export function DemoRoot() {
       <span><strong>Demo workspace.</strong> <span className="demo-bar-long">Six held-out chest films with recorded Skanda reads, including a miss and a false alarm. Live analysis is off and nothing leaves your browser.</span></span>
       {error && <span className="demo-bar-error" role="alert">{error}</span>}
       <a href="/#access" onClick={() => track('access_cta', { from: 'demo' })}>Request access <ArrowRight aria-hidden="true" /></a>
-      <a className="demo-bar-home" href="/">VoxelRad home</a>
+      <a className="demo-bar-home" href="/">RadGenie home</a>
     </div>
     <TooltipProvider delayDuration={350}>
       {ready && <Suspense fallback={<p role="status" className="demo-loading">Loading the demo workspace…</p>}><App /></Suspense>}

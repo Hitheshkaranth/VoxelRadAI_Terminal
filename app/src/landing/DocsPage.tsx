@@ -15,7 +15,7 @@ import './docs.css'
 
 const [secXray, secCt, secMri, secAll] = V1_CONFIRMATORY.secondsPerRead
 const s = (n: number) => `${n.toFixed(1)} s`
-const BASE = 'https://voxelradai.com/api/v1'
+const BASE = 'https://radgenie.com/api/v1'
 
 const toc = [
   ['overview', 'Overview'],
@@ -210,22 +210,22 @@ const readDone = json({
 
 const asyncCurl = `# Submit: the same body as /chat/completions ("stream" is ignored), plus an optional webhook_url.
 curl -si ${BASE}/reads \\
-  -H "Authorization: Bearer $VOXELRAD_API_KEY" \\
+  -H "Authorization: Bearer $RADGENIE_API_KEY" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: batch-0007-image-042" \\
   --data-binary @read.json
 # → 202 Accepted, Location: ${BASE}/reads/{id}
 
 # Poll until status is succeeded, failed or cancelled
-curl -s ${BASE}/reads/$READ_ID -H "Authorization: Bearer $VOXELRAD_API_KEY"
+curl -s ${BASE}/reads/$READ_ID -H "Authorization: Bearer $RADGENIE_API_KEY"
 
 # Cancel a queued or running read
-curl -s -X DELETE ${BASE}/reads/$READ_ID -H "Authorization: Bearer $VOXELRAD_API_KEY"`
+curl -s -X DELETE ${BASE}/reads/$READ_ID -H "Authorization: Bearer $RADGENIE_API_KEY"`
 
 const asyncPython = `import os, time, requests
 
 API = "${BASE}"
-HEADERS = {"Authorization": f"Bearer {os.environ['VOXELRAD_API_KEY']}"}
+HEADERS = {"Authorization": f"Bearer {os.environ['RADGENIE_API_KEY']}"}
 
 def submit_and_wait(body: dict, idempotency_key: str) -> dict:
     r = requests.post(f"{API}/reads", json=body, timeout=30,
@@ -243,7 +243,7 @@ const webhookBody = json({ id: '5b0e8c1a-…', status: 'succeeded', result: { co
 
 const verifyPython = `import hashlib, hmac, os, time
 
-SECRET = os.environ["VOXELRAD_WEBHOOK_SECRET"]   # whsec_…, shown once when your key was issued
+SECRET = os.environ["RADGENIE_WEBHOOK_SECRET"]   # whsec_…, shown once when your key was issued
 TOLERANCE = 300                                   # seconds: refuse deliveries signed more than 5 minutes ago
 
 def verify(raw_body: bytes, timestamp: str, signature: str) -> bool:
@@ -259,7 +259,7 @@ def verify(raw_body: bytes, timestamp: str, signature: str) -> bool:
 
 const verifyNode = `import { createHmac, timingSafeEqual } from 'node:crypto'
 
-const SECRET = process.env.VOXELRAD_WEBHOOK_SECRET   // whsec_…, shown once when your key was issued
+const SECRET = process.env.RADGENIE_WEBHOOK_SECRET   // whsec_…, shown once when your key was issued
 const TOLERANCE_S = 300                               // refuse deliveries signed more than 5 minutes ago
 
 /** Check X-VoxelRad-Timestamp and X-VoxelRad-Signature against the raw body (a Buffer), before parsing it. */
@@ -270,7 +270,7 @@ export function verify(rawBody, timestamp, signature) {
   return received.length === expected.length && timingSafeEqual(received, expected)
 }
 
-// Express: app.post('/voxelrad', express.raw({ type: 'application/json' }), (req, res) => {
+// Express: app.post('/radgenie-webhook', express.raw({ type: 'application/json' }), (req, res) => {
 //   if (!verify(req.body, req.get('X-VoxelRad-Timestamp'), req.get('X-VoxelRad-Signature'))) return res.sendStatus(401)
 //   res.sendStatus(204)   // answer fast with a 2xx; do the work after
 // })`
@@ -315,15 +315,15 @@ const measuredExample = json({
 const sysPy = SKANDA_SYSTEM_PROMPT.replace(/"/g, '\\"')
 const sysSh = SKANDA_SYSTEM_PROMPT.replace(/"/g, '\\"')
 
-const curlExample = `export VOXELRAD_API_KEY="vr_test_…"   # issued to your organisation; keep it server-side
+const curlExample = `export RADGENIE_API_KEY="vr_test_…"   # issued to your organisation; keep it server-side
 
 # 1. Check the key and the model (does not count as a read)
-curl -s ${BASE}/models -H "Authorization: Bearer $VOXELRAD_API_KEY"
+curl -s ${BASE}/models -H "Authorization: Bearer $RADGENIE_API_KEY"
 
 # 2. Read one de-identified chest X-ray (PNG or JPEG) and print the report JSON
 IMG=$(base64 < chest.png | tr -d '\\n')
 curl -s --max-time 300 ${BASE}/chat/completions \\
-  -H "Authorization: Bearer $VOXELRAD_API_KEY" \\
+  -H "Authorization: Bearer $RADGENIE_API_KEY" \\
   -H "Content-Type: application/json" \\
   --data-binary @- <<EOF | jq -r '.choices[0].message.content' | jq .
 {
@@ -343,7 +343,7 @@ EOF`
 const pythonExample = `import base64, json, os, requests
 
 API = "${BASE}"
-KEY = os.environ["VOXELRAD_API_KEY"]   # vr_live_… or vr_test_…
+KEY = os.environ["RADGENIE_API_KEY"]   # vr_live_… or vr_test_…
 
 SYSTEM = "${sysPy}"
 PROMPT = "${SKANDA_ANALYSIS_PROMPT}"
@@ -375,7 +375,7 @@ const openaiExample = `import base64, json, os
 from openai import OpenAI
 
 client = OpenAI(base_url="${BASE}",
-                api_key=os.environ["VOXELRAD_API_KEY"],   # vr_live_… or vr_test_…
+                api_key=os.environ["RADGENIE_API_KEY"],   # vr_live_… or vr_test_…
                 timeout=300,
                 max_retries=0)    # a retried read can count again; handle 429 and Retry-After yourself
 
@@ -400,7 +400,7 @@ report = json.loads(choice.message.content)`
 
 const jsExample = `// Server-side only (Node 18+): the API sends no CORS headers, and the key must never reach a browser.
 const API = '${BASE}'
-const KEY = process.env.VOXELRAD_API_KEY   // vr_live_… or vr_test_…
+const KEY = process.env.RADGENIE_API_KEY   // vr_live_… or vr_test_…
 
 const SYSTEM = ${JSON.stringify(SKANDA_SYSTEM_PROMPT)}
 const PROMPT = ${JSON.stringify(SKANDA_ANALYSIS_PROMPT)}
@@ -429,7 +429,7 @@ export async function readChestXray(pngBase64, signal) {
 }`
 
 const bboxExample = `// box_2d is [ymin, xmin, ymax, xmax] on a 0–1000 grid, origin top-left.
-// The VoxelRad workspace stores it as a box normalised to 0..1:
+// The RadGenie workspace stores it as a box normalised to 0..1:
 const [ymin, xmin, ymax, xmax] = finding.box_2d.map((v) => v / 1000)
 const bbox = { x: xmin, y: ymin, w: xmax - xmin, h: ymax - ymin }
 
@@ -476,13 +476,13 @@ function Toc() {
 const M = ({ children }: { children: ReactNode }) => <code className="sk-ic">{children}</code>
 
 export function DocsPage() {
-  usePageMeta('Developer docs · Connect Skanda V1 to your software · VoxelRad AI', 'How to call Skanda V1 at voxelradai.com/api/v1 with an organisation API key: OpenAI-compatible chat completions as plain JSON or a stream, async reads with signed webhooks, errors, limits, data handling and regulatory status.')
+  usePageMeta('Developer docs · Connect Skanda V1 to your software · RadGenie', 'How to call Skanda V1 at radgenie.com/api/v1 with an organisation API key: OpenAI-compatible chat completions as plain JSON or a stream, async reads with signed webhooks, errors, limits, data handling and regulatory status.')
   return <Shell>
     <PageHead eyebrow="Docs" title={<>Connect <em>Skanda V1</em></>} lead="Send a de-identified X-ray, CT or MRI image to Skanda V1 from your own application or reporting software, and get back a structured draft: candidate findings with outlines, measurements and an impression, for a radiologist to review. For research, evaluation and supervised pilots.">
       <div className="sk-docs-access">
         <div>
           <h2>API keys are issued by request</h2>
-          <p>There is no self-serve signup. VoxelRad issues keys per organisation after reviewing each request by hand, starting with a sandbox test key. Examples on this page read the key from <M>$VOXELRAD_API_KEY</M>.</p>
+          <p>There is no self-serve signup. RadGenie issues keys per organisation after reviewing each request by hand, starting with a sandbox test key. Examples on this page read the key from <M>$RADGENIE_API_KEY</M>.</p>
         </div>
         <div className="sk-actions sk-actions-left"><Pill href="/#access">Request API access</Pill><Pill href="/demo" tone="ghost">Try the demo</Pill></div>
       </div>
@@ -492,7 +492,7 @@ export function DocsPage() {
       <Toc />
       <article className="sk-docs-body">
         <Section id="overview" title="Overview">
-          <p>Skanda V1 is the model the hosted VoxelRad workspace serves. The API at <M>{BASE}</M> speaks the OpenAI-compatible chat completions format: you send one image and a short prompt, and it answers with a single JSON report describing what it sees, where, and how large it is.</p>
+          <p>Skanda V1 is the model the hosted RadGenie workspace serves. The API at <M>{BASE}</M> speaks the OpenAI-compatible chat completions format: you send one image and a short prompt, and it answers with a single JSON report describing what it sees, where, and how large it is.</p>
           <p>Treat every finding it returns as a <strong>candidate</strong>. In the workspace a radiologist accepts or dismisses each one, and only reviewed findings are drafted into the report. Your integration should keep the same order of events:</p>
           <ol className="sk-steps sk-docs-flow">
             <li><b>A study arrives.</b> Your system de-identifies the image and renders it to PNG or JPEG.</li>
@@ -512,10 +512,11 @@ export function DocsPage() {
           <p>Send the key as a bearer token on every request. The API reads nothing else: it ignores cookies, checks no <M>Origin</M>, and sends no CORS headers, so call it from your server, never from a browser.</p>
           <Code label="authorization header" title="Every request" code={`Authorization: Bearer vr_live_…      # or vr_test_…`} />
           <ul className="sk-docs-list">
-            <li><b>Keys are shown once.</b> VoxelRad stores only a hash. If a key is lost or exposed, ask us to revoke it and issue a new one; a revoked key gets <M>401 key_revoked</M>.</li>
-            <li><b>A key opens only this API.</b> It cannot reach studies, sharing, administration or any other part of the VoxelRad app.</li>
+            <li><b>Keys are shown once.</b> RadGenie stores only a hash. If a key is lost or exposed, ask us to revoke it and issue a new one; a revoked key gets <M>401 key_revoked</M>.</li>
+            <li><b>A key opens only this API.</b> It cannot reach studies, sharing, administration or any other part of the RadGenie app.</li>
             <li><b>Async reads are shared within an organisation.</b> Any key of the same organisation can fetch or cancel them.</li>
           </ul>
+          <p>Header names keep the <M>X-VoxelRad-</M> prefix from before the product was renamed RadGenie, so existing integrations keep working.</p>
           <Table caption="Response headers" head={['Header', 'Meaning']} rows={[
             r(<M>X-VoxelRad-Key-Kind</M>, <><M>live</M> or <M>test</M>, on every authenticated response.</>),
             r(<M>X-VoxelRad-Reads-Left</M>, 'Reads left today for this key, on responses that counted a read.'),
@@ -538,7 +539,7 @@ export function DocsPage() {
         </Section>
 
         <Section id="request" title="Request body">
-          <p>A read is one system message and one user message holding the image and the instruction. These are the exact prompts the VoxelRad workspace sends for a chest X-ray; Skanda was trained on them, so keep them unchanged.</p>
+          <p>A read is one system message and one user message holding the image and the instruction. These are the exact prompts the RadGenie workspace sends for a chest X-ray; Skanda was trained on them, so keep them unchanged.</p>
           <Code label="chest X-ray request body" title="POST /chat/completions · chest X-ray" code={requestBody} />
           <Table caption="Request fields" head={['Field', 'Value']} rows={[
             r(<M>model</M>, <>Required: <M>"skanda-v1"</M>. A missing model is <M>400 missing_model</M>; any other name is <M>404 model_not_found</M>.</>),
@@ -605,7 +606,7 @@ export function DocsPage() {
         </Section>
 
         <Section id="webhooks" title="Webhooks">
-          <p>Add <M>webhook_url</M> to <M>POST /reads</M> and VoxelRad posts the outcome there when the read ends as <M>succeeded</M> or <M>failed</M>. A cancelled read sends no webhook. The URL must be <M>https</M>, at most 2048 characters, without credentials, and resolve only to public addresses. If webhooks are not enabled on the service, or your key was issued before they were and so came without a webhook secret, the request is refused with <M>400 webhooks_not_configured</M>; ask us for a new key to use webhooks.</p>
+          <p>Add <M>webhook_url</M> to <M>POST /reads</M> and RadGenie posts the outcome there when the read ends as <M>succeeded</M> or <M>failed</M>. A cancelled read sends no webhook. The URL must be <M>https</M>, at most 2048 characters, without credentials, and resolve only to public addresses. If webhooks are not enabled on the service, or your key was issued before they were and so came without a webhook secret, the request is refused with <M>400 webhooks_not_configured</M>; ask us for a new key to use webhooks.</p>
           <Code label="webhook body" title="POST {webhook_url} · illustrative" code={webhookBody} />
           <Table caption="Webhook request headers" head={['Header', 'Value']} rows={[
             r(<M>Content-Type</M>, <M>application/json</M>),

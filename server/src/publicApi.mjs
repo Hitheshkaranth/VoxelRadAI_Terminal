@@ -321,7 +321,7 @@ export function createPublicApi({ readStore, env = process.env, body, send, mode
     if (data.webhook_url !== undefined && data.webhook_url !== null) {
       if (!webhooksConfigured(env)) return fail(res, 400, 'Webhooks are not configured on this server. Poll the read instead.', 'webhooks_not_configured', keyHeaders(key))
       // A key issued before webhooks were enabled was never shown a signing secret, so it could not verify deliveries.
-      if (!key.webhooks) return fail(res, 400, 'This API key was issued without a webhook signing secret. Poll the read, or ask your VoxelRad administrator for a new key.', 'webhooks_not_configured', keyHeaders(key))
+      if (!key.webhooks) return fail(res, 400, 'This API key was issued without a webhook signing secret. Poll the read, or ask your RadGenie administrator for a new key.', 'webhooks_not_configured', keyHeaders(key))
       const webhook = await checkWebhookUrl(data.webhook_url, resolve ? { resolve } : {})
       if (webhook.error) return fail(res, 400, webhook.error, 'invalid_webhook_url', keyHeaders(key))
       webhookUrl = webhook.url

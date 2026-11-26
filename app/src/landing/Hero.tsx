@@ -39,7 +39,7 @@ export function Nav() {
   }, [])
   return <header className="sk-nav" data-scrolled={scrolled}>
     <div className="sk-nav-inner">
-      <a className="sk-brand" href={anchor('#top')} aria-label="VoxelRad AI home"><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a>
+      <a className="sk-brand" href={anchor('#top')} aria-label="RadGenie home"><img src="/radgenie-mark.png" alt="" /><span>RadGenie</span></a>
       <nav aria-label="Main">{links.map(([label, href]) => <a key={href} href={anchor(href)} aria-current={href === active ? 'location' : typeof location !== 'undefined' && href === location.pathname ? 'page' : undefined}><Roll>{label}</Roll></a>)}</nav>
       <div className="sk-nav-end">
         <span className="sk-serving" title="Model used by the hosted workspace">Skanda V1</span>
@@ -49,7 +49,7 @@ export function Nav() {
       </div>
     </div>
     <dialog ref={dialog} className="sk-sheet" onClose={() => setOpen(false)} aria-label="Menu">
-      <div className="sk-sheet-top"><a className="sk-brand" href={anchor('#top')} onClick={() => setOpen(false)}><img src="/skanda-mark.png" alt="" /><span>VoxelRad</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
+      <div className="sk-sheet-top"><a className="sk-brand" href={anchor('#top')} onClick={() => setOpen(false)}><img src="/radgenie-mark.png" alt="" /><span>RadGenie</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
       <ol>{links.map(([label, href], i) => <li key={href}><a href={anchor(href)} onClick={() => setOpen(false)}><span>{String(i + 1).padStart(2, '0')}</span>{label}<ArrowUpRight size={18} /></a></li>)}</ol>
       <div className="sk-actions"><Pill href={anchor('#access')} onClick={() => setOpen(false)}>Request access</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
     </dialog>
@@ -71,7 +71,7 @@ function ReadingRoom() {
   const pickModality = (m: Modality) => { setModality(m); setStudyId(studies.find((s) => s.modality === m)!.id); setOverlay(true); setZoom(1) }
   return <div className="sk-room" aria-label="Interactive reading room">
     <div className="sk-room-bar">
-      <span className="sk-room-logo"><img src="/skanda-mark.png" alt="" /><ChevronRight size={14} /></span>
+      <span className="sk-room-logo"><img src="/radgenie-mark.png" alt="" /><ChevronRight size={14} /></span>
       <div className="sk-room-center">
         <div className="sk-seg" role="tablist" aria-label="Modality">{modalities.map((m) => <button key={m} role="tab" aria-selected={m === modality} onClick={() => pickModality(m)}>{m}</button>)}</div>
         <span className="sk-readout"><b>{study.window}</b><i /> {Math.round(zoom * 100)}%</span>

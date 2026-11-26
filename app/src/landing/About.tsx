@@ -27,7 +27,7 @@ const bibtex = `@misc{karanth2026skanda,
   year         = {2026},
   publisher    = {Hugging Face},
   howpublished = {\\url{https://huggingface.co/hitheshkaranth/Skanda-0}},
-  note         = {VoxelRad AI, https://voxelradai.com}
+  note         = {RadGenie, https://radgenie.com}
 }`
 
 export function About() {
@@ -35,7 +35,7 @@ export function About() {
     <Reveal className="sk-wrap sk-about-grid">
       <div className="sk-about-card">
         <div><p className="sk-plan-label">Built by</p><h2 id="about-title" className="sk-about-names">{builders.map((b) => b.name).join(' & ')}</h2></div>
-        <p className="sk-about-text">VoxelRad AI and the Skanda models are built end to end by {builders[0].name} and {builders[1].name}: the reading workspace and volume viewer, Skanda V1 that the workspace serves, the open-source Skanda-0 and its quantized builds, and the benchmarks and fault reports on this page.</p>
+        <p className="sk-about-text">RadGenie and the Skanda models are built end to end by {builders[0].name} and {builders[1].name}: the reading workspace and volume viewer, Skanda V1 that the workspace serves, the open-source Skanda-0 and its quantized builds, and the benchmarks and fault reports on this page.</p>
         <dl className="sk-about-facts">
           <div><dt>Modalities</dt><dd>X-ray · CT · MRI</dd></div>
           <div><dt>Open builds</dt><dd>{BUILDS.length}</dd></div>

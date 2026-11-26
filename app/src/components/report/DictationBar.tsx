@@ -426,7 +426,7 @@ export function DictationBar({ disabled, labels, studyId }: { disabled: boolean;
             Punctuation words become marks: full stop, period, comma, colon, semicolon, question mark, open/close bracket, hyphen, slash.
             Measurements are written as numbers: “one point two by zero point eight centimetres” → 1.2 x 0.8 cm. Check every transcribed value before signing.
           </p>
-          <p>Audio is sent through this server to Sarvam AI for transcription. To improve recognition, VoxelRad keeps the audio and text of phrases that fail, are undone or are corrected, with patient identifiers removed. Signing always needs a click.</p>
+          <p>Audio is sent through this server to Sarvam AI for transcription. To improve recognition, RadGenie keeps the audio and text of phrases that fail, are undone or are corrected, with patient identifiers removed. Signing always needs a click.</p>
         </div>
       ) : null}
     </section>
