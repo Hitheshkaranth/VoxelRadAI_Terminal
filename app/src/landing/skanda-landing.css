@@ -755,6 +755,7 @@
 .sk-person-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:10px}
 .sk-person-links a{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--sk-line-2);border-radius:10px;background:#0000004d;color:#fff;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
 .sk-person-links a:hover{border-color:#ffffff59;background:#111}
+.sk-person-in{font:700 15px/1 var(--sk-display);letter-spacing:-.04em}
 .sk-person-links a:focus-visible{outline:2px solid var(--sk-blue-2);outline-offset:2px}
 .sk-team-cite{margin-top:20px}
 .sk-team-cite .sk-about-card{gap:18px}

@@ -22,7 +22,10 @@ const team: readonly Member[] = [
     ['X', 'https://x.com/skandaudupa14g1', '@skandaudupa14g1'],
   ] },
   { name: 'Karishma Karanth', role: 'Co-Founder & COO', initials: 'KK', photo: '/team/karishma-karanth.webp',
-    bio: 'Runs operations, partnerships and clinical pilots. MBA, University of Leeds.', profiles: [] },
+    bio: 'Runs operations, partnerships and clinical pilots. MBA, University of Leeds, UK (2025).', profiles: [
+    ['LinkedIn', 'https://www.linkedin.com/in/karishma-k09/', 'karishma-k09'],
+    ['X', 'https://x.com/Karishmakj67', '@Karishmakj67'],
+  ] },
 ]
 
 const heldOut = BENCHMARKS[0].groups.reduce((n, g) => n + Number.parseInt(g.cases, 10), 0)
@@ -60,7 +63,7 @@ export function About() {
             <h3 id={`person-${m.initials}`}>{m.name}</h3>
             <p className="sk-person-bio">{m.bio}</p>
             {m.profiles.length > 0 && <ul className="sk-person-links">{m.profiles.map(([label, href, handle]) =>
-              <li key={label}><a href={href} target="_blank" rel="noreferrer" aria-label={`${m.name.replace('\u00a0', ' ')} on ${label} (${handle})`} title={handle} onClick={() => track('profile_open', { site: label, who: m.initials })}>{brandOf[label] ? <BrandIcon name={brandOf[label]} size={16} /> : <Globe size={16} aria-hidden="true" />}</a></li>)}</ul>}
+              <li key={label}><a href={href} target="_blank" rel="noreferrer" aria-label={`${m.name.replace('\u00a0', ' ')} on ${label} (${handle})`} title={handle} onClick={() => track('profile_open', { site: label, who: m.initials })}>{brandOf[label] ? <BrandIcon name={brandOf[label]} size={16} /> : label === 'LinkedIn' ? <span className="sk-person-in" aria-hidden="true">in</span> : <Globe size={16} aria-hidden="true" />}</a></li>)}</ul>}
           </div>
         </article>)}
       </Reveal>
