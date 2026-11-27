@@ -170,7 +170,7 @@ export function Evidence() {
         <div className="sk-quote-top"><span><b>{String(i + 1).padStart(2, '0')}</b> / {String(notes.length).padStart(2, '0')}</span><span className="sk-quote-mark">”</span></div>
         <span className="sk-chip">{note.stat}</span>
         <blockquote key={i}>“{note.text}”</blockquote>
-        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/radgenis-mark.png" alt="" /><span><b>Skanda V1 · {note.source}</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
+        <div className="sk-quote-foot"><span className="sk-quote-who"><img src="/skanda-mark.png" alt="" /><span><b>Skanda V1 · {note.source}</b><small>{note.who}</small></span></span><span className="sk-arrows"><button aria-label="Previous" onClick={() => setI((i + notes.length - 1) % notes.length)}><ArrowLeft size={14} /></button><button aria-label="Next" onClick={() => setI((i + 1) % notes.length)}><ArrowRight size={14} /></button></span></div>
       </div>
     </Reveal>
   </section>
@@ -188,7 +188,7 @@ export function Faqs() {
 export function Closing() {
   return <section className="sk-close" aria-labelledby="close-title">
     <Reveal><h2 id="close-title">See More.<br />Report Better.</h2><div className="sk-actions"><Pill href="#weights" tone="grey">Get Skanda-0</Pill><Pill href="#access">Request access</Pill></div></Reveal>
-    <div className="sk-close-mark" aria-hidden="true"><img src="/radgenis-mark.png" alt="" /></div>
+    <div className="sk-close-mark" aria-hidden="true"><img src="/skanda-mark.png" alt="" /></div>
   </section>
 }
 

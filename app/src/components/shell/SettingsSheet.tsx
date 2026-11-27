@@ -502,7 +502,7 @@ function AboutSection() {
   return (
     <Section title="About" desc="RadGenis decision support.">
       <div className="sh-about">
-        <img className="sh-about-logo" src="/radgenis-mark.png" alt="" aria-hidden />
+        <img className="sh-about-logo" src="/skanda-mark.png" alt="" aria-hidden />
         <div className="sh-about-title">RadGenis</div>
         <div className="sh-about-sub">Version {VERSION}</div>
         <div className="sh-disclaimer">

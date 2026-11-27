@@ -247,7 +247,7 @@ function Welcome({ hasStudies }: { hasStudies: boolean }) {
   const createStudy = useApp((s) => s.createStudy)
   return (
     <div className="sh-empty">
-      <img className="sh-empty-logo" src="/radgenis-mark.png" alt="RadGenis" />
+      <img className="sh-empty-logo" src="/skanda-mark.png" alt="RadGenis" />
       <h1 className="sh-empty-title">RadGenis</h1>
       <p className="sh-empty-desc">
         {hasStudies

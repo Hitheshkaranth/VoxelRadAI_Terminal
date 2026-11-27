@@ -75,7 +75,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
   return <div className="session-page">
     <div className="session-glow" aria-hidden="true" />
     <header className="session-top">
-      <a className="session-brand" href="/" aria-label="RadGenis home"><img src="/radgenis-mark.png" alt="" width="24" height="24" /><span>RadGenis</span></a>
+      <a className="session-brand" href="/" aria-label="RadGenis home"><img src="/skanda-mark.png" alt="" width="24" height="24" /><span>RadGenis</span></a>
       <nav className="session-top-end" aria-label="Site">
         <a className="session-pill session-pill-ghost" href="/"><ArrowLeft aria-hidden="true" /><Roll>Home</Roll></a>
         <a className="session-pill session-pill-light session-top-access" href="/#access"><Roll>Request access</Roll></a>
