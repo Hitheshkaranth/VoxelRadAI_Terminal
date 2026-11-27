@@ -17,6 +17,7 @@ const builders = [
   { name: 'Dr\u00a0Skanda Kumar Udupa', role: 'Radiologist', initials: 'SU', profiles: [
     ['X', 'https://x.com/skandaudupa14g1', '@skandaudupa14g1'],
   ] },
+  { name: 'Karishma Karanth', role: 'COO', initials: 'KK', profiles: [] },
 ] as const
 
 const heldOut = BENCHMARKS[0].groups.reduce((n, g) => n + Number.parseInt(g.cases, 10), 0)
@@ -34,8 +35,8 @@ export function About() {
   return <section className="sk-about" id="about" aria-labelledby="about-title">
     <Reveal className="sk-wrap sk-about-grid">
       <div className="sk-about-card">
-        <div><p className="sk-plan-label">Built by</p><h2 id="about-title" className="sk-about-names">{builders.map((b) => b.name).join(' & ')}</h2></div>
-        <p className="sk-about-text">RadGenis and the Skanda models are built end to end by {builders[0].name} and {builders[1].name}: the reading workspace and volume viewer, Skanda V1 that the workspace serves, the open-source Skanda-0 and its quantized builds, and the benchmarks and fault reports on this page.</p>
+        <div><p className="sk-plan-label">Team</p><h2 id="about-title" className="sk-about-names">{builders.slice(0, -1).map((b) => b.name).join(', ')} & {builders[builders.length - 1].name}</h2></div>
+        <p className="sk-about-text">RadGenis and the Skanda models are built end to end by {builders[0].name} and {builders[1].name}: the reading workspace and volume viewer, Skanda V1 that the workspace serves, the open-source Skanda-0 and its quantized builds, and the benchmarks and fault reports on this page. {builders[2].name} is Chief Operating Officer.</p>
         <dl className="sk-about-facts">
           <div><dt>Modalities</dt><dd>X-ray · CT · MRI</dd></div>
           <div><dt>Open builds</dt><dd>{BUILDS.length}</dd></div>
@@ -43,8 +44,8 @@ export function About() {
         </dl>
         <ul className="sk-builders">{builders.map((b) => <li key={b.name}>
           <span className="sk-monogram" aria-hidden="true">{b.initials}</span>
-          <div><b>{b.name}{b.role && <small className="sk-builder-role">{b.role}</small>}</b><ul className="sk-about-links">{b.profiles.map(([label, href, handle]) =>
-            <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label, who: b.initials })}>{brandOf[label] ? <BrandIcon name={brandOf[label]} size={16} /> : <Globe size={16} aria-hidden="true" />}<span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul></div>
+          <div><b>{b.name}{b.role && <small className="sk-builder-role">{b.role}</small>}</b>{b.profiles.length > 0 && <ul className="sk-about-links">{b.profiles.map(([label, href, handle]) =>
+            <li key={label}><a href={href} target="_blank" rel="noreferrer" onClick={() => track('profile_open', { site: label, who: b.initials })}>{brandOf[label] ? <BrandIcon name={brandOf[label]} size={16} /> : <Globe size={16} aria-hidden="true" />}<span>{label}</span><small>{handle}</small><ArrowUpRight size={15} /></a></li>)}</ul>}</div>
         </li>)}</ul>
       </div>
       <CiteCard />
