@@ -735,6 +735,47 @@
 .sk-builders .sk-about-links{margin-top:0}
 .sk-builder-role{display:inline-block;padding:2px 9px;border:1px solid #7acaff59;border-radius:999px;font:500 12px var(--sk-body);color:var(--sk-blue-2);vertical-align:2px}
 
+/* Team: three portrait cards, then the citation card. */
+.sk-team-head{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end;margin-bottom:36px}
+.sk-team-head .sk-h2{margin-top:20px}
+.sk-team-head .sk-h2 em{font-family:var(--sk-serif);font-weight:400;font-style:italic}
+.sk-team-intro{display:grid;gap:22px}
+.sk-team-intro>p{font-size:15.5px;color:#cfcfcf;max-width:560px}
+.sk-team{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.sk-person{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--sk-card-line);border-radius:12px;background:radial-gradient(120% 60% at 0% 100%,#0b2350 0%,#020814 50%,#000 80%);transition:border-color .3s var(--sk-ease),transform .3s var(--sk-ease)}
+.sk-person:hover{border-color:#ffffff40;transform:translateY(-3px)}
+.sk-person-photo{position:relative;aspect-ratio:4/5;overflow:hidden;background:#0a0a0a}
+.sk-person-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 30%;filter:saturate(.92);transition:transform .6s var(--sk-ease),filter .6s var(--sk-ease)}
+.sk-person:hover .sk-person-photo img{transform:scale(1.03);filter:saturate(1)}
+.sk-person-photo::after{content:'';position:absolute;inset:38% 0 0;background:linear-gradient(#02081400 0%,#0208142e 30%,#020814a6 62%,#020814 100%);pointer-events:none}
+.sk-person-body{position:relative;display:flex;flex-direction:column;gap:8px;flex:1;margin-top:-56px;padding:0 24px 24px}
+.sk-person-role{align-self:flex-start;padding:3px 10px;border:1px solid #7acaff59;border-radius:999px;background:#000a;backdrop-filter:blur(6px);font:500 12px/1.5 var(--sk-body);color:var(--sk-blue-2)}
+.sk-person h3{margin-top:6px;font:500 24px/1.15 var(--sk-display);letter-spacing:-.03em;color:#fff}
+.sk-person-bio{font-size:14.5px;line-height:1.55;color:#bdbdbd}
+.sk-person-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:10px}
+.sk-person-links a{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--sk-line-2);border-radius:10px;background:#0000004d;color:#fff;transition:border-color .25s var(--sk-ease),background .25s var(--sk-ease)}
+.sk-person-links a:hover{border-color:#ffffff59;background:#111}
+.sk-person-links a:focus-visible{outline:2px solid var(--sk-blue-2);outline-offset:2px}
+.sk-team-cite{margin-top:20px}
+.sk-team-cite .sk-about-card{gap:18px}
+.sk-reveal[data-in=true] .sk-person{animation:sk-rise .8s var(--sk-ease) both}
+.sk-reveal[data-in=true] .sk-person:nth-child(2){animation-delay:.1s}
+.sk-reveal[data-in=true] .sk-person:nth-child(3){animation-delay:.2s}
+@media (max-width:1000px){
+  .sk-team-head{grid-template-columns:1fr;gap:22px}
+  .sk-team{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .sk-team{grid-template-columns:1fr}
+  .sk-person-photo{aspect-ratio:1/1}
+  .sk-person-body{padding:0 20px 22px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sk-person,.sk-person-photo img{transition:none}
+  .sk-person:hover{transform:none}
+  .sk-person:hover .sk-person-photo img{transform:none}
+}
+
 /* ---------------------------------------------------------------- foundations + training data */
 .sk-found{padding:clamp(80px,7.3vw,139px) 0 0;scroll-margin-top:60px}
 .sk-found-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:36px}
