@@ -113,7 +113,7 @@ async function queueSetup({ env = {}, mode = 'ok', leaseSeconds } = {}) {
   const keyStore = memoryKeyStore()
   const apiKeys = createApiKeys({ store: keyStore, env: fullEnv, body, send, audit: async () => {}, confirmAdmin: async () => true })
   const readStore = memoryReadStore(keyStore)
-  const make = owner => createPublicApi({ readStore, env: fullEnv, body, send, modelProxy, apiKeys, publicOrigin: 'https://voxelradai.com', leaseOwner: owner, timeouts: { cancelPoll: 20, leaseSeconds } })
+  const make = owner => createPublicApi({ readStore, env: fullEnv, body, send, modelProxy, apiKeys, publicOrigin: 'https://radgenis.com', leaseOwner: owner, timeouts: { cancelPoll: 20, leaseSeconds } })
   const api = make('api-1')
   const app = await listen(async (req, res) => {
     const path = new URL(req.url, 'http://x').pathname

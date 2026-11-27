@@ -497,7 +497,7 @@ export async function handler(req, res) {
       const filter = auditFilter(new URL(req.url, 'http://internal').searchParams)
       const result = await pool.query(`SELECT e.created_at,e.event_type,u.email,e.actor_id,e.subject_id FROM audit_events e LEFT JOIN users u ON u.id=e.actor_id WHERE ${filter.where} ORDER BY e.created_at DESC,e.id DESC LIMIT 10000`, filter.values)
       await audit(user.id, 'audit.exported')
-      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="voxelrad-audit-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' })
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="radgenis-audit-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' })
       return res.end(toCsv(['time_utc', 'event', 'actor_email', 'actor_id', 'subject_id'], result.rows.map(row => [row.created_at.toISOString(), row.event_type, row.email, row.actor_id, row.subject_id])))
     }
     if (path === '/api/admin/reviews' && req.method === 'GET') {

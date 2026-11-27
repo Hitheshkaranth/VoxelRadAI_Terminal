@@ -1,4 +1,4 @@
-# Scaling VoxelRad AI: architecture review and overhaul
+# Scaling RadGenis: architecture review and overhaul
 
 *Reviewed 21 November 2026 against `main` at `66bc398`. Written from two seats: the system architect, who owns how
 the platform behaves under load and failure, and the forward-deployed engineer (FDE), who installs it inside a
@@ -74,7 +74,7 @@ There are three deployment shapes, all built from the same code:
 
 | Shape | Web | API | Database | Model |
 | --- | --- | --- | --- | --- |
-| Hosted (voxelradai.com) | Vercel static | Vercel function (`api/index.mjs`) | Neon | ZeroGPU Space over the bridge |
+| Hosted (radgenis.com) | Vercel static | Vercel function (`api/index.mjs`) | Neon | ZeroGPU Space over the bridge |
 | Private install (`compose.yaml`) | nginx | Node container(s) | PostgreSQL 17 container | Host model service on :1234, reached by nginx |
 | All-in-one Space (`deploy/huggingface`) | Gradio + FastAPI | Node child process | Bundled PostgreSQL, SQL dump to HF dataset | In-process ZeroGPU |
 
@@ -380,7 +380,7 @@ monolith-plus-workers shape fits the team size and the on-prem support burden.
 | DB pool waiting > 0 | `voxelrad_db_pool_connections{state="waiting"}` | Use the pooled endpoint; lower `DB_POOL_SIZE` per replica on serverless; look for slow analytics queries |
 | Worker restarts mid-read | Worker logs `worker.started` | Leased reads requeue within about 60 s and retry once (`READ_MAX_ATTEMPTS=2`) |
 
-### 7.4 Rolling out this change on voxelradai.com
+### 7.4 Rolling out this change on radgenis.com
 
 1. Deploy as is. Migrations 016 and 017 are additive and backfill in place. Behaviour is unchanged.
 2. Set `METRICS_TOKEN` if a scraper is available; otherwise rely on `/api/admin/operations`.

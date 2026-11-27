@@ -41,7 +41,7 @@ provenance = {"application_commit": subprocess.check_output(["git", "rev-parse",
 (STAGE / "deploy/huggingface/source.json").write_text(json.dumps(provenance, indent=2) + "\n")
 
 model_commit = api.upload_folder(repo_id=REPO, folder_path=STAGE, path_in_repo="application",
-                                commit_message="Add complete VoxelRad AI application and ZeroGPU deployment",
+                                commit_message="Add complete RadGenis application and ZeroGPU deployment",
                                 parent_commit=revision)
 print("Model application:", model_commit.commit_url, flush=True)
 
@@ -49,7 +49,7 @@ print("Model application:", model_commit.commit_url, flush=True)
 card = Path(hf_hub_download(REPO, "README.md")).read_text()
 if "## Application source and Space" not in card:
     card += ("\n## Application source and Space\n\n"
-             "The complete VoxelRad AI application is in [`application/`](application/). "
+             "The complete RadGenis application is in [`application/`](application/). "
              "Open the public [VoxelRad Space](https://huggingface.co/spaces/" + SPACE_REPO + ") "
              "for the workspace and queued ZeroGPU reads. See "
              "[`application/docs/huggingface.md`](application/docs/huggingface.md) for setup and limitations.\n")

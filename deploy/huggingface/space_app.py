@@ -405,7 +405,7 @@ reader = Skanda(model_path)
 app = gr.routes.App()
 
 
-# A trusted VoxelRad deployment (voxelradai.com on Vercel) may call inference with this shared secret
+# A trusted RadGenis deployment (radgenis.com on Vercel) may call inference with this shared secret
 # instead of a Space session. Unset means the bridge is off. Bridged reads use the owner's quota.
 BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET", "")
 if BRIDGE_SECRET and len(BRIDGE_SECRET) < 32:

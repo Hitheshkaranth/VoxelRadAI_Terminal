@@ -1,6 +1,6 @@
-# VoxelRad AI public landing page
+# RadGenis public landing page
 
-The root introduces VoxelRad AI. `/workspace` retains backend sign-in and OIDC handling. The original Skanda logo, domain and existing viewer remain.
+The root introduces RadGenis. `/workspace` retains backend sign-in and OIDC handling. The original Skanda logo, domain and existing viewer remain.
 
 ## Reference and typography
 

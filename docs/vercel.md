@@ -1,6 +1,6 @@
 # RadGenis (formerly VoxelRad AI) on Vercel
 
-Production: https://radgenis.com (previously https://voxelradai.com). The private GitHub repository remains named `Hitheshkaranth/skanda-radiology`.
+Production: https://radgenis.com (previously https://voxelradai.com). Vercel deploys from `Hitheshkaranth/VoxelRadAI_Terminal`; `Hitheshkaranth/RadGenis_Terminal` is a private copy of the same code.
 
 ## Moving from voxelradai.com to radgenis.com
 
@@ -33,7 +33,7 @@ paths answer exactly as before (the `unconfigured-model` route: sign-in required
 not found), so nothing changes until both are set.
 
 1. Set up the Space side first: add `BRIDGE_SECRET` to the Space (see
-   [huggingface.md](huggingface.md#bridge-for-voxelradaicom-vercel)).
+   [huggingface.md](huggingface.md#bridge-for-radgeniscom-vercel)).
 2. In the Vercel project, add these Production environment variables:
    - `MODEL_UPSTREAM_URL=https://hitheshkaranth-voxelrad.hf.space/lmstudio` (HTTPS only;
      no trailing `/v1`).
@@ -47,7 +47,7 @@ not found), so nothing changes until both are set.
    `maxDuration` to 300 seconds. Fluid compute is required: without it the plan's function
    limit can be lower than 300 seconds and long reads are cut off. The proxy ends a read
    itself at 280 seconds with a clear error, before the platform would kill it.
-4. Redeploy. Sign in on voxelradai.com, open Settings and check the connection; it should
+4. Redeploy. Sign in on radgenis.com, open Settings and check the connection; it should
    report `skanda-v1` as loaded.
 
 How it works: the browser calls the same origin, so the Content-Security-Policy needs no
@@ -62,7 +62,7 @@ asleep, queue unavailable, quota refused) are not counted. Errors come back as t
 quota text, an unreachable or building Space as 503, a Space that does not start the read
 within 60 seconds as 504, and a wrong secret as 502.
 
-Quota caveat: every voxelradai.com user spends the Space owner's ZeroGPU PRO quota. Each
+Quota caveat: every radgenis.com user spends the Space owner's ZeroGPU PRO quota. Each
 read reserves about 90 quota seconds; whole-volume (CT/MR) jobs send one read per sampled
 slice and can use the daily quota quickly. The per-user daily cap limits one account, not
 the site. When the quota runs out, all hosted reads fail with a quota message until it

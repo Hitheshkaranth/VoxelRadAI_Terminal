@@ -1,4 +1,4 @@
-# VoxelRad AI
+# RadGenis
 
 ## Register
 product

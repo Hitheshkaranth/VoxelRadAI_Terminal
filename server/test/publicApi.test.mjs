@@ -44,7 +44,7 @@ async function setup({ upstream = space(), env = {}, readStore: wrapStore, deliv
   const apiKeys = createApiKeys({ store: keyStore, env: fullEnv, body, send, audit, confirmAdmin: async () => true })
   const readStore = memoryReadStore(keyStore)
   const tasks = []
-  const api = createPublicApi({ readStore: wrapStore ? wrapStore(readStore) : readStore, env: fullEnv, body, send, modelProxy, apiKeys, publicOrigin: 'https://voxelradai.com',
+  const api = createPublicApi({ readStore: wrapStore ? wrapStore(readStore) : readStore, env: fullEnv, body, send, modelProxy, apiKeys, publicOrigin: 'https://radgenis.com',
     schedule: task => { tasks.push(task) }, resolve: async host => host === 'hooks.example.com' ? ['93.184.216.34'] : ['10.0.0.5'], deliver, timeouts: { cancelPoll: 20, ...timeouts } })
   const app = await listen(async (req, res) => {
     const path = new URL(req.url, 'http://x').pathname
@@ -193,7 +193,7 @@ test('async read: 202, poll to the parsed report, image data dropped, organisati
     const read = await submitted.json()
     assert.equal(read.object, 'read')
     assert.equal(read.status, 'queued')
-    assert.equal(read.poll_url, `https://voxelradai.com/api/v1/reads/${read.id}`)
+    assert.equal(read.poll_url, `https://radgenis.com/api/v1/reads/${read.id}`)
     assert.equal(submitted.headers.get('location'), read.poll_url)
     assert.equal(counted(ctx), 1, 'counted at submission')
     await Promise.all(ctx.tasks)

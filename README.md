@@ -1,32 +1,32 @@
 <div align="center">
 
-<img src="app/public/skanda-mark.png" alt="VoxelRad AI" width="72">
+<img src="app/public/skanda-mark.png" alt="RadGenis" width="72">
 
-# VoxelRad AI
+# RadGenis
 
 ### Grounded radiology. Visible evidence.
 
 A browser workspace for X-ray, CT and MRI reading, where every model finding points back to the pixels behind it.
 
-[![Live site](https://img.shields.io/badge/live-voxelradai.com-0a84ff?style=flat-square)](https://voxelradai.com)
+[![Live site](https://img.shields.io/badge/live-radgenis.com-0a84ff?style=flat-square)](https://radgenis.com)
 [![Release](https://img.shields.io/github/v/release/Hitheshkaranth/VoxelRadAI_Terminal?include_prereleases&style=flat-square&label=release)](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases)
 [![Node 24+](https://img.shields.io/badge/node-24%2B-339933?style=flat-square&logo=node.js&logoColor=white)](#-quick-start)
 [![React + Vite](https://img.shields.io/badge/React-Vite-646cff?style=flat-square&logo=vite&logoColor=white)](app)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-server%20mode-4169e1?style=flat-square&logo=postgresql&logoColor=white)](server)
 [![Research use only](https://img.shields.io/badge/use-research%20only-f59e0b?style=flat-square)](#-evaluation-and-limitations)
 
-[**Live site**](https://voxelradai.com) · [**Download beta**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) · [Quick start](#-quick-start) · [Benchmarks](#-benchmarks) · [Docs](#-documentation)
+[**Live site**](https://radgenis.com) · [**Download beta**](https://github.com/Hitheshkaranth/VoxelRadAI_Terminal/releases/tag/v0.2.0-beta.2) · [Quick start](#-quick-start) · [Benchmarks](#-benchmarks) · [Docs](#-documentation)
 
 <br>
 
-<a href="https://voxelradai.com"><img src="docs/screenshots/landing/hero.png" alt="VoxelRad AI landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda's outlines on a chest X-ray" width="100%"></a>
+<a href="https://radgenis.com"><img src="docs/screenshots/landing/hero.png" alt="RadGenis landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda's outlines on a chest X-ray" width="100%"></a>
 
-<sub>The <a href="https://voxelradai.com">voxelradai.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda output on a public ChestX-Det test film.</sub>
+<sub>The <a href="https://radgenis.com">radgenis.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda output on a public ChestX-Det test film.</sub>
 
 </div>
 
 > [!IMPORTANT]
-> VoxelRad AI is **research and review-support software. It is not a medical device.** Model findings are candidates and need review by a qualified reader. The benchmarks below are small, selected evaluations, not clinical validation.
+> RadGenis is **research and review-support software. It is not a medical device.** Model findings are candidates and need review by a qualified reader. The benchmarks below are small, selected evaluations, not clinical validation.
 
 ## Contents
 
@@ -273,7 +273,7 @@ If a worker dies, its lease lapses and the read goes back on the queue for anoth
 
 ### Deployment shapes
 
-| | Hosted (voxelradai.com) | Private install | Dedicated GPUs | All-in-one Space |
+| | Hosted (radgenis.com) | Private install | Dedicated GPUs | All-in-one Space |
 | --- | --- | --- | --- | --- |
 | Entry | Vercel | `compose.yaml` | `+ compose.gpu.yaml` | [`deploy/huggingface`](docs/huggingface.md) |
 | API | Serverless function | Node container(s) | Node container(s) | Node child process |
@@ -300,7 +300,7 @@ If a worker dies, its lease lapses and the read goes back on the queue for anoth
 | [`api`](api) | Vercel serverless entry point |
 | [`benchmark`](benchmark) | Scoring, plots and landing-page data generation |
 
-Inference sends images to whichever model host you configure. In server mode, only studies you explicitly save are persisted. Hosted share links work as bearer links until they expire or are revoked. VoxelRad AI is not a PACS or a multi-tenant clinical archive.
+Inference sends images to whichever model host you configure. In server mode, only studies you explicitly save are persisted. Hosted share links work as bearer links until they expire or are revoked. RadGenis is not a PACS or a multi-tenant clinical archive.
 
 ## 📈 Scaling and capacity
 
@@ -399,7 +399,7 @@ This table uses the same 111 chest films, scored from the result files committed
 <img src="docs/benchmark/cxr-comparison-dark.png" alt="Chest X-ray model comparison: headline rates and sensitivity by radiologist label">
 </details>
 
-These numbers are generated from `score.py` output by [`benchmark/emit_landing.py`](benchmark/emit_landing.py), which also feeds the earlier-checkpoints chart on [voxelradai.com/benchmarks](https://voxelradai.com/benchmarks). Reproduce them with the [benchmark guide](benchmark/README.md). The small per-label sample sizes produce wide intervals.
+These numbers are generated from `score.py` output by [`benchmark/emit_landing.py`](benchmark/emit_landing.py), which also feeds the earlier-checkpoints chart on [radgenis.com/benchmarks](https://radgenis.com/benchmarks). Reproduce them with the [benchmark guide](benchmark/README.md). The small per-label sample sizes produce wide intervals.
 
 ## 🔁 Review workflow
 
@@ -425,7 +425,7 @@ These numbers are generated from `score.py` output by [`benchmark/emit_landing.p
 
 ## 🔌 Model API
 
-Organisations can call Skanda V1 from their own software at `https://voxelradai.com/api/v1`, with an OpenAI-compatible request. Full reference: [voxelradai.com/docs](https://voxelradai.com/docs).
+Organisations can call Skanda V1 from their own software at `https://radgenis.com/api/v1`, with an OpenAI-compatible request. Full reference: [radgenis.com/docs](https://radgenis.com/docs).
 
 - **Keys by request only.** An administrator issues `vr_live_…` or `vr_test_…` keys per organisation in the admin panel; there is no self-serve signup. Send them as `Authorization: Bearer …`. Keys work only on `/api/v1`, never on studies or other app routes.
 - **Endpoints.** `GET /models`; `POST /chat/completions` (`stream:false` by default returns one `chat.completion`, `stream:true` returns SSE); `POST /reads` for async reads (202, poll `GET /reads/{id}`, cancel with `DELETE`), with `Idempotency-Key` and optional HMAC-signed webhooks (`X-VoxelRad-Signature`).
@@ -501,5 +501,5 @@ The API integration harness writes synthetic records, so run it only against a d
 - Fonts are self-hosted under the SIL Open Font License: [Figtree](app/public/fonts/Figtree-OFL.txt), [Instrument Sans](app/public/fonts/InstrumentSans-OFL.txt) and [Instrument Serif](app/public/fonts/InstrumentSerif-OFL.txt).
 
 <div align="center">
-<sub>Built for readers who want to see the evidence. <a href="https://voxelradai.com">voxelradai.com</a></sub>
+<sub>Built for readers who want to see the evidence. <a href="https://radgenis.com">radgenis.com</a></sub>
 </div>

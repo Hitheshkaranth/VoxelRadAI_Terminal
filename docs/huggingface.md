@@ -34,8 +34,8 @@ Set these Space secrets:
 
 - `HF_TOKEN`: permission to read the private model repository; also authenticates
   inference quota for the bootstrap administrator and for bridged reads.
-- `BRIDGE_SECRET` (optional): lets voxelradai.com send reads to this Space. See
-  [Bridge for voxelradai.com](#bridge-for-voxelradaicom-vercel).
+- `BRIDGE_SECRET` (optional): lets radgenis.com send reads to this Space. See
+  [Bridge for radgenis.com](#bridge-for-radgeniscom-vercel).
 - `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`: initial administrator.
 - `SARVAM_API_KEY` (optional): enables hands-free report dictation. Audio is sent from
   the API to Sarvam AI's speech-to-text service (`saaras:v4`); the key never reaches
@@ -109,7 +109,7 @@ uses HF's gateway; result streaming stays on loopback. Administrator-only
 `/lmstudio/status` (`status.py --queue`) reports pending/active counts and queue
 worker task names without exposing images, prompts or credentials.
 
-### Bridge for voxelradai.com (Vercel)
+### Bridge for radgenis.com (Vercel)
 
 The Vercel deployment has no GPU. It can send Skanda V1 reads to this Space through a
 shared secret instead of a Space sign-in:
@@ -133,7 +133,7 @@ log (`Skanda read requested by bridge (u-…), owner quota`). It never receives 
 names or session cookies from the site. Leaving `BRIDGE_SECRET` unset (or shorter than
 32 characters) turns the bridge off.
 
-Quota caveat: every voxelradai.com user shares the owner's ZeroGPU PRO quota. Each
+Quota caveat: every radgenis.com user shares the owner's ZeroGPU PRO quota. Each
 read reserves about 90 quota seconds whatever the image, so a few hundred reads can
 use a day's allowance. Whole-volume jobs send one read per sampled slice and are
 expensive; one CT volume can cost as much as dozens of radiograph reads. The site
