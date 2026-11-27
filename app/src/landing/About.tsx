@@ -10,7 +10,7 @@ const brandOf: Record<string, Brand> = { GitHub: 'github', 'Hugging Face': 'hugg
 type Member = { name: string; role: string; initials: string; photo: string; bio: string; profiles: readonly (readonly [string, string, string])[] }
 
 const team: readonly Member[] = [
-  { name: 'Hithesh Karanth', role: 'Founder & CEO', initials: 'HK', photo: '/team/hithesh-karanth.webp',
+  { name: 'Hithesh Karanth', role: 'Co-Founder & CTO', initials: 'HK', photo: '/team/hithesh-karanth.webp',
     bio: 'Builds the RadGenis reading workspace, the volume viewer and the Skanda models, from training to benchmarks.', profiles: [
     ['GitHub', 'https://github.com/Hitheshkaranth', '@Hitheshkaranth'],
     ['Hugging Face', 'https://huggingface.co/hitheshkaranth', 'hitheshkaranth'],
