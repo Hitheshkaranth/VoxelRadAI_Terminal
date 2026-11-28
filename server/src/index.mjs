@@ -551,7 +551,12 @@ export async function handler(req, res) {
       const params = new URL(req.url,'http://internal').searchParams
       let limit,offset
       try { ({limit,offset}=pagination(params)) } catch(error) { return send(res,400,{error:error.message}) }
-      const [result,count] = await Promise.all([pool.query('SELECT id,payload->>\'title\' AS title,image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",revision,updated_at AS "updatedAt" FROM studies WHERE owner_id=$1 ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3', [user.id,limit,offset]),pool.query('SELECT count(*)::int AS total FROM studies WHERE owner_id=$1',[user.id])])
+      // ?patientId= narrows to one patient (patient history); matching ignores surrounding spaces, as the app does.
+      const patientId = (params.get('patientId') ?? '').trim()
+      if (patientId.length > 64) return send(res,400,{error:'patientId must be 64 characters or fewer.'})
+      const where = patientId ? "owner_id=$1 AND btrim(payload->'patient'->>'patientId')=$4" : 'owner_id=$1'
+      const args = patientId ? [user.id,limit,offset,patientId] : [user.id,limit,offset]
+      const [result,count] = await Promise.all([pool.query(`SELECT id,payload->>'title' AS title,payload->'patient'->>'name' AS "patientName",payload->'patient'->>'patientId' AS "patientId",payload->'patient'->>'studyDate' AS "studyDate",image_count AS "imageCount",has_report AS "hasReport",report_signed AS "reportSigned",revision,updated_at AS "updatedAt" FROM studies WHERE ${where} ORDER BY updated_at DESC,id LIMIT $2 OFFSET $3`, args),pool.query(`SELECT count(*)::int AS total FROM studies WHERE ${where.replace('$4','$2')}`, patientId ? [user.id,patientId] : [user.id])])
       return send(res, 200, { studies: result.rows, total:count.rows[0].total })
     }
     if (path === '/api/studies' && req.method === 'POST') {
