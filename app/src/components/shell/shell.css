@@ -560,3 +560,32 @@
 .autosave:is([data-status="conflict"], [data-status="too-large"], [data-status="error"]) svg { color: var(--orange, #ff9500); }
 .autosave:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 640px) { .autosave span { display: none; } }
+
+/* Patient register panel (Patient details, hosted site). */
+.pr { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); padding: var(--sp-3); border: 1px solid var(--separator); border-radius: 12px; background: var(--bg-content); }
+.pr-search { position: relative; }
+.pr-search svg { position: absolute; left: 10px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--label-2); pointer-events: none; }
+.pr-search .input { width: 100%; padding-left: 32px; }
+.pr-note { margin: 0; font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
+.pr-error { margin: 0; font-size: var(--text-footnote); color: var(--red, #ff453a); }
+.pr-results { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; }
+.pr-results li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 8px 10px; border: 1px solid var(--separator); border-radius: 8px; }
+.pr-results li > div { display: grid; gap: 2px; min-width: 0; }
+.pr-results strong { font-size: var(--text-footnote); }
+.pr-ids { font-size: var(--text-caption); color: var(--label-2); overflow-wrap: anywhere; }
+.pr-mrn-sm { margin-left: 6px; font: 600 var(--text-caption) / 1 var(--font-mono, ui-monospace, monospace); color: var(--accent); }
+.pr-register { justify-self: start; }
+.pr-register svg { width: 14px; height: 14px; }
+.pr-linked { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.pr-linked > svg { width: 22px; height: 22px; flex: none; color: var(--green, #30d158); }
+.pr-linked-text { display: grid; gap: 1px; flex: 1 1 200px; min-width: 0; }
+.pr-label { font-size: var(--text-caption); color: var(--label-2); }
+.pr-mrn { font: 650 17px / 1.2 var(--font-mono, ui-monospace, monospace); letter-spacing: .02em; }
+.pr-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.pr-form { display: grid; gap: var(--sp-2); }
+.pr-title { margin: 0; font-size: var(--text-body, 15px); }
+.pr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.pr-field { display: grid; gap: 4px; min-width: 0; }
+.pr-field .input { width: 100%; }
+.pr-span { grid-column: 1 / -1; }
+@media (max-width: 560px) { .pr-grid { grid-template-columns: 1fr; } }

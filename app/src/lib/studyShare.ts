@@ -11,7 +11,7 @@ export function safeShareImage(url: string): boolean {
 
 export function shareReportText(study: Study, institution: string, options: ShareOptions): string {
   if (options.includeIdentity) return reportToPlainText(study, { institution })
-  const omit = (p: Study['patient']) => ({ ...p, name: '', patientId: '', referringPhysician: '' })
+  const omit = (p: Study['patient']) => ({ ...p, name: '', patientId: '', referringPhysician: '', registryId: undefined })
   const copy: Study = { ...study, title: 'Shared study', patient: omit(study.patient),
     images: study.images.map((image, i) => ({ ...image, name: `Image ${i + 1}` })),
     report: study.report ? { ...study.report, patientSnapshot: study.report.patientSnapshot ? omit(study.report.patientSnapshot) : undefined } : undefined }

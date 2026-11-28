@@ -143,7 +143,7 @@ export function studyFileName(study: Study, ext = 'txt'): string {
 const ISO = (ts: number): string => new Date(ts).toISOString()
 
 function anonymisePatient(p: PatientInfo): PatientInfo {
-  return { ...p, name: '', patientId: '', referringPhysician: '' }
+  return { ...p, name: '', patientId: '', referringPhysician: '', registryId: undefined }
 }
 
 function reportExport(r: ReportDraft, anonymise: boolean): ReportExport {

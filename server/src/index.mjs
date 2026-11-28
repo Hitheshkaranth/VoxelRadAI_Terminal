@@ -14,6 +14,7 @@ import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { createNotifier } from './notify.mjs'
 import { createSignupRoutes, signInBlock } from './signup.mjs'
+import { createPatientRoutes } from './patients.mjs'
 import { parseProfile, readProfile, readUsage, writeProfile } from './profile.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { createExamLibrary } from './examTemplates.mjs'
@@ -126,6 +127,7 @@ async function issueSession(client, user) {
   return sessionCookie(token, secureCookies)
 }
 const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit, clientIp, issueSession })
+const patientRoutes = createPatientRoutes({ pool, body, send, audit })
 const signup = createSignupRoutes({ pool, publicOrigin, secureCookies, body, send, rateLimit, clientIp, notifier, issueSession,
   schedule: task => { if (waitUntil) waitUntil(task); return task } })
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env, checkRoom: (client, userId, bytes) => ensureRoom(client, userId, bytes) })
@@ -551,6 +553,7 @@ export async function handler(req, res) {
       const profile = await readProfile(pool, user.id)
       return send(res, 200, { user: { ...user, fullName: profile.fullName }, profile })
     }
+    if (path.startsWith('/api/patients') && await patientRoutes(req, res, path, user)) return
     if (path === '/api/account/storage' && req.method === 'GET') return send(res, 200, await storageUsage(pool, user.id))
     if (path === '/api/studies' && req.method === 'GET') {
       const params = new URL(req.url,'http://internal').searchParams

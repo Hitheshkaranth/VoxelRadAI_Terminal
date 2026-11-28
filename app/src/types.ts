@@ -189,6 +189,8 @@ export interface PatientInfo {
   referringPhysician: string
   indication: string // clinical indication / reason for exam
   clinicalHistory: string
+  /** The patient's entry in the account's patient register (hosted site); patientId then holds its RadGenis ID. */
+  registryId?: string
 }
 
 export type ReportFieldKey = 'technique' | 'comparison' | 'findings' | 'impression' | 'recommendations'

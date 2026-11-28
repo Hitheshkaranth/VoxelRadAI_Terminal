@@ -6,6 +6,8 @@ import { useApp, useActiveStudy } from '../../store'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
 import type { PatientInfo } from '../../types'
+import { SERVER_MODE } from '../../lib/session'
+import { PatientRegistry } from './PatientRegistry'
 import './shell.css'
 
 export function PatientSheet() {
@@ -57,6 +59,7 @@ export function PatientSheet() {
           <span>{reportNote}</span>
         </div>
       )}
+      {SERVER_MODE ? <PatientRegistry patient={patient} onLink={change} /> : null}
       <div className="sh-grid">
         <Field label="Name">
           <input
@@ -71,6 +74,8 @@ export function PatientSheet() {
           <input
             className="input"
             value={patient.patientId}
+            readOnly={Boolean(SERVER_MODE && patient.registryId)}
+            title={SERVER_MODE && patient.registryId ? 'Set by the patient register. Use Change patient to link a different patient.' : undefined}
             onChange={(e) => change({ patientId: e.target.value })}
             placeholder="STY-000000"
           />
