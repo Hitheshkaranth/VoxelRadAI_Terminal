@@ -395,13 +395,13 @@ export function ReportPanel() {
     const studies = scope === 'patient' && patientStudies.length > 1 ? patientStudies : [study]
     setArchiving('Preparing export…')
     try {
-      const blob = await buildStudyArchive(studies, settings, setArchiving)
+      const blob = await buildStudyArchive(studies, settings, setArchiving, (s) => templateForReport(templates, s.report)?.letterhead)
       downloadFile(archiveName(studies), blob, 'application/zip')
       toast(studies.length > 1 ? `Exported ${studies.length} studies for this patient.` : 'Study exported with its report and findings.', 'success')
     } catch (error) {
       toast(error instanceof Error ? `Export failed: ${error.message}` : 'Export failed.', 'error')
     } finally { setArchiving('') }
-  }, [study, archiving, patientStudies, settings])
+  }, [study, archiving, patientStudies, settings, templates])
 
   // Reset transient UI state when the active study changes.
   const studyKey = study?.id ?? ''

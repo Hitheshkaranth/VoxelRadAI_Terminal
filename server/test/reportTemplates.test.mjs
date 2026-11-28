@@ -26,3 +26,13 @@ test('accepts the optional systematic layout fields and rejects bad ones', () =>
   assert.ok(!validTemplate({ ...sys, signatureLines: Array(7).fill('x') }))
   assert.ok(!validTemplate({ ...sys, signatureLines: [{ html: 1 }] }))
 })
+
+test('accepts a blank report page with margins and rejects bad ones', () => {
+  const page = { pageDataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==', topMm: 42, bottomMm: 24 }
+  assert.ok(validTemplate({ ...base(), letterhead: page }))
+  assert.ok(!validTemplate({ ...base(), letterhead: { ...page, pageDataUrl: 'data:application/pdf;base64,JVBERi0=' } }))
+  assert.ok(!validTemplate({ ...base(), letterhead: { ...page, topMm: 200 } }))
+  assert.ok(!validTemplate({ ...base(), letterhead: { ...page, bottomMm: -1 } }))
+  assert.ok(!validTemplate({ ...base(), letterhead: { ...page, html: '<b>' } }))
+  assert.ok(!validTemplate({ ...base(), letterhead: { ...page, pageDataUrl: `data:image/jpeg;base64,${'A'.repeat(1400 * 1024)}` } }))
+})

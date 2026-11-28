@@ -691,3 +691,13 @@
 
 .rp-archive { display: grid; gap: 6px; margin-top: 6px; }
 .rp-archive-note { margin: 0; font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
+
+/* Blank report page (letterhead) upload: an A4 thumbnail with the writing area marked. */
+.tpl-lh { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--sp-3); align-items: start; }
+.tpl-lh-page { position: relative; display: block; width: 150px; aspect-ratio: 210 / 297; overflow: hidden; border: 1px solid var(--separator); border-radius: 6px; background: #fff; }
+.tpl-lh-page img { display: block; width: 100%; height: 100%; object-fit: fill; }
+.tpl-lh-empty { display: grid; place-items: center; color: #8e8e93; font-size: var(--text-caption); }
+.tpl-lh-area { position: absolute; left: 6%; right: 6%; display: grid; place-items: center; border: 1.5px dashed #0a84ff; border-radius: 4px; background: #0a84ff1f; color: #0a5fc4; font-size: 11px; font-weight: 600; }
+.tpl-lh-side { display: grid; gap: var(--sp-2); justify-items: start; min-width: 0; }
+.tpl-lh-side label:not(.btn) { width: 100%; }
+@media (max-width: 520px) { .tpl-lh { grid-template-columns: 1fr; } }

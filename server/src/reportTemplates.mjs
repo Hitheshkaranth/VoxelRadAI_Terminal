@@ -2,14 +2,16 @@
 // no HTML is accepted, so a template cannot inject markup into printed or shared reports.
 export const SECTION_KEYS = ['technique', 'comparison', 'findings', 'impression', 'recommendations']
 export const MAX_TEMPLATES = 20
-export const TEMPLATE_BODY_LIMIT = 700 * 1024
+// A blank report page (letterhead) is an A4 image of up to ~1.2 MB, so the body allows the page plus a logo.
+export const TEMPLATE_BODY_LIMIT = 2 * 1024 * 1024
+export const LETTERHEAD_MAX_CHARS = 1300 * 1024
 const LOGO = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = (value, max) => typeof value === 'string' && value.length <= max
 const only = (value, keys) => Object.keys(value).every(key => keys.includes(key))
 
 export function validTemplate(value) {
-  if (!object(value) || !only(value, ['name', 'header', 'footer', 'sectionTitles', 'layout', 'signatory', 'greeting', 'signatureLines'])) return false
+  if (!object(value) || !only(value, ['name', 'header', 'footer', 'sectionTitles', 'layout', 'signatory', 'greeting', 'signatureLines', 'letterhead'])) return false
   if (!text(value.name, 80) || !value.name.trim()) return false
   const { header, footer, sectionTitles } = value
   if (!object(header) || !only(header, ['logoDataUrl', 'institution', 'department', 'lines', 'align'])) return false
@@ -28,5 +30,10 @@ export function validTemplate(value) {
   if (signatory !== undefined && !(object(signatory) && only(signatory, ['name', 'qualifications', 'registration', 'lines']) &&
     text(signatory.name, 120) && text(signatory.qualifications, 160) && text(signatory.registration, 120) && lineList(signatory.lines, 4))) return false
   if (!lineList(value.signatureLines, 6)) return false
+  // Optional blank report page printed behind every page; the report text sits between its top and bottom margins.
+  const { letterhead } = value
+  const mm = (v, max) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max
+  if (letterhead !== undefined && !(object(letterhead) && only(letterhead, ['pageDataUrl', 'topMm', 'bottomMm']) &&
+    text(letterhead.pageDataUrl, LETTERHEAD_MAX_CHARS) && LOGO.test(letterhead.pageDataUrl) && mm(letterhead.topMm, 150) && mm(letterhead.bottomMm, 120))) return false
   return SECTION_KEYS.every(key => sectionTitles[key] === undefined || text(sectionTitles[key], 60))
 }

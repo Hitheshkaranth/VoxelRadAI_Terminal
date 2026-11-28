@@ -21,8 +21,13 @@ export interface ReportTemplate {
   signatureLines?: string[]
   /** Line above the findings in the systematic layout, e.g. "THANKS FOR REFERRING". */
   greeting?: string
+  /** A blank page of the centre's own report (scanned or exported), printed behind every page. The report text sits
+   *  between topMm and bottomMm so it never covers the pre-printed header or footer. */
+  letterhead?: Letterhead
   updatedAt?: string
 }
+
+export interface Letterhead { pageDataUrl: string; topMm: number; bottomMm: number }
 
 export type ReportLayout = 'standard' | 'systematic'
 export const SYSTEMATIC_TEMPLATE_NAME = 'Systematic (Indian diagnostic centre style)'
@@ -167,4 +172,85 @@ export async function logoDataUrl(file: File): Promise<string> {
   const url = canvas.toDataURL(file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', 0.9)
   if (url.length > 550 * 1024) throw new Error('Logo is too large even after resizing. Use a simpler image.')
   return url
+}
+
+const A4 = { w: 210, h: 297 }
+const PAGE_PX = { w: 1240, h: 1754 } // A4 at 150 dpi
+const LETTERHEAD_MAX_CHARS = 1300 * 1024
+
+/** Draw page 1 of a PDF, or an image, onto a white A4 canvas. */
+async function pageCanvas(file: File): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas')
+  canvas.width = PAGE_PX.w; canvas.height = PAGE_PX.h
+  const g = canvas.getContext('2d')!
+  g.fillStyle = '#fff'; g.fillRect(0, 0, canvas.width, canvas.height)
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+    const pdfjs = await import('pdfjs-dist')
+    const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+    pdfjs.GlobalWorkerOptions.workerSrc = worker
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise
+    try {
+      const page = await pdf.getPage(1)
+      const base = page.getViewport({ scale: 1 })
+      const scale = Math.min(PAGE_PX.w / base.width, PAGE_PX.h / base.height)
+      const viewport = page.getViewport({ scale })
+      g.save(); g.translate((PAGE_PX.w - viewport.width) / 2, 0)
+      await page.render({ canvasContext: g, viewport }).promise
+      g.restore()
+    } finally { void pdf.destroy() }
+    return canvas
+  }
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error('Upload a PDF, PNG, JPEG or WebP of a blank report page.')
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(PAGE_PX.w / bitmap.width, PAGE_PX.h / bitmap.height)
+  g.drawImage(bitmap, (PAGE_PX.w - bitmap.width * scale) / 2, 0, bitmap.width * scale, bitmap.height * scale)
+  bitmap.close()
+  return canvas
+}
+
+/** The writing area of a blank page: the longest run of blank rows between the printed header and footer. */
+export function detectMargins(rowsBlank: boolean[]): { topMm: number; bottomMm: number } {
+  const n = rowsBlank.length
+  let best = { start: 0, len: 0 }, start = -1
+  for (let i = 0; i <= n; i++) {
+    if (i < n && rowsBlank[i]) { if (start < 0) start = i; continue }
+    if (start >= 0 && i - start > best.len) best = { start, len: i - start }
+    start = -1
+  }
+  if (best.len < n * 0.3) return { topMm: 40, bottomMm: 25 }
+  const toMm = (rows: number) => Math.round((rows / n) * A4.h)
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+  // A little breathing room under the header and above the footer; a page blank at the edge keeps a normal margin.
+  return { topMm: clamp(best.start === 0 ? 16 : toMm(best.start) + 4, 10, 150), bottomMm: clamp(best.start + best.len >= n ? 16 : toMm(n - best.start - best.len) + 4, 10, 120) }
+}
+
+/** Read an uploaded blank report page (PDF page 1 or an image) into a compact A4 JPEG and find its writing area. */
+export async function letterheadFromFile(file: File): Promise<Letterhead> {
+  if (file.size > 20 * 1024 * 1024) throw new Error('That file is over 20 MB. Export just the blank page.')
+  const canvas = await pageCanvas(file)
+  const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height)
+  const rowsBlank: boolean[] = []
+  for (let y = 0; y < canvas.height; y++) {
+    let ink = 0
+    for (let x = 0; x < canvas.width; x += 2) {
+      const i = (y * canvas.width + x) * 4
+      if (data[i] + data[i + 1] + data[i + 2] < 3 * 225) ink++
+    }
+    rowsBlank.push(ink < 2)
+  }
+  const margins = detectMargins(rowsBlank)
+  let out = canvas
+  for (const width of [PAGE_PX.w, 992]) {
+    if (width !== out.width) {
+      const smaller = document.createElement('canvas')
+      smaller.width = width; smaller.height = Math.round((width / PAGE_PX.w) * PAGE_PX.h)
+      smaller.getContext('2d')!.drawImage(canvas, 0, 0, smaller.width, smaller.height)
+      out = smaller
+    }
+    for (const q of [0.85, 0.75, 0.65]) {
+      const url = out.toDataURL('image/jpeg', q)
+      if (url.length <= LETTERHEAD_MAX_CHARS) return { pageDataUrl: url, ...margins }
+    }
+  }
+  throw new Error('That page is too detailed to store. Try a simpler scan or a PDF export.')
 }

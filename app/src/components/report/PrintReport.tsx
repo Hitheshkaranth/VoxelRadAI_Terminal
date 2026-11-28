@@ -1,6 +1,6 @@
 import { ShellButton } from '../shell/ShellButton'
 // OWNER: Agent 4 (Report). The formal, print-perfect A4 report overlay (portal to document.body).
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { SEVERITY_LABEL } from '../../types'
@@ -11,7 +11,7 @@ import { isExcluded, isUnconfirmed } from '../../lib/classifier'
 import { reliabilityFor } from '../../lib/reliability'
 import { DISCLAIMER, analyzedImages, examSummary, exclusionReason, reportPatient, splitFindings } from '../../lib/reportExport'
 import { cssString, sanitizeReportHtml } from '../../lib/richText'
-import { layoutOf, sectionTitle, templateForReport, useTemplates } from '../../lib/reportTemplates'
+import { layoutOf, sectionTitle, templateForReport, useTemplates, type Letterhead } from '../../lib/reportTemplates'
 import { examTypeLine } from '../../lib/systematicReport'
 import { SystematicBody, SystematicLetterhead, SystematicSignatory } from './SystematicReport'
 import type { ReportFieldKey } from '../../types'
@@ -130,6 +130,19 @@ function regionalNote(heat: Heatmap, finding: Finding): string {
   return fh.regional ? ` · regional evidence ${Math.round(fh.strength * 100)}%` : ' · whole film (no region given)'
 }
 
+/**
+ * With a blank report page, the report sits in a table whose header and footer rows are empty spacers. Browsers repeat
+ * those rows on every printed page, so each page's text starts below the pre-printed header and stops above its footer.
+ */
+function LetterheadFrame({ letterhead, children }: { letterhead: Letterhead | null; children: ReactNode }) {
+  if (!letterhead) return <>{children}</>
+  return <table className="rp-lh-table" role="presentation">
+    <thead><tr><td><div style={{ height: `${letterhead.topMm}mm` }} /></td></tr></thead>
+    <tfoot><tr><td><div style={{ height: `${letterhead.bottomMm}mm` }} /></td></tr></tfoot>
+    <tbody><tr><td>{children}</td></tr></tbody>
+  </table>
+}
+
 export function PrintReport({ study, settings, onClose }: PrintReportProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose)
@@ -152,7 +165,11 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
       <SectionBody html={report?.rich?.[key]} value={report?.[key]} ordered={ordered} />
     </Section>
   )
-  const pageStyle = template
+  const letterhead = template?.letterhead ?? null
+  const pageStyle = letterhead
+    // The blank page carries its own header and footer, so the sheet has no margins of its own and no page numbers.
+    ? '@media print { @page { margin: 0; @bottom-right { content: none; } @bottom-left { content: none; } } }'
+    : template
     ? `@media print { @page { margin-bottom: ${template.footer.text.trim() ? 22 : 16}mm; ${template.footer.showPageNumbers ? '' : '@bottom-right { content: none; }'} ${template.footer.text.trim() ? `@bottom-left { content: ${cssString(template.footer.text.trim())}; white-space: pre-wrap; font: 9px -apple-system, BlinkMacSystemFont, sans-serif; color: #55555c; width: 70%; }` : ''} } }`
     : ''
   const { included, excluded } = splitFindings(study)
@@ -267,22 +284,31 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
         </div>
 
         <div className="rp-print-scroll" tabIndex={0} aria-label="Report preview document">
-          <div className="rp-print-page" role="document">
+          <div className={`rp-print-page${letterhead ? ' rp-has-lh' : ''}`} role="document">
+            {letterhead ? <img className="rp-lh-bg" src={letterhead.pageDataUrl} alt="" /> : null}
             <div className="rp-print-inner">
               {pageStyle ? <style>{pageStyle}</style> : null}
+              <LetterheadFrame letterhead={letterhead}>
               {systematic ? (
                 <>
-                  <SystematicLetterhead template={systematic} fallbackInstitution={settings.institution} />
+                  {letterhead ? null : <SystematicLetterhead template={systematic} fallbackInstitution={settings.institution} />}
                   <SystematicBody template={systematic} patient={patient} report={report} examType={examTypeLine(analyzed)} reportDate={new Date().toLocaleDateString()} />
                 </>
               ) : (
                 <>
+              {letterhead ? (
+                <div className="rp-lh-meta">
+                  <strong>{report?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft'}</strong>
+                  <span>{`Report date: ${new Date().toLocaleDateString()} · Accession: ${accession}`}</span>
+                </div>
+              ) : (
               <TemplateHeader
                 template={template}
                 fallbackInstitution={settings.institution}
                 subtitle={report?.signed ? 'Radiology Report — AI-assisted, radiologist-signed' : 'Radiology Report — AI-assisted draft'}
                 meta={`Report date: ${new Date().toLocaleDateString()} · Accession: ${accession}`}
               />
+              )}
 
               <div className="rp-demo">
                 <div className="rp-demo-cell">
@@ -499,6 +525,7 @@ export function PrintReport({ study, settings, onClose }: PrintReportProps) {
                   </span>
                 ) : null}
               </footer>
+              </LetterheadFrame>
             </div>
           </div>
         </div>

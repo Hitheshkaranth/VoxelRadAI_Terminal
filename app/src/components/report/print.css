@@ -602,3 +602,17 @@
   .rp-lh-tpl { flex-direction: column; align-items: flex-start; }
   .rp-lh-right { text-align: left; }
 }
+
+/* Blank report page (letterhead): the page image sits behind the report on screen and on every printed page. */
+.rp-has-lh .rp-print-inner { padding: 0 16mm; }
+.rp-lh-bg { position: absolute; top: 0; left: 0; z-index: 0; width: 210mm; height: 297mm; pointer-events: none; user-select: none; }
+.rp-lh-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; }
+.rp-lh-table > * > tr > td { padding: 0; vertical-align: top; }
+.rp-lh-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #d1d1d6; font-size: 11px; color: #3c3c43; }
+.rp-lh-meta strong { font-size: 12.5px; color: #000; }
+@media print {
+  .rp-lh-bg { position: fixed; }
+  .rp-has-lh .rp-print-inner { padding: 0 16mm !important; }
+  .rp-lh-table > thead { display: table-header-group; }
+  .rp-lh-table > tfoot { display: table-footer-group; }
+}

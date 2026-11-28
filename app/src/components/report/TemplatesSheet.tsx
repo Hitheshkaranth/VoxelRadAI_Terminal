@@ -8,6 +8,7 @@ import {
   DEFAULT_SECTION_TITLES,
   blankTemplate,
   layoutOf,
+  letterheadFromFile,
   logoDataUrl,
   systematicTemplate,
   useTemplates,
@@ -19,7 +20,7 @@ import { TemplateHeader } from './TemplateHeader'
 import { SystematicLetterhead } from './SystematicReport'
 
 const toInput = (t: ReportTemplate): TemplateInput => ({ name: t.name, header: { ...t.header, lines: [...t.header.lines] }, footer: { ...t.footer }, sectionTitles: { ...t.sectionTitles },
-  ...(t.layout ? { layout: t.layout } : {}), ...(t.signatory ? { signatory: { ...t.signatory, ...(t.signatory.lines ? { lines: [...t.signatory.lines] } : {}) } } : {}), ...(t.signatureLines ? { signatureLines: [...t.signatureLines] } : {}), ...(t.greeting !== undefined ? { greeting: t.greeting } : {}) })
+  ...(t.layout ? { layout: t.layout } : {}), ...(t.signatory ? { signatory: { ...t.signatory, ...(t.signatory.lines ? { lines: [...t.signatory.lines] } : {}) } } : {}), ...(t.signatureLines ? { signatureLines: [...t.signatureLines] } : {}), ...(t.greeting !== undefined ? { greeting: t.greeting } : {}), ...(t.letterhead ? { letterhead: { ...t.letterhead } } : {}) })
 const NO_SIGNATORY = { name: '', qualifications: '', registration: '' }
 
 export function TemplatesSheet({ open, onClose, institution }: { open: boolean; onClose: () => void; institution: string }) {
@@ -27,6 +28,7 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TemplateInput | null>(null)
   const [busy, setBusy] = useState(false)
+  const [letterheadBusy, setLetterheadBusy] = useState(false)
 
   useEffect(() => { if (open) void load() }, [open, load])
 
@@ -109,6 +111,39 @@ export function TemplatesSheet({ open, onClose, institution }: { open: boolean; 
                 <option value="left">Logo left</option><option value="center">Centered</option>
               </select>
             </label>
+          </fieldset>
+          <fieldset>
+            <legend>Blank report page (your printed letterhead)</legend>
+            <p className="tpl-empty">Upload a blank page of the report you print today (PDF or a scan/photo). It prints behind every page, and the report fills the space between its header and footer.</p>
+            <div className="tpl-lh">
+              {draft.letterhead ? (
+                <div className="tpl-lh-page" aria-label="Blank page preview with the writing area marked">
+                  <img src={draft.letterhead.pageDataUrl} alt="" />
+                  <span className="tpl-lh-area" style={{ top: `${(draft.letterhead.topMm / 297) * 100}%`, bottom: `${(draft.letterhead.bottomMm / 297) * 100}%` }}>Report text</span>
+                </div>
+              ) : <span className="tpl-lh-page tpl-lh-empty">No page</span>}
+              <div className="tpl-lh-side">
+                <label className="btn btn-sm tpl-upload">
+                  <Upload size={14} /> {letterheadBusy ? 'Reading…' : draft.letterhead ? 'Replace page' : 'Upload blank page'}
+                  <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" hidden disabled={letterheadBusy} onChange={async (e) => {
+                    const file = e.target.files?.[0]; e.target.value = ''
+                    if (!file) return
+                    setLetterheadBusy(true)
+                    try { const letterhead = await letterheadFromFile(file); patch((d) => ({ ...d, letterhead })); toast('Page read. Check the marked writing area.', 'success') }
+                    catch (reason) { toast(reason instanceof Error ? reason.message : 'That page could not be read.', 'error') }
+                    finally { setLetterheadBusy(false) }
+                  }} />
+                </label>
+                {draft.letterhead ? <>
+                  <label>Space for header (mm from top)<input className="input" type="number" min={0} max={150} value={draft.letterhead.topMm}
+                    onChange={(e) => { const v = Math.min(150, Math.max(0, Number(e.target.value) || 0)); patch((d) => (d.letterhead ? { ...d, letterhead: { ...d.letterhead, topMm: v } } : d)) }} /></label>
+                  <label>Space for footer (mm from bottom)<input className="input" type="number" min={0} max={120} value={draft.letterhead.bottomMm}
+                    onChange={(e) => { const v = Math.min(120, Math.max(0, Number(e.target.value) || 0)); patch((d) => (d.letterhead ? { ...d, letterhead: { ...d.letterhead, bottomMm: v } } : d)) }} /></label>
+                  <p className="tpl-empty">With a blank page, its own header replaces the logo and lines above, and page numbers are left off so they don't print over your footer.</p>
+                  <ShellButton type="button" className="btn btn-sm btn-plain" onClick={() => patch((d) => { const { letterhead: _drop, ...rest } = d; return rest })}>Remove page</ShellButton>
+                </> : null}
+              </div>
+            </div>
           </fieldset>
           <fieldset>
             <legend>Layout</legend>

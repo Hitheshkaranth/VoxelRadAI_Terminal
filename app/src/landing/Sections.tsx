@@ -209,6 +209,7 @@ export function Footer() {
   return <footer className="sk-footer">
     <ul className="sk-social">{social.map(([icon, name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer"><span>{icon}{name}</span><ArrowUpRight size={14} /></a></li>)}</ul>
     <div className="sk-footer-cols">{cols.map(([title, items]) => <div key={title}><h3>{title}</h3><ul>{items.map(([label, href]) => <li key={label}><a href={anchor(href)}>{label}</a></li>)}</ul></div>)}</div>
-    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 RadGenis (formerly VoxelRad AI) · Built by <a href={anchor('#about')}>Hithesh Karanth and Dr&nbsp;Skanda Kumar Udupa</a>. Research and evaluation use only. Not a diagnostic device. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
+    <p className="sk-copy"><FileCode2 size={12} /><span>© 2026 RadGenis · Grounded radiology, visible evidence. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></p>
+    <p className="sk-copy sk-copy-note">Research and evaluation use only. Not a diagnostic device.</p>
   </footer>
 }

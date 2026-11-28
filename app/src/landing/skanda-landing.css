@@ -954,3 +954,5 @@
 @media (max-width:1100px){.sk-nav .sk-serving{display:none}.sk-nav nav{gap:13px}.sk-nav nav a{font-size:13.5px}}
 
 .sk-nav .sk-serving{white-space:nowrap}
+
+.sk-copy.sk-copy-note{height:auto;margin-top:-14px;padding-bottom:18px;border-top:0;font-size:11px}

@@ -5,6 +5,7 @@
 import type { Study } from '../types'
 import { DISCLAIMER, reportToPlainText, studyToJson } from './reportExport'
 import { renderAnnotatedImage } from './annotate'
+import type { Letterhead } from './reportTemplates'
 
 const safe = (value: string, max = 60) => value.normalize('NFKD').replace(/[^\w.-]+/g, '_').replace(/_+/g, '_').replace(/^[_.]+|[_.]+$/g, '').slice(0, max) || 'study'
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -37,18 +38,24 @@ export function archiveName(studies: Study[]): string {
   return studies[0] ? `RadGenis_${studyFolder(studies[0])}.zip` : `RadGenis_export_${day}.zip`
 }
 
-async function reportPdf(study: Study, settings: { institution: string }, annotated: { name: string; dataUrl: string; width: number; height: number }[]): Promise<Uint8Array> {
+async function reportPdf(study: Study, settings: { institution: string }, annotated: { name: string; dataUrl: string; width: number; height: number }[], letterhead?: Letterhead | null): Promise<Uint8Array> {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const width = doc.internal.pageSize.getWidth(), height = doc.internal.pageSize.getHeight(), margin = 48
-  let y = margin
+  // A blank report page goes behind every report page; text stays between its printed header and footer.
+  const PT = 72 / 25.4
+  const top = letterhead ? Math.max(28, letterhead.topMm * PT) : margin
+  const bottom = letterhead ? height - Math.max(28, letterhead.bottomMm * PT) - 14 : height - margin
+  const backdrop = () => { if (letterhead) doc.addImage(letterhead.pageDataUrl, 'JPEG', 0, 0, width, height, 'letterhead', 'FAST') }
+  backdrop()
+  let y = top
   // The plain-text report aligns its labels with spaces, so a fixed-width font keeps the columns straight.
   const lines = reportToPlainText(study, settings).replace(/\t/g, '  ').split('\n')
   for (const [i, raw] of lines.entries()) {
     const heading = i < 2 || (/^[A-Z][A-Za-z ]+$/.test(raw) && /^-+$/.test(lines[i + 1] ?? ''))
     doc.setFont('courier', heading ? 'bold' : 'normal').setFontSize(heading && i === 0 ? 12 : 9.5)
     for (const line of doc.splitTextToSize(raw || ' ', width - margin * 2) as string[]) {
-      if (y > height - margin) { doc.addPage(); y = margin }
+      if (y > bottom) { doc.addPage(); backdrop(); y = top }
       doc.text(line, margin, y)
       y += 13
     }
@@ -64,7 +71,7 @@ async function reportPdf(study: Study, settings: { institution: string }, annota
   for (let page = 1; page <= pages; page++) {
     doc.setPage(page)
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(110)
-    doc.text(`${DISCLAIMER}  ·  Page ${page} of ${pages}`, margin, height - 24, { maxWidth: width - margin * 2 })
+    doc.text(`${DISCLAIMER}  ·  Page ${page} of ${pages}`, margin, letterhead ? bottom + 12 : height - 24, { maxWidth: width - margin * 2 })
     doc.setTextColor(0)
   }
   return new Uint8Array(doc.output('arraybuffer'))
@@ -74,7 +81,7 @@ async function reportPdf(study: Study, settings: { institution: string }, annota
  * Builds the ZIP for one or more studies. `onProgress` gets a short status line per study.
  * Images are the stored copies (up to 1536 px on the long edge); volumes opened only in the viewer are not included.
  */
-export async function buildStudyArchive(studies: Study[], settings: { institution: string }, onProgress?: (text: string) => void): Promise<Blob> {
+export async function buildStudyArchive(studies: Study[], settings: { institution: string }, onProgress?: (text: string) => void, letterheadFor?: (study: Study) => Letterhead | null | undefined): Promise<Blob> {
   const { zipSync } = await import('fflate')
   const files: Record<string, Uint8Array> = {}
   const index: string[] = []
@@ -101,7 +108,7 @@ export async function buildStudyArchive(studies: Study[], settings: { institutio
       }
     }
     files[`${folder}/report.txt`] = encoder.encode(reportToPlainText(study, settings))
-    files[`${folder}/report.pdf`] = await reportPdf(study, settings, annotated)
+    files[`${folder}/report.pdf`] = await reportPdf(study, settings, annotated, letterheadFor?.(study))
     files[`${folder}/study.json`] = encoder.encode(JSON.stringify(studyToJson(study, { institution: settings.institution }), null, 2))
     const p = study.patient
     index.push(`${studyDate(study)}  ${study.title}\n  Folder: ${folder}/\n  Patient: ${p.name || '—'} (ID ${p.patientId || '—'})  Images: ${imageCount}  Report: ${study.report?.signed ? 'signed' : study.report ? 'draft' : 'none'}`)
