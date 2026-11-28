@@ -12,6 +12,7 @@ import {
   Download,
   Edit3,
   EyeOff,
+  FileArchive,
   FileJson,
   FileText,
   GitCompare,
@@ -44,6 +45,7 @@ import { RichSectionEditor } from './RichSectionEditor'
 import { captureSignedReport } from '../../lib/trainingCapture'
 import { offerNextStudy } from '../shell/worklistNav'
 import { DictationBar } from './DictationBar'
+import { archiveName, buildStudyArchive } from '../../lib/studyArchive'
 import { undoRegenerate } from '../../lib/reportUndo'
 import { TemplatesSheet } from './TemplatesSheet'
 import { ReportHistory, SignedReportActions } from './ReportIntegrity'
@@ -375,6 +377,28 @@ export function ReportPanel() {
     const json = JSON.stringify(studyToJson(study, { anonymise, institution: settings.institution }), null, 2)
     downloadFile(studyFileName(anonymise ? { ...study, title: 'anonymised-study' } : study, 'json'), json, 'application/json')
   }, [study, settings, anonymise])
+
+  // On-prem export: this study, or every study in this workspace with the same patient ID, as one ZIP.
+  const allStudies = useApp((s) => s.studies)
+  const patientStudies = useMemo(() => {
+    const id = study?.patient.patientId.trim()
+    if (!id) return []
+    return allStudies.filter((s) => s.patient.patientId.trim() === id && s.images.length > 0)
+      .sort((a, b) => (a.patient.studyDate || '').localeCompare(b.patient.studyDate || '') || a.createdAt - b.createdAt)
+  }, [study, allStudies])
+  const [archiving, setArchiving] = useState('')
+  const onArchive = useCallback(async (scope: 'study' | 'patient') => {
+    if (!study || archiving) return
+    const studies = scope === 'patient' && patientStudies.length > 1 ? patientStudies : [study]
+    setArchiving('Preparing export…')
+    try {
+      const blob = await buildStudyArchive(studies, settings, setArchiving)
+      downloadFile(archiveName(studies), blob, 'application/zip')
+      toast(studies.length > 1 ? `Exported ${studies.length} studies for this patient.` : 'Study exported with its report and findings.', 'success')
+    } catch (error) {
+      toast(error instanceof Error ? `Export failed: ${error.message}` : 'Export failed.', 'error')
+    } finally { setArchiving('') }
+  }, [study, archiving, patientStudies, settings])
 
   // Reset transient UI state when the active study changes.
   const studyKey = study?.id ?? ''
@@ -740,6 +764,15 @@ export function ReportPanel() {
           <ShellButton type="button" className="btn" onClick={onDownloadJson}>
             <FileJson size={14} /> JSON
           </ShellButton>
+        </div>
+        <div className="rp-archive">
+          <ShellButton type="button" className="btn rp-btn-full" disabled={!!archiving} onClick={() => { void onArchive('study') }}>
+            <FileArchive size={14} /> {archiving || 'Export study (ZIP: scans, findings, report)'}
+          </ShellButton>
+          {patientStudies.length > 1 && <ShellButton type="button" className="btn rp-btn-full" disabled={!!archiving} onClick={() => { void onArchive('patient') }}>
+            <FileArchive size={14} /> Export all {patientStudies.length} studies for this patient
+          </ShellButton>}
+          <p className="rp-archive-note">For your own on-prem records: scan images, images with findings drawn on, the report as PDF and text, and study.json with patient details. Contains patient-identifiable data.</p>
         </div>
         <label className="rp-anon">
           <input type="checkbox" checked={anonymise} onChange={(e) => setAnonymise(e.target.checked)} />

@@ -688,3 +688,6 @@
   .rp-toast { animation: none; }
   .exam-row, .rte-choice, .rp-sec { transition: none; }
 }
+
+.rp-archive { display: grid; gap: 6px; margin-top: 6px; }
+.rp-archive-note { margin: 0; font-size: var(--text-caption); line-height: 1.45; color: var(--label-2); }
