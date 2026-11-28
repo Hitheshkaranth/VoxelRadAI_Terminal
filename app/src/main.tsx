@@ -1,5 +1,17 @@
 import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
+
+// After a deploy, a tab opened earlier asks for code files that no longer exist and the app would go blank. Reload
+// once to get the current version (not again within a minute, so a real outage cannot cause a reload loop).
+window.addEventListener('vite:preloadError', (event) => {
+  const key = 'radgenis.deployReloadAt'
+  let last = 0
+  try { last = Number(sessionStorage.getItem(key)) || 0 } catch { /* storage blocked: still reload once */ }
+  if (Date.now() - last < 60_000) return
+  try { sessionStorage.setItem(key, String(Date.now())) } catch { /* ignore */ }
+  event.preventDefault()
+  window.location.reload()
+})
 import './styles/tokens.css'
 import './styles/shadcn.css'
 import './styles/ui.css'
