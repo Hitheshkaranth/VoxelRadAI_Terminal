@@ -3,14 +3,14 @@
 // classifierStatus 'unavailable' and the findings unchanged, so the app works without it.
 // Type-only imports: node tests import this file directly.
 import type { AnalysisResult, ClassifierCheck, Finding, Heatmap, Severity, Study, StudyImage } from '../types'
-import { SERVER_MODE } from './session'
 
 /**
  * The TorchXRayVision cross-check runs where its service is deployed: local and on-prem installs. The hosted site does
  * not run it unless the build sets VITE_CLASSIFIER=true, so reads there are not sent to it and are not labelled
  * "not cross-checked" (an absent optional service is not a fault of the read).
  */
-export const CLASSIFIER_ENABLED = !SERVER_MODE || import.meta.env?.VITE_CLASSIFIER === 'true'
+// Read from the build flags directly (not ./session) so this module stays importable by the Node test runner.
+export const CLASSIFIER_ENABLED = import.meta.env?.VITE_SERVER_MODE !== 'true' || import.meta.env?.VITE_CLASSIFIER === 'true'
 /** The classifier status to show: none when the classifier is not part of this deployment. */
 export const shownClassifierStatus = (status: AnalysisResult['classifierStatus']) =>
   !CLASSIFIER_ENABLED && status === 'unavailable' ? undefined : status
