@@ -21,7 +21,7 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 
 <a href="https://radgenis.com"><img src="docs/screenshots/landing/hero.png" alt="RadGenis landing page: 'Grounded Radiology, Visible Evidence' above an interactive reading room showing Skanda's outlines on a chest X-ray" width="100%"></a>
 
-<sub>The <a href="https://radgenis.com">radgenis.com</a> landing page, captured November 12, 2026. The overlay is recorded Skanda output on a public ChestX-Det test film.</sub>
+<sub>The <a href="https://radgenis.com">radgenis.com</a> landing page, captured November 28, 2026. The overlay is recorded Skanda output on a public ChestX-Det test film.</sub>
 
 </div>
 
@@ -31,6 +31,7 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 ## Contents
 
 - [Highlights](#-highlights)
+- [What's new (November 2026)](#-whats-new-november-2026)
 - [Quick start](#-quick-start)
 - [Live analysis on ZeroGPU](#-live-analysis-on-zerogpu)
 - [Workspace tour](#-workspace-tour)
@@ -66,6 +67,38 @@ A browser workspace for X-ray, CT and MRI reading, where every model finding poi
 | 🔐 **Server mode** | Sign-in, admin tools, saved studies in PostgreSQL, and share links that expire or can be revoked |
 | 🔌 **Integrations** | Optional [Keycloak SSO](docs/keycloak.md), [private S3 volume storage](docs/s3-storage.md) and [Orthanc import](docs/orthanc.md). All are off until configured |
 | 💻 **Local mode** | Studies stay in browser storage. Bring your own model service |
+| 🙋 **Self sign-up** | Email or **Sign up with Google**, email confirmation and admin approval; branded RadGenis emails |
+| 👤 **Profile and usage** | Photo, centre, location and machines; plan, daily credits, storage, and usage charts by day, month and year; account menu on the avatar |
+| 🪪 **Patient register** | A permanent RadGenis ID per patient, found again by name, ID, phone, **ABHA** or **Aadhaar** (stored only as a keyed one-way code plus the last four digits) |
+| 🖨️ **Your own letterhead** | Upload a blank page of the report you print today (PDF or scan); reports print and export onto it, between its header and footer |
+| 🗃️ **Every study saved** | Studies auto-save to the account; patient history shows earlier scans and reports side by side; ZIP export (scans, findings, PDF and text report, JSON) for on-prem copies |
+| 🧊 **3D reads for any plane** | Whole-volume Skanda reads sample 20 slices on the hosted site and always read axial slices, reformatting sagittal or coronal acquisitions |
+
+## 🆕 What's new (November 2026)
+
+All captured on [radgenis.com](https://radgenis.com) on November 28, 2026 with a test account, except where marked as a local build. Scans are public teaching samples; nothing here is a patient study.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/latest/sign-up.png" alt="Create your account page with a Sign up with Google button, a work email form and a CT teaching sample playing on the right"><br><sub><b>Sign up with email or Google.</b> New accounts confirm their email and wait for an administrator's approval.</sub></td>
+    <td width="50%"><img src="docs/screenshots/latest/account-menu.png" alt="Workspace toolbar with an open account menu under the avatar: name, email, Administrator badge, Your profile and usage, Report templates, Sign out"><br><sub><b>Account menu.</b> The avatar at the top right shows your photo (initials until you add one) and holds your profile, report templates and Sign out.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/latest/profile.png" alt="Profile page: large avatar, name, role and organization, plan card with 200 Skanda V1 reads per day and 10.7 GB storage, credits today 40 of 200 and storage used"><br><sub><b>Your profile.</b> Name printed on signed reports, role and organization; plan, today's credits against the daily allowance (resets 05:30 IST) and storage used.</sub></td>
+    <td><img src="docs/screenshots/latest/profile-usage.png" alt="Usage section: totals of 40 reads and 1 study, daily bar charts of model reads with the allowance line and new studies, and a by-modality breakdown of CT 20, MRI 20 and X-ray 1"><br><sub><b>Usage by day, month and year.</b> Model reads (credits) with the daily allowance marked, new studies, and a breakdown by modality. Each chart has a table view.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/latest/mri-volume-3d.png" alt="MRI head sample in axial, coronal and sagittal views plus a 3D volume, with one Skanda candidate box shown in every view at axial slice 148"><br><sub><b>MRI, whole volume (live).</b> The sample was acquired sagittally; Skanda read 20 axial slices reformatted from it in <b>1 min 17 s</b>. 19 were normal. One candidate on slice 148 ("acute infarct") is <b>almost certainly a false alarm</b>: this is a routine T1 scan of a healthy volunteer.</sub></td>
+    <td><img src="docs/screenshots/latest/ct-volume-review.png" alt="CT brain sample in three planes with several candidate boxes and the review panel: 20 of 76 slices analysed, 18 findings awaiting review, and a finding card for focal lesion, left, with size and attenuation"><br><sub><b>CT, whole volume (live).</b> 20 of 76 slices in <b>2 min 57 s</b>. Skanda V1 flagged nearly every slice on this normal teaching CT. The checks withheld 9 claims, and the rest wait in the review queue with measurements: <b>a failure case, shown on purpose.</b></sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/latest/patient-register.png" alt="Patient details sheet with a RadGenis patient ID RG-26-000003, ABHA number, ABHA address and a masked Aadhaar, above the name, patient ID, age and sex fields"><br><sub><b>Patient register</b> (local build, made-up identifiers). Each patient gets a permanent RadGenis ID; ABHA and Aadhaar can be attached. Aadhaar is never stored: only a keyed one-way code and the last four digits.</sub></td>
+    <td><img src="docs/screenshots/latest/patient-search.png" alt="Find a registered patient: search box with the note on Aadhaar storage and a result for Meera Shetty with her RadGenis ID, ABHA and masked Aadhaar"><br><sub><b>Find a patient</b> by name, RadGenis ID, phone, ABHA or Aadhaar, then link the study. Searches send the query in the request body, never the address bar, and identifier lookups are audited.</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/latest/letterhead-print.png" alt="Five printed report pages, each on a blank centre letterhead with a blue header and a footer, the report text staying between them"><br><sub><b>Print on your own letterhead</b> (local build, sample letterhead). Upload a blank page of your current report; RadGenis finds where its printed header ends and footer starts, and every printed page keeps the text inside that area. The ZIP export's PDF uses the same page.</sub></td>
+  </tr>
+</table>
 
 ## 🚀 Quick start
 
