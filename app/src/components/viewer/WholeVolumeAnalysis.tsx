@@ -5,7 +5,8 @@ import { getSliceGeometry, type Volume, type VolumePlane } from '../../lib/volum
 import { reviewedVolumeReads } from '../../lib/volumeReview'
 import { volumeCoverage, type SliceRead } from '../../lib/volumeAnalysis'
 import { volumeFingerprint } from '../../lib/volumeJobIdentity'
-import { auditVolumeJob, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
+import { auditVolumeJob, HOSTED_SAMPLE_SLICES, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
+import { SERVER_MODE } from '../../lib/session'
 
 const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
 const EMPTY_READS: SliceRead[] = []
@@ -54,11 +55,13 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
     const interval = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(interval)
   }, [running])
-  const coverage = volumeCoverage(reads, count)
+  const coverage = volumeCoverage(reads, count, job?.sample)
+  // A sampled read (hosted site) sets out to read only its sample; a new one would sample the same way.
+  const planned = job?.sample?.length ?? (SERVER_MODE ? Math.min(count, HOSTED_SAMPLE_SLICES) : count)
   const changed = !!snapshot && (snapshot.center !== center || snapshot.width !== width || snapshot.model !== settings.model || snapshot.settings.baseUrl !== settings.baseUrl)
   const elapsed = (job?.elapsedMs ?? 0) + (running ? Math.max(0, now - (job?.runStartedAt ?? now)) : 0)
   const durations = reads.filter((r) => r.analysis && !r.analysis.truncated && r.analysis.durationMs > 0).map((r) => r.analysis!.durationMs)
-  const estimatedRemaining = durations.length >= 2 ? durations.slice(-5).reduce((sum, ms) => sum + ms, 0) / Math.min(5, durations.length) * (count - coverage.completed) : null
+  const estimatedRemaining = durations.length >= 2 ? durations.slice(-5).reduce((sum, ms) => sum + ms, 0) / Math.min(5, durations.length) * (coverage.total - coverage.completed) : null
   const run = (restart = false) => {
     if (!identity || running) return
     void startVolumeJob({ identity, volume, title, modality, settings, center, width, restart }).catch(reason => setLoadError(reason instanceof Error ? reason.message : 'Could not start this review.'))
@@ -66,14 +69,14 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
   const status = loading ? 'Restoring saved review…' : !job ? 'Not analyzed' : running ? 'Analysis running' : coverage.complete ? 'Analysis complete' : job.status === 'error' ? 'Analysis stopped' : 'Analysis paused'
   return <section className="volume-analysis" aria-label="Whole volume analysis">
     <div className="volume-analysis-heading"><h3>Volume analysis</h3><ScanButton className="btn btn-primary btn-sm" disabled={loading || !!loadError || running || connection !== 'online' || coverage.complete} onClick={() => run()}>{loading ? 'Restoring…' : coverage.complete ? 'Analysis complete' : running ? 'Analyzing…' : job ? 'Resume analysis' : 'Analyze volume'}</ScanButton></div>
-    <p role="status"><strong>{status}</strong>{job ? ` · ${coverage.completed}/${count} slices analyzed` : ''}</p>
+    <p role="status"><strong>{status}</strong>{job ? ` · ${coverage.completed}/${coverage.total} ${coverage.sampled ? `sampled slices (of ${count})` : 'slices'} analyzed` : ''}</p>
     {!!reads.flatMap(read=>read.analysis?.findings??[]).filter(f=>f.validationIssues?.length).length && <p className="volume-review-note">Some model claims failed source-consistency checks and are withheld from overlays and reports. Review the flagged findings below.</p>}
-    {job && <progress aria-label="Volume analysis coverage" max={count} value={coverage.completed} style={{ width: '100%', accentColor: 'var(--accent)' }} />}
-    {job && !coverage.complete && <p className="volume-review-note">Incomplete coverage: {count - coverage.completed} slices still need a complete response.</p>}
+    {job && <progress aria-label="Volume analysis coverage" max={coverage.total} value={coverage.completed} style={{ width: '100%', accentColor: 'var(--accent)' }} />}
+    {job && !coverage.complete && <p className="volume-review-note">Incomplete coverage: {coverage.total - coverage.completed} {coverage.sampled ? 'sampled ' : ''}slices still need a complete response.</p>}
     {running && <><p role="status">{job?.progress}</p><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><ScanButton className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</ScanButton></>}
     {!running && job && <p>Elapsed {duration(elapsed)} · {coverage.complete ? 'Review findings before clinical use.' : 'Resume retries failed or incomplete slices.'}</p>}
     <details className="volume-analysis-method"><summary>Analysis scope &amp; storage</summary>
-      <p>{count} acquired {plane} slices, analyzed independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>
+      <p>{planned < count ? `${planned} of ${count} acquired ${plane} slices, evenly spaced (a sampled read: each read uses shared GPU time), analyzed` : `${count} acquired ${plane} slices, analyzed`} independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>
       <p>{snapshot?.model || settings.model} · Results are saved in this browser. Analysis continues during in-app navigation; closing or refreshing pauses it at the last saved slice.</p>
     </details>
     {connection !== 'online' && !running && <ScanButton className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</ScanButton>}

@@ -6,7 +6,8 @@ import { workspaceGet as get, workspaceSet as set } from './workspaceStorage'
 import { analyzeImage, isSkandaModel, isSkandaV2Model } from './medgemma'
 import { skandaCtSeries, skandaSliceInput, type SkandaSliceInput } from './skandaSlice'
 import { getSliceGeometry, renderSlice, type Volume, type VolumePlane } from './volume'
-import { reviewAllSlices, splitSeriesAnalysis, volumeCoverage, type SliceRead } from './volumeAnalysis'
+import { reviewAllSlices, sampleSliceIndices, splitSeriesAnalysis, volumeCoverage, type SliceRead } from './volumeAnalysis'
+import { SERVER_MODE } from './session'
 import { volumeFindingKey, volumeReportSourceKey, validateFindingGroup, type VolumeFindingGroup, type VolumeFindingReview, type VolumeDraftReport } from './volumeReview'
 import type { PatientInfo, Settings } from '../types'
 import { uid } from '../store'
@@ -21,6 +22,15 @@ export interface VolumeJob {
   progress: string; elapsedMs: number; runStartedAt?: number; updatedAt: number; error?: string; storageError?: string
   /** How the reads were made when it is not the plain slice loop (e.g. a whole-series read, or its fallback). */
   notice?: string
+  /** Sampled read: only these slice indices are read (the hosted site, where every read spends shared GPU quota). */
+  sample?: number[]
+}
+/** On the hosted site a whole-volume read samples HOSTED_SAMPLE_SLICES evenly spaced slices: every read spends the
+ *  shared GPU quota and each account has a daily read cap, so a 76- or 130-slice loop could never finish there. */
+export const HOSTED_SAMPLE_SLICES = 20
+function hostedSample(count: number): Pick<VolumeJob, 'sample' | 'notice'> {
+  const sample = SERVER_MODE ? sampleSliceIndices(count, HOSTED_SAMPLE_SLICES) : undefined
+  return sample ? { sample, notice: `Sampled read: ${sample.length} of ${count} slices, evenly spaced through the series. Slices between them are not assessed; scroll through the whole series yourself.` } : {}
 }
 const patient: PatientInfo = { name: '', patientId: '', age: '', sex: '', studyDate: '', referringPhysician: '', indication: '', clinicalHistory: '' }
 const records = new Map<string, VolumeJob>()
@@ -108,6 +118,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
     version: 1, id: uid(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count: opts.volume.dimensions[2],
     snapshot: { center: opts.center, width: opts.width, model: opts.settings.model, settings: structuredClone(opts.settings), acquisition: opts.volume.acquisition ? structuredClone(opts.volume.acquisition) : undefined },
     reads: [], status: 'running', progress: '', elapsedMs: 0, runStartedAt: now, updatedAt: now,
+    ...hostedSample(opts.volume.dimensions[2]),
   }
   const controller = new AbortController()
   controllers.set(opts.identity, controller)
@@ -137,7 +148,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
     // Skanda-V2 on CT: one whole-series request (localiser + organ detectors read the volume), split back into per-slice
     // reads. Any failure falls back to the slice-by-slice loop below, with a visible note.
     if (isSkandaV2Model(job.snapshot.settings.model) && job.modality.toUpperCase() === 'CT' && job.plane === 'axial'
-        && volumeCoverage(job.reads, job.count).completed === 0) {
+        && volumeCoverage(job.reads, job.count, job.sample).completed === 0) {
       try {
         patch({ progress: 'Reading the whole series…' })
         const key = Math.floor(job.count / 2)
@@ -159,8 +170,8 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
         patch({ progress: '', notice: `Whole-series read failed (${error instanceof Error ? error.message : 'unknown error'}); reading slice by slice instead.` })
       }
     }
-    await reviewAllSlices({ retries: 2, onRetry: (index,attempt) => { if(current())patch({progress:`Connection interrupted at slice ${index+1}. Retrying ${attempt}/2…`}) }, count: job.count, previous: job.reads, signal: controller.signal,
-      onStart: (index) => { if (current()) patch({ progress: `Reviewing ${job.plane} slice ${index + 1} of ${job.count}` }) },
+    await reviewAllSlices({ indices: job.sample, retries: 2, onRetry: (index,attempt) => { if(current())patch({progress:`Connection interrupted at slice ${index+1}. Retrying ${attempt}/2…`}) }, count: job.count, previous: job.reads, signal: controller.signal,
+      onStart: (index) => { if (current()) patch({ progress: job.sample ? `Reviewing ${job.plane} slice ${index + 1} of ${job.count} (sample ${job.sample.indexOf(index) + 1} of ${job.sample.length})` : `Reviewing ${job.plane} slice ${index + 1} of ${job.count}` }) },
       onSlice: async (read) => {
         if (!current()) return
         const record = records.get(opts.identity)!
@@ -187,7 +198,7 @@ export async function startVolumeJob(opts: { identity: string; volume: Volume; t
       },
     })
     if (current()) {
-      const record = records.get(opts.identity)!, complete = volumeCoverage(record.reads, record.count).complete
+      const record = records.get(opts.identity)!, complete = volumeCoverage(record.reads, record.count, record.sample).complete
       const error = record.reads.find((r) => r.error)?.error
       await save(patch({ status: complete ? 'complete' : error ? 'error' : 'paused', error, progress: '', elapsedMs: record.elapsedMs + Date.now() - (record.runStartedAt ?? Date.now()), runStartedAt: undefined }))
     }
@@ -218,7 +229,7 @@ export async function saveVolumeDraft(identity: string, jobId: string, text: str
   if (!text.trim()) throw new Error('The report cannot be empty.')
   if (reviewed) {
     const pending = job.reads.some((r) => r.analysis?.findings.some((f) => f.severity !== 'normal' && (!job.reviews?.[volumeFindingKey(r.index,f.id)] || job.reviews[volumeFindingKey(r.index,f.id)].decision === 'pending')))
-    if (job.reads.some(r=>r.analysis?.findings.some(f=>f.validationIssues?.length && job.reviews?.[volumeFindingKey(r.index,f.id)]?.decision==='accepted')) || !volumeCoverage(job.reads,job.count).complete || pending || sourceKey !== volumeReportSourceKey(job)) throw new Error('Complete coverage and finding review, then regenerate the draft before marking it reviewed.')
+    if (job.reads.some(r=>r.analysis?.findings.some(f=>f.validationIssues?.length && job.reviews?.[volumeFindingKey(r.index,f.id)]?.decision==='accepted')) || !volumeCoverage(job.reads,job.count,job.sample).complete || pending || sourceKey !== volumeReportSourceKey(job)) throw new Error('Complete coverage and finding review, then regenerate the draft before marking it reviewed.')
   }
   await save(publish({ ...job, draftReport: { text, sourceKey, updatedAt: Date.now(), ...(reviewed ? { reviewedAt: Date.now() } : {}) }, updatedAt: Date.now() }))
 }

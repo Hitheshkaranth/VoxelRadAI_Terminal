@@ -13,7 +13,7 @@ export function VolumeJobIndicator() {
   const running = jobs.filter((job) => job.status === 'running').length
   return <details className="volume-job-tray"><summary>{running ? `${running} volume analysis running` : 'Volume analysis jobs'} <span>{jobs.length}</span></summary><div className="volume-job-list" aria-label="Volume analysis jobs">
     {jobs.map((job) => {
-      const coverage = volumeCoverage(job.reads, job.count), registered = registeredVolumeSource(job.identity)
+      const coverage = volumeCoverage(job.reads, job.count, job.sample), registered = registeredVolumeSource(job.identity)
       const source = registered?.source ?? VOLUME_SAMPLES.find((source) => source.title === job.title)
       return <article key={job.identity}><strong>{job.title}</strong><p>{job.status} · {coverage.completed}/{job.count} slices reviewed</p><div>
         {source && <ShellButton className="btn btn-sm" onClick={() => useShell.getState().openVolume(source)}>Return to scan</ShellButton>}

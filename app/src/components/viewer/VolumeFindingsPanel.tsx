@@ -23,7 +23,7 @@ function FindingQueue({identity,job,onNavigate,onSelectFinding,keyboardEnabled}:
   const [members,setMembers]=useState<string[]>([]),[label,setLabel]=useState(''),[grouping,setGrouping]=useState(false)
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[announcement,setAnnouncement]=useState('')
   const lock=useRef(false),panel=useRef<HTMLElement>(null)
-  const rows=volumeFindingRows(job),coverage=volumeCoverage(job.reads,job.count)
+  const rows=volumeFindingRows(job),coverage=volumeCoverage(job.reads,job.count,job.sample)
   const active=rows.find(row=>row.key===selected)??rows.find(row=>row.decision==='pending')??rows[0]
   const pending=rows.filter(row=>row.decision==='pending')
   const shown=rows.filter(row=>filter==='all'||row.decision===filter)

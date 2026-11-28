@@ -24,6 +24,8 @@ export interface ReviewableVolume {
   id: string; title: string; modality: string; plane: string; count: number
   snapshot: { model: string; center: number; width: number }
   reads: SliceRead[]
+  /** A sampled read: only these slices were read. */
+  sample?: number[]
   reviews?: Record<string, VolumeFindingReview>
   findingGroups?: VolumeFindingGroup[]
   draftReport?: VolumeDraftReport
@@ -72,7 +74,7 @@ export function volumeReportSourceKey(job: ReviewableVolume): string {
 }
 /** `systematic` appends section-by-section rows (report template layout 'systematic'); the accepted-findings list stays. */
 export function buildVolumeDraft(job: ReviewableVolume, opts: { systematic?: boolean } = {}): string {
-  const coverage = volumeCoverage(job.reads,job.count), rows = volumeFindingRows(job)
+  const coverage = volumeCoverage(job.reads,job.count,job.sample), rows = volumeFindingRows(job)
   const accepted = rows.filter((row) => row.decision === 'accepted' && !row.incomplete && !row.blocked)
   const pending = rows.filter((row) => row.decision === 'pending').length
   const rejected = rows.filter((row) => row.decision === 'dismissed').length
@@ -80,6 +82,7 @@ export function buildVolumeDraft(job: ReviewableVolume, opts: { systematic?: boo
     'DRAFT REPORT · Not signed', job.title, `${job.modality} · Patient identity not linked`, '',
     'REVIEW SCOPE', `${coverage.completed}/${job.count} acquired ${job.plane} slices reviewed independently by ${job.snapshot.model}.`,
     `Display window ${job.snapshot.width}, level ${job.snapshot.center}. One window and one series; no combined 3D model interpretation.`,
+    ...(job.sample ? [`SAMPLED READ: ${job.sample.length} evenly spaced slices of ${job.count}; slices between them were not reviewed by the model.`] : []),
     coverage.complete ? 'All submitted slices returned complete model responses.' : 'INCOMPLETE COVERAGE: unreviewed, failed or truncated slices remain.', '',
     'ACCEPTED FINDINGS',
     ...accepted.map((row) => `Slice ${row.index + 1}: ${row.finding.title}. ${row.description}${row.finding.location ? ` Location: ${row.finding.location}.` : ''}`),

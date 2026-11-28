@@ -21,7 +21,7 @@ export function VolumeReportPanel({volume,modality,onNavigateEvidence}:{volume:V
   if(!job)return <section className="volume-review-panel"><h2>Report</h2><p>No volume analysis yet. Analyze the scan and review findings before creating a draft.</p></section>
   const text=edit?.text??job.draftReport?.text??'', sourceKey=edit?.sourceKey??job.draftReport?.sourceKey??''
   const currentKey=volumeReportSourceKey(job), stale=!!text&&sourceKey!==currentKey
-  const coverage=volumeCoverage(job.reads,job.count), pending=volumeFindingRows(job).filter(r=>r.decision==='pending').length
+  const coverage=volumeCoverage(job.reads,job.count,job.sample), pending=volumeFindingRows(job).filter(r=>r.decision==='pending').length
   const accepted=volumeFindingRows(job).filter(row=>row.decision==='accepted'&&!row.incomplete&&!row.blocked)
   const reviewed=!!job.draftReport?.reviewedAt&&!stale&&!edit
   const save=async(nextText:string,key:string,markReviewed=false)=>{

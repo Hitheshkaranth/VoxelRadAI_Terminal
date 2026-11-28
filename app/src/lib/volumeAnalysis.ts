@@ -12,9 +12,11 @@ export async function reviewAllSlices(opts: {
   retries?: number
   retryDelayMs?: number
   onRetry?: (index: number, attempt: number) => void
+  /** Read only these slices (a sampled read); every slice when omitted. */
+  indices?: number[]
 }): Promise<void> {
   const complete = new Set((opts.previous ?? []).filter((r) => r.analysis && !r.analysis.truncated).map((r) => r.index))
-  for (let index = 0; index < opts.count; index++) {
+  for (const index of opts.indices ?? Array.from({ length: opts.count }, (_, i) => i)) {
     if (opts.signal.aborted) return
     if (complete.has(index)) continue
     opts.onStart?.(index)
@@ -41,10 +43,23 @@ export async function reviewAllSlices(opts: {
   }
 }
 
-export function volumeCoverage(reads: SliceRead[], count: number) {
+/** Coverage of the slices a job set out to read: all `count`, or only the `sample` of a sampled read. */
+export function volumeCoverage(reads: SliceRead[], count: number, sample?: number[]) {
   const unique = new Map(reads.map((read) => [read.index, read]))
-  const completed = [...unique.values()].filter((r) => r.index >= 0 && r.index < count && r.analysis && !r.analysis.truncated).length
-  return { completed, total: count, complete: count > 0 && completed === count }
+  const wanted = sample ? new Set(sample) : null
+  const completed = [...unique.values()].filter((r) => r.index >= 0 && r.index < count && (!wanted || wanted.has(r.index)) && r.analysis && !r.analysis.truncated).length
+  const total = sample ? sample.length : count
+  return { completed, total, complete: total > 0 && completed === total, ...(sample ? { sampled: true as const } : {}) }
+}
+
+/**
+ * Evenly spaced slices for a sampled read: `max` slices across the whole range, each centred in its share of the
+ * stack, so the first and last slices (often just skull or air) are not over-represented. Undefined when every slice
+ * fits.
+ */
+export function sampleSliceIndices(count: number, max: number): number[] | undefined {
+  if (!(max > 0) || count <= max) return undefined
+  return [...new Set(Array.from({ length: max }, (_, i) => Math.min(count - 1, Math.floor((i + 0.5) * count / max))))]
 }
 
 export function isTransientReadError(error: unknown): boolean {
