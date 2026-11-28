@@ -66,7 +66,7 @@ function FindingQueue({identity,job,onNavigate,onSelectFinding,keyboardEnabled}:
     try{await action();setMembers([]);setLabel('')}catch(e){setError(e instanceof Error?e.message:'Could not save group')}finally{lock.current=false;setBusy(false)}
   }
   return <section ref={panel} className="volume-review-panel" aria-label="Volume findings review">
-    <h2>Findings</h2><p>AI candidates require source-image verification. Automated checks cannot confirm a lesion.</p><p>{coverage.completed}/{job.count} slices analyzed · {pending.length} findings awaiting review</p>
+    <h2>Findings</h2><p>AI candidates require source-image verification. Automated checks cannot confirm a lesion.</p><p>{coverage.completed}/{job.count} slices analyzed · {pending.length} {pending.length === 1 ? 'finding' : 'findings'} awaiting review</p>
     {!coverage.complete&&<p className="volume-review-note">Coverage incomplete. Unreviewed slices have no result.</p>}
     <p role="status" className="review-announcement">{announcement}</p>
     {active&&<div className="volume-guided-review" aria-label="Guided finding review">
