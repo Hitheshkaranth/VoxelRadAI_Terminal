@@ -24,6 +24,19 @@ Install the Vercel GitHub app for the private repository, connect it to the `rad
 
 The root build installs app dependencies, compiles TypeScript and builds the authenticated frontend. Hosted study uploads are limited to 4 MB to fit the serverless request limit; the Docker API supports 25 MB. GPU inference, SSO, private object storage and PACS remain disabled until separately configured. Serverless instances do not run the Docker process's hourly cleanup timer; instead about 2% of requests schedule the same cleanup (expired sessions, limiter rows, recovery codes, abandoned uploads and expired API reads) after responding, through `waitUntil`. Stuck API reads do not wait for it: see the server-to-server API section. The API trusts Vercel's `X-Real-IP` for per-client sign-in limits. Responses carry a Content-Security-Policy and `Cross-Origin-Opener-Policy: same-origin` from `vercel.json`; a remote model host must be HTTPS (or localhost) to pass `connect-src`. Vercel Web Analytics is wired in through `@vercel/analytics` (cookieless; the page URL is sent without its query string or hash). It records page views plus custom events. The visitor funnel is: landing page view → `demo_open` (the `/demo` workspace) or `demo_play` (video) → `access_request` (form submitted) or `model_download` (Skanda-0 build and link). Supporting events: `demo_cta`, `access_cta`, `open_models`, `model_card_open`, `benchmark_tab`, `cite_copy` and `profile_open`. `/demo` is a public, account-free workspace seeded from `app/public/demo/cases.json` (regenerate with `python3 app/scripts/build-demo-cases.py`); it makes no API or model calls. Enable it under the project's Analytics tab; custom events need a Pro plan.
 
+## Early-access request emails
+
+Requests from the landing page's Request access form are always stored and listed under Administration → Access requests. To also email the team, send through the Google Workspace mailbox over SMTP:
+
+1. Turn on 2-Step Verification for the sending account (for example `hitheshkaranth@radgenis.com`), then create an app password at https://myaccount.google.com/apppasswords.
+2. In the Vercel project, add these Production variables, then redeploy:
+   - `SMTP_USER`: the sending mailbox, for example `hitheshkaranth@radgenis.com`.
+   - `SMTP_PASS` (secret): the 16-character app password. Spaces are ignored.
+   - `ACCESS_NOTIFY_TO`: who receives the notification; several addresses may be comma-separated.
+   - Optional: `SMTP_FROM` (default `RadGenis <SMTP_USER>`), `SMTP_HOST` (default `smtp.gmail.com`), `SMTP_PORT` (default `465`; `587` uses STARTTLS).
+
+Each email is plain text with the requester's name, email, organization, role and use case, and its Reply-To is the requester, so replying answers them directly. Sending runs after the request is stored (through `waitUntil`); an SMTP failure is logged as `Access request email failed: <code>` and the requester still sees a success. Without all three required variables nothing is sent.
+
 ## Hosted Skanda V1 reads through the Space
 
 Vercel has no GPU. When configured, `/lmstudio/v1/chat/completions` and the model-list

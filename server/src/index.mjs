@@ -12,6 +12,7 @@ import { createObjectStorageRouter } from './objectStorage.mjs'
 import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
+import { createNotifier } from './notify.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
@@ -41,6 +42,7 @@ if (process.env.VERCEL) {
   waitUntil = vercelFunctions.waitUntil
 }
 pool.on('error', () => console.error('Database connection interrupted'))
+const notifier = createNotifier({ origin: publicOrigin })
 // Migrations run at start by default. Set MIGRATE_ON_START=false when a release step runs `npm run migrate`
 // (recommended for serverless, where every cold start would otherwise take the migration lock).
 if (process.env.MIGRATE_ON_START !== 'false') await migrate(pool)
@@ -241,6 +243,11 @@ export async function handler(req, res) {
       if (await rateLimit(`access-ip:${clientIp(req)}`, 5) || await rateLimit(`access-email:${parsed.value.email}`, 2)) return send(res, 429, { error: 'We already have your request. Try again in 15 minutes if you need to change it.' }, { 'Retry-After': '900' })
       const { name, email, organization, role, useCase } = parsed.value
       await pool.query('INSERT INTO access_requests(id,name,email,organization,role,use_case) VALUES ($1,$2,$3,$4,$5,$6)', [randomUUID(), name, email, organization, role, useCase])
+      // Email the team after the request is stored; a mail failure is logged, never shown to the requester.
+      if (notifier.enabled) {
+        const sent = notifier.accessRequest(parsed.value).catch(error => console.error('Access request email failed:', error?.code || error?.message || 'unknown error'))
+        if (waitUntil) waitUntil(sent)
+      }
       return send(res, 202, { ok: true })
     }
     const user = await userFor(req)
