@@ -36,7 +36,7 @@ footer a{color:#9a9a9a;display:inline-block;padding:10px 2px}
 <header><a class="brand" href="/"><img src="/skanda-mark.png" alt="">RadGenis</a><a class="pill" href="/workspace">Open workspace</a></header>
 <main>
 <h1>Privacy</h1>
-<p class="meta">Last updated 28 November 2026 (account sign-up and Google sign-in added)</p>
+<p class="meta">Last updated 28 November 2026 (saved volumes stored in Google Cloud, Mumbai)</p>
 <p>RadGenis is a research and evaluation workspace for radiology images. This page describes what the hosted service at radgenis.com stores and why. It covers the website and the hosted workspace. If your organization runs its own copy, that organization decides how its data is handled.</p>
 
 <div class="note"><strong>Do not upload identifiable patient data</strong> unless your organization has authorized it and you have a lawful basis to do so. Prefer de-identified or public images. The hosted service is not a clinical system.</div>
@@ -56,6 +56,7 @@ footer a{color:#9a9a9a;display:inline-block;padding:10px 2px}
 <li><strong>Sign-in protection:</strong> recent sign-in attempts and the requesting IP address, used to limit password guessing. These records expire.</li>
 <li><strong>Studies:</strong> the images and volumes you upload, the patient and clinical details you enter, model findings, your review decisions and report drafts.</li>
 <li><strong>Patient register:</strong> each patient you register gets a RadGenis ID, stored with the name, sex, date of birth, phone and ABHA number or address you enter. If you enter an Aadhaar number, it is used only to find or match that patient: RadGenis stores a keyed one-way code made from it and its last four digits, never the number itself. Searches by Aadhaar or ABHA are recorded in your account&rsquo;s audit log. Only you can see the patients you register.</li>
+<li><strong>Saved volumes:</strong> CT and MRI volumes you choose to save to your account (Saved volumes), with the modality, body region, sequence and contrast you enter. They are stored as files in a private Google Cloud Storage bucket in Mumbai, India, and downloaded only through short-lived links issued to you.</li>
 <li><strong>Sharing:</strong> share links you create. Anyone holding a link can read its snapshot until it expires or is revoked.</li>
 <li><strong>Audit log:</strong> a record of actions such as sign-ins, study changes and shares, kept for security and accountability.</li>
 </ul>
@@ -64,7 +65,7 @@ footer a{color:#9a9a9a;display:inline-block;padding:10px 2px}
 <p>Images are sent for analysis only when you start an analysis, and only to the model server your workspace is configured to use. Hosted GPU inference is disabled by default; many installations run the model on their own hardware.</p>
 
 <h2>Where data is kept</h2>
-<p>The hosted service runs on Vercel (application functions in the Singapore region) with a Neon PostgreSQL database. Data is sent over HTTPS. We do not sell data, show advertising or use your studies to train models.</p>
+<p>The hosted service runs on Vercel (application functions in the Singapore region) with a Neon PostgreSQL database. Saved volumes are kept in Google Cloud Storage in Mumbai, India (asia-south1), encrypted at rest. Data is sent over HTTPS. We do not sell data, show advertising or use your studies to train models.</p>
 
 <h2>Retention and deletion</h2>
 <p>Expired sessions, sign-in attempts, recovery codes and abandoned uploads are cleaned up automatically. Studies and accounts are kept until they are deleted. There is not yet a fixed retention period for them. To have your account or studies deleted, ask your workspace administrator or contact us.</p>
