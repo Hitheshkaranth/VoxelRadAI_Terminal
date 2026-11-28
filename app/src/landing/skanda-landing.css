@@ -1,9 +1,8 @@
 /* RadGenis landing — geometry and tokens measured from visuvate.com (1902px viewport), re-themed for radiology.
-   Display: Figtree 500 (stands in for GT Walsheim). Accent serif: Instrument Serif (for Fraunces). Body: Instrument Sans (for Geist). */
+   Display: Figtree 500 (stands in for GT Walsheim). Accent serif: Newsreader italic. Body: Figtree. */
 @font-face{font-family:'Figtree';src:url('/fonts/Figtree.ttf') format('truetype');font-weight:300 900;font-display:swap}
-@font-face{font-family:'Instrument Sans';src:url('/fonts/InstrumentSans.ttf') format('truetype');font-weight:400 700;font-display:swap}
-@font-face{font-family:'Instrument Serif';src:url('/fonts/InstrumentSerif-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'Instrument Serif';src:url('/fonts/InstrumentSerif-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Newsreader';src:url('/fonts/Newsreader.ttf') format('truetype');font-weight:300 800;font-style:normal;font-display:swap}
+@font-face{font-family:'Newsreader';src:url('/fonts/Newsreader-Italic.ttf') format('truetype');font-weight:300 800;font-style:italic;font-display:swap}
 
 .sk-page{
   --sk-bg:#000;--sk-elev:#111;--sk-surface:#181818;--sk-field:#1f1f1f;
@@ -11,7 +10,7 @@
   --sk-text:#fff;--sk-muted:#9a9a9a;--sk-dim:#8a8a8a;
   --sk-blue:#0099ff;--sk-blue-2:#7acaff;--sk-blue-3:#0068ad;--sk-amber:#ffb840;
   --sk-ease:cubic-bezier(.22,.61,.36,1);
-  --sk-display:'Figtree',system-ui,sans-serif;--sk-serif:'Instrument Serif',Georgia,serif;--sk-body:'Instrument Sans',system-ui,sans-serif;
+  --sk-display:'Figtree',system-ui,sans-serif;--sk-serif:'Newsreader',Georgia,serif;--sk-body:'Figtree',system-ui,sans-serif;
   --sk-max:1320px;
   background:var(--sk-bg);color:var(--sk-text);font:15px/1.6 var(--sk-body);color-scheme:dark;overflow-x:clip;
   -webkit-font-smoothing:antialiased;
@@ -799,7 +798,7 @@
 .sk-found-link{margin-top:auto;display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--sk-blue-2)}
 .sk-found-link:hover{color:#fff}
 .sk-data{display:grid;grid-template-columns:minmax(260px,.8fr) 2fr;gap:20px;margin-top:20px;padding:36px 40px;border:1px solid #2b6fd6;border-radius:12px;background:radial-gradient(70% 90% at 0% 0%,#0b2350 0%,#030712 50%,#030303 85%);box-shadow:0 30px 90px -60px #1a7dff}
-.sk-data-total>b{display:block;margin:14px 0 8px;font:500 clamp(56px,5vw,84px)/1 var(--sk-display);letter-spacing:-.05em;background:linear-gradient(180deg,#fff,#7acaff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sk-data-total>b{display:block;margin:14px 0 8px;font:500 clamp(56px,5vw,84px)/1 var(--sk-display);letter-spacing:-.05em;color:#fff}
 .sk-data-total>p{color:#cfcfcf;font-size:14.5px;max-width:300px}
 .sk-data-mods{display:grid;gap:0;margin-top:22px;border-top:1px solid var(--sk-line)}
 .sk-data-mods li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--sk-line);font-size:14px;color:#cfcfcf}

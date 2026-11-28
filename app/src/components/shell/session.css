@@ -1,9 +1,8 @@
 /* Workspace sign-in. Mirrors the radgenis.com landing tokens (skanda-landing.css) under .session-page only,
    so the landing stylesheet is never loaded into the workspace and nothing here leaks out of the gate. */
 @font-face { font-family: 'Figtree'; src: url('/fonts/Figtree.ttf') format('truetype'); font-weight: 300 900; font-display: swap; }
-@font-face { font-family: 'Instrument Sans'; src: url('/fonts/InstrumentSans.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
-@font-face { font-family: 'Instrument Serif'; src: url('/fonts/InstrumentSerif-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Instrument Serif'; src: url('/fonts/InstrumentSerif-Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Newsreader'; src: url('/fonts/Newsreader.ttf') format('truetype'); font-weight: 300 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Newsreader'; src: url('/fonts/Newsreader-Italic.ttf') format('truetype'); font-weight: 300 800; font-style: italic; font-display: swap; }
 
 .session-page {
   /* Dark is the landing's own world; light mirrors it on paper. The scan frame stays dark in both. */
@@ -16,7 +15,7 @@
   --s-glow: linear-gradient(180deg, #0000 0%, #06213f 30%, #0a4f95 62%, #118cff 86%, #0a4f9500 100%);
   --s-frame-shadow: 0 0 0 1px #0b2b55, 0 -2px 30px -6px #1a7dff88, 0 40px 90px -30px #000;
   --s-ease: cubic-bezier(.22, .61, .36, 1);
-  --s-display: 'Figtree', system-ui, sans-serif; --s-serif: 'Instrument Serif', Georgia, serif; --s-body: 'Instrument Sans', system-ui, sans-serif;
+  --s-display: 'Figtree', system-ui, sans-serif; --s-serif: 'Newsreader', Georgia, serif; --s-body: 'Figtree', system-ui, sans-serif;
   --s-max: 1376px;
   position: relative; isolation: isolate; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto;
   background: var(--s-bg); color: var(--s-text); font: 15px/1.6 var(--s-body); color-scheme: dark;
