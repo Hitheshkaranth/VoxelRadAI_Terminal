@@ -2,6 +2,7 @@
 // sign-up confirmation and approval emails to users. Off unless SMTP_USER, SMTP_PASS and ACCESS_NOTIFY_TO are all set.
 // Sending runs after the record is stored, so a mail failure never loses a request or an account.
 import nodemailer from 'nodemailer'
+import { emailHtml } from './emailTemplate.mjs'
 
 const oneLine = (value, max = 160) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
 
@@ -23,7 +24,7 @@ export function mailConfig(env = process.env) {
   }
 }
 
-/** Plain-text notification for one stored access request. Plain text only, so submitted fields cannot inject markup. */
+/** Notification for one stored access request: plain text plus the branded HTML; every submitted field is escaped. */
 export function accessRequestMessage(request, { to, from, origin }) {
   const name = oneLine(request.name, 120)
   const organization = oneLine(request.organization, 160)
@@ -47,6 +48,14 @@ export function accessRequestMessage(request, { to, from, origin }) {
     replyTo: { name, address: request.email },
     subject: `Early access request: ${name} (${organization})`,
     text: lines.join('\n'),
+    html: emailHtml({
+      origin,
+      preheader: `${name} from ${organization} asked for early access.`,
+      heading: 'New early-access request',
+      paragraphs: ['Someone asked for access to RadGenis. Reply to this email to answer them directly.'],
+      rows: [['Name', name], ['Email', request.email], ['Organization', organization], ['Role', oneLine(request.role, 80) || 'Not given'], ['Use case', String(request.useCase ?? '').slice(0, 1000)]],
+      button: { label: 'Review in RadGenis', href: `${origin}/workspace` },
+    }),
   }
 }
 
@@ -67,6 +76,14 @@ export function signupVerificationMessage(user, token, { from, origin }) {
       '',
       'If you did not sign up, ignore this email and no account will be activated.',
     ].join('\n'),
+    html: emailHtml({
+      origin,
+      preheader: 'Confirm your email address to finish creating your RadGenis account.',
+      heading: 'Confirm your email',
+      paragraphs: [`Hello ${name || 'there'},`, 'Confirm your email address to finish creating your RadGenis account. After you confirm, an administrator reviews the account and we email you when it is approved.'],
+      button: { label: 'Confirm email', href: `${origin}/workspace#verify=${token}` },
+      footnote: 'This link works once and expires in 24 hours. If you did not sign up, you can ignore this email and no account will be activated.',
+    }),
   }
 }
 
@@ -89,6 +106,14 @@ export function signupPendingMessage(user, { to, from, origin }) {
       '',
       `Approve or disable it in Administration → Users: ${origin}/workspace`,
     ].join('\n'),
+    html: emailHtml({
+      origin,
+      preheader: `${name || user.email} is waiting for approval.`,
+      heading: 'New sign-up awaiting approval',
+      paragraphs: ['A new RadGenis account is waiting for your approval. Approve it, or disable it to decline, in Administration → Users.'],
+      rows: [['Name', name || 'Not given'], ['Email', user.email], ['Organization', oneLine(user.organization, 160) || 'Not given'], ['Role', oneLine(user.role, 80) || 'Not given'], ['Signed up', user.source === 'google' ? 'With Google' : 'With email and password (email confirmed)']],
+      button: { label: 'Review sign-up', href: `${origin}/workspace` },
+    }),
   }
 }
 
@@ -106,6 +131,13 @@ export function signupApprovedMessage(user, { from, origin }) {
       '',
       'RadGenis is research and review-support software, not a medical device. Findings are drafts for clinician review.',
     ].join('\n'),
+    html: emailHtml({
+      origin,
+      preheader: 'Your RadGenis account has been approved.',
+      heading: 'Your account is approved',
+      paragraphs: [`Hello ${oneLine(user.name, 120) || 'there'},`, 'An administrator approved your RadGenis account. You can sign in and open the reading workspace now.'],
+      button: { label: 'Open RadGenis', href: `${origin}/workspace` },
+    }),
   }
 }
 

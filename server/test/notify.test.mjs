@@ -30,7 +30,8 @@ test('builds a plain-text message that replies to the requester', () => {
   assert.match(message.text, /Email: +ray@example\.org/)
   assert.match(message.text, /residency teaching files/)
   assert.match(message.text, /https:\/\/radgenis\.com\/workspace/)
-  assert.equal(message.html, undefined)
+  assert.match(message.html, /New early-access request/)
+  assert.match(message.html, /\/email\/radgenis-mark-96\.png/)
 })
 
 test('keeps line breaks out of the subject and reply-to name', () => {
@@ -47,4 +48,11 @@ test('sends through the transport and surfaces SMTP errors to the caller', async
   assert.deepEqual(sent[0].to, ['hitheshkaranth@radgenis.com'])
   const failing = createNotifier({ env, origin: 'https://radgenis.com', transport: { sendMail: async () => { throw Object.assign(new Error('auth'), { code: 'EAUTH' }) } } })
   await assert.rejects(failing.accessRequest(request), /auth/)
+})
+
+test('HTML emails escape every submitted value', () => {
+  const evil = { ...request, name: '<script>alert(1)</script>', organization: '"><img src=x onerror=1>', useCase: '<b>bold</b> use case here' }
+  const html = accessRequestMessage(evil, { to: ['a@b.c'], from: 'a@b.c', origin: 'https://radgenis.com' }).html
+  assert.doesNotMatch(html, /<script>|<img src=x|<b>bold/)
+  assert.match(html, /&lt;script&gt;/)
 })
