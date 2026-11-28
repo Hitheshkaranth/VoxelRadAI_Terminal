@@ -38,6 +38,7 @@ export const wall = [
 export const reads = [
   { image: 'cxr-41481-skanda', title: 'Cardiomegaly', meta: 'Chest X-ray · Skanda outline, live' },
   { image: 'mrtumor1-76-skanda', title: 'Extra-axial tumour', meta: 'Brain MRI · Skanda outline, live' },
+  { image: 'lidc-0001-nodule-skanda', title: 'Lung nodule', meta: 'Chest CT · Skanda outline, live' },
   { image: 'cxr-69598-skanda', title: 'Bilateral consolidation', meta: 'Chest X-ray · Skanda outlines' },
   { image: 'soop-47-16-skanda', title: 'Acute ischaemic infarct', meta: 'Brain MRI DWI · Skanda box' },
   { image: 'cxr-45707-heat', title: 'Evidence heatmap', meta: 'Chest X-ray · classifier map' },

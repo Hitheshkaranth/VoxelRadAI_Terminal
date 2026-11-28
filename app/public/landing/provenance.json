@@ -181,5 +181,13 @@
   "kind": "MRI axial",
   "note": "Skanda V1 whole-volume read on radgenis.com, 2026-11-28, axial 76/112: 'Extra-axial lesion' outline on the enhancing tumour. The same read also returned three 'acute infarct' false alarms on other slices.",
   "overlay": "recorded"
+ },
+ {
+  "file": "lidc-0001-nodule-skanda.webp",
+  "source": "TCIA LIDC-IDRI-0001 CT (series ...720603192), slices 73-107 of 133 as a 35-slice NRRD",
+  "dataset": "LIDC-IDRI (public, CC BY 3.0; nodule outlined by four radiologists)",
+  "kind": "CT chest axial",
+  "note": "Skanda V1 whole-volume read on radgenis.com, 2026-11-28: 'Lung tumour, left lung' outline on the radiologist-marked ~24 mm left lower-lobe nodule (slice 19 of the block). Found on 3 of the 5 sampled slices through the nodule; one called it right-sided and 6 other slices had unlabelled candidates.",
+  "overlay": "recorded"
  }
 ]
