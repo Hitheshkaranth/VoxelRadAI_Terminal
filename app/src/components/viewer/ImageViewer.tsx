@@ -12,7 +12,7 @@ import { findingCounts, isExcluded, isUnconfirmed, worstSeverity } from '../../l
 import { HEAT_ACCURACY, findingHeat, heatOverlayUrl } from '../../lib/heatmap'
 import { clampZoom } from './displayAdjustments'
 import { pinchTransform, touchGeometry, type PinchAnchor, type TouchPoint } from './gestures'
-import { maskAlphaUrl } from '../../lib/maskOverlay'
+import { maskAlphaUrl, maskAnchor } from '../../lib/maskOverlay'
 import { countLabel } from '../shell/shellState'
 import { Dropzone } from './Dropzone'
 import { DEFAULT_ORIENTATION, imageToScreen, isDefaultOrientation, orientationTransform, orientedSize, rotateBy, screenToImage, seriesSiblings, wheelSteps, type ImageOrientation } from '../../lib/viewerInput'
@@ -911,9 +911,14 @@ function FindingBox({
   onHover: (on: boolean) => void
   onSelect: () => void
 }) {
+  const anchor = useMaskAnchor(masked ? f.mask : undefined)
   if (!f.bbox) return null
   const { x, y, w, h } = f.bbox
   const excluded = f.severity !== 'normal' && isExcluded(f)
+  // With an outline, pin the number to the outline's top instead of the (often looser) box corner.
+  const chipStyle = anchor && w > 0 && h > 0
+    ? { left: `calc(${((anchor.x - x) / w) * 100}% - 13px)`, top: `calc(${((anchor.y - y) / h) * 100}% - 13px)` }
+    : undefined
   return (
     <div
       className={`vw-finding${on ? ' vw-hl-on' : ''}${selected ? ' vw-found' : ''}`}
@@ -940,10 +945,21 @@ function FindingBox({
         }
       }}
     >
-      <span className="vw-chip">{excluded ? `${n}?` : n}</span>
+      <span className="vw-chip" style={chipStyle}>{excluded ? `${n}?` : n}</span>
       <span className="vw-label">{f.title}</span>
     </div>
   )
+}
+
+function useMaskAnchor(mask: string | undefined): { x: number; y: number } | null {
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    if (!mask) { setAnchor(null); return }
+    let live = true
+    void maskAnchor(mask).then((a) => { if (live) setAnchor(a) })
+    return () => { live = false }
+  }, [mask])
+  return anchor
 }
 
 interface HeatSource {

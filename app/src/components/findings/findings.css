@@ -455,13 +455,14 @@
 
 /* ---- Expanded hint / foot ---- */
 .fd-keys {
-  display: flex;
+  display: none;
   align-items: center;
   gap: var(--sp-1);
   margin-top: var(--sp-2);
   color: var(--label-3);
   font: 500 var(--text-caption) / 1 var(--font-sans);
 }
+.fd-finding:has(:focus-visible) .fd-keys { display: flex; }
 .fd-keys svg { width: 13px; height: 13px; color: var(--accent); flex: none; }
 .fd-finding-foot {
   display: flex;

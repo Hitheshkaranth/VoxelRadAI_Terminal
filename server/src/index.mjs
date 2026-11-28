@@ -96,11 +96,11 @@ async function userFor(req) {
   // Idle sessions end after SESSION_IDLE_MINUTES. Reading is a plain SELECT; last_used_at is written at most once a
   // minute per session (an UPDATE on every request would create a dead tuple per request and serialise on the row).
   const tokenHash = hashToken(token)
-  const result = await pool.query(`SELECT u.id,u.email,u.role,s.last_used_at<now()-interval '1 minute' AS stale FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND s.last_used_at>now()-make_interval(mins=>$2) AND NOT u.disabled`, [tokenHash, sessionIdleMinutes])
+  const result = await pool.query(`SELECT u.id,u.email,u.role,u.full_name,s.last_used_at<now()-interval '1 minute' AS stale FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND s.last_used_at>now()-make_interval(mins=>$2) AND NOT u.disabled`, [tokenHash, sessionIdleMinutes])
   const row = result.rows[0]
   if (!row) return null
   if (row.stale) await pool.query("UPDATE sessions SET last_used_at=now() WHERE token_hash=$1 AND last_used_at<now()-interval '1 minute'", [tokenHash])
-  return { id: row.id, email: row.email, role: row.role }
+  return { id: row.id, email: row.email, role: row.role, fullName: row.full_name || '' }
 }
 // Client address for abuse limits. Vercel and the bundled nginx set X-Real-IP themselves; elsewhere use the socket.
 function clientIp(req) {
@@ -206,7 +206,7 @@ export async function handler(req, res) {
       try {
         await client.query('BEGIN')
         // Serialize with password-reset/disable so old credentials cannot mint a session after revocation.
-        const result = await client.query('SELECT id,email,role,password_hash,disabled,approval,signup_source,email_verified_at FROM users WHERE email=$1 FOR UPDATE', [email])
+        const result = await client.query('SELECT id,email,role,full_name,password_hash,disabled,approval,signup_source,email_verified_at FROM users WHERE email=$1 FOR UPDATE', [email])
         const account = result.rows[0]
         const valid = await verifyPassword(data.password, account?.password_hash || dummyHash)
         if (!account || !valid || account.disabled) { await client.query('ROLLBACK'); return send(res, 401, { error: 'Email or password is incorrect.' }) }
@@ -220,7 +220,7 @@ export async function handler(req, res) {
         if (needsRehash(account.password_hash)) await client.query('UPDATE users SET password_hash=$2 WHERE id=$1', [account.id, await hashPassword(data.password)])
         await client.query('COMMIT')
         await clearRateLimit(`email:${email}`).catch(() => {})
-        return send(res, 200, { user: { id: account.id, email: account.email, role: account.role } }, { 'Set-Cookie': sessionCookie(token, secureCookies) })
+        return send(res, 200, { user: { id: account.id, email: account.email, role: account.role, fullName: account.full_name || '' } }, { 'Set-Cookie': sessionCookie(token, secureCookies) })
       } catch(error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
     }
     if (path === '/api/shared' && req.method === 'POST') {
@@ -537,6 +537,15 @@ export async function handler(req, res) {
       return send(res, 200, { records: result.rows.slice(0, limit).map(reviewRecord), nextOffset: result.rows.length > limit ? offset + limit : null })
     }
     // The signed-in user's storage allowance and what uses it (shown in Settings and the sidebar).
+    // The name printed on reports this account signs. Free text, one line, up to 120 characters.
+    if (path === '/api/account/profile' && req.method === 'PATCH') {
+      const data = await body(req, 1024)
+      const fullName = typeof data.fullName === 'string' ? data.fullName.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : null
+      if (fullName === null || fullName.length > 120) return send(res, 400, { error: 'Enter your name in 120 characters or fewer.' })
+      await pool.query('UPDATE users SET full_name=$2 WHERE id=$1', [user.id, fullName])
+      await audit(user.id, 'account.profile_updated')
+      return send(res, 200, { user: { ...user, fullName } })
+    }
     if (path === '/api/account/storage' && req.method === 'GET') return send(res, 200, await storageUsage(pool, user.id))
     if (path === '/api/studies' && req.method === 'GET') {
       const params = new URL(req.url,'http://internal').searchParams

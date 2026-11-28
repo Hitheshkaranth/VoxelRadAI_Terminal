@@ -25,7 +25,8 @@ function studyDate(study: Study): string {
 
 /** Folder name: date, title and a short id, so studies sort by date and never collide. */
 export function studyFolder(study: Study): string {
-  return `${studyDate(study)}_${safe(study.title, 40)}_${study.id.slice(0, 8)}`
+  const id = study.patient.patientId.trim()
+  return `${studyDate(study)}_${id ? `${safe(id, 24)}_` : ''}${safe(study.title, 40)}_${study.id.slice(0, 8)}`
 }
 
 /** File name for the download. A patient archive is named after the patient ID. */

@@ -2,6 +2,7 @@
 import type { Finding, Heatmap, Severity, StudyImage } from '../types'
 import { isExcluded, isUnconfirmed } from './classifier'
 import { findingHeat, heatCanvas } from './heatmap'
+import { maskAlphaUrl, maskAnchor } from './maskOverlay'
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   critical: '#ff3b30',
@@ -54,11 +55,22 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
   ctx.drawImage(img, 0, 0, w, h)
 
   const findings = image.analysis?.findings ?? []
+  // Outlines and their anchors load first, so each finding is drawn as the viewer shows it: the traced outline with
+  // its number on the outline's top, or the box with its number on the corner when there is no outline.
+  const traced = await Promise.all(findings.map(async (f) => {
+    if (!f.mask || !f.bbox) return null
+    try {
+      const [edgeUrl, anchor] = await Promise.all([maskAlphaUrl(f.mask, 'outline'), maskAnchor(f.mask)])
+      const edge = await loadImage(edgeUrl)
+      return { edge, anchor }
+    } catch { return null }
+  }))
   findings.forEach((finding: Finding, index: number) => {
     if (!finding.bbox) return
     const { x, y, w: fw, h: fh } = finding.bbox
-    const bx = x * w
-    const by = y * h
+    const outline = traced[index]
+    const bx = outline?.anchor ? outline.anchor.x * w - 12 : x * w
+    const by = outline?.anchor ? outline.anchor.y * h - 12 : y * h
     const bw = Math.max(fw * w, 16)
     const bh = Math.max(fh * h, 16)
     const color = SEVERITY_COLOR[finding.severity] ?? SEVERITY_COLOR.moderate
@@ -66,6 +78,19 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
     const excluded = isExcluded(finding)
 
     ctx.save()
+    if (outline) {
+      // Tint the outline's alpha image with the severity colour, then lay it over the film.
+      const layer = document.createElement('canvas')
+      layer.width = w; layer.height = h
+      const lc = layer.getContext('2d')!
+      lc.drawImage(outline.edge, 0, 0, w, h)
+      lc.globalCompositeOperation = 'source-in'
+      lc.fillStyle = color
+      lc.fillRect(0, 0, w, h)
+      ctx.globalAlpha = excluded ? 0.6 : 1
+      ctx.drawImage(layer, 0, 0)
+      ctx.globalAlpha = 1
+    } else {
     if (finding.severity !== 'normal' && !excluded) {
       // tint the diagnosed region, matching the viewer highlight
       ctx.globalAlpha = 0.2
@@ -87,6 +112,7 @@ export async function renderAnnotatedImage(image: StudyImage, opts?: { maxSize?:
     ctx.stroke()
     ctx.setLineDash([])
     ctx.globalAlpha = 1
+    }
 
     ctx.fillStyle = color
     ctx.beginPath()

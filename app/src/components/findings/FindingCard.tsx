@@ -213,8 +213,10 @@ export function FindingCard({
         </div>
       )}
 
-      {isFocused && (
-        <div className="fd-keys" aria-hidden="true">
+      {/* Shown by CSS only for keyboard focus. A mouse press must never change the card's height: if it did, the
+          cards below would move between mouse-down and mouse-up and the click on Accept / Dismiss would be lost. */}
+      {(
+        <div className="fd-keys" data-focused={isFocused || undefined} aria-hidden="true">
           <span>
             {flatIndex + 1} / {flatTotal} · Enter to expand · ↑ ↓ to move
           </span>

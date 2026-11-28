@@ -96,6 +96,7 @@ export function SettingsSheet() {
             } catch (error) { toast(error instanceof Error ? error.message : 'Sign-out failed', 'error'); setSigningOut(false) }
           }}>Sign out and clear this device</ShellButton>}
         </div>
+        {SERVER_MODE && <SignerNameForm />}
         {SERVER_MODE && <ChangePasswordForm />}
         {SERVER_MODE && <OrganizationSignIn account />}
       </Section>}
@@ -202,6 +203,36 @@ export function SettingsSheet() {
     <SavedVolumesSheet open={volumesOpen} onClose={() => setVolumesOpen(false)} />
     {SERVER_MODE && user?.role === 'admin' && <PacsImportSheet open={pacsOpen} onClose={() => setPacsOpen(false)} onImported={() => { useShell.getState().closeVolume(); useShell.getState().setMobileView('viewer'); openSheet(null) }} />}
     </>
+  )
+}
+
+/** The name printed on reports this account signs (signatures always also carry the account email). */
+function SignerNameForm() {
+  const user = useSession((state) => state.user)
+  const [name, setName] = useState(user?.fullName ?? '')
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState('')
+  useEffect(() => { setName(user?.fullName ?? '') }, [user?.fullName])
+  if (!user) return null
+  const save = async () => {
+    setSaving(true); setStatus('')
+    try {
+      const response = await fetch('/api/account/profile', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName: name }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Your name could not be saved.')
+      useSession.getState().setUser({ ...user, ...(data.user?.fullName ? { fullName: data.user.fullName } : { fullName: undefined }) })
+      setStatus('Saved. New signatures use this name.')
+    } catch (reason) { setStatus(reason instanceof Error ? reason.message : 'Your name could not be saved.') }
+    finally { setSaving(false) }
+  }
+  return (
+    <div className="sh-settings-row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <Field label="Name on signed reports">
+        <input className="input" value={name} maxLength={120} placeholder="Dr A Rao" onChange={(e) => setName(e.target.value)} disabled={saving} />
+        <div className="sh-field-hint">Reports you sign read “{name.trim() || user.email}{name.trim() ? ` (${user.email})` : ''}”.{status ? ` ${status}` : ''}</div>
+      </Field>
+      <ShellButton type="button" className="btn" disabled={saving || name.trim() === (user.fullName ?? '')} onClick={() => { void save() }} style={{ height: '28px' }}>{saving ? 'Saving…' : 'Save name'}</ShellButton>
+    </div>
   )
 }
 

@@ -80,7 +80,15 @@ export const emptyPatient = (): PatientInfo => ({
   clinicalHistory: '',
 })
 
-export const newStudy = (title = 'Untitled Study'): Study => ({
+export const DEFAULT_STUDY_TITLE = 'Untitled Study'
+
+/** "Chest X-ray PA" from a read's body part, modality and view; empty when the read names none. */
+export function examTitle(a: Pick<AnalysisResult, 'modality' | 'bodyPart' | 'view'>): string {
+  const clean = (v?: string) => (v && !/^(unknown|other|n\/?a|none|not specified)$/i.test(v.trim()) ? v.trim() : '')
+  return [clean(a.bodyPart), clean(a.modality), clean(a.view)].filter(Boolean).join(' ').slice(0, 80)
+}
+
+export const newStudy = (title = DEFAULT_STUDY_TITLE): Study => ({
   id: uid(),
   title,
   patient: emptyPatient(),
@@ -238,6 +246,9 @@ export const useApp = create<AppState>()((set, get) => ({
     set((st) => ({
       studies: mapStudy(st.studies, studyId, (s) => ({
         ...s,
+        // A study still called "Untitled Study" takes its name from the first read ("Chest X-ray PA"); a name the
+        // reader typed is never replaced.
+        title: s.title === DEFAULT_STUDY_TITLE ? examTitle(analysis) || s.title : s.title,
         images: s.images.map((i) =>
           i.id === imageId
             ? { ...i, analysis, status: 'done', progressText: undefined, error: undefined, stage: undefined, analysisStartedAt: undefined }

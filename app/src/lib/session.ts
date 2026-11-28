@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export interface SessionUser { id: string; email: string; role: 'admin' | 'clinician' }
+export interface SessionUser { id: string; email: string; role: 'admin' | 'clinician'; fullName?: string }
 /** The public /demo route: a local, account-free workspace seeded with recorded reads. Never talks to the API or a model. */
 export const DEMO_MODE = typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/demo'
 export const SERVER_MODE = import.meta.env?.VITE_SERVER_MODE === 'true' && !DEMO_MODE
@@ -11,7 +11,7 @@ function parseSession(value: unknown): SessionUser | null {
   const user = value.user
   if (user === null) return null
   if (!user || typeof user !== 'object' || !('id' in user) || typeof user.id !== 'string' || !('email' in user) || typeof user.email !== 'string' || !('role' in user) || (user.role !== 'admin' && user.role !== 'clinician')) throw new Error('The session service returned an invalid response.')
-  return { id: user.id, email: user.email, role: user.role }
+  return { id: user.id, email: user.email, role: user.role, ...('fullName' in user && typeof user.fullName === 'string' && user.fullName ? { fullName: user.fullName } : {}) }
 }
 
 export const useSession = create<{ user: SessionUser | null; setUser: (user: SessionUser | null) => void }>((set) => ({ user: null, setUser: (user) => set({ user }) }))

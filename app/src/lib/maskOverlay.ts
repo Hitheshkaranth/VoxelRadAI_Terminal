@@ -80,3 +80,53 @@ export function maskAlphaUrl(src: string, mode: MaskMode): Promise<string> {
   }
   return p
 }
+
+const anchors = new Map<string, Promise<{ x: number; y: number } | null>>()
+
+/**
+ * Where a finding's number belongs on its outline: the top of the largest traced region (stray specks ignored), as
+ * 0–1 image coordinates. The model's box can be much looser than its outline, so a corner of the box may sit outside
+ * the body; the outline's own top edge never does. Null when the mask is empty or cannot be read.
+ */
+export function maskAnchor(src: string): Promise<{ x: number; y: number } | null> {
+  const key = `${src.length}:${hash(src)}`
+  let p = anchors.get(key)
+  if (!p) {
+    p = load(src).then((img) => {
+      const N = 256
+      const c = document.createElement('canvas')
+      c.width = c.height = N
+      const ctx = c.getContext('2d', { willReadFrequently: true })!
+      ctx.drawImage(img, 0, 0, N, N)
+      const px = ctx.getImageData(0, 0, N, N).data
+      const label = new Int32Array(N * N).fill(-1)
+      let best: { size: number; top: number; xs: number[] } | null = null
+      const stack: number[] = []
+      for (let start = 0; start < N * N; start++) {
+        if (label[start] !== -1 || px[start * 4] < 128) continue
+        label[start] = start
+        stack.push(start)
+        let size = 0, top = N, xs: number[] = []
+        while (stack.length) {
+          const i = stack.pop()!
+          size++
+          const y = (i / N) | 0, x = i % N
+          if (y < top) { top = y; xs = [x] } else if (y === top) xs.push(x)
+          for (const j of [i - 1, i + 1, i - N, i + N]) {
+            if (j < 0 || j >= N * N || label[j] !== -1 || px[j * 4] < 128) continue
+            if ((j === i - 1 || j === i + 1) && ((j / N) | 0) !== y) continue
+            label[j] = start
+            stack.push(j)
+          }
+        }
+        if (!best || size > best.size) best = { size, top, xs }
+      }
+      if (!best || best.size < 4) return null
+      best.xs.sort((a, b) => a - b)
+      return { x: (best.xs[best.xs.length >> 1] + 0.5) / N, y: (best.top + 0.5) / N }
+    }).catch(() => null)
+    anchors.set(key, p)
+    if (anchors.size > 200) anchors.delete(anchors.keys().next().value!)
+  }
+  return p
+}

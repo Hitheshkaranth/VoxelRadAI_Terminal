@@ -184,7 +184,9 @@ function signChecklist(study: Study, report: ReportDraft, stale: boolean): strin
     items.push(`${plural(truncated.length, 'analysis', 'analyses')} cut off at the token limit — findings may be incomplete.`)
   const noCheck = analysed.filter((img) => {
     const s = img.analysis?.classifierStatus
-    return s === 'unavailable' || s === 'error'
+    // The hosted site has no classifier service, so "unavailable" is the normal state there, not something to resolve.
+    // A classifier that was expected and failed ("error") is always listed.
+    return s === 'error' || (s === 'unavailable' && !SERVER_MODE)
   })
   if (noCheck.length) items.push(`Classifier cross-check did not run for ${plural(noCheck.length, 'image')}.`)
   const empty = REPORT_FIELDS.filter((f) => !report[f.key].trim()).map((f) => f.label)
@@ -255,8 +257,9 @@ export function ReportPanel() {
   const settings = useApp((s) => s.settings)
   const job = useReportJob()
   // With accounts, a signature names the signed-in account; it is not free text another user could type.
-  const sessionEmail = useSession((state) => state.user?.email)
-  const accountSigner = SERVER_MODE ? sessionEmail : undefined
+  const sessionUser = useSession((state) => state.user)
+  // "Dr A Rao (a.rao@hospital.org)": the account's name from sign-up or Settings → Account, with its email for audit.
+  const accountSigner = SERVER_MODE && sessionUser ? (sessionUser.fullName ? `${sessionUser.fullName} (${sessionUser.email})` : sessionUser.email) : undefined
   // Only show a draft's progress or error on the study it was started for.
   const reportJob = study && job.studyId === study.id ? job : { running: false, progressText: undefined, error: undefined }
   const setReport = useApp((s) => s.setReport)
