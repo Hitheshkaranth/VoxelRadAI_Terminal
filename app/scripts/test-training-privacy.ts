@@ -58,7 +58,10 @@ equal(skandaBodyPart({ bodyPart: 'HEAD' }), 'HEAD', 'DICOM body part is sent')
 equal(skandaBodyPart({}), 'Unknown', 'volume title is never sent as the body part')
 equal(skandaBodyPart({ bodyPart: '  ' }), 'Unknown', 'blank body part is Unknown')
 
-equal(parseConsent({ consent: true, consentedAt: '2026-11-19T00:00:00Z', serverEnabled: true }), { consent: true, consentedAt: '2026-11-19T00:00:00Z', serverEnabled: true }, 'consent reply parsed')
-equal(parseConsent({ consent: 'yes' }), { consent: false, consentedAt: null, serverEnabled: false }, 'malformed reply is not consent')
-equal(parseConsent(null), { consent: false, consentedAt: null, serverEnabled: false }, 'missing reply is not consent')
+equal(parseConsent({ consent: true, consentedAt: '2026-11-19T00:00:00Z', serverEnabled: true }), { consent: true, consentedAt: '2026-11-19T00:00:00Z', volumes: false, volumesConsentedAt: null, serverEnabled: true }, 'consent reply parsed')
+equal(parseConsent({ consent: 'yes' }), { consent: false, consentedAt: null, volumes: false, volumesConsentedAt: null, serverEnabled: false }, 'malformed reply is not consent')
+equal(parseConsent(null), { consent: false, consentedAt: null, volumes: false, volumesConsentedAt: null, serverEnabled: false }, 'missing reply is not consent')
 console.log(`Training privacy: ${checks} checks passed`)
+
+equal(parseConsent({ consent: true, consentedAt: 'a', volumes: true, volumesConsentedAt: 'b', serverEnabled: true }).volumes, true, 'volume consent read')
+equal(parseConsent({ consent: false, volumes: true, volumesConsentedAt: 'b' }).volumes, false, 'volume consent needs the general consent')

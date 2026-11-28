@@ -78,7 +78,7 @@ test('consent is stored per user with a timestamp', async () => {
   const queries = []
   const capture = createTrainingCapture({ pool: { query: async (sql, values) => { queries.push({ sql, values }); return { rows: [{ consent: values[1], consentedAt: new Date() }] } } }, env: ON })
   assert.equal((await capture.setConsent('u1', true)).consent, true)
-  assert.deepEqual(queries[0].values, ['u1', true]); assert.ok(queries[0].sql.includes('training_consent_at=now()'))
+  assert.deepEqual(queries[0].values, ['u1', true, null]); assert.ok(queries[0].sql.includes('training_consent_at=now()'))
   assert.equal((await capture.setConsent('u1', 'yes')).consent, false)
 })
 

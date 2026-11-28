@@ -7,6 +7,7 @@
     "start": "node src/index.mjs",
     "test": "node --test test/*.test.mjs",
     "migrate": "node src/migrateCli.mjs",
+    "storage": "node src/storageCli.mjs",
     "worker": "node src/worker.mjs"
   },
   "engines": {

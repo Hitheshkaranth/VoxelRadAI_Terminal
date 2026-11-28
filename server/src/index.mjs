@@ -305,9 +305,11 @@ export async function handler(req, res) {
     if (path === '/api/training/consent' && req.method === 'GET') return send(res, 200, { ...await training.consent(user.id), serverEnabled: training.enabled() })
     if (path === '/api/training/consent' && req.method === 'PUT') {
       const data = await body(req, 1024)
-      if (typeof data.consent !== 'boolean') return send(res, 400, { error: 'Send consent as true or false.' })
-      const result = await training.setConsent(user.id, data.consent)
+      if (typeof data.consent !== 'boolean' || (data.volumes !== undefined && typeof data.volumes !== 'boolean')) return send(res, 400, { error: 'Send consent (and optionally volumes) as true or false.' })
+      const before = await training.consent(user.id)
+      const result = await training.setConsent(user.id, data.consent, data.volumes)
       await audit(user.id, data.consent ? 'training.consent_given' : 'training.consent_withdrawn')
+      if (result.volumes !== before.volumes) await audit(user.id, result.volumes ? 'training.volume_consent_given' : 'training.volume_consent_withdrawn')
       return send(res, 200, { ...result, serverEnabled: training.enabled() })
     }
     if (path === '/api/training/cases' && req.method === 'POST') {

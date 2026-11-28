@@ -20,23 +20,41 @@ function endpoint(value, allowHttp) {
   if (url.pathname !== '/') throw new Error('S3 endpoints must not contain a path')
   return url.origin
 }
+/** Providers speaking the S3 API. Objects use the same key layout everywhere, so a bucket can move between them
+ *  (scripts/migrate-object-storage.mjs) without changing anything the app or the database depends on. */
+export const STORAGE_PROVIDERS = ['aws', 'gcs', 's3-compatible']
+const GCS_ENDPOINT = 'https://storage.googleapis.com'
+
+/** Where an object lives, recorded per row so a migration can tell copied objects from ones still to move. */
+export const storageLocation = config => `${config.provider}:${config.bucket}`
+
 export function readObjectStorageConfig(env = process.env) {
   if (env.S3_STORAGE_ENABLED !== 'true') return { enabled: false }
+  const provider = env.STORAGE_PROVIDER || 'aws'
+  if (!STORAGE_PROVIDERS.includes(provider)) throw new Error(`STORAGE_PROVIDER must be one of ${STORAGE_PROVIDERS.join(', ')}`)
+  if (provider === 's3-compatible' && !env.S3_ENDPOINT) throw new Error('STORAGE_PROVIDER=s3-compatible requires S3_ENDPOINT')
   if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(env.S3_BUCKET || '') || env.S3_BUCKET.includes('..')) throw new Error('S3_BUCKET must name a private bucket')
   const allowHttp = env.ALLOW_INSECURE_S3 === 'true'
-  const internalEndpoint = endpoint(env.S3_ENDPOINT, allowHttp)
+  const internalEndpoint = endpoint(env.S3_ENDPOINT || (provider === 'gcs' ? GCS_ENDPOINT : undefined), allowHttp)
   const publicEndpoint = endpoint(env.S3_PUBLIC_ENDPOINT, allowHttp) || internalEndpoint
   const maxBytes = integerSetting(env, 'S3_MAX_VOLUME_BYTES', 512 * 1024 ** 2, MAX_OBJECT_BYTES)
   const ownerQuotaBytes = integerSetting(env, 'S3_OWNER_QUOTA_BYTES', 5 * 1024 ** 3, 1024 ** 4)
   if (ownerQuotaBytes < maxBytes) throw new Error('S3_OWNER_QUOTA_BYTES must cover at least one maximum-size volume')
   const encryption = env.S3_SERVER_SIDE_ENCRYPTION || undefined
   if (encryption && !['AES256', 'aws:kms'].includes(encryption)) throw new Error('Unsupported S3_SERVER_SIDE_ENCRYPTION')
+  // Google Cloud Storage always encrypts at rest (Google-managed or a bucket default CMEK); it rejects the AWS headers.
+  if (encryption && provider === 'gcs') throw new Error('Leave S3_SERVER_SIDE_ENCRYPTION unset for gcs: set a default key on the bucket instead')
   if (env.S3_KMS_KEY_ID && encryption !== 'aws:kms') throw new Error('S3_KMS_KEY_ID requires aws:kms encryption')
-  const region = env.AWS_REGION || 'us-east-1'
-  if (!/^[a-z]{2}(?:-gov)?-[a-z]+-\d+$/.test(region)) throw new Error('AWS_REGION is invalid')
+  const region = env.AWS_REGION || (provider === 'aws' ? 'us-east-1' : 'auto')
+  // AWS names (ap-south-1); others sign with "auto" or their own location name (asia-south1).
+  if (!(provider === 'aws' ? /^[a-z]{2}(?:-gov)?-[a-z]+-\d+$/ : /^(?:auto|[a-z]{2,12}(?:-[a-z]+)*-?\d*)$/).test(region)) throw new Error('AWS_REGION is invalid')
+  const accessKeyId = env.S3_ACCESS_KEY_ID || '', secretAccessKey = env.S3_SECRET_ACCESS_KEY || ''
+  if (!accessKeyId !== !secretAccessKey) throw new Error('Set both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY, or neither')
+  // Without explicit keys the AWS SDK default chain applies (deployment role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY).
+  const credentials = accessKeyId ? { accessKeyId, secretAccessKey } : undefined
   const suffix = region.startsWith('cn-') ? 'amazonaws.com.cn' : 'amazonaws.com'
   const origins = publicEndpoint ? [publicEndpoint] : [`https://${env.S3_BUCKET}.s3.${region}.${suffix}`, `https://s3.${region}.${suffix}`]
-  return { enabled: true, bucket: env.S3_BUCKET, region, endpoint: internalEndpoint, publicEndpoint, origins, allowHttp, forcePathStyle: env.S3_FORCE_PATH_STYLE === 'true' || !!internalEndpoint, maxBytes, ownerQuotaBytes, uploadSeconds: 300, downloadSeconds: 60, pendingSeconds: 900, encryption, kmsKeyId: env.S3_KMS_KEY_ID || undefined }
+  return { enabled: true, provider, bucket: env.S3_BUCKET, credentials, region, endpoint: internalEndpoint, publicEndpoint, origins, allowHttp, forcePathStyle: env.S3_FORCE_PATH_STYLE === 'true' || !!internalEndpoint, maxBytes, ownerQuotaBytes, uploadSeconds: 300, downloadSeconds: 60, pendingSeconds: 900, encryption, kmsKeyId: env.S3_KMS_KEY_ID || undefined }
 }
 
 export function validateVolumeUpload(value, maxBytes) {
@@ -58,9 +76,12 @@ export function volumeObjectSummary(row) {
   return { id: row.id, fileName: row.file_name, title: row.title, sizeBytes: Number(row.size_bytes), state: row.state, acquisition: row.acquisition, createdAt: row.created_at, finalizedAt: row.finalized_at, uploadExpiresAt: row.upload_expires_at }
 }
 
-async function createS3Storage(config) {
-  const [{ S3Client, HeadObjectCommand, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand }, { createPresignedPost }, { getSignedUrl }] = await Promise.all([import('@aws-sdk/client-s3'), import('@aws-sdk/s3-presigned-post'), import('@aws-sdk/s3-request-presigner')])
-  const options = { region: config.region, forcePathStyle: config.forcePathStyle, maxAttempts: 2 }
+/** S3-API client for one configured bucket. Also used by the migration and training-export scripts. */
+export async function createS3Storage(config) {
+  const [{ S3Client, HeadObjectCommand, GetObjectCommand, PutObjectCommand, CopyObjectCommand, DeleteObjectCommand }, { createPresignedPost }, { getSignedUrl }] = await Promise.all([import('@aws-sdk/client-s3'), import('@aws-sdk/s3-presigned-post'), import('@aws-sdk/s3-request-presigner')])
+  const options = { region: config.region, forcePathStyle: config.forcePathStyle, maxAttempts: 2, ...(config.credentials ? { credentials: config.credentials } : {}),
+    // Newer SDKs add CRC32 checksums to every request by default; only AWS is guaranteed to accept them.
+    ...(config.provider === 'aws' ? {} : { requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED' }) }
   const client = new S3Client({ ...options, endpoint: config.endpoint })
   const signingClient = config.publicEndpoint !== config.endpoint ? new S3Client({ ...options, endpoint: config.publicEndpoint }) : client
   const encryption = config.encryption ? { ServerSideEncryption: config.encryption, ...(config.kmsKeyId ? { SSEKMSKeyId: config.kmsKeyId } : {}) } : {}
@@ -83,6 +104,14 @@ async function createS3Storage(config) {
       return result.CopyObjectResult.ETag
     },
     async delete(key) { await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key })) },
+    /** Whole-object read and write for the offline scripts (volumes are capped by S3_MAX_VOLUME_BYTES). */
+    async getBytes(key) {
+      const result = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }))
+      return { bytes: Buffer.from(await result.Body.transformToByteArray()), metadata: result.Metadata || {}, contentType: result.ContentType }
+    },
+    async putBytes(key, bytes, { metadata = {}, contentType = CONTENT_TYPE } = {}) {
+      await client.send(new PutObjectCommand({ Bucket: config.bucket, Key: key, Body: bytes, ContentLength: bytes.length, ContentType: contentType, Metadata: metadata, ...encryption }))
+    },
     async presignDownload(row) {
       return getSignedUrl(signingClient, new GetObjectCommand({ Bucket: config.bucket, Key: row.object_key, ResponseContentType: CONTENT_TYPE, ResponseContentDisposition: `attachment; filename="volume-${row.id}.nrrd"`, ResponseCacheControl: 'private, no-store' }), { expiresIn: config.downloadSeconds })
     },
@@ -93,6 +122,11 @@ async function createS3Storage(config) {
 export async function createObjectStorageRouter({ pool, body, send, env = process.env, storage: suppliedStorage, now = () => Date.now(), checkRoom = null }) {
   const config = readObjectStorageConfig(env)
   const storage = config.enabled ? suppliedStorage || await createS3Storage(config) : null
+  const location = config.enabled ? storageLocation(config) : null
+  // Rows saved before storage_location existed were written to the bucket configured now.
+  if (config.enabled) await pool.query('UPDATE volume_objects SET storage_location=$1 WHERE storage_location IS NULL', [location])
+  /** A volume whose bytes are still in the previous bucket during a migration (see docs/s3-storage.md). */
+  const moving = row => row.storage_location && row.storage_location !== location
   const transact = async action => {
     const client = await pool.connect()
     try { await client.query('BEGIN'); const value = await action(client); await client.query('COMMIT'); return value }
@@ -149,7 +183,7 @@ export async function createObjectStorageRouter({ pool, body, send, env = proces
           if (Number(used.rows[0].bytes) + data.sizeBytes > config.ownerQuotaBytes) throw fail(413, 'This upload exceeds your configured volume storage quota.')
           // The account-wide allowance (studies, volumes and feedback together); the owner row is already locked.
           if (checkRoom) await checkRoom(client, user.id, data.sizeBytes)
-          const result = await client.query('INSERT INTO volume_objects(id,owner_id,file_name,title,size_bytes,acquisition,staging_key,object_key,upload_expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *', [id, user.id, data.fileName, data.title, data.sizeBytes, data.acquisition ? JSON.stringify(data.acquisition) : null, `pending/${user.id}/${id}`, `volumes/${user.id}/${id}`, expiresAt])
+          const result = await client.query('INSERT INTO volume_objects(id,owner_id,file_name,title,size_bytes,acquisition,staging_key,object_key,upload_expires_at,storage_location) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *', [id, user.id, data.fileName, data.title, data.sizeBytes, data.acquisition ? JSON.stringify(data.acquisition) : null, `pending/${user.id}/${id}`, `volumes/${user.id}/${id}`, expiresAt, location])
           return result.rows[0]
         })
         let upload
@@ -186,14 +220,17 @@ export async function createObjectStorageRouter({ pool, body, send, env = proces
         const result = await pool.query("SELECT * FROM volume_objects WHERE id=$1 AND owner_id=$2 AND state='ready'", [id, user.id])
         const row = result.rows[0]
         if (!row) throw fail(404, 'Volume not found.')
+        if (moving(row)) throw fail(409, 'This volume is being moved to new storage. Try again in a few minutes.')
         const url = await storage.presignDownload(row)
         return reply(200, { url, expiresInSeconds: config.downloadSeconds, volume: volumeObjectSummary(row) })
       }
       if (!action && req.method === 'DELETE') {
         const row = await transact(async client => {
           await lockOwner(client, user.id)
+          const current = await client.query('SELECT storage_location FROM volume_objects WHERE id=$1 AND owner_id=$2 FOR UPDATE', [id, user.id])
+          if (!current.rowCount) throw fail(404, 'Volume not found.')
+          if (moving(current.rows[0])) throw fail(409, 'This volume is being moved to new storage. Try again in a few minutes.')
           const result = await client.query("UPDATE volume_objects SET state='deleting' WHERE id=$1 AND owner_id=$2 RETURNING *", [id, user.id])
-          if (!result.rowCount) throw fail(404, 'Volume not found.')
           return result.rows[0]
         })
         await storage.delete(row.object_key)

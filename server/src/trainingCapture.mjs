@@ -113,16 +113,24 @@ export function parseDictationFeedback(data) {
 export function createTrainingCapture({ pool, env = process.env }) {
   const enabled = () => captureEnabled(env)
   const consent = async userId => {
-    const result = await pool.query('SELECT training_consent AS consent,training_consent_at AS "consentedAt" FROM users WHERE id=$1', [userId])
-    return { consent: result.rows[0]?.consent === true, consentedAt: result.rows[0]?.consentedAt ?? null }
+    const result = await pool.query('SELECT training_consent AS consent,training_consent_at AS "consentedAt",training_volume_consent AS volumes,training_volume_consent_at AS "volumesConsentedAt" FROM users WHERE id=$1', [userId])
+    return view(result.rows[0])
   }
+  // Whole saved volumes (scripts/export-training-volumes) need the general consent too: it is off whenever that is off.
+  const view = row => ({ consent: row?.consent === true, consentedAt: row?.consentedAt ?? null, volumes: row?.consent === true && row?.volumes === true, volumesConsentedAt: row?.consent === true && row?.volumes === true ? row?.volumesConsentedAt ?? null : null })
   /** On for this user only when the server is on and they have consented. */
   const enabledFor = async userId => Boolean(userId) && enabled() && (await consent(userId)).consent
   return {
     enabled, consent, enabledFor,
-    async setConsent(userId, value) {
-      const result = await pool.query('UPDATE users SET training_consent=$2,training_consent_at=now() WHERE id=$1 RETURNING training_consent AS consent,training_consent_at AS "consentedAt"', [userId, value === true])
-      return { consent: result.rows[0]?.consent === true, consentedAt: result.rows[0]?.consentedAt ?? null }
+    /** `volumes` is optional; withdrawing the general consent withdraws the volume consent as well. */
+    async setConsent(userId, value, volumes) {
+      const general = value === true, wholeVolumes = general && (volumes === undefined ? null : volumes === true)
+      // SET expressions read the old row, so the timestamp moves only when the volume consent actually changes.
+      const next = 'CASE WHEN NOT $2 THEN false WHEN $3::boolean IS NULL THEN training_volume_consent ELSE $3 END'
+      const result = await pool.query(`UPDATE users SET training_consent=$2,training_consent_at=now(),training_volume_consent=${next},
+        training_volume_consent_at=CASE WHEN ${next} IS DISTINCT FROM training_volume_consent THEN now() ELSE training_volume_consent_at END
+        WHERE id=$1 RETURNING training_consent AS consent,training_consent_at AS "consentedAt",training_volume_consent AS volumes,training_volume_consent_at AS "volumesConsentedAt"`, [userId, general, wholeVolumes])
+      return view(result.rows[0])
     },
     /** Who may attach a capture to this study ID: its owner, or anyone when it is not a server study (browser-local). */
     async studyAllowed(userId, studyId) {

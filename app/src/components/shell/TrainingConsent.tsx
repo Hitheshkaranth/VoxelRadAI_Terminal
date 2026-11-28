@@ -16,11 +16,13 @@ export function TrainingConsent() {
   }, [])
   if (!state?.serverEnabled) return null
 
-  const change = async (consent: boolean) => {
+  const change = async (consent: boolean, volumes?: boolean) => {
     setSaving(true)
     try {
-      setState(await saveTrainingConsent(consent))
-      toast(consent ? 'Sharing de-identified cases is on' : 'Sharing turned off. Nothing new will be kept.', 'success')
+      setState(await saveTrainingConsent(consent, volumes))
+      toast(volumes !== undefined
+        ? (volumes ? 'Sharing whole saved volumes is on' : 'Whole saved volumes will no longer be shared.')
+        : consent ? 'Sharing de-identified cases is on' : 'Sharing turned off. Nothing new will be kept.', 'success')
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Could not save your choice.', 'error')
     } finally {
@@ -60,6 +62,32 @@ export function TrainingConsent() {
         your administrator sets and may be copied to the operator's private training store. Turning this off stops new
         capture; records already kept are not deleted. Model output remains candidate findings for your review.
       </div>
+      {state.consent ? <>
+        <div className="sh-settings-row">
+          <div className="field" style={{ flex: 1, minWidth: 0 }}>
+            <label className="field-label" htmlFor="sh-training-volumes">Also share my saved CT and MRI volumes</label>
+            <div className="sh-field-hint">
+              {state.volumes && state.volumesConsentedAt ? `On since ${new Date(state.volumesConsentedAt).toLocaleDateString()}.` : 'Off. A separate choice from the one above.'}
+            </div>
+          </div>
+          <input
+            id="sh-training-volumes"
+            type="checkbox"
+            checked={state.volumes}
+            disabled={saving}
+            onChange={(e) => void change(true, e.target.checked)}
+            style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
+          />
+        </div>
+        <div className="sh-about-sub">
+          When on, the operator may copy each whole volume you save under Saved volumes, including ones already saved,
+          into a private training area of the same storage. The copy is named by a one-way code instead of your account,
+          the volume, its title or file name; its header keeps only geometry (size, spacing, orientation) and the
+          modality, body region, sequence and contrast you entered, with the month it was saved. Voxels are not changed:
+          text burned into the images is not removed and head scans are not defaced, so a face can be reconstructed.
+          Turning this off stops new copies; copies already made are not deleted.
+        </div>
+      </> : null}
     </div>
   )
 }

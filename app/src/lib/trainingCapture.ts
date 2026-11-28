@@ -26,8 +26,9 @@ export async function readTrainingConsent(): Promise<TrainingConsent> {
   return parseConsent(await r.json())
 }
 
-export async function saveTrainingConsent(consent: boolean): Promise<TrainingConsent> {
-  const r = await fetch('/api/training/consent', jsonInit('PUT', { consent }))
+/** `volumes` left out keeps the whole-volume choice as it is (turning `consent` off always turns it off). */
+export async function saveTrainingConsent(consent: boolean, volumes?: boolean): Promise<TrainingConsent> {
+  const r = await fetch('/api/training/consent', jsonInit('PUT', volumes === undefined ? { consent } : { consent, volumes }))
   if (!r.ok) throw new Error('Could not save your data-sharing choice. Try again.')
   enabledPromise = null  // re-check before the next capture
   return parseConsent(await r.json())

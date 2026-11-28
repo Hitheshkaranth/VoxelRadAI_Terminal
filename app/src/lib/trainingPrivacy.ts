@@ -23,9 +23,12 @@ export function redactVolumeText(text: string, title: string, patient: PatientIn
   return name.length >= 3 ? out.replace(new RegExp(escapeRegExp(name), 'gi'), '[REDACTED]') : out
 }
 
-export interface TrainingConsent { consent: boolean; consentedAt: string | null; serverEnabled: boolean }
+/** `volumes`: the separate opt-in for whole saved CT/MRI volumes; always false while `consent` is off. */
+export interface TrainingConsent { consent: boolean; consentedAt: string | null; volumes: boolean; volumesConsentedAt: string | null; serverEnabled: boolean }
 /** Validate the consent endpoint's reply; anything unexpected reads as "not consented". */
 export function parseConsent(value: unknown): TrainingConsent {
   const v = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
-  return { consent: v.consent === true, consentedAt: typeof v.consentedAt === 'string' ? v.consentedAt : null, serverEnabled: v.serverEnabled === true }
+  const volumes = v.consent === true && v.volumes === true
+  return { consent: v.consent === true, consentedAt: typeof v.consentedAt === 'string' ? v.consentedAt : null, volumes,
+    volumesConsentedAt: volumes && typeof v.volumesConsentedAt === 'string' ? v.volumesConsentedAt : null, serverEnabled: v.serverEnabled === true }
 }

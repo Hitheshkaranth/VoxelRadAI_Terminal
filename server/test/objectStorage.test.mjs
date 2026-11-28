@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createObjectStorageRouter, readObjectStorageConfig, validateVolumeUpload, volumeObjectSummary } from '../src/objectStorage.mjs'
+import { createObjectStorageRouter, readObjectStorageConfig, storageLocation, validateVolumeUpload, volumeObjectSummary } from '../src/objectStorage.mjs'
 
 const OWNER = '11111111-1111-4111-8111-111111111111'
 const OTHER = '22222222-2222-4222-8222-222222222222'
@@ -19,9 +19,11 @@ function fakePool() {
       const list = [...rows.values()].filter(row => row.owner_id === values[0] && (row.state !== 'pending' || +new Date(row.upload_expires_at) > Date.now()))
       return result([{ bytes: list.reduce((sum, row) => sum + row.size_bytes, 0), pending: list.filter(row => row.state === 'pending').length }])
     }
+    if (sql.startsWith('UPDATE volume_objects SET storage_location')) { for (const row of rows.values()) row.storage_location ??= values[0]; return result([]) }
+    if (sql.startsWith('SELECT storage_location FROM volume_objects')) { const row = rows.get(values[0]); return result(row?.owner_id === values[1] ? [row] : []) }
     if (sql.startsWith('INSERT INTO volume_objects')) {
-      const [id, owner_id, file_name, title, size_bytes, raw, staging_key, object_key, upload_expires_at] = values
-      const row = { id, owner_id, file_name, title, size_bytes, acquisition: raw ? JSON.parse(raw) : null, staging_key, object_key, upload_expires_at, state: 'pending', created_at: new Date(), finalized_at: null }
+      const [id, owner_id, file_name, title, size_bytes, raw, staging_key, object_key, upload_expires_at, storage_location] = values
+      const row = { id, owner_id, file_name, title, size_bytes, acquisition: raw ? JSON.parse(raw) : null, staging_key, object_key, upload_expires_at, storage_location, state: 'pending', created_at: new Date(), finalized_at: null }
       rows.set(id, row); return result([row])
     }
     if (sql.startsWith('SELECT count(*)::int AS total FROM volume_objects')) return result([{ total: [...rows.values()].filter(row => row.owner_id === values[0]).length }])
@@ -215,4 +217,34 @@ test('bounded cleanup removes only old pending uploads and inaccessible orphan c
   assert.deepEqual(await h.router.cleanupExpiredUploads(), { deleted: 0, failed: 1 })
   assert.equal(h.pool.rows.has(recent.id), true, 'Cleanup failures remain retryable')
   assert.ok(h.pool.calls.some(call => call.sql.includes('FOR UPDATE SKIP LOCKED')))
+})
+
+test('storage providers: gcs defaults, explicit keys and location', () => {
+  const gcs = readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', STORAGE_PROVIDER: 'gcs', S3_BUCKET: 'radgenis-volumes', S3_ACCESS_KEY_ID: 'GOOGTEST', S3_SECRET_ACCESS_KEY: 'test-secret' })
+  assert.equal(gcs.endpoint, 'https://storage.googleapis.com')
+  assert.equal(gcs.region, 'auto')
+  assert.equal(gcs.forcePathStyle, true)
+  assert.deepEqual(gcs.origins, ['https://storage.googleapis.com'])
+  assert.deepEqual(gcs.credentials, { accessKeyId: 'GOOGTEST', secretAccessKey: 'test-secret' })
+  assert.equal(storageLocation(gcs), 'gcs:radgenis-volumes')
+  assert.equal(readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', STORAGE_PROVIDER: 'gcs', S3_BUCKET: 'b-1', AWS_REGION: 'asia-south1' }).region, 'asia-south1')
+  assert.throws(() => readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', STORAGE_PROVIDER: 'gcs', S3_BUCKET: 'b-1', S3_SERVER_SIDE_ENCRYPTION: 'AES256' }), /gcs/)
+  assert.throws(() => readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', STORAGE_PROVIDER: 'azure', S3_BUCKET: 'b-1' }), /STORAGE_PROVIDER/)
+  assert.throws(() => readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', STORAGE_PROVIDER: 's3-compatible', S3_BUCKET: 'b-1' }), /S3_ENDPOINT/)
+  assert.throws(() => readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', S3_BUCKET: 'b-1', S3_ACCESS_KEY_ID: 'only-one' }), /both/)
+  assert.throws(() => readObjectStorageConfig({ S3_STORAGE_ENABLED: 'true', S3_BUCKET: 'b-1', AWS_REGION: 'auto' }), /AWS_REGION/)
+  assert.equal(readObjectStorageConfig(enabledEnv).provider, 'aws')
+})
+
+test('a volume still in the previous bucket is not downloaded or deleted mid-migration', async () => {
+  const { request, upload, put, pool } = await setup()
+  const { row } = await upload(); put(row)
+  assert.equal(row.storage_location, 'aws:private-volumes')
+  assert.equal((await request(`/api/volumes/${row.id}/finalize`, 'POST')).status, 200)
+  row.storage_location = 'gcs:old-bucket'
+  assert.equal((await request(`/api/volumes/${row.id}/download`, 'POST')).status, 409)
+  assert.equal((await request(`/api/volumes/${row.id}`, 'DELETE')).status, 409)
+  assert.equal(pool.rows.get(row.id).state, 'ready')
+  row.storage_location = 'aws:private-volumes'
+  assert.equal((await request(`/api/volumes/${row.id}/download`, 'POST')).status, 200)
 })
