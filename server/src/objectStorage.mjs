@@ -103,7 +103,11 @@ export async function createS3Storage(config) {
       if (!result.CopyObjectResult?.ETag) throw new Error('Object storage did not confirm the copy')
       return result.CopyObjectResult.ETag
     },
-    async delete(key) { await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key })) },
+    // Deleting a missing object succeeds on AWS but is a 404 on Google Cloud Storage; either way it is gone.
+    async delete(key) {
+      try { await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key })) }
+      catch (error) { if (error?.$metadata?.httpStatusCode !== 404 && !['NoSuchKey', 'NotFound'].includes(error?.name)) throw error }
+    },
     /** Whole-object read and write for the offline scripts (volumes are capped by S3_MAX_VOLUME_BYTES). */
     async getBytes(key) {
       const result = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }))
