@@ -101,7 +101,9 @@ export async function readUsage(pool, userId) {
       count(*) FILTER (WHERE kind='model_read' AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS "readsToday",
       count(*) FILTER (WHERE kind='model_read' AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS "readsThisMonth"
       FROM usage_events WHERE user_id=$1`, [userId]),
-    pool.query(`SELECT COALESCE(NULLIF(modality,''),'Unspecified') AS modality, count(*)::int AS n FROM usage_events WHERE user_id=$1 GROUP BY 1 ORDER BY 2 DESC LIMIT 8`, [userId]),
+    // Volume jobs record "ct"/"mri"; studies record "CT"/"MRI"/"X-ray": one label per modality.
+    pool.query(`SELECT CASE lower(COALESCE(modality,'')) WHEN 'ct' THEN 'CT' WHEN 'mri' THEN 'MRI' WHEN 'mr' THEN 'MRI' WHEN 'x-ray' THEN 'X-ray' WHEN 'xray' THEN 'X-ray' WHEN 'cr' THEN 'X-ray' WHEN 'dx' THEN 'X-ray' WHEN '' THEN 'Unspecified' ELSE modality END AS modality,
+      count(*)::int AS n FROM usage_events WHERE user_id=$1 GROUP BY 1 ORDER BY 2 DESC LIMIT 8`, [userId]),
   ])
   return { daily, monthly, yearly, totals: totals.rows[0], byModality: byModality.rows }
 }

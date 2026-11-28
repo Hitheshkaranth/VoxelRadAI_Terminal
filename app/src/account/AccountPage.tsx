@@ -248,7 +248,7 @@ function BarChart({ title, subtitle, buckets, k, range, cap = 0, unit }: { title
     : total === 0 ? <div className="acc-chart-empty"><p>No {unit} in this period yet.</p></div>
     : <div className="acc-chart-plot" ref={plotRef} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}, ${subtitle}: ${total} ${unit} in total`}>
-        {[0, 0.5, 1].map((f) => <g key={f}><line x1={padL} x2={W - 4} y1={y(nice * f)} y2={y(nice * f)} className="acc-grid-line" /><text x={padL - 6} y={y(nice * f) + 4} className="acc-axis" textAnchor="end">{Math.round(nice * f)}</text></g>)}
+        {(nice % 2 === 0 ? [0, 0.5, 1] : [0, 1]).map((f) => <g key={f}><line x1={padL} x2={W - 4} y1={y(nice * f)} y2={y(nice * f)} className="acc-grid-line" /><text x={padL - 6} y={y(nice * f) + 4} className="acc-axis" textAnchor="end">{Math.round(nice * f)}</text></g>)}
         {cap > 0 && <g><line x1={padL} x2={W - 4} y1={y(cap)} y2={y(cap)} className="acc-cap" /><text x={W - 6} y={y(cap) - 5} className="acc-axis" textAnchor="end">daily allowance {cap}</text></g>}
         {buckets.map((b, i) => {
           const v = b[k], x = padL + i * slot + (slot - barW) / 2, top = y(v), height = Math.max(0, padT + plotH - top)
