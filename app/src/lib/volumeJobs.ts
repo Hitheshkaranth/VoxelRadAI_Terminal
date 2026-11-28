@@ -103,22 +103,33 @@ export function pauseVolumeJob(identity: string) {
     void save(next).catch(() => {})
   }
 }
+/**
+ * The plane a whole-volume read uses. Skanda reads only axial slices, so a scan acquired sagittally or coronally (common
+ * for MRI) is read on its axial reformat; other models read the acquired slices.
+ */
+export function analysisPlane(volume: Volume, model: string): { plane: VolumePlane; count: number } {
+  const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
+  const plane = isSkandaModel(model) ? 'axial' : planes.find((p) => getSliceGeometry(volume, p).axis === 2)!
+  return { plane, count: getSliceGeometry(volume, plane).count }
+}
+
 export async function startVolumeJob(opts: { identity: string; volume: Volume; title: string; modality: string; settings: Settings; center: number; width: number; restart?: boolean }): Promise<void> {
   if (controllers.has(opts.identity)) return
   const expectedIdentity = `${await volumeFingerprint(opts.volume)}:${opts.modality.toUpperCase()}`
   if (opts.identity !== expectedIdentity) throw new Error('The review identity does not match the loaded volume and acquisition details. Reopen the source before analysis.')
   // Fingerprinting is asynchronous; recheck the single-job guard after it resolves.
   if (controllers.has(opts.identity)) return
-  const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
-  const plane = planes.find((p) => getSliceGeometry(opts.volume, p).axis === 2)!
-  const previous = records.get(opts.identity)
+  const { plane, count } = analysisPlane(opts.volume, opts.settings.model)
+  let previous = records.get(opts.identity)
+  // A job saved on another plane (e.g. sagittal before Skanda reads were moved to axial) cannot be resumed: start fresh.
+  if (previous && previous.plane !== plane) previous = undefined
   if (previous && !opts.restart) assertVolumeResumeContext(previous, { identity: opts.identity, modality: opts.modality, acquisition: opts.volume.acquisition })
   const now = Date.now()
   const job: VolumeJob = previous && !opts.restart ? { ...previous, status: 'running', runStartedAt: now, progress: '', error: undefined, storageError: undefined } : {
-    version: 1, id: uid(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count: opts.volume.dimensions[2],
+    version: 1, id: uid(), identity: opts.identity, title: opts.title, modality: opts.modality, plane, count,
     snapshot: { center: opts.center, width: opts.width, model: opts.settings.model, settings: structuredClone(opts.settings), acquisition: opts.volume.acquisition ? structuredClone(opts.volume.acquisition) : undefined },
     reads: [], status: 'running', progress: '', elapsedMs: 0, runStartedAt: now, updatedAt: now,
-    ...hostedSample(opts.volume.dimensions[2]),
+    ...hostedSample(count),
   }
   const controller = new AbortController()
   controllers.set(opts.identity, controller)

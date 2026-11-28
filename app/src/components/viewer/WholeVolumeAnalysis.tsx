@@ -5,7 +5,7 @@ import { getSliceGeometry, type Volume, type VolumePlane } from '../../lib/volum
 import { reviewedVolumeReads } from '../../lib/volumeReview'
 import { volumeCoverage, type SliceRead } from '../../lib/volumeAnalysis'
 import { volumeFingerprint } from '../../lib/volumeJobIdentity'
-import { auditVolumeJob, HOSTED_SAMPLE_SLICES, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
+import { analysisPlane, auditVolumeJob, HOSTED_SAMPLE_SLICES, pauseVolumeJob, startVolumeJob, subscribeVolumeJob, type VolumeJob } from '../../lib/volumeJobs'
 import { SERVER_MODE } from '../../lib/session'
 
 const planes: VolumePlane[] = ['axial', 'coronal', 'sagittal']
@@ -21,8 +21,9 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
 }) {
   const settings = useApp((s) => s.settings)
   const connection = useApp((s) => s.connection)
-  const plane = useMemo(() => planes.find((p) => getSliceGeometry(volume, p).axis === 2)!, [volume])
-  const count = volume.dimensions[2]
+  // Skanda reads axial slices (reformatted when the scan was acquired in another plane).
+  const { plane, count } = useMemo(() => analysisPlane(volume, settings.model), [volume, settings.model])
+  const acquiredPlane = useMemo(() => planes.find((p) => getSliceGeometry(volume, p).axis === 2)!, [volume])
   const [identity, setIdentity] = useState('')
   const [job, setJob] = useState<VolumeJob | null>(null)
   const [loading, setLoading] = useState(true)
@@ -76,7 +77,7 @@ export function WholeVolumeAnalysis({ volume, modality, title, center, width, on
     {running && <><p role="status">{job?.progress}</p><p>Elapsed {duration(elapsed)}{estimatedRemaining !== null ? ` · About ${duration(estimatedRemaining)} remaining, based on recent slices` : ' · Estimating remaining time after two slices'}</p><ScanButton className="btn btn-sm" onClick={() => pauseVolumeJob(identity)}>Pause analysis</ScanButton></>}
     {!running && job && <p>Elapsed {duration(elapsed)} · {coverage.complete ? 'Review findings before clinical use.' : 'Resume retries failed or incomplete slices.'}</p>}
     <details className="volume-analysis-method"><summary>Analysis scope &amp; storage</summary>
-      <p>{planned < count ? `${planned} of ${count} acquired ${plane} slices, evenly spaced (a sampled read: each read uses shared GPU time), analyzed` : `${count} acquired ${plane} slices, analyzed`} independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>
+      <p>{`${planned < count ? `${planned} of ${count}` : count} ${plane === acquiredPlane ? `acquired ${plane}` : `${plane} (reformatted from the ${acquiredPlane} acquisition)`} slices${planned < count ? ', evenly spaced (a sampled read: each read uses shared GPU time),' : ','} analyzed`} independently at W {snapshot?.width ?? width} / L {snapshot?.center ?? center}. One window and one series; no combined 3D model interpretation.</p>
       <p>{snapshot?.model || settings.model} · Results are saved in this browser. Analysis continues during in-app navigation; closing or refreshing pauses it at the last saved slice.</p>
     </details>
     {connection !== 'online' && !running && <ScanButton className="btn btn-sm" onClick={() => useApp.getState().openSheet('settings')}>Connect model</ScanButton>}
