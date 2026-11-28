@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { allowedOrigin, hashPassword, hashToken, newToken, normalizeEmail, readSessionCookie, sessionCookie, validEmail, validPassword, verifyPassword, needsRehash } from './security.mjs'
 import { sharedDocument } from './share.mjs'
@@ -554,6 +554,18 @@ export async function handler(req, res) {
       return send(res, 200, { user: { ...user, fullName: profile.fullName }, profile })
     }
     if (path.startsWith('/api/patients') && await patientRoutes(req, res, path, user)) return
+    // The signed-in user's profile photo as an image (for the avatar in page headers); 404 when none is set.
+    if (path === '/api/account/avatar' && req.method === 'GET') {
+      const row = (await pool.query('SELECT avatar FROM users WHERE id=$1', [user.id])).rows[0]
+      const m = row?.avatar && /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(row.avatar)
+      if (!m) return send(res, 404, { error: 'No profile photo.' })
+      const bytes = Buffer.from(m[2], 'base64')
+      const etag = `"${createHash('sha256').update(bytes).digest('hex').slice(0, 20)}"`
+      const headers = { ETag: etag, 'Cache-Control': 'private, no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" }
+      if (req.headers['if-none-match'] === etag) { res.writeHead(304, headers); return res.end() }
+      res.writeHead(200, { ...headers, 'Content-Type': m[1], 'Content-Length': bytes.length })
+      return res.end(bytes)
+    }
     if (path === '/api/account/storage' && req.method === 'GET') return send(res, 200, await storageUsage(pool, user.id))
     if (path === '/api/studies' && req.method === 'GET') {
       const params = new URL(req.url,'http://internal').searchParams

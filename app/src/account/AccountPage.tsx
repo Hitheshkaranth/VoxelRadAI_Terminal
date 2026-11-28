@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, Building2, Camera, FileText, Gauge, HardDrive, Plus, ScanLine, Trash2, Upload } from 'lucide-react'
 import { logout, useSession } from '../lib/session'
 import { ThemeSwitch } from '../components/shell/ThemeSwitch'
+import { UserAvatar, refreshUserAvatar } from '../components/shell/UserAvatar'
 import { Roll } from '../landing/ui'
 import '../landing/skanda-landing.css'
 import './account.css'
@@ -59,6 +60,7 @@ export function AccountPage() {
     const body = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(typeof body.error === 'string' ? body.error : 'Could not save. Try again.')
     setData((d) => d && { ...d, profile: body.profile })
+    if ('avatar' in patch) refreshUserAvatar()
     if (user && 'fullName' in patch) useSession.getState().setUser({ ...user, ...(body.profile.fullName ? { fullName: body.profile.fullName } : { fullName: undefined }) })
   }
 
@@ -70,6 +72,7 @@ export function AccountPage() {
           <a className="sk-pill sk-pill-ghost sk-pill-sm" href="/workspace"><ArrowLeft size={15} aria-hidden="true" /><Roll>Workspace</Roll></a>
           <button type="button" className="sk-pill sk-pill-grey sk-pill-sm" onClick={() => { void logout().then(() => { window.location.href = '/' }) }}><Roll>Sign out</Roll></button>
           <ThemeSwitch compact />
+          <UserAvatar size={36} />
         </nav>
       </div>
     </header>

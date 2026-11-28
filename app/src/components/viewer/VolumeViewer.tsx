@@ -1,6 +1,7 @@
 import { ScanButton } from './ScanButton'
 import { RegionOutline } from './RegionOutline'
 import { VolumeAcquisitionEditor } from './VolumeAcquisitionEditor'
+import { UserAvatar } from '../shell/UserAvatar'
 import { acquisitionLabel, rememberAcquisition, rememberable, type VolumeAcquisition } from '../../lib/volumeAcquisition'
 import { pauseVolumeJob } from '../../lib/volumeJobs'
 import { ThinkingOrb } from 'thinking-orbs'
@@ -332,7 +333,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
       <div className="scan-title"><strong>{source.title}</strong><span>{volume ? `${volume.dimensions.join(' × ')} · ${oblique ? 'Oblique acquisition' : source.modality}` : 'Loading scan'}</span></div>
       <ScanButton className="btn btn-sm scan-connection" title={model} onClick={() => useApp.getState().openSheet('settings')}>{connectionLabel}</ScanButton>
       <ScanButton className="btn btn-sm" aria-pressed={showReviewPanel} onClick={() => { setShowReviewPanel(v => !v); useShell.getState().setMobileView('viewer') }}><PanelRight size={16} />Review</ScanButton>
-      <ThemeSwitch compact /><ScanButton className="icon-btn" aria-label="Close volume" onClick={() => useShell.getState().closeVolume()}><X /></ScanButton>
+      <ThemeSwitch compact /><UserAvatar size={30} /><ScanButton className="icon-btn" aria-label="Close volume" onClick={() => useShell.getState().closeVolume()}><X /></ScanButton>
     </header>
     {!readingMode && <VolumeIdentity source={source} />}
     {error ? <div className="volume-message" role="alert"><h2>Could not open scan</h2><p>{error}</p><ScanButton className="btn" onClick={() => useShell.getState().openVolume({ ...source })}>Retry</ScanButton></div> : !volume || !geometry ? <div className="volume-message" role="status"><ThinkingOrb state="working" size={64} theme="dark" aria-hidden="true" /><p>{phase}</p></div> : <>

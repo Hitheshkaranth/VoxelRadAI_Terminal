@@ -12,6 +12,7 @@ import { useShell } from './shellState'
 import type { ConnectionState, StudyImage } from '../../types'
 import './shell.css'
 import { ThemeSwitch } from './ThemeSwitch'
+import { UserAvatar } from './UserAvatar'
 import { AutoSaveStatus } from './AutoSaveStatus'
 
 export function Toolbar() {
@@ -75,6 +76,7 @@ export function Toolbar() {
         <ShellButton type="button" className="icon-btn" aria-label="Settings" onClick={() => useApp.getState().openSheet('settings')}>
           <Settings />
         </ShellButton>
+        <UserAvatar size={30} />
       </div>
     </header>
   )
