@@ -36,7 +36,7 @@ footer a{color:#9a9a9a;display:inline-block;padding:10px 2px}
 <header><a class="brand" href="/"><img src="/skanda-mark.png" alt="">RadGenis</a><a class="pill" href="/workspace">Open workspace</a></header>
 <main>
 <h1>Privacy</h1>
-<p class="meta">Last updated 28 November 2026 (saved volumes stored in Google Cloud, Mumbai)</p>
+<p class="meta">Last updated 28 November 2026 (optional model-improvement sharing)</p>
 <p>RadGenis is a research and evaluation workspace for radiology images. This page describes what the hosted service at radgenis.com stores and why. It covers the website and the hosted workspace. If your organization runs its own copy, that organization decides how its data is handled.</p>
 
 <div class="note"><strong>Do not upload identifiable patient data</strong> unless your organization has authorized it and you have a lawful basis to do so. Prefer de-identified or public images. The hosted service is not a clinical system.</div>
@@ -65,7 +65,12 @@ footer a{color:#9a9a9a;display:inline-block;padding:10px 2px}
 <p>Images are sent for analysis only when you start an analysis, and only to the model server your workspace is configured to use. Hosted GPU inference is disabled by default; many installations run the model on their own hardware.</p>
 
 <h2>Where data is kept</h2>
-<p>The hosted service runs on Vercel (application functions in the Singapore region) with a Neon PostgreSQL database. Saved volumes are kept in Google Cloud Storage in Mumbai, India (asia-south1), encrypted at rest. Data is sent over HTTPS. We do not sell data, show advertising or use your studies to train models.</p>
+<p>The hosted service runs on Vercel (application functions in the Singapore region) with a Neon PostgreSQL database. Saved volumes are kept in Google Cloud Storage in Mumbai, India (asia-south1), encrypted at rest. Data is sent over HTTPS. We do not sell data or show advertising.</p>
+
+<h2>Model improvement (optional)</h2>
+<p>Your studies are used to improve models only if you turn this on in Settings → Model improvement. It is off until you do, and reading and reporting work the same either way. When on, the service keeps a de-identified record of each analysis: the analysed image (only DICOM images that declare no burned-in text), sampled CT/MRI slices the model read, the AI findings with your accept and dismiss decisions, the AI draft beside your signed report, and dictation phrases that failed or were corrected, with their audio. Patient name, ID, referring physician, contact details, ID-like numbers and full dates are removed from text; only an age band and sex are kept. Your account and studies are replaced by one-way codes.</p>
+<p>A second, separate choice, <em>Also share my saved CT and MRI volumes</em>, lets us make de-identified copies of whole volumes you saved: the file header is reduced to geometry, and the copy is named by a one-way code. Voxels are not changed, so text burned into images is not removed and head scans are not defaced; a face could be reconstructed.</p>
+<p>These records are kept in the database (Neon) and the volume copies in Google Cloud Storage, Mumbai, for 365 days, and are used only to train and evaluate RadGenis models. Turning either choice off stops new records; records already kept are not deleted automatically. To have them deleted, contact us.</p>
 
 <h2>Retention and deletion</h2>
 <p>Expired sessions, sign-in attempts, recovery codes and abandoned uploads are cleaned up automatically. Studies and accounts are kept until they are deleted. There is not yet a fixed retention period for them. To have your account or studies deleted, ask your workspace administrator or contact us.</p>

@@ -5,7 +5,7 @@
 // the month saved; owner, volume ID, title, file name, header comments and free-text NRRD fields are dropped.
 // Voxel data is not altered: head scans are not defaced and text burned into pixels is not removed.
 import { createHash } from 'node:crypto'
-import { captureEnabled, ref } from './trainingCapture.mjs'
+import { captureEnabled, ref, retentionDays } from './trainingCapture.mjs'
 
 export const TRAINING_VOLUME_PREFIX = 'training/volumes/'
 export const TRAINING_MANIFEST_KEY = 'training/manifest/volumes.jsonl'
@@ -43,7 +43,7 @@ export function deidentifyNrrd(bytes) {
 export async function exportTrainingVolumes({ pool, source, target, sourceLocation, targetLocation, env = process.env, limit = 20, dryRun = false, log = () => {} }) {
   limit ??= 20
   if (!captureEnabled(env)) throw new Error('Set TRAINING_CAPTURE=on and TRAINING_PSEUDONYM_SECRET before exporting training volumes')
-  const counts = { exported: 0, skipped: 0, failed: 0 }
+  const counts = { exported: 0, skipped: 0, failed: 0, expired: dryRun ? 0 : await purgeExpiredTrainingVolumes({ pool, target, env, log }) }
   // Page by ID: timestamps round-trip through JavaScript at millisecond precision and would repeat rows.
   let after = '00000000-0000-0000-0000-000000000000'
   while (counts.exported < limit) {
@@ -80,6 +80,17 @@ export async function exportTrainingVolumes({ pool, source, target, sourceLocati
   }
   if (!dryRun) await writeTrainingManifest({ pool, target })
   return counts
+}
+
+/** Copies older than TRAINING_RETENTION_DAYS (default 365, like the other training records) are deleted with their rows. */
+export async function purgeExpiredTrainingVolumes({ pool, target, env = process.env, log = () => {} }) {
+  const rows = (await pool.query('SELECT ref,object_key FROM training_volumes WHERE exported_at<now()-make_interval(days=>$1::int) ORDER BY exported_at LIMIT 500', [retentionDays(env)])).rows
+  let removed = 0
+  for (const row of rows) {
+    try { await target.delete(row.object_key); await pool.query('DELETE FROM training_volumes WHERE ref=$1', [row.ref]); removed++ }
+    catch (error) { log(`could not remove expired ${row.ref}: ${error.message}`) }
+  }
+  return removed
 }
 
 /** One JSON object per line: what the training team and analytics read instead of scanning the bucket. */

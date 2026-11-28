@@ -39,6 +39,8 @@ function exportPool(volumes, consents) {
         const [location, id] = values
         return { rows: volumes.filter(v => v.storage_location === location && v.state === 'ready' && consents[v.owner_id] === 'both' && v.id > id).sort((a, b) => a.id < b.id ? -1 : 1) }
       }
+      if (sql.startsWith('SELECT ref,object_key FROM training_volumes')) return { rows: [...training.values()].filter(v => v.expired).map(v => ({ ref: v[0], object_key: v[2] })) }
+      if (sql.startsWith('DELETE FROM training_volumes')) { training.delete(values[0]); return { rows: [] } }
       if (sql.startsWith('SELECT ref FROM training_volumes')) return { rows: values[0].filter(r => training.has(r)).map(ref => ({ ref })) }
       if (sql.startsWith('INSERT INTO training_volumes')) { training.set(values[0], values); return { rows: [] } }
       if (sql.includes('FROM training_volumes ORDER BY')) return { rows: [...training.values()].map(v => ({ ref: v[0], userRef: v[1], objectKey: v[2], modality: v[4], sizeBytes: String(v[10]), sha256: v[11], savedMonth: v[12] })) }
@@ -57,7 +59,7 @@ test('training export copies only fully consented volumes, de-identified, under 
   const pool = exportPool(volumes, { 'u-yes': 'both', 'u-no': 'general-only' })
   await assert.rejects(exportTrainingVolumes({ pool, source: store, target: store, sourceLocation: 'gcs:b', targetLocation: 'gcs:b', env: {} }), /TRAINING_CAPTURE/)
   const counts = await exportTrainingVolumes({ pool, source: store, target: store, sourceLocation: 'gcs:b', targetLocation: 'gcs:b', env: ON })
-  assert.deepEqual(counts, { exported: 1, skipped: 0, failed: 0 })
+  assert.deepEqual(counts, { exported: 1, skipped: 0, failed: 0, expired: 0 })
   const [row] = pool.training.values()
   assert.match(row[2], /^training\/volumes\/[0-9a-f]{20}\.nrrd$/)
   assert.ok(!row[2].includes(volumes[0].id) && row[1] !== 'u-yes')
@@ -67,7 +69,13 @@ test('training export copies only fully consented volumes, de-identified, under 
   assert.equal(copy.metadata.sha256, createHash('sha256').update(copy.bytes).digest('hex'))
   const manifest = store.objects.get(TRAINING_MANIFEST_KEY).bytes.toString().trim().split('\n').map(line => JSON.parse(line))
   assert.equal(manifest.length, 1); assert.equal(manifest[0].modality, 'CT'); assert.equal(typeof manifest[0].sizeBytes, 'number')
-  assert.deepEqual(await exportTrainingVolumes({ pool, source: store, target: store, sourceLocation: 'gcs:b', targetLocation: 'gcs:b', env: ON }), { exported: 0, skipped: 1, failed: 0 })
+  assert.deepEqual(await exportTrainingVolumes({ pool, source: store, target: store, sourceLocation: 'gcs:b', targetLocation: 'gcs:b', env: ON }), { exported: 0, skipped: 1, failed: 0, expired: 0 })
+  // Past retention: the copy and its row go; a later run would export it again only if still consented and saved.
+  row.expired = true
+  store.delete = async key => store.objects.delete(key)
+  const purged = await exportTrainingVolumes({ pool, source: store, target: store, sourceLocation: 'gcs:b', targetLocation: 'gcs:b', env: ON, limit: 0 })
+  assert.equal(purged.expired, 1)
+  assert.ok(!store.objects.has(row[2]))
 })
 
 test('migration copies with checksums, switches location only after a verified copy, and resumes', async () => {
