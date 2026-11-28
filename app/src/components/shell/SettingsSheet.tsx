@@ -14,6 +14,7 @@ import { AlertCircle, RotateCcw, Trash2 } from 'lucide-react'
 import { clearWorkspace } from '../../lib/workspaceStorage'
 import { useApp, DEFAULT_VIEWER, storageInfo } from '../../store'
 import { checkConnection } from '../../lib/medgemma'
+import { checkNow } from '../../lib/connection'
 import { mairaHealth, mairaLoad, mairaUnload } from '../../lib/maira'
 import { toast } from './toastStore'
 import { Sheet } from './Sheet'
@@ -39,7 +40,7 @@ const CONNECTION_LABEL: Record<ConnectionState, string> = {
 const DEFAULT_MAIRA_KINDS = ['effusion', 'nodule / mass', 'atelectasis']
 const SETTINGS_SECTIONS = [
   ['account', SERVER_MODE ? 'Account' : 'Workspace'],
-  ['model', 'Model & connection'],
+  ['model', SERVER_MODE ? 'Model' : 'Model & connection'],
   ['report', 'Report'],
   ['appearance', 'Appearance'],
   ['data', 'Data & storage'],
@@ -102,7 +103,8 @@ export function SettingsSheet() {
       <Section title="Server storage" desc="Your allowance on this server for saved scans, patient data, reports, analysis and feedback. Studies kept only in this browser do not count.">
         <AccountStoragePanel />
       </Section>}
-      {section === 'model' && <>
+      {section === 'model' && SERVER_MODE && <HostedModelStatus />}
+      {section === 'model' && !SERVER_MODE && <>
       <Section title="Model" desc={`Connect to the service running ${settings.model}.`}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
           <Field label="Model service URL" fullWidth>
@@ -268,6 +270,40 @@ function ModelControls({ settings, change }: { settings: Settings; change: (p: P
         </div>
       )}
     </>
+  )
+}
+
+const HOSTED_STATUS: Record<ConnectionState, { title: string; detail: string }> = {
+  unknown: { title: 'Checking the connection…', detail: 'RadGenis is contacting the model service.' },
+  checking: { title: 'Checking the connection…', detail: 'RadGenis is contacting the model service.' },
+  online: { title: 'Connected to Skanda V1', detail: 'Reads are sent securely through RadGenis. Nothing to set up.' },
+  offline: { title: 'Model service not reachable right now', detail: 'It may be waking up or busy. Reads you start will wait for it; check again in a minute.' },
+  'model-missing': { title: 'Connected, Skanda V1 not available yet', detail: 'The service is answering but the model is still loading. Check again in a minute.' },
+}
+
+/** Hosted site: the server manages the model route, so Settings only confirms the connection. */
+function HostedModelStatus() {
+  const connection = useApp((s) => s.connection)
+  const [checking, setChecking] = useState(false)
+  const recheck = useCallback(async () => {
+    setChecking(true)
+    try { await checkNow() } finally { setChecking(false) }
+  }, [])
+  useEffect(() => { void recheck() }, [recheck])
+  const shown: ConnectionState = checking ? 'checking' : connection
+  const status = HOSTED_STATUS[shown]
+  return (
+    <Section title="Model connection" desc="RadGenis connects your workspace to the Skanda V1 model for you.">
+      <div className="sh-settings-row" role="status" aria-live="polite">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sh-about-sub" style={{ color: 'var(--label)', fontWeight: 600 }}><StatusDot status={shown} /> {status.title}</div>
+          <div className="sh-field-hint">{status.detail}</div>
+        </div>
+        <ShellButton type="button" className="btn" disabled={checking} onClick={() => void recheck()} style={{ height: '28px' }}>
+          {checking ? <Spinner /> : <RotateCcw />} Check again
+        </ShellButton>
+      </div>
+    </Section>
   )
 }
 

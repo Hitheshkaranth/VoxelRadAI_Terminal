@@ -31,6 +31,9 @@ export const uid = (): string => {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
 }
 
+/** Hosted build (radgenis.com): the server owns the model route, so the URL and model id are not user settings. */
+const HOSTED = import.meta.env?.VITE_SERVER_MODE === 'true'
+
 export const DEFAULT_SETTINGS: Settings = {
   baseUrl: '/lmstudio/v1',
   model: import.meta.env?.VITE_MODEL_ID || 'skanda-grounding-q3-mixed',
@@ -392,6 +395,8 @@ export async function hydrate() {
           institution: ['Skanda Radiology', 'VoxelRad AI', 'RadGenie'].includes(saved.settings?.institution ?? '') ? 'RadGenis' : saved.settings?.institution ?? DEFAULT_SETTINGS.institution,
           theme: readThemePreference() ?? saved.settings?.theme ?? DEFAULT_SETTINGS.theme,
           maira: { ...DEFAULT_SETTINGS.maira, ...saved.settings?.maira },
+          // The hosted site manages the model connection; an older saved URL or model id must not override it.
+          ...(HOSTED ? { baseUrl: DEFAULT_SETTINGS.baseUrl, model: DEFAULT_SETTINGS.model } : {}),
         },
         activeStudyId,
         activeImageId: studies.find((s) => s.id === activeStudyId)?.images[0]?.id ?? null,

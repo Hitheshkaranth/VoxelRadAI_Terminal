@@ -1,5 +1,6 @@
 import { analysisEligibility } from '../../lib/modality'
 import { modelServiceName, unreachableMessage } from '../../lib/modelTransport'
+import { SERVER_MODE } from '../../lib/session'
 import { gpuQuota } from '../../lib/gpuQuota'
 // OWNER: Agent 3 (Findings Inspector). Orchestrates the five analysis states.
 import { useCallback, useState } from 'react'
@@ -130,18 +131,18 @@ function errorHint(error: string, settings: Settings): string {
   if (/ZeroGPU.*(?:timed out|queue|result connection failed)/i.test(error))
     return 'The hosted inference service did not complete this read. Retry after the queue clears. Reports can still be drafted from images that were already analyzed.'
   if (/out.of.memory|insufficient memory|kIOGPUCommandBufferCallbackErrorOutOfMemory/i.test(error))
-    return 'The model ran out of GPU memory while reading the image. Use a smaller model or quantization, reduce image processing size, and reload it in LM Studio.'
+    return SERVER_MODE ? 'The model service ran out of GPU memory on this image. Try again in a minute.' : 'The model ran out of GPU memory while reading the image. Use a smaller model or quantization, reduce image processing size, and reload it in LM Studio.'
   if (/no output for|stopped responding/i.test(error))
-    return 'The model did not produce output in time. Check LM Studio for memory errors before retrying; a connected server may still be unable to run the model.'
+    return SERVER_MODE ? 'The model service did not answer in time. Try again in a minute.' : 'The model did not produce output in time. Check LM Studio for memory errors before retrying; a connected server may still be unable to run the model.'
   if (/fetch|network|ECONN|refused|offline|reach|connect|timed? ?out|50[234]/i.test(error))
     return modelServiceName() === 'LM Studio' ? `LM Studio did not respond at ${settings.baseUrl}. Check that its local server is running.` : unreachableMessage()
   if (/model|not found|404|no models? loaded/i.test(error))
-    return `Check that “${settings.model}” is loaded in LM Studio (Settings → model name must match exactly).`
+    return SERVER_MODE ? 'Skanda V1 is not available on the model service right now. Try again in a minute.' : `Check that “${settings.model}” is loaded in LM Studio (Settings → model name must match exactly).`
   if (/pars|json|schema|truncat|cut off|finish/i.test(error))
     return 'The model’s answer could not be read as findings, so nothing was recorded — the image is not marked normal. Trying again usually works.'
   if (/decod|dicom|image|pixel|canvas/i.test(error))
     return 'The image could not be decoded. Try exporting it as PNG or JPEG, or a DICOM with standard pixel data.'
-  return `Check that LM Studio is running and “${settings.model}” is loaded.`
+  return SERVER_MODE ? 'Try again in a minute. If it keeps failing, check the connection in Settings → Model.' : `Check that LM Studio is running and “${settings.model}” is loaded.`
 }
 
 function ErrorState({ studyId, imageId, error }: { studyId: string; imageId: string; error: string }) {
@@ -320,7 +321,7 @@ function FindingsDone({ analysis, studyId, imageId }: { analysis: AnalysisResult
         <button
           className="btn btn-plain fd-footer-btn"
           disabled={offline}
-          title={offline ? 'LM Studio is offline or the model is not loaded' : undefined}
+          title={offline ? (SERVER_MODE ? 'The model service is not connected right now' : 'LM Studio is offline or the model is not loaded') : undefined}
           onClick={() => analyzeImageAction(studyId, imageId)}
         >
           <RotateCcw /> Re-analyze

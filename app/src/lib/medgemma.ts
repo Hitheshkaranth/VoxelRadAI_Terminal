@@ -5,7 +5,8 @@ import { isCrossSectional } from './modality'
 import type { SkandaSliceInput } from './skandaSlice'
 import { buildSlicePrompt, buildAnalysisPrompt, buildReportPrompt, LUNG_PATTERN_PROMPT, LUNG_PATTERN_SYSTEM, SYSTEM_PROMPT, SKANDA_SYSTEM_PROMPT, SKANDA_ANALYSIS_PROMPT } from './prompts'
 import { extractJson, extractJsonWithInfo, mergeLungPattern, normalizeAnalysis, normalizeReport, parseLungPattern, type ReportFields } from './parse'
-import { chatStream, type ChatResult, type ChatMessage } from './modelTransport'
+import { chatStream, unreachableMessage, type ChatResult, type ChatMessage } from './modelTransport'
+import { SERVER_MODE } from './session'
 export { chatStream, checkConnection } from './modelTransport'
 import { createSerialQueue } from './queue'
 
@@ -132,7 +133,7 @@ export async function analyzeImage(opts: {
   } catch (err) {
     if (isAbort(err) || signal?.aborted) throw abortError()
     throw isNetworkish(err)
-      ? new Error(`LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
+      ? new Error(SERVER_MODE ? unreachableMessage() : `LM Studio is not reachable at ${settings.baseUrl}. Ensure it is running.`)
       : new Error(err instanceof Error ? err.message : 'Analysis failed.')
   }
 
