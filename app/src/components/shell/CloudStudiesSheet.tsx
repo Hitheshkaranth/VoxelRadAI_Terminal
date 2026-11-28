@@ -9,6 +9,7 @@ import { toast } from './toastStore'
 import { Sheet } from './Sheet'
 import { useShell } from './shellState'
 import './admin.css'
+import { markStudySaved } from '../../lib/autoSave'
 interface SavedStudy { id: string; title: string; imageCount: number; hasReport: boolean; reportSigned: boolean; updatedAt: string }
 const studyLimitMb = Number(import.meta.env.VITE_STUDY_LIMIT_MB) || 25
 
@@ -50,6 +51,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
       const payload = JSON.stringify(persistedStudies([active])[0])
       if (new Blob([payload]).size > studyLimitMb * 1024 * 1024) throw new Error(`This study exceeds the ${studyLimitMb} MB server limit. Keep it local or use your approved imaging archive.`)
       await saveStudyToServer(active, { body: payload, overwrite })
+      markStudySaved(active)
       refreshSaved()
     } catch (reason) {
       if (reason instanceof StudyConflictError) {
@@ -74,6 +76,7 @@ function CloudStudiesContent({ onClose }: { onClose: () => void }) {
       const study = withServerRevision(validateTransferredStudy(data.study), data.revision)
       if (study.id !== entry.id) throw new Error('The server returned a different study. Nothing was restored.')
       if (!mounted.current) return
+      markStudySaved(study)
       useApp.setState((state) => ({ studies: [study, ...state.studies.filter((item) => item.id !== study.id)] }))
       useApp.getState().selectStudy(study.id); useShell.getState().closeVolume(); useShell.getState().setMobileView('viewer'); setConfirmRestore(null); onClose()
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'This study could not be restored.') }

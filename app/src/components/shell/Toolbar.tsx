@@ -12,6 +12,7 @@ import { useShell } from './shellState'
 import type { ConnectionState, StudyImage } from '../../types'
 import './shell.css'
 import { ThemeSwitch } from './ThemeSwitch'
+import { AutoSaveStatus } from './AutoSaveStatus'
 
 export function Toolbar() {
   const study = useActiveStudy()
@@ -63,6 +64,7 @@ export function Toolbar() {
           </ShellButton>
         )}
         </div>
+        <AutoSaveStatus studyId={study?.id} />
       </div>
 
       <div className="sh-toolbar-right">

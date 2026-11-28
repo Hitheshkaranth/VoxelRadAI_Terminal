@@ -551,3 +551,12 @@
 
 /* The search field's input fills its 40px row so the whole field is a touch target. */
 .sh-search-field input { align-self: stretch; min-height: 36px; }
+
+/* Automatic save status beside the study title (hosted site). */
+.autosave { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; padding: 2px 8px; border: 0; border-radius: 999px; background: transparent; color: var(--label-2); font: 500 var(--text-caption) / 1.4 var(--font-sans); white-space: nowrap; }
+.autosave svg { width: 13px; height: 13px; flex: none; }
+.autosave[data-status="saved"] svg { color: var(--green, #34c759); }
+.autosave:is([data-status="conflict"], [data-status="too-large"], [data-status="error"]) { color: var(--label); background: color-mix(in srgb, var(--orange, #ff9500) 16%, transparent); cursor: pointer; }
+.autosave:is([data-status="conflict"], [data-status="too-large"], [data-status="error"]) svg { color: var(--orange, #ff9500); }
+.autosave:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) { .autosave span { display: none; } }
