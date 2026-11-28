@@ -167,9 +167,15 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
         const decoded: Volume = source.acquisition ? { ...rawDecoded, acquisition: source.acquisition } : rawDecoded
         if (!active) return
         setAnchor(centerVoxel(decoded))
-        // CT sample scalar values retain their native acquisition range; no calibration is inferred.
-        setLevel(source.initialWindow?.center ?? (decoded.range[0] + decoded.range[1]) / 2)
-        setWidth(source.initialWindow?.width ?? Math.max(1, decoded.range[1] - decoded.range[0]))
+        // Opening window: the source's own, else a soft-tissue CT window when the values look like Hounsfield units
+        // (air near -1024), else the 1st-99th percentile. The full value range made imported scans look washed out
+        // whenever a few voxels were very bright. Display only: model input uses its own windows (skandaSlice.ts).
+        const huLike = source.modality.toUpperCase() === 'CT' || (decoded.range[0] <= -900 && decoded.range[0] >= -3100 && decoded.range[1] >= 300)
+        const opening = source.initialWindow
+          ?? (huLike ? { center: 40, width: 400 } : percentileWindow(decoded.data))
+          ?? { center: (decoded.range[0] + decoded.range[1]) / 2, width: Math.max(1, decoded.range[1] - decoded.range[0]) }
+        setLevel(opening.center)
+        setWidth(opening.width)
         setVolume(decoded)
         void volumeFingerprint(decoded).then((fingerprint) => registerVolumeSource(`${fingerprint}:${source.modality.toUpperCase()}`, source, decoded))
       } catch (e) {

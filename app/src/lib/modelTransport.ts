@@ -176,7 +176,7 @@ async function readErrorBody(res: Response): Promise<string> {
   } catch {
     // ignore
   }
-  return `LM Studio request failed (HTTP ${res.status}). ${detail || 'See the server log for details.'}`.trim()
+  return `Model request failed (HTTP ${res.status}). ${detail || 'See the server log for details.'}`.trim()
 }
 
 // ---- Small helpers ---------------------------------------------------------
