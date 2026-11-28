@@ -2,9 +2,9 @@
 // day / month / year (model reads = credits, new studies, storage) and a way into report letterhead templates.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, Building2, Camera, FileText, Gauge, HardDrive, Plus, ScanLine, Trash2, Upload } from 'lucide-react'
-import { logout, useSession } from '../lib/session'
+import { useSession } from '../lib/session'
 import { ThemeSwitch } from '../components/shell/ThemeSwitch'
-import { UserAvatar, refreshUserAvatar } from '../components/shell/UserAvatar'
+import { UserAvatar, initialsOf, refreshUserAvatar } from '../components/shell/UserAvatar'
 import { Roll } from '../landing/ui'
 import '../landing/skanda-landing.css'
 import './account.css'
@@ -70,7 +70,6 @@ export function AccountPage() {
         <a className="sk-brand acc-brand" href="/" aria-label="RadGenis home"><img src="/skanda-mark.png" alt="" /><span>RadGenis</span></a>
         <nav className="acc-top-end" aria-label="Account">
           <a className="sk-pill sk-pill-ghost sk-pill-sm" href="/workspace"><ArrowLeft size={15} aria-hidden="true" /><Roll>Workspace</Roll></a>
-          <button type="button" className="sk-pill sk-pill-grey sk-pill-sm" onClick={() => { void logout().then(() => { window.location.href = '/' }) }}><Roll>Sign out</Roll></button>
           <ThemeSwitch compact />
           <UserAvatar size={36} />
         </nav>
@@ -112,7 +111,7 @@ function Identity({ profile, onSave }: { profile: Profile; onSave: (p: Partial<P
     if (!f) return
     try { await onSave({ avatar: await shrinkImage(f, 384) }); setStatus('Photo updated.') } catch (e) { setStatus(e instanceof Error ? e.message : 'Photo could not be saved.') }
   }
-  const initials = (profile.fullName || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')
+  const initials = initialsOf(profile.fullName || profile.email)
   return <section className="acc-hero" aria-labelledby="acc-title">
     <div className="acc-avatar-wrap">
       {profile.avatar ? <img className="acc-avatar" src={profile.avatar} alt="Your profile photo" /> : <span className="acc-avatar acc-avatar--empty" aria-hidden="true">{initials || '?'}</span>}

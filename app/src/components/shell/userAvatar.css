@@ -1,5 +1,20 @@
-.user-avatar { position: relative; display: inline-grid; place-items: center; flex: none; overflow: hidden; border-radius: 50%; background: conic-gradient(from 200deg, #0068ad, #7acaff, #0099ff, #0068ad); color: #fff; font-weight: 650; line-height: 1; letter-spacing: .01em; text-decoration: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .22); transition: box-shadow .15s ease, transform .15s ease; }
-.user-avatar:hover { box-shadow: 0 0 0 2px #7acaff; }
+/* Account avatar and menu (top right of signed-in pages). Fixed dark surface so it reads the same on the workspace and
+   the landing-styled profile page. */
+.user-avatar { display: inline-grid; place-items: center; flex: none; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
 .user-avatar:focus-visible { outline: 2px solid #0a84ff; outline-offset: 2px; }
-.user-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-@media (prefers-reduced-motion: reduce) { .user-avatar { transition: none; } }
+.user-avatar-face { position: relative; display: inline-grid; place-items: center; flex: none; overflow: hidden; border-radius: 50%; background: conic-gradient(from 200deg, #0068ad, #7acaff, #0099ff, #0068ad); color: #fff; font-weight: 650; line-height: 1; letter-spacing: .01em; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .22); transition: box-shadow .15s ease; }
+.user-avatar:hover .user-avatar-face, .user-avatar[data-state="open"] .user-avatar-face { box-shadow: 0 0 0 2px #7acaff; }
+.user-avatar-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.user-menu { z-index: 1000; min-width: 260px; max-width: min(320px, calc(100vw - 24px)); padding: 6px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; background: #141416; color: #f2f2f2; box-shadow: 0 18px 50px -12px rgba(0, 0, 0, .7); font: 14px/1.4 'Figtree', system-ui, sans-serif; transform-origin: var(--radix-dropdown-menu-content-transform-origin); animation: user-menu-in .14s ease-out; }
+.user-menu-head { display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px; }
+.user-menu-head > div { display: grid; gap: 1px; min-width: 0; }
+.user-menu-head strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-menu-head span { color: #a1a1a6; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-menu-head em { justify-self: start; margin-top: 4px; padding: 1px 8px; border: 1px solid rgba(122, 202, 255, .35); border-radius: 999px; color: #7acaff; font-size: 11.5px; font-style: normal; font-weight: 500; }
+.user-menu-sep { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .09); }
+.user-menu-item { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 9px; cursor: pointer; outline: none; user-select: none; }
+.user-menu-item svg { width: 16px; height: 16px; color: #a1a1a6; }
+.user-menu-item[data-highlighted] { background: rgba(255, 255, 255, .08); }
+.user-menu-item[data-highlighted] svg { color: #fff; }
+@keyframes user-menu-in { from { opacity: 0; transform: scale(.97) translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .user-menu { animation: none; } .user-avatar-face { transition: none; } }
