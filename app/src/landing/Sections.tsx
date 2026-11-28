@@ -84,7 +84,7 @@ export function Reads() {
       <div className="sk-streaks" aria-hidden="true"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">{[0, 1, 2, 3, 4, 5, 6].map((i) => <path key={i} d={`M-100 ${120 + i * 110} C 300 ${-80 + i * 160}, 700 ${980 - i * 120}, 1700 ${160 + i * 95}`} />)}</svg></div>
       <h2 id="reads-title">Our <em>Reads</em></h2>
       <div className="sk-helix">{reads.map((r) => <a key={r.image} className="sk-helix-card" href="#top"><img src={img(r.image)} alt={`${r.title}, ${r.meta}`} loading="lazy" /><span><b>{r.title}</b><small>{r.meta}</small></span></a>)}</div>
-      <p className="sk-reads-note">Chest X-ray and SOOP stroke MRI overlays are recorded model output. CT and MR head overlays are illustrative.</p>
+      <p className="sk-reads-note">Chest X-ray, brain-tumour MRI and SOOP stroke MRI overlays are recorded model output. CT and MR head overlays are illustrative.</p>
     </div>
   </section>
 }
