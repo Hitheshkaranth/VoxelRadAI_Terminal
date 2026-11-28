@@ -64,3 +64,4 @@
 .admin-secret .btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; }
 .admin-secret svg { width: 16px; height: 16px; }
 .admin-key-reveal > .btn { justify-self: start; }
+.admin-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; }

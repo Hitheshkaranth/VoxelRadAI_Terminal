@@ -37,6 +37,15 @@ Requests from the landing page's Request access form are always stored and liste
 
 Each email is plain text with the requester's name, email, organization, role and use case, and its Reply-To is the requester, so replying answers them directly. Sending runs after the request is stored (through `waitUntil`); an SMTP failure is logged as `Access request email failed: <code>` and the requester still sees a success. Without all three required variables nothing is sent.
 
+## Self-service sign-up and Google sign-in
+
+People can create an account from the sign-in page (`/workspace?mode=signup`, linked as **Sign up** in the site header). Every new account is **pending**: it cannot sign in until an administrator clicks **Approve** in Administration → Users, which emails the user. Disable a pending account to decline it.
+
+- **Email and password** needs the SMTP settings above. The user gets a confirmation link (`/workspace#verify=…`, single use, 24 hours); after confirming, the team gets a "new sign-up awaiting approval" email. Unconfirmed sign-ups are deleted after 7 days. Without SMTP the email form is hidden.
+- **Google** needs an OAuth client: in Google Cloud Console create an OAuth consent screen (External, app name RadGenis, scopes `openid`, `email`, `profile`) and an OAuth client ID of type *Web application* with the authorised redirect URI `https://radgenis.com/api/auth/google/callback`. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (secret) to Vercel and redeploy. Only Google-verified emails are accepted; a Google email that already has a password account is not linked automatically.
+
+Sign-up responses are identical for new and existing emails, so the form cannot be used to discover accounts. Login tells a user which step is left (confirm email, or wait for approval) only after their password is correct.
+
 ## Hosted Skanda V1 reads through the Space
 
 Vercel has no GPU. When configured, `/lmstudio/v1/chat/completions` and the model-list

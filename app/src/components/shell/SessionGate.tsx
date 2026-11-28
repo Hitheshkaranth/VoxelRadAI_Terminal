@@ -8,6 +8,7 @@ import { login, readSession, SERVER_MODE, useSession, type SessionUser } from '.
 import './session.css'
 import { ThemeSwitch } from './ThemeSwitch'
 import { LoginCine } from './LoginCine'
+import { GoogleButton, SignupForm, useSignupConfig, useSignupNotice } from './SignUp'
 
 /** Children mount only after authenticated storage is configured in server mode. */
 export function SessionGate({ children, onAuthenticated }: { children: ReactNode; onAuthenticated: (user: SessionUser) => void | Promise<void> }) {
@@ -15,6 +16,11 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
   const [recovering, setRecovering] = useState(false)
+  const [mode, setMode] = useState<'signin' | 'signup'>(() => new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'signin')
+  const signupConfig = useSignupConfig()
+  const notice = useSignupNotice()
+  const canSignUp = signupConfig.password || signupConfig.google
+  const signingUp = mode === 'signup' && canSignUp
   const currentUser = useSession((session) => session.user)
   const configure = useRef(onAuthenticated)
   useLayoutEffect(() => { configure.current = onAuthenticated }, [onAuthenticated])
@@ -61,13 +67,16 @@ export function SessionGate({ children, onAuthenticated }: { children: ReactNode
   // Hide patient data immediately, even if an active-job beforeunload prompt delays reload.
   if (SERVER_MODE && state === 'ready' && !currentUser) return <SessionLayout><section className="session-card" aria-labelledby="session-title"><h1 id="session-title">Session <em>ended</em></h1><p className="session-intro">Reload to sign in and open your workspace.</p><ShellButton className="btn btn-primary session-submit" onClick={() => window.location.reload()}><Roll>Reload workspace</Roll><ArrowRight aria-hidden="true" /></ShellButton></section></SessionLayout>
   if (state === 'ready') return children
-  const heading = state === 'checking' ? <>Opening your <em>workspace</em></> : state === 'error' ? <>Workspace <em>unavailable</em></> : recovering ? <>Recover your <em>account</em></> : <>Back to the <em>reading room</em></>
-  const intro = state === 'checking' ? 'One moment while we confirm your sign-in.' : state === 'error' ? 'We could not confirm your session.' : recovering ? 'Set a new password with an administrator-issued code.' : 'Sign in to review your studies and continue your work.'
+  const heading = state === 'checking' ? <>Opening your <em>workspace</em></> : state === 'error' ? <>Workspace <em>unavailable</em></> : recovering ? <>Recover your <em>account</em></> : signingUp ? <>Create your <em>account</em></> : <>Back to the <em>reading room</em></>
+  const intro = state === 'checking' ? 'One moment while we confirm your sign-in.' : state === 'error' ? 'We could not confirm your session.' : recovering ? 'Set a new password with an administrator-issued code.' : signingUp ? 'Sign up with your work email or Google. An administrator approves new accounts.' : 'Sign in to review your studies and continue your work.'
   return <SessionLayout><section className="session-card" aria-labelledby="session-title" aria-busy={state === 'checking'}>
     <h1 id="session-title">{heading}</h1>
     <p className="session-intro">{intro}</p>
-    {state === 'checking' ? <p role="status" className="session-status"><span className="session-spinner" aria-hidden="true" />Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><ShellButton className="btn btn-primary session-submit" onClick={() => { setState('checking'); setError(''); setAttempt((value) => value + 1) }}><Roll>Try again</Roll><RotateCw aria-hidden="true" /></ShellButton></> : recovering ? <RecoveryForm onBack={() => setRecovering(false)} /> : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
-    {state === 'login' && !recovering && <><OrganizationSignIn /><details className="session-help"><summary>Need access or help signing in?<ChevronDown aria-hidden="true" /></summary><div className="session-help-body"><p>No account yet? <a href="/#access">Request access</a> and we will reply by email, or <a href="/demo">try the demo workspace</a> without one. If your organization already uses RadGenis, ask its administrator for an account or a recovery code, and sign in with the email address they registered for you.</p><ShellButton className="btn session-secondary" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></div></details></>}
+    {state === 'login' && !recovering && notice && <p role={notice.tone === 'error' ? 'alert' : 'status'} className={notice.tone === 'error' ? 'session-error session-notice' : 'session-status session-notice'}>{notice.text}</p>}
+    {state === 'login' && !recovering && signupConfig.google && <><GoogleButton label={signingUp ? 'Sign up with Google' : 'Continue with Google'} /><p className="session-or"><span>or</span></p></>}
+    {state === 'checking' ? <p role="status" className="session-status"><span className="session-spinner" aria-hidden="true" />Checking your session…</p> : state === 'error' ? <><p role="alert" className="session-error">{error}</p><ShellButton className="btn btn-primary session-submit" onClick={() => { setState('checking'); setError(''); setAttempt((value) => value + 1) }}><Roll>Try again</Roll><RotateCw aria-hidden="true" /></ShellButton></> : recovering ? <RecoveryForm onBack={() => setRecovering(false)} /> : signingUp ? (signupConfig.password ? <SignupForm onSignIn={() => setMode('signin')} /> : <p className="session-fine">Use Google above to create your account.</p>) : <LoginForm onSuccess={async (user) => { const previous = useSession.getState().user; if (previous && previous.id !== user.id) { window.location.reload(); return }; await configure.current(user); useSession.getState().setUser(user); setState('ready') }} />}
+    {state === 'login' && !recovering && canSignUp && <p className="session-switch">{signingUp ? 'Already have an account?' : 'New to RadGenis?'} <button type="button" onClick={() => setMode(signingUp ? 'signin' : 'signup')}>{signingUp ? 'Sign in' : 'Create an account'}</button></p>}
+    {state === 'login' && !recovering && !signingUp && <><OrganizationSignIn /><details className="session-help"><summary>Need access or help signing in?<ChevronDown aria-hidden="true" /></summary><div className="session-help-body"><p>No account yet? {canSignUp ? <><button type="button" className="session-inline" onClick={() => setMode('signup')}>Create one</button>; an administrator approves it,</> : <><a href="/#access">Request access</a> and we will reply by email,</>} or <a href="/demo">try the demo workspace</a> without one. If your organization already uses RadGenis, ask its administrator for an account or a recovery code, and sign in with the email address they registered for you.</p><ShellButton className="btn session-secondary" onClick={() => setRecovering(true)}>Use a recovery code</ShellButton></div></details></>}
   </section></SessionLayout>
 }
 
@@ -78,7 +87,7 @@ function SessionLayout({ children }: { children: ReactNode }) {
       <a className="session-brand" href="/" aria-label="RadGenis home"><img src="/skanda-mark.png" alt="" width="24" height="24" /><span>RadGenis</span></a>
       <nav className="session-top-end" aria-label="Site">
         <a className="session-pill session-pill-ghost" href="/"><ArrowLeft aria-hidden="true" /><Roll>Home</Roll></a>
-        <a className="session-pill session-pill-light session-top-access" href="/#access"><Roll>Request access</Roll></a>
+        <a className="session-pill session-pill-light session-top-access" href="/workspace?mode=signup"><Roll>Sign up</Roll></a>
         <ThemeSwitch compact />
       </nav>
     </header>

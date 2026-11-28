@@ -44,14 +44,14 @@ export function Nav() {
       <div className="sk-nav-end">
         <span className="sk-serving" title="Model used by the hosted workspace">Skanda V1</span>
         <a className="sk-pill sk-pill-ghost sk-pill-sm sk-nav-signin" href="/workspace"><Roll>Sign in</Roll></a>
-        <a className="sk-pill sk-pill-light sk-pill-sm" href={anchor('#access')}><Roll>Request access</Roll></a>
+        <a className="sk-pill sk-pill-light sk-pill-sm" href="/workspace?mode=signup"><Roll>Sign up</Roll></a>
         <button className="sk-menu" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={20} /></button>
       </div>
     </div>
     <dialog ref={dialog} className="sk-sheet" onClose={() => setOpen(false)} aria-label="Menu">
       <div className="sk-sheet-top"><a className="sk-brand" href={anchor('#top')} onClick={() => setOpen(false)}><img src="/skanda-mark.png" alt="" /><span>RadGenis</span></a><button aria-label="Close menu" onClick={() => setOpen(false)}><X size={22} /></button></div>
       <ol>{links.map(([label, href], i) => <li key={href}><a href={anchor(href)} onClick={() => setOpen(false)}><span>{String(i + 1).padStart(2, '0')}</span>{label}<ArrowUpRight size={18} /></a></li>)}</ol>
-      <div className="sk-actions"><Pill href={anchor('#access')} onClick={() => setOpen(false)}>Request access</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
+      <div className="sk-actions"><Pill href="/workspace?mode=signup" onClick={() => setOpen(false)}>Sign up</Pill><Pill href="/workspace" tone="ghost">Sign in</Pill></div>
     </dialog>
   </header>
 }

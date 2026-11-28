@@ -186,3 +186,18 @@
   .session-page *, .session-page *::before, .session-page *::after { animation: none !important; transition: none !important; }
   .session-page .sk-roll > span + span { display: none; }
 }
+
+/* Sign-up and Google */
+.session-page .session-card .session-google { margin-bottom: 16px; text-decoration: none; }
+.session-page .session-card .session-google svg { width: 16px; height: 16px; flex: none; }
+.session-notice { margin-bottom: 20px; }
+.session-switch { margin-top: 20px; font-size: 14px; color: var(--s-muted); }
+.session-switch button, .session-inline { padding: 0; border: 0; background: none; color: var(--s-text); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.session-switch button:focus-visible, .session-inline:focus-visible { outline: 2px solid var(--s-focus); outline-offset: 2px; border-radius: 4px; }
+.session-optional { font-weight: 400; color: var(--s-muted); }
+.session-hint { font-size: 12.5px; color: var(--s-muted); }
+.session-fine { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--s-muted); }
+.session-sent { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--s-line); border-radius: 12px; color: var(--s-text-2); font-size: 14px; line-height: 1.5; }
+.session-sent svg { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--s-focus); }
+.session-sent b { color: var(--s-text); font-weight: 600; overflow-wrap: anywhere; }
+.session-hp { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

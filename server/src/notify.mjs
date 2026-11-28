@@ -1,6 +1,6 @@
-// Email notifications for new early-access requests, sent through an SMTP mailbox (Google Workspace by default).
-// Off unless SMTP_USER, SMTP_PASS and ACCESS_NOTIFY_TO are all set. Sending runs after the request is stored, so a
-// mail failure never loses a request: it stays in Administration → Access requests either way.
+// Email through an SMTP mailbox (Google Workspace by default): early-access and sign-up notices to the team, and
+// sign-up confirmation and approval emails to users. Off unless SMTP_USER, SMTP_PASS and ACCESS_NOTIFY_TO are all set.
+// Sending runs after the record is stored, so a mail failure never loses a request or an account.
 import nodemailer from 'nodemailer'
 
 const oneLine = (value, max = 160) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
@@ -50,10 +50,69 @@ export function accessRequestMessage(request, { to, from, origin }) {
   }
 }
 
-/** `accessRequest(value)` resolves true when sent, false when notifications are off; it rejects on SMTP errors. */
+/** Confirmation link for a password sign-up. The token travels in the fragment, so link scanners never consume it. */
+export function signupVerificationMessage(user, token, { from, origin }) {
+  const name = oneLine(user.name, 120)
+  return {
+    from,
+    to: user.email,
+    subject: 'Confirm your email for RadGenis',
+    text: [
+      `Hello ${name || 'there'},`,
+      '',
+      'Confirm your email address to finish creating your RadGenis account:',
+      `${origin}/workspace#verify=${token}`,
+      '',
+      'The link works once and expires in 24 hours. After you confirm, an administrator reviews the account and we email you when it is approved.',
+      '',
+      'If you did not sign up, ignore this email and no account will be activated.',
+    ].join('\n'),
+  }
+}
+
+/** Notice to the team that a confirmed sign-up is waiting for approval. */
+export function signupPendingMessage(user, { to, from, origin }) {
+  const name = oneLine(user.name, 120)
+  return {
+    from,
+    to,
+    replyTo: { name, address: user.email },
+    subject: `New sign-up awaiting approval: ${name || user.email}${user.organization ? ` (${oneLine(user.organization, 160)})` : ''}`,
+    text: [
+      'A new RadGenis account is waiting for your approval.',
+      '',
+      `Name:         ${name || '(not given)'}`,
+      `Email:        ${user.email}`,
+      `Organization: ${oneLine(user.organization, 160) || '(not given)'}`,
+      `Role:         ${oneLine(user.role, 80) || '(not given)'}`,
+      `Signed up:    ${user.source === 'google' ? 'with Google' : 'with email and password (email confirmed)'}`,
+      '',
+      `Approve or disable it in Administration → Users: ${origin}/workspace`,
+    ].join('\n'),
+  }
+}
+
+/** Tells a user their account was approved. */
+export function signupApprovedMessage(user, { from, origin }) {
+  return {
+    from,
+    to: user.email,
+    subject: 'Your RadGenis account is approved',
+    text: [
+      `Hello ${oneLine(user.name, 120) || 'there'},`,
+      '',
+      'Your RadGenis account has been approved. Sign in here:',
+      `${origin}/workspace`,
+      '',
+      'RadGenis is research and review-support software, not a medical device. Findings are drafts for clinician review.',
+    ].join('\n'),
+  }
+}
+
+/** Each method resolves true when sent, false when email is off; it rejects on SMTP errors. */
 export function createNotifier({ env = process.env, origin, transport } = {}) {
   const config = mailConfig(env)
-  if (!config) return { enabled: false, accessRequest: async () => false }
+  if (!config) return { enabled: false, accessRequest: async () => false, signupVerification: async () => false, signupPending: async () => false, signupApproved: async () => false }
   const mailer = transport ?? nodemailer.createTransport({
     host: config.host,
     port: config.port,
@@ -64,11 +123,12 @@ export function createNotifier({ env = process.env, origin, transport } = {}) {
     greetingTimeout: 10000,
     socketTimeout: 15000,
   })
+  const deliver = async message => { await mailer.sendMail(message); return true }
   return {
     enabled: true,
-    accessRequest: async request => {
-      await mailer.sendMail(accessRequestMessage(request, { to: config.to, from: config.from, origin }))
-      return true
-    },
+    accessRequest: request => deliver(accessRequestMessage(request, { to: config.to, from: config.from, origin })),
+    signupVerification: (user, token) => deliver(signupVerificationMessage(user, token, { from: config.from, origin })),
+    signupPending: user => deliver(signupPendingMessage(user, { to: config.to, from: config.from, origin })),
+    signupApproved: user => deliver(signupApprovedMessage(user, { from: config.from, origin })),
   }
 }

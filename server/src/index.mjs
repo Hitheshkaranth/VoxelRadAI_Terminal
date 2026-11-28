@@ -13,6 +13,7 @@ import { createDicomweb } from './dicomweb.mjs'
 import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { createNotifier } from './notify.mjs'
+import { createSignupRoutes, signInBlock } from './signup.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
@@ -118,13 +119,14 @@ async function rateLimit(key, max = 15) {
   const result = await pool.query("INSERT INTO login_attempts(key_hash,attempts,resets_at) VALUES ($1,1,now()+interval '15 minutes') ON CONFLICT(key_hash) DO UPDATE SET attempts=CASE WHEN login_attempts.resets_at<now() THEN 1 ELSE login_attempts.attempts+1 END,resets_at=CASE WHEN login_attempts.resets_at<now() THEN now()+interval '15 minutes' ELSE login_attempts.resets_at END RETURNING attempts", [hashToken(key)])
   return result.rows[0].attempts > max
 }
-const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit, clientIp,
-  issueSession: async (client, user) => {
-    const token = newToken()
-    await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), user.id])
-    return sessionCookie(token, secureCookies)
-  },
-})
+async function issueSession(client, user) {
+  const token = newToken()
+  await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), user.id])
+  return sessionCookie(token, secureCookies)
+}
+const oidc = createOidcRoutes({ pool, publicOrigin, secureCookies, userFor, body, send, rateLimit, clientIp, issueSession })
+const signup = createSignupRoutes({ pool, publicOrigin, secureCookies, body, send, rateLimit, clientIp, notifier, issueSession,
+  schedule: task => { if (waitUntil) waitUntil(task); return task } })
 const objectStorage = await createObjectStorageRouter({ pool, body, send, env: process.env, checkRoom: (client, userId, bytes) => ensureRoom(client, userId, bytes) })
 const pacs = createDicomweb({ env: process.env })
 const training = createTrainingCapture({ pool })
@@ -140,7 +142,7 @@ const publicApi = createPublicApi({ readStore: createReadStore(pool), body, send
   schedule: task => { const guarded = task.catch(() => {}); if (waitUntil) waitUntil(guarded) } })
 // Prune expired rows and abandoned uploads. Long-running servers use a timer; on Vercel a small share of requests schedules it after the response.
 async function cleanup() {
-  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup(), publicApi.cleanup()])
+  await Promise.allSettled([objectStorage.cleanupExpiredUploads(), pool.query('DELETE FROM sessions WHERE expires_at<now()'), pool.query('DELETE FROM login_attempts WHERE resets_at<now()'), pool.query('DELETE FROM password_recovery_tokens WHERE expires_at<now()'), pool.query('DELETE FROM email_verifications WHERE expires_at<now()'), pool.query("DELETE FROM users u WHERE u.signup_source='password' AND u.email_verified_at IS NULL AND u.approval='pending' AND u.last_login_at IS NULL AND u.created_at<now()-interval '7 days' AND NOT EXISTS (SELECT 1 FROM studies s WHERE s.owner_id=u.id)"), pool.query("DELETE FROM access_requests WHERE status<>'new' AND reviewed_at<now()-interval '180 days'"), training.cleanup(), publicApi.cleanup()])
 }
 export async function handler(req, res) {
   const requestId = operations.begin(res)
@@ -168,6 +170,7 @@ export async function handler(req, res) {
       return send(res, 404, { error: 'Endpoint not found.' })
     }
     if (await oidc.route(req, res)) return
+    if (await signup.route(req, res, path)) return
     if (path === '/api/password-recovery' && req.method === 'POST') {
       const data = await body(req)
       if (typeof data.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(data.token) || !validPassword(data.password)) return send(res, 400, { error: 'Supply a recovery token and a password of 12–256 characters.' })
@@ -203,10 +206,13 @@ export async function handler(req, res) {
       try {
         await client.query('BEGIN')
         // Serialize with password-reset/disable so old credentials cannot mint a session after revocation.
-        const result = await client.query('SELECT id,email,role,password_hash,disabled FROM users WHERE email=$1 FOR UPDATE', [email])
+        const result = await client.query('SELECT id,email,role,password_hash,disabled,approval,signup_source,email_verified_at FROM users WHERE email=$1 FOR UPDATE', [email])
         const account = result.rows[0]
         const valid = await verifyPassword(data.password, account?.password_hash || dummyHash)
         if (!account || !valid || account.disabled) { await client.query('ROLLBACK'); return send(res, 401, { error: 'Email or password is incorrect.' }) }
+        // Self sign-ups wait for email confirmation and approval; told only after the password is proven.
+        const blocked = signInBlock(account)
+        if (blocked) { await client.query('ROLLBACK'); return send(res, blocked.status, { error: blocked.error, code: blocked.code }) }
         const token = newToken()
         await client.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+interval '8 hours')", [hashToken(token), account.id])
         await client.query('UPDATE users SET last_login_at=now() WHERE id=$1', [account.id])
@@ -404,7 +410,7 @@ export async function handler(req, res) {
       const params = new URL(req.url, 'http://internal').searchParams
       let limit,offset
       try { ({limit,offset}=pagination(params)) } catch(error) { return send(res,400,{error:error.message}) }
-      const [result,count] = await Promise.all([pool.query(`SELECT u.id,u.email,u.role,u.disabled,u.created_at AS "createdAt",u.last_login_at AS "lastSeenAt",COALESCE(u.storage_quota_bytes,$3)::bigint AS "storageQuotaBytes",(COALESCE((SELECT sum(payload_bytes) FROM studies WHERE owner_id=u.id),0)+COALESCE((SELECT sum(size_bytes) FROM volume_objects WHERE owner_id=u.id AND state<>'pending'),0))::bigint AS "storageUsedBytes" FROM users u ORDER BY u.created_at DESC,u.id LIMIT $1 OFFSET $2`,[limit,offset,defaultQuota()]),pool.query('SELECT count(*)::int AS total FROM users')])
+      const [result,count] = await Promise.all([pool.query(`SELECT u.id,u.email,u.role,u.disabled,u.approval,u.signup_source AS "signupSource",(u.email_verified_at IS NOT NULL OR u.signup_source='admin') AS "emailVerified",u.full_name AS "fullName",u.organization,u.job_role AS "jobRole",u.created_at AS "createdAt",u.last_login_at AS "lastSeenAt",COALESCE(u.storage_quota_bytes,$3)::bigint AS "storageQuotaBytes",(COALESCE((SELECT sum(payload_bytes) FROM studies WHERE owner_id=u.id),0)+COALESCE((SELECT sum(size_bytes) FROM volume_objects WHERE owner_id=u.id AND state<>'pending'),0))::bigint AS "storageUsedBytes" FROM users u ORDER BY (u.approval='pending') DESC,u.created_at DESC,u.id LIMIT $1 OFFSET $2`,[limit,offset,defaultQuota()]),pool.query('SELECT count(*)::int AS total FROM users')])
       // Storage figures here leave out dictation feedback (pseudonymous); the account view includes it.
       return send(res, 200, { users: result.rows.map(row => ({ ...row, storageQuotaBytes: Number(row.storageQuotaBytes), storageUsedBytes: Number(row.storageUsedBytes) })), total: count.rows[0].total })
     }
@@ -419,6 +425,15 @@ export async function handler(req, res) {
     if (userMatch && UUID.test(userMatch[1]) && req.method === 'PATCH') {
       const data = await body(req), target = userMatch[1]
       if (target === user.id && data.disabled === true) return send(res,400,{error:'You cannot disable your own account.'})
+      if ('approval' in data) {
+        if (Object.keys(data).some(field => field !== 'approval') || data.approval !== 'approved') return send(res,400,{error:'Set approval to "approved" on its own.'})
+        const result = await pool.query("UPDATE users SET approval='approved' WHERE id=$1 AND approval='pending' RETURNING email,full_name", [target])
+        if (!result.rowCount) return send(res,404,{error:'No pending account with that id.'})
+        await audit(user.id,'user.approved',target)
+        const approved = notifier.signupApproved({ name: result.rows[0].full_name, email: result.rows[0].email }).catch(error => console.error('Approval email failed:', error?.code || error?.message || 'unknown error'))
+        if (waitUntil) waitUntil(approved)
+        return send(res,200,{ user: { id: target, approval: 'approved' } })
+      }
       if ('storageQuotaBytes' in data) {
         // Storage allowance only: bytes up to 1 TiB, or null for the server default (STORAGE_QUOTA_GB, 10 GiB).
         if (Object.keys(data).some(field => field !== 'storageQuotaBytes') || !validQuota(data.storageQuotaBytes)) return send(res,400,{error:'Set storageQuotaBytes on its own: whole bytes up to 1 TiB, or null for the default.'})

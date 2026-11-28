@@ -3,7 +3,7 @@ import { AdminRecovery } from './AccountSecurity'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useSession } from '../../lib/session'
 
-interface AdminUser { id: string; email: string; role: 'admin' | 'clinician'; createdAt: string; lastSeenAt: string | null; disabled?: boolean }
+interface AdminUser { id: string; email: string; role: 'admin' | 'clinician'; createdAt: string; lastSeenAt: string | null; disabled?: boolean; approval?: 'pending' | 'approved'; signupSource?: 'admin' | 'password' | 'google'; emailVerified?: boolean; fullName?: string; organization?: string; jobRole?: string }
 const PAGE_SIZE = 25
 export function AdminUsers() {
   const currentUser = useSession((state) => state.user)
@@ -22,6 +22,18 @@ export function AdminUsers() {
   const [resetPassword, setResetPassword] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [manageError, setManageError] = useState('')
+  const [approving, setApproving] = useState('')
+  const approve = async (user: AdminUser) => {
+    if (approving) return
+    setApproving(user.id); setError('')
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approval: 'approved' }) })
+      if (!response.ok && response.status !== 404) throw new Error('The account could not be approved. Please try again.')
+      refreshUsers()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The account could not be approved.') }
+    finally { setApproving('') }
+  }
+  const pending = users.filter((user) => user.approval === 'pending').length
   const refreshUsers = () => { setLoading(true); setError(''); setAttempt((value) => value + 1) }
   const showPage = (next: number) => { setLoading(true); setError(''); setOffset(next) }
   const changeUser = async (patch: { disabled: boolean } | { password: string; currentPassword: string }) => {
@@ -57,10 +69,11 @@ export function AdminUsers() {
   }
   return <section className="admin-users" aria-labelledby="admin-users-heading">
     <h3 className="admin-heading" id="admin-users-heading">User accounts</h3>
-    <p className="admin-note">Manage access to this server. Administrators can view organization activity and create accounts.</p>
+    <p className="admin-note">Manage access to this server. Administrators can view organization activity and create accounts. People who sign up appear here first and cannot open the workspace until you approve them; approving emails them. Disable an account to decline it.</p>
+    {pending > 0 && <p className="admin-note" role="status"><b>{pending} {pending === 1 ? 'account is' : 'accounts are'} waiting for approval.</b></p>}
     {error && <div><p className="admin-error" role="alert">{error}</p><ShellButton className="btn" onClick={refreshUsers}>Retry accounts</ShellButton></div>}
     {loading ? <p role="status" className="admin-note">Loading accounts...</p> : !error && <>
-      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last sign-in</th><th scope="col">Access</th></tr></thead><tbody>{users.map((user) => <tr key={user.id}><td>{user.email}{user.id === currentUser?.id && <small> (you)</small>}</td><td>{user.role === 'admin' ? 'Administrator' : 'Clinician'}</td><td>{user.lastSeenAt && Number.isFinite(Date.parse(user.lastSeenAt)) ? new Date(user.lastSeenAt).toLocaleDateString() : 'Never'}</td><td><ShellButton className="btn" disabled={saving} onClick={() => { setManage(user); setResetPassword(''); setManageError('') }}>{user.disabled ? 'Disabled' : 'Manage'}</ShellButton></td></tr>)}</tbody></table></div>
+      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Account</th><th scope="col">Role</th><th scope="col">Last sign-in</th><th scope="col">Access</th></tr></thead><tbody>{users.map((user) => <tr key={user.id}><td>{user.fullName ? <><b>{user.fullName}</b><br /></> : null}{user.email}{user.id === currentUser?.id && <small> (you)</small>}{(user.organization || user.jobRole) && <><br /><small>{[user.jobRole, user.organization].filter(Boolean).join(' · ')}</small></>}{user.signupSource && user.signupSource !== 'admin' && <><br /><small>Signed up {user.signupSource === 'google' ? 'with Google' : 'with email'}{user.signupSource === 'password' && !user.emailVerified ? ' · email not confirmed yet' : ''}</small></>}</td><td>{user.role === 'admin' ? 'Administrator' : 'Clinician'}</td><td>{user.lastSeenAt && Number.isFinite(Date.parse(user.lastSeenAt)) ? new Date(user.lastSeenAt).toLocaleDateString() : 'Never'}</td><td>{user.approval === 'pending' && !user.disabled ? <span className="admin-actions"><ShellButton className="btn btn-primary" disabled={!!approving} onClick={() => { void approve(user) }}>{approving === user.id ? 'Approving…' : 'Approve'}</ShellButton><ShellButton className="btn" disabled={saving} onClick={() => { setManage(user); setResetPassword(''); setManageError('') }}>Manage</ShellButton></span> : <ShellButton className="btn" disabled={saving} onClick={() => { setManage(user); setResetPassword(''); setManageError('') }}>{user.disabled ? 'Disabled' : 'Manage'}</ShellButton>}</td></tr>)}</tbody></table></div>
       <div className="admin-pagination"><span>{total ? `${offset + 1}-${Math.min(offset + users.length, total)} of ${total}` : 'No accounts'}</span><ShellButton className="btn" disabled={offset === 0} onClick={() => showPage(Math.max(0, offset - PAGE_SIZE))}>Previous</ShellButton><ShellButton className="btn" disabled={offset + PAGE_SIZE >= total} onClick={() => showPage(offset + PAGE_SIZE)}>Next</ShellButton></div>
     </>}
     {manage && <section className="admin-create"><h3 className="admin-heading">Manage {manage.email}</h3><p className="admin-note">Disabling an account or resetting its password ends its active sessions.</p>

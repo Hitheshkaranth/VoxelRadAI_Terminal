@@ -27,6 +27,8 @@ export async function login(email: string, password: string): Promise<SessionUse
   const response = await fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ email: email.trim(), password }) })
   if (response.status === 401) throw new Error('Email or password is incorrect. Please try again.')
   if (response.status === 429) throw new Error('Too many sign-in attempts. Wait a few minutes and try again.')
+  // Self sign-ups not yet confirmed or approved: the server explains which step is left.
+  if (response.status === 403) { const data = await response.json().catch(() => ({})); throw new Error(typeof data?.error === 'string' ? data.error : 'This account cannot sign in yet.') }
   if (!response.ok) throw new Error('Sign-in could not be completed. Try again or contact your administrator.')
   const user = parseSession(await response.json())
   if (!user) throw new Error('Sign-in did not create a session. Please try again.')
