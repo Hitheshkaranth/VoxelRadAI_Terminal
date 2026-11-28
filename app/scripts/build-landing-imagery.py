@@ -36,7 +36,7 @@ SAMPLES = ROOT / "app" / "public" / "samples"
 DOCS = ROOT / "docs"
 OUT = ROOT / "app" / "public" / "landing"
 SIZE = 720
-FONT = ImageFont.truetype(str(ROOT / "app" / "public" / "fonts" / "InstrumentSans.ttf"), 17)
+FONT = ImageFont.truetype(str(ROOT / "app" / "public" / "fonts" / "Figtree.ttf"), 17)
 provenance: list[dict] = []
 
 

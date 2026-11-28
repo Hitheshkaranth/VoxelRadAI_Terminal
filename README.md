@@ -498,7 +498,7 @@ The API integration harness writes synthetic records, so run it only against a d
 
 - Screenshots and samples use public Slicer teaching volumes and pydicom fixtures ([sample provenance](app/public/samples/provenance.json), [pydicom notice](app/public/samples/README.md)). Landing images are listed in [`app/public/landing/provenance.json`](app/public/landing/provenance.json). None of these are expert-labelled validation cases.
 - The UI is built on [shadcn/ui](https://github.com/shadcn-ui/ui) ([MIT notice](app/src/components/ui/LICENSE)). [Libraries.dev](https://github.com/Jakubantalik/Libraries.dev) informed the choice of loading indicator.
-- Fonts are self-hosted under the SIL Open Font License: [Figtree](app/public/fonts/Figtree-OFL.txt), [Instrument Sans](app/public/fonts/InstrumentSans-OFL.txt) and [Instrument Serif](app/public/fonts/InstrumentSerif-OFL.txt).
+- Fonts are self-hosted under the SIL Open Font License: [Figtree](app/public/fonts/Figtree-OFL.txt) and [Newsreader](app/public/fonts/Newsreader-OFL.txt).
 
 <div align="center">
 <sub>Built for readers who want to see the evidence. <a href="https://radgenis.com">radgenis.com</a></sub>

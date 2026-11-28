@@ -6,7 +6,7 @@ The root introduces RadGenis. `/workspace` retains backend sign-in and OIDC hand
 
 The user requested an element-by-element adaptation of https://visuvate.com/ after approving an open-source alternative to Perplexity's font. See [visuvate-mapping.md](visuvate-mapping.md) for the observed reference elements, evidence and project equivalents.
 
-The landing page self-hosts Instrument Sans (400-700) and Instrument Serif (regular and italic), with their SIL OFL licenses in `app/public/fonts/`. These are not FK Grotesk, Walsheim or Fraunces. No proprietary reference assets are bundled. Fonts do not require a third-party request at runtime.
+The landing page self-hosts Figtree (display and body) and Newsreader (the italic accent serif), with their SIL OFL licenses in `app/public/fonts/`. These are not FK Grotesk, Walsheim or Fraunces. No proprietary reference assets are bundled. Fonts do not require a third-party request at runtime.
 
 ## Page architecture
 
