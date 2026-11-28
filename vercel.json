@@ -70,6 +70,10 @@
       "destination": "/terms.html"
     },
     {
+      "source": "/account",
+      "destination": "/index.html"
+    },
+    {
       "source": "/workspace",
       "destination": "/index.html"
     },
