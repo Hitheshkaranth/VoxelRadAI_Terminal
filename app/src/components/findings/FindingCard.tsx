@@ -7,7 +7,7 @@ import type { AnalysisResult, Finding, FindingReview } from '../../types'
 import { SEVERITY_LABEL } from '../../types'
 import { AlertTriangle, BarChart3, Check, CheckCircle2, Cloud, Crop, Eye, HelpCircle, Users, X } from 'lucide-react'
 import { BENCHMARK, reliabilityFor } from '../../lib/reliability'
-import { isExcluded, isUnconfirmed, isUnsupported } from '../../lib/classifier'
+import { isExcluded, isUnconfirmed, isUnsupported, shownClassifierStatus } from '../../lib/classifier'
 import { useActiveImage } from '../../store'
 import { useShell } from '../shell/shellState'
 import './findings.css'
@@ -37,8 +37,9 @@ interface Props {
 const pct = (p: number) => `${Math.round(p * 100)}%`
 
 /** One line saying what independent evidence exists for this finding. */
-function evidenceLine(f: Finding, status: AnalysisResult['classifierStatus']): { text: string; tone: 'ok' | 'warn' | 'muted' } | null {
+function evidenceLine(f: Finding, rawStatus: AnalysisResult['classifierStatus']): { text: string; tone: 'ok' | 'warn' | 'muted' } | null {
   if (f.severity === 'normal') return null
+  const status = shownClassifierStatus(rawStatus)
   const c = f.classifier
   if (c) {
     if (c.supported === null || c.prob === null) return { text: 'Classifier cannot assess this type', tone: 'muted' }

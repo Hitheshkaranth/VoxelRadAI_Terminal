@@ -5,7 +5,7 @@ import { toast } from '../components/shell/toastStore'
 import { useApp } from '../store'
 import { DEMO_ANALYSIS_MESSAGE, DEMO_MODE } from './session'
 import type { AnalysisResult, AnalysisStage, ReportDraft, Settings, StudyImage } from '../types'
-import { crossCheck, reportSourceKey, reportTraceLines } from './classifier'
+import { CLASSIFIER_ENABLED, crossCheck, reportSourceKey, reportTraceLines } from './classifier'
 import { analysisEligibility, isCrossSectional } from './modality'
 import { augment, mairaHealth } from './maira'
 import { analyzeImage, generateReport, reencodeForClassifier } from './medgemma'
@@ -93,9 +93,11 @@ async function runStudyImage(studyId: string, imageId: string, controller: Abort
     if (!currentEligibility.supported) throw new Error(currentEligibility.reason)
     let result = read
     if (!isCrossSectional(image)) {
-      stage('cross-check')
       const small = await classifierImage(image)
-      result = await crossCheck(image, read, controller.signal, small)
+      if (CLASSIFIER_ENABLED) {
+        stage('cross-check')
+        result = await crossCheck(image, read, controller.signal, small)
+      }
       if (settings.maira.enabled && (await mairaHealth()).loaded) {
         stage('second-reader')
         result = await withSecondReader(image, result, settings, controller.signal, small)

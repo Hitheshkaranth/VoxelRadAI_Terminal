@@ -3,7 +3,7 @@
 // badge, viewer badge) agrees: findings the classifier rejected or the reviewer dismissed are "flagged", not counted.
 import type { AnalysisResult } from '../../types'
 import { AlertTriangle, EyeOff } from 'lucide-react'
-import { activeFindings, deriveUrgencyFromActive, findingCounts } from '../../lib/classifier'
+import { activeFindings, deriveUrgencyFromActive, findingCounts, shownClassifierStatus } from '../../lib/classifier'
 import { BLIND_SPOTS, hasReliabilityForModel } from '../../lib/reliability'
 import { countLabel } from '../shell/shellState'
 import './findings.css'
@@ -25,7 +25,8 @@ export function SummaryHeader({ analysis }: { analysis: AnalysisResult }) {
     { label: 'Quality', value: analysis.imageQuality },
   ]
   const seconds = Math.max(0, Math.round(analysis.durationMs / 1000))
-  const classifierDown = analysis.classifierStatus === 'unavailable' || analysis.classifierStatus === 'error'
+  const shownStatus = shownClassifierStatus(analysis.classifierStatus)
+  const classifierDown = shownStatus === 'unavailable' || shownStatus === 'error'
 
   return (
     <section className="fd-summary">
