@@ -23,6 +23,7 @@ import { VolumeJobIndicator } from './components/shell/VolumeJobIndicator'
 import { ImageContext } from './components/viewer/ImageContext'
 import { ImageViewer } from './components/viewer/ImageViewer'
 import { Filmstrip } from './components/viewer/Filmstrip'
+const TemplatesSheet = lazy(() => import('./components/report/TemplatesSheet').then((m) => ({ default: m.TemplatesSheet })))
 
 const VolumeViewer = lazy(() => import('./components/viewer/VolumeViewer').then((module) => ({ default: module.VolumeViewer })))
 
@@ -160,6 +161,15 @@ export default function App() {
   const study = useActiveStudy()
   const activeImageId = useApp((s) => s.activeImageId)
   const { sidebarCollapsed, inspectorCollapsed, mobileView, volumeSource } = useShell()
+  // /workspace#templates (from the profile page) opens the report letterhead and template editor.
+  const [templatesOpen, setTemplatesOpen] = useState(() => window.location.hash === '#templates')
+  const institution = useApp((s) => s.settings.institution)
+  useEffect(() => {
+    const follow = () => { if (window.location.hash === '#templates') setTemplatesOpen(true) }
+    window.addEventListener('hashchange', follow)
+    return () => window.removeEventListener('hashchange', follow)
+  }, [])
+  const closeTemplates = () => { setTemplatesOpen(false); if (window.location.hash === '#templates') window.history.replaceState(null, '', window.location.pathname + window.location.search) }
 
   useEffect(() => {
     hydrate().then(() => requestAnimationFrame(() => document.documentElement.classList.add('sh-ready')))
@@ -189,6 +199,7 @@ export default function App() {
   return (
     <div className="sh-app" data-mobile-view={study || volumeSource ? mobileView : 'studies'}>
       <MobileHeader />
+      {templatesOpen && <Suspense fallback={null}><TemplatesSheet open onClose={closeTemplates} institution={institution} /></Suspense>}
       <div className={`sh-sidebar-frame${sidebarCollapsed ? ' sh-collapsed' : ''}`}>
         <div style={{ width: 'var(--sidebar-w)', height: '100%' }}>
           <Sidebar />

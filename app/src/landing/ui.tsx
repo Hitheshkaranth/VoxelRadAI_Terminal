@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 /** Letter-by-letter roll on hover, as on the reference's buttons. The second copy is hidden from assistive tech. */
 export function Roll({ children }: { children: string }) {
   const letters = [...children].map((c, i) => <span key={i} style={{ transitionDelay: `${i * 14}ms` }}>{c === ' ' ? ' ' : c}</span>)
-  return <span className="sk-roll"><span>{letters}</span><span aria-hidden="true">{letters}</span></span>
+  // Screen readers get the word once; the per-letter animation spans would otherwise be read as "S a v e".
+  return <><span className="sk-sr">{children}</span><span className="sk-roll" aria-hidden="true"><span>{letters}</span><span>{letters}</span></span></>
 }
 
 export function Pill({ href, children, tone = 'light', icon, lead, onClick }: { href?: string; children: string; tone?: 'light' | 'ghost' | 'grey'; icon?: ReactNode; lead?: ReactNode; onClick?: () => void }) {

@@ -14,6 +14,7 @@ import { reviewRecord, summarizeReviews, toCsv } from './reviewExport.mjs'
 import { ACCESS_STATUSES, parseAccessRequest } from './accessRequests.mjs'
 import { createNotifier } from './notify.mjs'
 import { createSignupRoutes, signInBlock } from './signup.mjs'
+import { parseProfile, readProfile, readUsage, writeProfile } from './profile.mjs'
 import { MAX_TEMPLATES, TEMPLATE_BODY_LIMIT, validTemplate } from './reportTemplates.mjs'
 import { createExamLibrary } from './examTemplates.mjs'
 import { STT_BODY_LIMIT, parseSpeechRequest, transcribe } from './speech.mjs'
@@ -537,14 +538,18 @@ export async function handler(req, res) {
       return send(res, 200, { records: result.rows.slice(0, limit).map(reviewRecord), nextOffset: result.rows.length > limit ? offset + limit : null })
     }
     // The signed-in user's storage allowance and what uses it (shown in Settings and the sidebar).
-    // The name printed on reports this account signs. Free text, one line, up to 120 characters.
+    // Account profile: name (printed on signed reports), centre, location, machines, photo and centre logo, plus usage.
+    if (path === '/api/account/profile' && req.method === 'GET') {
+      const [profile, usage, storage] = await Promise.all([readProfile(pool, user.id), readUsage(pool, user.id), storageUsage(pool, user.id)])
+      return send(res, 200, { profile, usage, storage, plan: { name: 'Research preview', price: 'Free during the preview', readsPerDay: modelProxy.enabled ? modelProxy.limit : 0 } })
+    }
     if (path === '/api/account/profile' && req.method === 'PATCH') {
-      const data = await body(req, 1024)
-      const fullName = typeof data.fullName === 'string' ? data.fullName.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : null
-      if (fullName === null || fullName.length > 120) return send(res, 400, { error: 'Enter your name in 120 characters or fewer.' })
-      await pool.query('UPDATE users SET full_name=$2 WHERE id=$1', [user.id, fullName])
+      const parsed = parseProfile(await body(req, 1024 * 1024))
+      if (parsed.error) return send(res, 400, { error: parsed.error })
+      await writeProfile(pool, user.id, parsed.value)
       await audit(user.id, 'account.profile_updated')
-      return send(res, 200, { user: { ...user, fullName } })
+      const profile = await readProfile(pool, user.id)
+      return send(res, 200, { user: { ...user, fullName: profile.fullName }, profile })
     }
     if (path === '/api/account/storage' && req.method === 'GET') return send(res, 200, await storageUsage(pool, user.id))
     if (path === '/api/studies' && req.method === 'GET') {
@@ -570,6 +575,11 @@ export async function handler(req, res) {
       try { outcome = await writeStudy(client, user.id, data, expected) } finally { client.release() }
       if (outcome.status !== 200) return send(res, outcome.status, outcome.body)
       const { revision } = outcome.body
+      if (revision === 1) {
+        const first = Array.isArray(data.images) ? data.images[0] : undefined
+        const modality = String(first?.sourceModality || first?.analysis?.modality || '').slice(0, 16)
+        pool.query("INSERT INTO usage_events(user_id,kind,modality) VALUES ($1,'study_created',$2)", [user.id, modality]).catch(() => {})
+      }
       await audit(user.id, 'study.saved', data.id); return send(res, 200, { id: data.id, revision })
     }
     const shareMatch = path.match(/^\/api\/studies\/([a-f0-9-]+)\/shares$/i)

@@ -16,9 +16,11 @@ export async function listen(handler) {
 // login_attempts stand-in: one counter per key for the current "day" (`pool.resetsAt`). Moving `resetsAt` forward
 // starts a new day: the next reservation resets the counter, and a refund only applies to the day it names.
 export function fakePool() {
-  const counts = new Map(), days = new Map(), queries = []
-  const pool = { counts, queries, resetsAt: new Date(Date.now() + 3600000), async query(sql, [key, resetsAt]) {
+  const counts = new Map(), days = new Map(), queries = [], usage = []
+  const pool = { counts, queries, usage, resetsAt: new Date(Date.now() + 3600000), async query(sql, [key, resetsAt]) {
     queries.push(sql)
+    // Usage history rows are recorded separately: they are not part of the read allowance.
+    if (sql.startsWith('INSERT INTO usage_events')) { usage.push({ userId: key, modality: resetsAt }); return { rows: [] } }
     if (sql.startsWith('INSERT')) {
       if (+days.get(key) !== +pool.resetsAt) { counts.set(key, 0); days.set(key, pool.resetsAt) }
       counts.set(key, counts.get(key) + 1)

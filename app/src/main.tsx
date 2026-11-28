@@ -42,12 +42,14 @@ const DemoRoot = lazy(() => import('./DemoRoot').then((m) => ({ default: m.DemoR
 const Skanda0Page = lazy(() => import('./landing/Pages').then((m) => ({ default: m.Skanda0Page })))
 const BenchmarksPage = lazy(() => import('./landing/Pages').then((m) => ({ default: m.BenchmarksPage })))
 const DocsPage = lazy(() => import('./landing/DocsPage').then((m) => ({ default: m.DocsPage })))
+const AccountRoot = lazy(() => import('./account/AccountRoot').then((m) => ({ default: m.AccountRoot })))
 const path = window.location.pathname.replace(/\/+$/, '') || '/'
 function Route() {
   if (path === '/demo') return <DemoRoot />
   if (path === '/skanda-0') return <Skanda0Page />
   if (path === '/benchmarks') return <BenchmarksPage />
   if (path === '/docs') return <DocsPage />
+  if (path === '/account') return <AccountRoot />
   if (path === '/' && !new URLSearchParams(window.location.search).has('oidc')) return <LandingPage />
   return <WorkspaceRoot />
 }

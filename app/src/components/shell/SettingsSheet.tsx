@@ -75,6 +75,7 @@ export function SettingsSheet() {
       {section === 'account' &&
       <Section title={SERVER_MODE ? 'Account & workspace' : 'Local workspace'} desc={SERVER_MODE ? `Signed in as ${user?.email ?? ''}. Image studies remain in this browser until explicitly uploaded.` : 'No sign-in is required in local mode. Studies are stored in this browser, without account access protection or cloud backup.'}>
         <div className="sh-settings-row" style={{ flexWrap: 'wrap' }}>
+          {SERVER_MODE && <a className="btn btn-primary" href="/account">Your profile &amp; usage</a>}
           <ShellButton className="btn" onClick={() => setAnalyticsOpen(true)}>{user?.role === 'admin' ? 'Admin & analytics' : 'Workspace analytics'}</ShellButton>
           {SERVER_MODE && <ShellButton className="btn" onClick={() => setCloudOpen(true)}>Saved studies</ShellButton>}
           {SERVER_MODE && <ShellButton className="btn" onClick={() => setVolumesOpen(true)}>Saved volumes</ShellButton>}

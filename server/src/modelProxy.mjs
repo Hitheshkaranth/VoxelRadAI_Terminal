@@ -237,6 +237,9 @@ export function createModelProxy({ pool, env = process.env, body, send, fetchImp
       if (res.destroyed || res.writableEnded) return
       return send(res, opened.failure.status, { error: opened.failure.error })
     }
+    // Usage history for the account profile: the read reached the GPU and counts against the day.
+    const modality = typeof payload?.skanda?.modality === 'string' ? payload.skanda.modality.slice(0, 16) : ''
+    pool.query("INSERT INTO usage_events(user_id,kind,modality) VALUES ($1,'model_read',$2)", [user.id, modality]).catch(() => {})
     try { await pipeStream(res, opened.upstream, ac, { 'X-VoxelRad-Reads-Left': String(Math.max(0, limit - reservation.count)) }) }
     finally { finished = true }
   }

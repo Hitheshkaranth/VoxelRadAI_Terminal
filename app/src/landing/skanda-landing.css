@@ -41,6 +41,7 @@
 .sk-pill-grey:hover{background:#363636}
 .sk-pill-sm{height:34px;padding:0 16px;font-size:13px}
 .sk-pill:active{transform:scale(.97)}
+.sk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .sk-roll{display:inline-grid;overflow:hidden;line-height:1.25}
 .sk-roll>span{grid-area:1/1;display:inline-flex}
 .sk-roll>span>span{display:inline-block;transition:transform .42s var(--sk-ease)}

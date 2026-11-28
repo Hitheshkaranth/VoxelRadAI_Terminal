@@ -56,6 +56,7 @@
 .session-pill-ghost { border-color: var(--s-line-2); color: var(--s-text); }
 .session-pill-ghost:hover { border-color: var(--s-line-3); }
 .session-pill:active, .session-page .session-card .session-submit:active:not(:disabled), .session-page .session-card .session-secondary:active:not(:disabled) { transform: scale(.97); }
+.session-page .sk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .session-page .sk-roll { display: inline-grid; overflow: hidden; line-height: 1.25; }
 .session-page .sk-roll > span { grid-area: 1 / 1; display: inline-flex; }
 .session-page .sk-roll > span > span { display: inline-block; transition: transform .42s var(--s-ease); }
