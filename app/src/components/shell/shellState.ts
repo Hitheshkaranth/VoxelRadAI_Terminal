@@ -1,6 +1,7 @@
 // OWNER: Agent 5. Shared shell-layout state (collapsible sidebar / inspector) so
 // App, Toolbar and Inspector can drive the same animation without store coupling.
 import { VOLUME_SAMPLES, type VolumeSource } from '../../lib/volumeSources'
+import { withRememberedAcquisition } from '../../lib/volumeAcquisition'
 import { create } from 'zustand'
 import { useApp } from '../../store'
 import { runAnalysis } from '../../lib/analysis'
@@ -36,7 +37,7 @@ function volumeAddress(source: VolumeSource | null) {
 
 export const useShell = create<ShellState>()((set, get) => ({
   volumeSource: initialVolume,
-  openVolume: (volumeSource) => { volumeAddress(volumeSource); set({ volumeSource, mobileView: 'viewer' }) },
+  openVolume: (source) => { const volumeSource = withRememberedAcquisition(source); volumeAddress(volumeSource); set({ volumeSource, mobileView: 'viewer' }) },
   closeVolume: () => { volumeAddress(null); set({ volumeSource: null }) },
   mobileView: initialVolume ? 'viewer' : 'studies',
   setMobileView: (mobileView) => {

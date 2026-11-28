@@ -19,6 +19,7 @@ import { Toasts } from './components/shell/Toasts'
 import { analyzeImageAction, routeDroppedFiles, useShell } from './components/shell/shellState'
 import { ErrorBoundary } from './components/shell/ErrorBoundary'
 import { VOLUME_SAMPLES } from './lib/volumeSources'
+import { loadRememberedAcquisitions, withRememberedAcquisition } from './lib/volumeAcquisition'
 import { VolumeJobIndicator } from './components/shell/VolumeJobIndicator'
 import { ImageContext } from './components/viewer/ImageContext'
 import { ImageViewer } from './components/viewer/ImageViewer'
@@ -156,6 +157,7 @@ function useGlobalUpload() {
 
 export default function App() {
   const hydrated = useApp((s) => s.hydrated)
+  const [detailsReady, setDetailsReady] = useState(false)
   const sheet = useApp((s) => s.sheet)
   const hasStudies = useApp((s) => s.studies.length > 0)
   const study = useActiveStudy()
@@ -172,7 +174,13 @@ export default function App() {
   const closeTemplates = () => { setTemplatesOpen(false); if (window.location.hash === '#templates') window.history.replaceState(null, '', window.location.pathname + window.location.search) }
 
   useEffect(() => {
-    hydrate().then(() => requestAnimationFrame(() => document.documentElement.classList.add('sh-ready')))
+    // Remembered scan acquisition details load with the workspace, before the volume viewer first renders.
+    hydrate().then(() => loadRememberedAcquisitions().catch(() => {})).then(() => {
+      const open = useShell.getState().volumeSource
+      if (open) { const withDetails = withRememberedAcquisition(open); if (withDetails !== open) useShell.setState({ volumeSource: withDetails }) }
+      setDetailsReady(true)
+      requestAnimationFrame(() => document.documentElement.classList.add('sh-ready'))
+    })
   }, [])
   useEffect(() => {
     const followAddress = () => {
@@ -194,7 +202,7 @@ export default function App() {
   useShortcuts()
   const dragging = useGlobalUpload()
 
-  if (!hydrated) return null
+  if (!hydrated || !detailsReady) return null
 
   return (
     <div className="sh-app" data-mobile-view={study || volumeSource ? mobileView : 'studies'}>

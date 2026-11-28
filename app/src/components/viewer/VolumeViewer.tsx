@@ -1,7 +1,7 @@
 import { ScanButton } from './ScanButton'
 import { RegionOutline } from './RegionOutline'
 import { VolumeAcquisitionEditor } from './VolumeAcquisitionEditor'
-import { acquisitionLabel, type VolumeAcquisition } from '../../lib/volumeAcquisition'
+import { acquisitionLabel, rememberAcquisition, rememberable, type VolumeAcquisition } from '../../lib/volumeAcquisition'
 import { pauseVolumeJob } from '../../lib/volumeJobs'
 import { ThinkingOrb } from 'thinking-orbs'
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
@@ -142,6 +142,7 @@ export function VolumeViewer({ source: originalSource }: { source: VolumeSource 
     if (useShell.getState().volumeSource !== originalSource) throw new Error('The open scan changed. Edit acquisition details on the current scan.')
     if (identity) pauseVolumeJob(identity)
     useShell.setState({ volumeSource: { ...originalSource, modality: acquisition.modality, sequence: acquisition.sequence, acquisition } })
+    if (rememberable(originalSource)) await rememberAcquisition(originalSource.id, acquisition).catch(() => { /* still applied for this session */ })
   }
 
   useEffect(() => {
